@@ -1,16 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
-  <modelVersion>4.0.0</modelVersion>
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <relativePath>../../workspace/xmodelermaven/pom.xml</relativePath>
-    <groupId>com.ceteva</groupId>
-    <artifactId>xmodelermaven</artifactId>
-    <version>2.0.0</version>
-  </parent>
+	<parent>
+		<relativePath>../../workspace/xmodelermaven/pom.xml</relativePath>
+		<groupId>com.ceteva</groupId>
+		<artifactId>xmodelermaven</artifactId>
+		<version>2.0.0</version>
+	</parent>
 
-  <artifactId>XModelerDistribution</artifactId>
-  <packaging>eclipse-repository</packaging>
+	<artifactId>XModelerDistribution</artifactId>
+	<packaging>eclipse-repository</packaging>
 
-  <name>XModeler Distribution Build</name>
+	<name>XModeler Distribution Build</name>
+	<build>
+		<extensions>
+			<!-- Enabling the use of git -->
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-scm</artifactId>
+			</extension>
+			<extension>
+				<groupId>org.apache.maven.scm</groupId>
+				<artifactId>maven-scm-manager-plexus</artifactId>
+			</extension>
+			<extension>
+				<groupId>org.apache.maven.scm</groupId>
+				<artifactId>maven-scm-provider-gitexe</artifactId>
+			</extension>
+		</extensions>
+	</build>
+	
+	<profiles>
+		<!-- This profile is used to upload the repo -->
+		<profile>
+			<id>uploadRepo</id>
+			<build>
+
+				<plugins>
+					<!-- Upload the repo to the server -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>wagon-maven-plugin</artifactId>
+						<version>1.0-beta-4</version>
+						<executions>
+							<execution>
+								<id>upload-repo</id>
+								<phase>install</phase>
+								<goals>
+									<goal>upload</goal>
+								</goals>
+								<configuration>
+									<fromDir>${project.build.directory}/repository/</fromDir>
+									<includes>**</includes>
+									<toDir>/updateSite</toDir>
+									<url>scm:git:ssh://git@github.com/phalix/XmodelerDependencies.git</url>
+									<serverId>gitHub</serverId>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+	
+
 </project> 

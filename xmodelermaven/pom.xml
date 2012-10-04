@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -36,19 +37,38 @@
 	</properties>
 	<repositories>
 		<repository>
+			<id>public.phalix.gitHub</id>
+			<name>phalix on GitHub</name>
+			<url>https://raw.github.com/phalix/XModelerDependencies/master/</url>
+		</repository>
+		<repository>
 			<!-- juno does not work!!! -->
 			<id>indigo</id>
 			<layout>p2</layout>
 			<url>http://download.eclipse.org/releases/indigo/</url>
 		</repository>
-		<!-- <repository>
-			<id>3.8.x</id>
-			<layout>p2</layout>
-			<url>http://download.eclipse.org/eclipse/updates/3.8/</url>
-		</repository>-->
-	</repositories> 
+		<!-- <repository> <id>3.8.x</id> <layout>p2</layout> <url>http://download.eclipse.org/eclipse/updates/3.8/</url> 
+			</repository> -->
+	</repositories>
 
 	<build>
+		<extensions>
+			<extension>
+				<groupId>org.apache.maven.wagon</groupId>
+				<artifactId>wagon-scm</artifactId>
+
+			</extension>
+			<extension>
+				<groupId>org.apache.maven.scm</groupId>
+				<artifactId>maven-scm-manager-plexus</artifactId>
+
+			</extension>
+			<extension>
+				<groupId>org.apache.maven.scm</groupId>
+				<artifactId>maven-scm-provider-gitexe</artifactId>
+
+			</extension>
+		</extensions>
 		<plugins>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
@@ -87,7 +107,7 @@
 							<goal>materialize-products</goal>
 						</goals>
 					</execution>
-					<!--  uncomment comments for release -->
+					<!-- uncomment comments for release -->
 					<execution>
 						<id>archive-products</id>
 						<goals>
@@ -100,12 +120,10 @@
 	</build>
 
 	<distributionManagement>
-		<repository>
-			<!-- todo this need to be pointing to the github repo -->
+		<site>
 			<id>XmodelerDependencies</id>
-			<name>Public Local Repository</name>
-			<url>file:///Users/Sebastian/XmodelerDependencies</url>
-		</repository>
+			<url>scm:git:ssh://git@github.com/phalix/XmodelerDependencies.git</url>
+		</site>
 	</distributionManagement>
 	<dependencies>
 
