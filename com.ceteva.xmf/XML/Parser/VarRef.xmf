@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XML::Parser;
+
+context XML::Parser
+
+  @Class VarRef extends Command
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{name})
+    end
+    
+  end

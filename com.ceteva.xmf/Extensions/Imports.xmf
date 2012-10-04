@@ -1,0 +1,78 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Imports extends Sugar
+  
+    @Doc
+      The imports expression is used to grab the current collection of
+      imported name spaces. Imports are lexically scoped so it is necessary
+      to grab the dynamics from the current stack frame.
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Imports ::= '(' name = Name ')' body = Exp { Imports(name,body) }.
+    
+    end
+    
+    @Attribute name : String 
+      @Doc 
+        The name of a var bound to the imported name spaces. 
+      end
+    end
+    
+    @Attribute body : Performable
+      @Doc 
+        An expression to perform in the context of the name.
+      end
+    end
+    
+    @Constructor(name,body) end  
+    
+    @Operation desugar()
+      
+      @Doc
+        An imports expression grabs the dynamics from the current
+        stack frame (via Kernel_imports) and then filters them for
+        the imported tables (tagged with 2). The values in the tables
+        are contained by the imported name spaces.
+      end
+      
+      [| let dynamics = Kernel_imports();
+             imports = Seq{}
+         in @For dynamic in dynamics do
+              if dynamic->head = 2 and 
+                 dynamic->tail <> Root.contents and
+                 dynamic->tail <> XCore.contents
+              then
+                let table = dynamic->tail
+                in @For value inTableValues table do
+                     if value.isKindOf(XCore::Contained) and
+                        not value.isKindOf(XCore::Operation)
+                     then 
+                       if not imports->includes(value.owner)
+                       then imports := imports + Seq{value.owner}
+                       end
+                     end
+                   end
+                end
+              end 
+            end;
+            let <name> = imports + Seq{XCore,Root} in <body> end
+         end
+       |]
+      
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Imports(~S)~%~V",Seq{name,indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+  end
+  

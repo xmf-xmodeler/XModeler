@@ -1,0 +1,1690 @@
+parserImport XOCL;
+parserImport XMap; 
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+import Menus;
+import IO;
+
+context ClassMapping
+
+  @Class PackageXClassDiagram extends ElementXDiagram
+  
+    @Attribute package          : Package                         (?)   end
+    @Attribute diagram          : ClassDiagram                    (?)   end
+    @Attribute classMaps        : Seq(ClassXNode)                 (+,-) end
+    @Attribute packageMaps      : Seq(PackageXNode)               (+,-) end
+    @Attribute docMaps          : Seq(DocXNote)                   (+,-) end
+    @Attribute elementMaps      : Seq(ElementXNode)               (+,-) end
+    @Attribute inheritanceMaps  : Seq(ClassifierXInheritanceEdge) (+,-) end
+    @Attribute attributeMaps    : Seq(AttributeXAttributeEdge)    (+,-) end
+    @Attribute containerMaps    : Seq(ContainerXContainsEdge)     (+,-) end
+    @Attribute dependencyMaps   : Seq(DependencyXDependencyEdge)  (+,-) end
+    @Attribute associationMaps  : Seq(AssociationXAssociationEdge)(+,-) end
+    
+    @Constructor(package,diagram,owner)
+      self.init(Seq{package,diagram})
+    end
+    
+    @Constructor(package,diagram) !
+    
+      // This assumes that we are starting with a package
+      // and generating the diagram.
+      
+      diagram.setOwner(self);
+      self.setHotLoad(true);
+      self.registerWithDiagram(diagram);
+      self.checkDaemons();
+      self.setGlobalMenu(diagram,Set{Package,diagram.of()})
+    end
+
+    //@Constructor(package,diagram,classMaps) end
+    
+    @Operation abstractClassMaps()
+      classMaps + packageMaps
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        AssociationXAssociationEdge do
+          self.addAssociationMap(element)
+        end
+        AttributeXAttributeEdge do
+          self.addAttributeMap(element)
+        end
+        ClassifierXInheritanceEdge do
+          self.addInheritanceMap(element)
+        end
+        DependencyXDependencyEdge do
+          self.addDependencyMap(element)
+        end
+        ClassXNode do 
+          self.addClassMap(element)
+        end
+        ContainerXContainsEdge do
+          self.addContainerMap(element) 
+        end
+        ElementXNode do 
+          self.addElementMap(element)
+        end
+        Associations::Association do
+          self.associationAdded(element)
+        end
+        XCore::Package do
+          self.packageAdded(element)
+        end
+        XCore::Class do
+          self.classAdded(element)
+        end
+        PackageXNode do
+          self.addPackageMap(element)
+        end
+        DocXNote do
+          self.addDocMap(element)
+        end
+        else
+          self.elementAdded(element)
+        //else format(stdout,"PackageXClassDiagram::add: unknown element " + element.toString())
+      end
+    end
+
+    @Operation addDropped(element)
+      @TypeCase(element)
+        XCore::Package do
+          self.packageDropped(element);
+          self.generateEdges()
+        end
+        XCore::Class do
+          self.classDropped(element);
+          self.generateEdges()
+        end
+        else format(stdout,"PackageXClassDiagram::addDropped: unknown element " + element.toString())
+      end
+    end
+    
+    @Operation addAssociationMap(associationMap)
+      self.addToAssociationMaps(associationMap);
+      associationMap.setOwner(self)
+    end
+    
+    @Operation addAttributeMap(attributeMap)
+      self.attributeMaps := attributeMaps->prepend(attributeMap);
+      attributeMap.setOwner(self)
+    end
+    
+    @Operation addAttribute(attribute)
+      let acMaps = self.abstractClassMaps()
+      in
+        @Find(sourceMap,acMaps)
+          when sourceMap.element() = attribute.owner
+          do @Find(targetMap,acMaps)
+               when targetMap.element() = attribute.underlyingType()
+               do let 
+                    edge = diagram.makeAttribute(sourceMap.node,targetMap.node,attribute.of().pathSeq());
+                    //type = attribute.type then
+                    //mult = if type.isKindOf(Set) then "*" elseif type.isKindOf(Seq) then "* <<ordered>>" else "" end
+                    mult = AttributeXAttributeEdge::calcMultLabelString(attribute.mult())
+                  in  
+                    edge.setName(attribute.name.toString());
+                    edge.setMult(mult);
+                    let attributeEdgeMap = AttributeXAttributeEdge(attribute,edge)
+                    in  
+                      self.add(attributeEdgeMap);
+                      self.diagram.add(edge)
+                    end
+                  end
+             end
+        end
+      end
+    end
+    
+    @Operation addClass(class)
+      let package = 
+            if package.classes->includes(class) 
+            then "" 
+            else "(from " + class.owner.path() + ")"
+            end;
+          x = diagram.selectedX() + 100;
+          y = diagram.selectedY() + 100 then
+        node = ClassNode(class.name.toString(),package,class.isAbstract,class.of().pathSeq(),x,y,diagram.showAttributes(),diagram.showOperations(),diagram.showMetaslots()) then
+        map = ClassXNode(class,node,self)
+      in 
+        @WithoutRendering(self.diagram)
+          self.addClassMap(map);
+          diagram.addNode(node);
+          node.new(diagram);
+          if class.isAbstract then
+            node.setIsAbstract(true)
+          end;
+          if node.showAttributes then
+            map.generateAttributes()
+          end;
+          if node.showOperations then
+            map.generateOperations()
+          end;
+          if node.showMetaslots then
+            map.generateMetaslots()
+          end;
+          node
+        end
+      end
+    end
+    
+    @Operation addClassMap(classMap)
+      self.classMaps := classMaps->prepend(classMap);
+      classMap.setOwner(self)
+    end
+    
+    @Operation addContainerMap(containerMap)
+      self.addToContainerMaps(containerMap);
+      containerMap.setOwner(self)
+    end
+
+    /* @Operation addContentsChangedDaemon()
+      package.addContentDaemon(self,
+        @Operation(newContents,oldContents)
+          let
+            added = newContents - oldContents;
+            removed = oldContents - newContents
+          in
+            if not added->isEmpty then
+              @For value in added do
+                //if not value.isKindOf(Class) and not value.isKindOf(Package)
+                //then self.elementAdded(value)
+                if value.isKindOf(Associations::Association)
+                then self.associationAdded(value)
+                end
+              end 
+            else
+            
+            if not removed->isEmpty then
+              @For value in removed do
+                //if not value.isKindOf(Class) and not value.isKindOf(Package)
+                //then self.elementRemoved(value)
+                if value.isKindOf(Associations::Association)
+                then self.associationRemoved(value)
+                end
+              end 
+            end
+          end
+        end
+      )
+    end */
+
+    @Operation addDependencyMap(dependencyMap)
+      self.addToDependencyMaps(dependencyMap);
+      dependencyMap.setOwner(self)
+    end
+    
+    @Operation addDocMap(docMap)
+      self.addToDocMaps(docMap);
+      docMap.setOwner(self)
+    end
+    
+    @Operation addElementMap(elementMap)
+      self.addToElementMaps(elementMap);
+      elementMap.setOwner(self)
+    end
+    
+    @Operation addInheritanceMap(inheritanceMap)
+      self.inheritanceMaps := inheritanceMaps->prepend(inheritanceMap);
+      inheritanceMap.setOwner(self)
+    end
+    
+    @Operation addPackageMap(packageMap)
+      self.addToPackageMaps(packageMap);
+      packageMap.setOwner(self)
+    end
+    
+    @Operation addPackage(package)
+      let owningPackage = 
+        if self.package.packages->includes(package) 
+        then "" 
+        else "(from " + package.owner.path() + ")"
+        end then
+        node = PackageNode(package.name.toString(),owningPackage,package.of().pathSeq(),0,0)
+      in
+        @WithoutRendering(self.diagram)
+          self.add(PackageXNode(package,node,self));
+          diagram.add(node);
+          node.new(diagram)
+        end
+      end
+    end
+    
+    @Operation associationAdded(association)
+      if not associationMaps->exists(map | map.association = association)
+      then
+        let acMaps = self.abstractClassMaps()
+        in
+          @Find(sourceMap,acMaps)
+            when sourceMap.element() = association.end1.underlyingType()
+            do @Find(targetMap,acMaps)
+                 when targetMap.element() = association.end2.underlyingType()
+                 do let name = association.name.toString();
+                        mult1 = Multiplicity(association.end1.mult.labelString(),"start") then
+                        end1 = AssociationEnd(Label(association.end1.name.toString(),"start",10,10,true),mult1);
+                        mult2 = Multiplicity(association.end2.mult.labelString(),"end") then
+                        end2 = AssociationEnd(Label(association.end2.name.toString(),"end",0-10,0-10,true),mult2) then
+                        edge = diagram.makeAssociation(name,end1,end2,sourceMap.node,targetMap.node,association.of().pathSeq())
+                    in  self.add(AssociationXAssociationEdge(association,edge));
+                        self.diagram.add(edge)
+                    end
+               end
+          end
+        end
+      end
+    end
+    
+    @Operation attributeAdded(attribute)
+
+      // Processes the addition of an attribute wrt the supplied
+      // mappings. The accessors are used to map the maps to the
+      // underlying model elements.
+
+      if not attributeMaps->exists(map | map.attribute = attribute) and
+         not attribute.isKindOf(Associations::End)
+      then
+        self.addAttribute(attribute)
+      end
+    end
+    
+    @Operation attributeDropped(attribute)
+      self.addAttribute(attribute)
+    end
+    
+    @Operation associationEdgeAdded(associationEdge)
+      if self.validEdge(associationEdge)
+      then
+        if not associationMaps->exists(map | map.edge = associationEdge)
+        then
+          let acMaps = self.abstractClassMaps()
+          in
+            @Find(end1Map,acMaps)
+              when end1Map.node = associationEdge.sourceNode()
+              do @Find(end2Map,acMaps)
+                   when end2Map.node = associationEdge.targetNode()
+                   do let name = package.newName("A");
+                          class1 = end1Map.element();
+                          class2 = end2Map.element() then
+                          class1Name = class1.name.toString().lowerCaseInitialLetter();
+                          class2Name = class2.name.toString().lowerCaseInitialLetter() then
+                          end1Name = if class2.hasElement(class1Name) then class2.newName("a") else class1Name end;
+                          end2Name = if class1.hasElement(class2Name) then class1.newName("b") else class2Name end;
+                          metaClass = associationEdge.typePath->ref(Seq{Root,XCore,Associations}) then
+                          association = metaClass(name);
+                          end1 = Associations::End(end1Name,class1,Associations::One());
+                          end2 = Associations::End(end2Name,class2,Associations::One())
+                      in  associationEdge.setName(name);
+                          associationEdge.end1.setName(end1Name);
+                          associationEdge.end2.setName(end2Name);
+                          association.setEnd1(end1);
+                          association.setEnd2(end2);
+                          self.add(AssociationXAssociationEdge(association,associationEdge));
+                          package.add(association);
+                          association.init()
+                      end
+                 end
+            end       
+          end
+        end
+      end
+    end
+    
+    @Operation attributeEdgeAdded(attributeEdge)
+      if self.validEdge(attributeEdge)
+      then
+        if not attributeMaps->exists(map | map.edge = attributeEdge)
+        then
+          let acMaps = self.abstractClassMaps()
+          in
+            @Find(ownerMap,acMaps)
+              when ownerMap.node = attributeEdge.sourceNode()
+              do @Find(typeMap,acMaps)
+                   when typeMap.node = attributeEdge.targetNode()
+                   do let class = ownerMap.element();
+                        type = typeMap.element() then
+                        typeName = type.name.toString().lowerCaseInitialLetter() then
+                        name = if class.hasElement(typeName) then class.newName("att") else typeName end; 
+                        metaClass = attributeEdge.typePath->ref(Seq{Root,XCore}) then
+                        attribute = metaClass(name,type) then
+                        attributeEdgeMap = AttributeXAttributeEdge(attribute,attributeEdge)
+                    in  attributeEdge.setName(name);
+                        self.add(attributeEdgeMap);
+                        class.add(attribute)
+                    end
+                 end
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation associationEdgeRemoved(associationEdge)
+      @Find(associationMap,associationMaps)
+        when associationMap.edge = associationEdge
+        do self.remove(associationMap);
+           let association = associationMap.association
+           in  association.remove();
+               association.owner.remove(association)
+           end
+      end
+    end
+
+    @Operation associationRemoved(association)
+      @Find(associationMap,associationMaps)
+        when associationMap.association = association
+        do 
+          self.remove(associationMap);
+          associationMap.edge.delete()
+      end
+    end
+
+    @Operation associationEnd1Changed(associationMap,newEnd1Node)
+      @Find(classMap,self.abstractClassMaps())
+        when classMap.node = newEnd1Node
+        do let association = associationMap.association then
+               end1 = association.end1
+           in end1.remove();
+              end1.type := classMap.element();
+              end1.init()
+        end
+      end
+    end
+    
+    @Operation associationEnd2Changed(associationMap,newEnd2Node)
+      @Find(classMap,self.abstractClassMaps())
+        when classMap.node = newEnd2Node
+        do let association = associationMap.association then
+               end2 = association.end2
+           in end2.remove();
+              end2.type := classMap.element();
+              end2.init()
+           end
+      end
+    end
+    
+    @Operation associationEdgeAddedDaemon(diagram,slot,associationEdge)
+      self.associationEdgeAdded(associationEdge)
+    end
+    
+    @Operation associationEdgeRemovedDaemon(diagram,slot,associationEdge)
+      self.associationEdgeRemoved(associationEdge)
+    end
+    
+    @Operation attributeEdgeAddedDaemon(diagram,slot,attributeEdge)
+      self.attributeEdgeAdded(attributeEdge)
+    end
+    
+    @Operation attributeEdgeRemovedDaemon(diagram,slot,attributeEdge)
+      self.attributeEdgeRemoved(attributeEdge)
+    end
+    
+    @Operation attributeEdgeRemoved(attributeEdge)
+      @Find(attributeMap,attributeMaps)
+        when attributeMap.edge = attributeEdge
+        do
+          self.remove(attributeMap);
+          let attribute = attributeMap.attribute
+          in  attribute.owner.remove(attribute)
+          end
+      end
+    end
+    
+    @Operation attributeOwnerChanged(attributeMap)
+    
+      // If the owner changes then remove the attribute map
+      // and re-add the attribute only if the source of the
+      // attribute edge is not the current owner.
+      
+      @Find(map,self.abstractClassMaps())
+        when map.element() = attributeMap.attribute.owner and
+             map.node = attributeMap.edge.source.owner
+        else self.remove(attributeMap);
+             attributeMap.edge.delete();
+             self.attributeAdded(attributeMap.attribute)
+      end
+    end
+    
+    @Operation attributeRemoved(attribute)
+      @Find(attributeMap,attributeMaps)
+        when attributeMap.attribute = attribute
+        do 
+          self.remove(attributeMap);
+          attributeMap.edge.delete()
+      end
+    end
+    
+    @Operation attributeSourceChanged(attributeMap,newNode)
+      @Find(map,self.abstractClassMaps())
+        when map.node = newNode
+        do let attribute = attributeMap.attribute
+           in attribute.owner.remove(attribute);
+              map.element().add(attribute)
+           end
+        else
+          attributeMap.edge.delete()
+      end
+    end
+    
+    @Operation attributeTargetChanged(attributeMap,newClassNode)
+      @Find(map,self.abstractClassMaps())
+        when map.node = newClassNode
+        do let attribute = attributeMap.attribute;
+               mult = attributeMap.edge.mult();
+               class = map.element()
+           in attribute.type := class;
+              attribute.updateTypeFromMult()
+           end
+        else
+          attributeMap.edge.delete()
+      end
+    end
+    
+    @Operation attributeTypeChanged(attributeMap)
+    
+      // Remove the attribute map and re-enter the attribute
+      // in the case where the edge does not have the type as
+      // a target.
+      
+      let foundMap = 
+        @Find(map,self.abstractClassMaps())
+          when map.element() = attributeMap.attribute.underlyingType() and
+               map.node = attributeMap.edge.target.owner
+          else null
+        end
+      in
+        if foundMap.isKindOf(Null)
+        then
+          self.remove(attributeMap);
+          attributeMap.edge.delete();
+          self.attributeAdded(attributeMap.attribute)
+        end
+      end
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false)
+      in
+        self.buildGlobalMenuExtras(globalMenu);
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation buildGlobalMenuExtras(globalMenu)
+      super(globalMenu);
+      globalMenu.add(MenuAction("Add Missing Package Contents to Diagram",RightClickableProxy::proxyTarget,Seq{},PackageXClassDiagram::addMissingContents));
+      //globalMenu.add(MenuAction("Inherit",RightClickableProxy::proxyTarget,Seq{},PackageXClassDiagram::inheritMenu));
+      self
+    end
+
+    @Operation checkDaemons()
+      // Check that the package and diagram have the
+      // appropriate daemons.
+      super();
+      self.checkPackageDaemons();
+      self.checkDiagramDaemons()
+    end
+    
+    @Operation checkDiagramDaemons()
+      @SlotValueChanged multi once + PackageXClassDiagram::noteNodeAdded(diagram,"noteNodes") 				  	  end;
+      @SlotValueChanged multi once - PackageXClassDiagram::noteNodeRemoved(diagram,"noteNodes") 			      	  end;
+      @SlotValueChanged multi once + PackageXClassDiagram::classNodeAddedDaemon(diagram,"classNodes")               end;
+      // @SlotValueChanged multi once - PackageXClassDiagram::classNodeRemovedDaemon(diagram,"classNodes")          end;
+      @SlotValueChanged multi once + PackageXClassDiagram::packageNodeAddedDaemon(diagram,"packageNodes")           end;
+      // @SlotValueChanged multi once - PackageXClassDiagram::packageNodeRemovedDaemon(diagram,"packageNodes")      end;
+      @SlotValueChanged multi once - PackageXClassDiagram::elementNodeRemovedDaemon(diagram,"elementNodes")         end;
+      @SlotValueChanged multi once + PackageXClassDiagram::inheritanceEdgeAddedDaemon(diagram,"inheritanceEdges")   end;
+      @SlotValueChanged multi once - PackageXClassDiagram::inheritanceEdgeRemovedDaemon(diagram,"inheritanceEdges") end;
+      @SlotValueChanged multi once + PackageXClassDiagram::containsEdgeAddedDaemon(diagram,"containsEdges")         end;
+      @SlotValueChanged multi once - PackageXClassDiagram::containsEdgeRemovedDaemon(diagram,"containsEdges")       end;
+      @SlotValueChanged multi once + PackageXClassDiagram::dependencyEdgeAddedDaemon(diagram,"dependencyEdges")     end;
+      @SlotValueChanged multi once - PackageXClassDiagram::dependencyEdgeRemovedDaemon(diagram,"dependencyEdges")   end;
+      @SlotValueChanged multi once + PackageXClassDiagram::associationEdgeAddedDaemon(diagram,"associationEdges")   end;
+      @SlotValueChanged multi once - PackageXClassDiagram::associationEdgeRemovedDaemon(diagram,"associationEdges") end;
+      @SlotValueChanged multi once + PackageXClassDiagram::attributeEdgeAddedDaemon(diagram,"attributeEdges")       end;
+      @SlotValueChanged multi once - PackageXClassDiagram::attributeEdgeRemovedDaemon(diagram,"attributeEdges")     end
+    end
+
+    @Operation metaPackageChanged_classDiagramDaemon(package,slot,newPackage,oldPackage)
+      self.refreshToolGroups()
+    end
+
+    @Operation nameChanged_classDiagramDaemon(package,slot,newName,oldName)
+      diagram.refreshName()
+    end
+    
+    @Operation associationAdded_classDiagramDaemon(package,slot,association)
+      self.associationAdded(association)
+    end
+    
+    @Operation associationRemoved_classDiagramDaemon(package,slot,association)
+      self.associationRemoved(association)
+    end
+    
+    @Operation classAdded_classDiagramDaemon(package,slot,class)
+      if not self.eventFiltered("class added")
+      then self.classAdded(class);
+           self.generateEdges()
+      end
+    end
+    
+    @Operation classRemoved_classDiagramDaemon(package,slot,class)
+      self.classRemoved(class)
+    end
+    
+    @Operation packageAdded_classDiagramDaemon(obj,slot,package)
+      if not self.eventFiltered("package added")
+      then self.packageAdded(package)
+      end
+    end
+    
+    @Operation packageRemoved_classDiagramDaemon(obj,slot,package)
+      self.packageRemoved(package)
+    end
+    
+    @Operation checkPackageDaemons()
+      @SlotValueChanged multi once   PackageXClassDiagram::nameChanged_classDiagramDaemon(package,"name")                end;
+      // @SlotValueChanged multi once   PackageXClassDiagram::ownerChanged_classDiagramDaemon(package,"owner")              end;
+      @SlotValueChanged multi once + PackageXClassDiagram::associationAdded_classDiagramDaemon(package,"associations")   end;
+      @SlotValueChanged multi once - PackageXClassDiagram::associationRemoved_classDiagramDaemon(package,"associations") end;
+      @SlotValueChanged multi once + PackageXClassDiagram::classAdded_classDiagramDaemon(package,"classes")              end;
+      @SlotValueChanged multi once - PackageXClassDiagram::classRemoved_classDiagramDaemon(package,"classes")            end;
+      @SlotValueChanged multi once + PackageXClassDiagram::packageAdded_classDiagramDaemon(package,"packages")           end;
+      @SlotValueChanged multi once - PackageXClassDiagram::packageRemoved_classDiagramDaemon(package,"packages")         end;
+      @SlotValueChanged multi once   PackageXClassDiagram::metaPackageChanged_classDiagramDaemon(package,"metaPackage")  end
+      
+      // self.addContentsChangedDaemon() // to monitor added and removed named elements not covered by above, and associations
+    end
+    
+    @Operation classAdded(class)
+      if not classMaps->exists(map | map.class = class) and
+         not elementMaps->exists(map | map.element = class)
+      then
+        self.addClass(class)
+      end
+    end
+    
+    @Operation classDropped(class)
+    
+      // Since a dropped class can be dropped multiple times it is not
+      // necessary to guard the addition of a newly dropped class
+      
+      self.addClass(class)
+      //@For parent in class.parents do
+      //  self.parentAdded(class,parent)
+      //end;
+      //@For attribute in class.attributes do
+      //  self.attributeAdded(attribute)
+      //end
+    end
+    
+   @Operation classNodeAdded(classNode)
+   
+      // Create a class based on the newly added node on the diagram.
+      // The class node will have a default name therefore we must
+      // generate a new name that does not conflict with a class
+      // in the current package. The class node contains the metaclass
+      // as a path.
+      
+      if not classMaps->exists(map | map.node = classNode)
+      then
+        let 
+          name = self.newClassName();
+          metaClass = classNode.typePath->ref(Seq{Root,XCore}) then
+          class = metaClass[name=Symbol(name.toString())] then
+          map = ClassXNode(class,classNode,self)
+        in 
+          classNode.setName(name);
+          self.add(map);
+          self.package.add(class);
+          if classNode.showOperations then
+            map.generateOperations()
+          end;
+          if classNode.showMetaslots then
+            map.generateMetaslots()
+          end
+        end
+      end
+    end
+    
+    @Operation classNodeAddedDaemon(diagram,slot,classNode)
+      self.classNodeAdded(classNode)
+    end
+    
+    @Operation classNodeRemovedDaemon(diagram,slot,classNode)
+      self.classNodeRemoved(classNode)
+    end
+    
+    @Operation classRemoved(class)
+      @For map in classMaps
+        when map.class = class
+        do
+          map.node.delete();
+          self.remove(map)
+      end;
+      
+      // Elements (dropped using other) are stored in the classes
+      // slot, check to see if it is an element rather than a class
+      // that has been removed
+      
+      @For map in elementMaps
+        when map.element = class
+        do
+          map.node.delete();
+          self.remove(map)
+      end
+    end
+    
+    @Operation classNodeRemoved(classNode)
+      
+      // no longer used, node is now removed by removing the
+      // model element first
+      
+      self
+    end
+    
+    @Operation classInheritanceMaps():Set(ClassXInheritanceEdge)
+      inheritanceMaps->select(m | m.isKindOf(ClassXInheritanceEdge))
+    end
+    
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else
+        xmf.findClient(DiagramClient).commandInterpreter
+      end
+    end
+    
+    @Operation containerSourceChanged(containerMap,newContainerNode)
+      @Find(map,self.nodeMaps())
+        when map.node = newContainerNode
+        do containerMap.setContainer(map.element())
+      end
+    end
+    
+    @Operation containerTargetChanged(containerMap,newContainedNode)
+      @Find(map,self.nodeMaps())
+        when map.node = newContainedNode
+        do containerMap.setContained(map.element())
+      end
+    end
+    
+    @Operation containsEdgeAdded(containsEdge)
+      if self.validEdge(containsEdge)
+      then
+        if not containerMaps->exists(map | map.edge = containsEdge)
+        then
+          @Find(containerMap,self.nodeMaps())
+            when containerMap.node = containsEdge.sourceNode()
+            do @Find(containedMap,self.nodeMaps())
+                when containedMap.node = containsEdge.targetNode()
+                do
+                  let containsMap = ContainerXContainsEdge(containerMap.element(),containedMap.element(),containsEdge)
+                  in
+                    self.add(containsMap);
+                    containsMap.selectSlot()
+                  end
+             end
+          end
+        end
+      end
+    end
+    
+    @Operation containsEdgeRemoved(containsEdge)
+      @Find(containsMap,containerMaps)
+        when containsMap.edge = containsEdge
+        do self.remove(containsMap);
+           containsMap.removeValue()
+      end
+    end
+    
+    @Operation containsEdgeAddedDaemon(diagram,slot,containsEdge)
+      self.containsEdgeAdded(containsEdge)
+    end
+    
+    @Operation containsEdgeRemovedDaemon(diagram,slot,containsEdge)
+      self.containsEdgeRemoved(containsEdge)
+    end
+
+    @Operation handleDiagramCloseEvent(diagram)
+      if package.owner = null
+      then
+        owner.remove(self)
+      else
+        super(diagram)
+      end
+    end
+
+    @Operation handleDiagramRenewEvent(diagram)
+      self.refreshToolGroups()
+    end
+
+    @Operation dependencyEdgeAddedDaemon(diagram,slot,dependencyEdge)
+      self.dependencyEdgeAdded(dependencyEdge)
+    end
+    
+    @Operation dependencyEdgeAdded(dependencyEdge)
+      if self.validEdge(dependencyEdge)
+      then
+        if not dependencyMaps->exists(map | map.edge = dependencyEdge)
+        then
+          @Find(sourceMap,self.nodeMaps())
+            when sourceMap.node = dependencyEdge.sourceNode()
+            do @Find(targetMap,self.nodeMaps())
+                 when targetMap.node = dependencyEdge.targetNode()
+                  do let source = sourceMap.element();
+                         target = targetMap.element();
+                         metaClass = dependencyEdge.typePath->ref(Seq{Root,XCore}) then
+                         dependency = metaClass(source,target)
+                     in  self.add(DependencyXDependencyEdge(dependency,dependencyEdge));
+                         dependency.attach()
+                     end
+               end
+          end
+        end
+      end
+    end
+    
+    @Operation dependencyEdgeRemoved(dependencyEdge)
+      @Find(dependencyMap,dependencyMaps)
+        when dependencyMap.edge = dependencyEdge
+        do self.remove(dependencyMap);
+           dependencyMap.detach();
+           dependencyMap.dispose()
+      end
+    end
+    
+    @Operation dependencyEdgeRemovedDaemon(diagram,slot,dependencyEdge)
+      self.dependencyEdgeRemoved(dependencyEdge)
+    end
+    
+    @Operation dependencySourceChanged(dependency)
+      // We do nothing for this since we don't expect
+      // a dependency to be directly modified. Update
+      // this in line with other model element changes.
+      self
+    end
+    
+    @Operation dependencyEdgeSourceChanged(map,node)
+      @Find(classMap,self.nodeMaps())
+        when classMap.node = node
+        do map.dependency.detach();
+           map.dependency.setSource(classMap.element());
+           map.dependency.attach() 
+      end   
+    end
+    
+    @Operation dependencyEdgeTargetChanged(map,node)
+      @Find(classMap,self.nodeMaps())
+        when classMap.node = node
+        do map.dependency.detach();
+           map.dependency.setTarget(classMap.element());
+           map.dependency.attach() 
+      end   
+    end
+    
+    @Operation dependencyTargetChanged(dependency)
+      // We do nothing for this since we don't expect
+      // a dependency to be directly modified. Update
+      // this in line with other model element changes.
+      self
+    end
+    
+    @Operation debug(debug)
+      owner.debug(debug)
+    end
+
+    @Operation dropIfNecessary(element)
+      if not self.nodeExistsFor(element)
+      then
+        self.addDropped(element)
+      end
+    end
+
+    @Operation dropOtherNode(x,y,C)
+    
+      // Specifies the set of classes to offer via the menu for a
+      // dropped node at position (x,y).
+      
+      let classes = C->asSeq->qsort(@Operation(c1,c2) c1.name < c2.name end) then
+          names = classes.name->map("toString") then
+          choice = xmf.select("General Element","Select a type for the new node.",names,null,null)
+      in if choice <> null
+         then 
+           let class = classes->at(names->indexOf(choice)) then
+               instance = try class() catch(exception) try class.new() catch(exception) null end end;
+               message = "Do you want to add this element to the contents of package " + package.name() + "?. " + 
+               "If you choose no, it will only be deletable if you add it to the contents slot of another object using the Slot Value button." then
+               addToPackage =
+                 if instance.isReallyKindOf(Contained)
+                 then xmf.question(message)
+                 else false
+                 end
+           in
+              if instance <> null
+              then 
+                if instance.isKindOf(NamedElement)
+                then instance.setName(package.newName(class.name.toString()))
+                end;
+                self.elementAdded(instance,x,y);
+                if addToPackage
+                then package.add(instance)
+                end
+              end
+           end
+         end
+      end
+    end
+
+    @Operation duplicateInheritanceEdge(edge,childMap,parentMap)
+      inheritanceMaps->exists(m | m.child = childMap.element() and m.parent = parentMap.element()
+        and m.edge <> edge)
+    end
+    
+    @Operation elementAdded(element)
+      self.elementAdded(element,0,0)
+    end
+
+    @Operation elementAdded(element,x,y)
+      
+      // A general element whose type is unknown to us is added to
+      // the diagram. Use a generic representation for the element.
+      
+      // if not elementMaps->exists(map | map.element = element)
+      // then 
+          
+          let label = @TypeCase(element)
+                         NamedElement do element.name().toString() end
+                         else element.toString()
+                       end then
+               node = ElementNode(element.of().pathSeq(),label,x,y) then
+               map = @TypeCase(element)
+                       NamedElement do NamedElementXNode(element,node) end
+                       else ElementXNode(element,node) 
+                     end
+           in 
+             @WithoutRendering(self.diagram)
+               self.add(map);
+               diagram.add(node);
+               node.new(diagram)
+             end
+           end
+      // end
+    end
+
+    @Operation elementNodeRemoved(elementNode)
+      @Find(map,elementMaps)
+        when map.node = elementNode
+        do
+          self.remove(map);
+          self.package.remove(map.element);
+          self.diagram.remove(map.node)
+      end
+    end
+
+    @Operation elementNodeRemovedDaemon(diagram,slot,elementNode)
+      self.elementNodeRemoved(elementNode)
+    end
+
+    @Operation elementRemoved(element)
+      @Find(map,elementMaps)
+        when map.element = element
+        do self.remove(map);
+           map.node.delete()
+      end
+    end
+
+    @Operation generateDiagram()
+      self.toolGroups();
+      super();
+      //@For map in classMaps do
+      //  map.generateDiagram()
+      //end;
+      diagram.cardLayout(12,200,10,20)
+    end
+    
+    @Operation generateNodes()
+      if self.total()
+      then
+        @For class in package.classes do
+          self.classAdded(class);
+          @For attribute in class.attributes do
+            let type = attribute.underlyingType()
+            in if not type.isKindOf(DataType) andthen 
+                  not package.classes->includes(type)
+               then self.add(type)
+               end
+            end
+          end;
+          @For parent in class.parents do
+            if not class.defaultParents()->includes(parent) andthen
+               not package.classes->includes(parent)
+             then self.add(parent)
+           end
+          end
+        end;
+        @For package in package.packages do
+          self.packageAdded(package);
+          @For parent in package.parents do
+            if parent.isReallyKindOf(XCore::Package)
+            then self.add(parent)
+            end
+          end
+        end
+      end
+    end
+
+    @Operation generateEdges()
+      let classes = self.abstractClassMaps()->collect(map | map.element())
+      in
+        @For class in classes do
+          @For parent in class.parents do
+            self.parentAdded(class,parent)
+          end;
+          @For attribute in class.attributes do
+            self.attributeAdded(attribute)
+          end
+        end
+      end;
+      @For association in package.contentsOf(Associations::Association)->excluding(null) do
+        self.associationAdded(association)
+      end
+    end
+
+    @Operation hotLoaded()
+      self.registerWithDiagram(diagram);
+      xmf.diagramManager().addDiagram(package,diagram);
+      self.checkDaemons();
+      self.setGlobalMenu(diagram,Set{package.of(),diagram.of()},false)
+    end
+
+    @Operation importMenu()
+    
+      // Offer all the contents that this package imports.
+      
+      let importedContents = package.importedContents() then
+          sortedImports = importedContents->asSeq.sortNamedElements_CaseIndependent()
+      in
+        let element = xmf.select("Import","Select a classifier",sortedImports,null,null)
+        in
+          if element <> null
+          then
+            self.addDropped(element)
+          end
+        end
+      end
+
+    end
+    
+    @Operation inheritanceEdgeAddedDaemon(diagram,slot,inheritanceEdge)
+      self.inheritanceEdgeAdded(inheritanceEdge)
+    end
+    
+    @Operation inheritanceEdgeRemovedDaemon(diagram,slot,inheritanceEdge)
+      self.inheritanceEdgeRemoved(inheritanceEdge)
+    end
+    
+    @Operation dropMenu()
+    
+      self
+      // Drop any classifier into a class diagram by declaring its path.
+      // *** to be implemented ***
+      
+    end
+
+    @Operation inheritMenu()
+    
+      // Offer all the elements that the package inherits...
+      
+      let I = package.allContents() - package.contents() then
+          I = I->excluding(null) then
+          I = I->asSeq->qsort(@Operation(n1,n2) n1.name < n2.name end) then
+          element = xmf.select("Inherit","Select a classifier",I,null,null)
+      in if element <> null
+         then self.add(element)
+         end
+      end
+      
+    end
+
+    @Operation inheritanceEdgeAdded(inheritanceEdge)
+      self.inheritanceEdgeAdded(inheritanceEdge,classMaps,ClassXInheritanceEdge);
+      self.inheritanceEdgeAdded(inheritanceEdge,packageMaps,PackageXInheritanceEdge)
+    end
+
+    @Operation inheritanceEdgeAdded(inheritanceEdge,maps,mapClass)
+      if self.validEdge(inheritanceEdge)
+      then
+        @Find(childMap,maps)
+          when childMap.node = inheritanceEdge.sourceNode()
+          do @Find(parentMap,maps)
+               when parentMap.node = inheritanceEdge.targetNode()
+               do
+                 if self.duplicateInheritanceEdge(inheritanceEdge,childMap,parentMap)
+                 then
+                   inheritanceEdge.delete()
+                 else
+                   if not inheritanceMaps->exists(map | map.edge = inheritanceEdge)
+                   then
+                     let 
+                       child = childMap.element();
+                       parent = parentMap.element() then
+                       inheritanceMap = mapClass(child,parent,inheritanceEdge)
+      			     in 
+      			       self.add(inheritanceMap);
+        			   child.addParent(parent)
+      			     end
+      			   end
+                 end
+             end
+        end
+      end
+    end
+
+    @Operation inheritanceEdgeRemoved(inheritanceEdge)
+      @Find(inheritanceMap,inheritanceMaps)
+        when inheritanceMap.edge = inheritanceEdge
+        do self.remove(inheritanceMap);
+           inheritanceMap.child.removeParent(inheritanceMap.parent)
+      end
+    end
+
+    @Operation inheritanceSourceChanged(inheritanceMap,newNode)
+      self.inheritanceSourceChanged(inheritanceMap,newNode,classMaps);
+      self.inheritanceSourceChanged(inheritanceMap,newNode,packageMaps)
+    end
+    
+    @Operation inheritanceSourceChanged(inheritanceMap,newNode,maps)
+      @Find(map,maps)
+        when map.node = newNode
+        do let oldChild = inheritanceMap.child;
+               newChild = map.element();
+               parent = inheritanceMap.parent
+           in  oldChild.removeParent(parent);
+               if newChild.of() = parent.of()
+               then
+                 newChild.addParent(parent)
+               end
+           end
+        else
+          inheritanceMap.edge.delete()
+      end
+    end
+
+    @Operation inheritanceTargetChanged(inheritanceMap,newNode)
+      self.inheritanceTargetChanged(inheritanceMap,newNode,classMaps);
+      self.inheritanceTargetChanged(inheritanceMap,newNode,packageMaps)
+    end
+    
+    @Operation inheritanceTargetChanged(inheritanceMap,newNode,maps)
+      @Find(map,maps)
+        when map.node = newNode
+        do let child = inheritanceMap.child;
+               oldParent = inheritanceMap.parent;
+               newParent = map.element()
+           in  child.removeParent(oldParent);
+               if newParent.of() = child.of()
+               then
+                 child.addParent(newParent)
+               end
+           end
+        else
+          inheritanceMap.edge.delete()
+      end
+    end
+
+    @Operation newAttributeName(class):String
+      let i = 0
+      in @While class.allAttributes()->exists(a | a.name.toString() = ("att" + i.toString())) do
+           i := i + 1
+         end;
+         "att" + i.toString()
+      end
+    end
+    
+    @Operation newClassName():String
+      let i = 0
+      in @While package.classes->exists(c | c.name.toString() = ("Class" + i.toString())) do
+           i := i + 1
+         end;
+         "Class" + i.toString()
+      end
+    end
+    
+    @Operation newPackageName():String
+      let i = 0
+      in @While package.packages->exists(c | c.name.toString() = ("Package" + i.toString())) do
+           i := i + 1
+         end;
+         "Package" + i.toString()
+      end
+    end
+
+    @Operation nodeExistsFor(element)
+      if self.nodeMaps()->exists(map | map.element() = element)
+      then true
+      else false
+      end
+    end
+
+    @Operation nodeMaps()
+      classMaps + packageMaps + elementMaps + self.docMaps
+    end
+    
+    @Operation noteNodeAdded(element,slot,noteNode)
+      if not self.docMaps->exists(map | map.node = noteNode)
+      then
+        let 
+          doc = Doc(noteNode.text.text) then
+          map = DocXNote(doc,noteNode,self)
+        in
+          self.add(map)
+        end
+      end
+    end
+    
+    @Operation noteNodeRemoved(element,slot,noteNode)
+      @Find(map,self.docMaps)
+        when map.node = noteNode
+        do
+           self.remove(map)
+      end
+    end  
+    
+    @Operation packageAdded(package)
+      if not packageMaps->exists(map | map.package = package) and
+         not elementMaps->exists(map | map.element = package)
+      then
+        self.addPackage(package)
+      end
+    end
+    
+    @Operation packageDropped(package)
+    
+      // Since a dropped package can be dropped multiple times it is not
+      // necessary to guard the addition of a newly dropped package
+      
+      self.addPackage(package)
+    end
+    
+    @Operation packageInheritanceMaps():Set(ClassXInheritanceEdge)
+      inheritanceMaps->select(m | m.isKindOf(PackageXInheritanceEdge))
+    end
+    
+    @Operation packageNodeAdded(packageNode)
+      if not packageMaps->exists(map | map.node = packageNode)
+      then
+        let 
+          name = self.newPackageName() then
+          metaClass = packageNode.typePath->ref(Seq{Root,XCore}) then
+          package = metaClass(name) then
+          map = PackageXNode(package,packageNode,self)
+        in
+          packageNode.setName(name);
+          self.add(map);
+          self.package.add(package)
+        end
+      end
+    end
+    
+    @Operation packageNodeAddedDaemon(diagram,slot,packageNode)
+      self.packageNodeAdded(packageNode)
+    end
+    
+    @Operation packageNodeRemovedDaemon(diagram,slot,packageNode)
+      self.packageNodeRemoved(packageNode)
+    end
+    
+    @Operation packageRemoved(package)
+      @For map in packageMaps
+        when map.package = package
+        do 
+          self.remove(map);
+          map.node.delete()
+      end
+    end
+    
+    @Operation packageNodeRemoved(packageNode)
+      @Find(map,packageMaps)
+        when map.node = packageNode
+        do self.remove(map);
+           package.remove(map.package)
+      end
+    end
+    
+    @Operation parentAdded(child,parent)
+      @TypeCase(child)
+        XCore::Package do
+          self.parentAdded(child,parent,packageMaps,PackageXInheritanceEdge)
+        end
+        XCore::Class do
+          self.parentAdded(child,parent,classMaps,ClassXInheritanceEdge)
+        end
+      end
+    end
+
+    @Operation parentAdded(child,parent,maps,mapClass)
+      if not inheritanceMaps->exists(map | map.child = child and map.parent = parent)
+      then
+        @Find(childMap,maps)
+          when childMap.element() = child
+          do @Find(parentMap,maps)
+               when parentMap.element() = parent
+               do
+                 let 
+                   edge = diagram.makeInheritance(childMap.node,parentMap.node) then
+                   map = mapClass(child,parent,edge)
+                 in
+                   self.add(map);
+                   self.diagram.add(edge)
+      			 end
+             end
+        end
+      end
+    end
+
+    @Operation parentRemoved(child,parent)
+      @Find(inheritanceMap,inheritanceMaps)
+        when inheritanceMap.child = child and inheritanceMap.parent = parent
+        do 
+          self.remove(inheritanceMap);
+          inheritanceMap.edge.delete()
+      end
+    end
+
+    @Operation refreshToolGroups()
+      diagram.commandInterpreter().clearToolPaletteCommand(diagram);
+      diagram.defineToolGroups();
+      self.toolGroups()
+    end
+
+    @Operation remove(element)
+      @TypeCase(element)
+        AssociationXAssociationEdge do
+          self.deleteFromAssociationMaps(element);
+          element.removeDaemons()
+        end
+        ClassXNode do
+          self.deleteFromClassMaps(element);
+          element.removeDaemons()
+        end
+        ClassifierXInheritanceEdge do
+          self.deleteFromInheritanceMaps(element);
+          element.removeDaemons()
+        end
+        AttributeXAttributeEdge do
+          self.deleteFromAttributeMaps(element);
+          element.removeDaemons()
+        end
+        ContainerXContainsEdge do
+          self.deleteFromContainerMaps(element);
+          element.removeDaemons()
+        end
+        DependencyXDependencyEdge do
+          self.deleteFromDependencyMaps(element);
+          element.removeDaemons()
+        end
+        PackageXNode do
+          self.deleteFromPackageMaps(element);
+          element.removeDaemons()
+        end
+        ElementXNode do
+          self.deleteFromElementMaps(element);
+          element.removeDaemons()
+        end
+        DocXNote do
+          self.deleteFromDocMaps(element);
+          element.removeDaemons()
+        end        
+        else format(stdout,"PackageXClassDiagram::remove: unknown element " + element.toString())
+      end
+    end
+
+    @Operation removeDaemonCollection(seq:Seq(Element))
+      @For element in seq do
+        element.removeDaemons()
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      diagram.removeDaemonsWithTarget(self,true);
+      package.removeDaemonsWithTarget(self,true);
+      self.removeDaemonCollection(self.classMaps);
+      self.removeDaemonCollection(self.packageMaps);
+      self.removeDaemonCollection(self.docMaps);
+      self.removeDaemonCollection(self.elementMaps);
+      self.removeDaemonCollection(self.inheritanceMaps);
+      self.removeDaemonCollection(self.attributeMaps);
+      self.removeDaemonCollection(self.containerMaps);
+      self.removeDaemonCollection(self.dependencyMaps);
+      self.removeDaemonCollection(self.associationMaps)
+    end
+
+    @Operation renew()
+      // Called when the diagram is to be regenerated from existing components
+      // such as after it is loaded from a file.
+      diagram.renew();
+      self.refreshToolGroups()
+    end
+    
+    @Operation save()
+    
+      // Save the mapping independent of the model elements that it maps.
+      // To save the model elements the mapping should be part of a project
+      // which contains (references to) both the model element and the
+      // mapping.
+      
+      let file = xmf.saveFile(xmf.projDir(),".dgm")
+      in if file <> ""
+         then
+           xmf.clientManager().setSaving(true);
+           let excludedNameSpaces = Root.allContentsOf(XCore::Package)->including(Root)->asSeq;
+               out = ElementOutputChannel(GZipOutputChannel(FileOutputChannel(file)))
+           in xmf.clientManager().preSave();
+              out.write(self,excludedNameSpaces);
+              out.close();
+              xmf.clientManager().postSave();
+              xmf.clientManager().setSaving(false)
+           end
+         end
+      end
+              
+    end
+
+    @Operation toolGroups()
+    
+      // Add tool groups for the sub-classes of the key elements
+      // on a class diagram. Calculate all the sub-classes of
+      // class diagram element classes defined by the meta-package
+      // of the package controlled by the diagram. Each sub-class
+      // corresponds to a stereotype that creates a standard class
+      // diagram component tagged with the << and >> labels.
+      
+      let languageName = package.metaPackage().name.toString();
+      
+          // allContents returns a set; iterating over a large set is *very* expensive.
+          // The following code has been changed to the equivalent loop with side effects.
+          
+          //allContents = package.metaPackage().allContents() then
+          //classes = 
+          //  allContents
+          //    ->select(c | c.isKindOf(XCore::Class))
+          //    ->excluding(null)
+          //    ->reject(c | c.owner() = XCore or c.isAbstract) then
+          //dependencyToolGroups = classes->select(c | c.inheritsFrom(XCore::Dependency));
+          //classToolGroups = classes->select(c | c.inheritsFrom(XCore::Class) and not c.inheritsFrom(XCore::Package));
+          //packageToolGroups = classes->select(c | c.inheritsFrom(XCore::Package));
+          //attributeToolGroups = classes->select(c | c.inheritsFrom(XCore::Attribute)) then
+          //otherToolGroups = classes - (dependencyToolGroups + classToolGroups + packageToolGroups + attributeToolGroups)
+          
+          dependencyToolGroups = Seq{};
+          classToolGroups = Seq{};
+          packageToolGroups = Seq{};
+          attributeToolGroups = Seq{};
+          otherToolGroups = Seq{}
+      in 
+         @For e inTableValues package.metaPackage().contents do
+           if e.isReallyKindOf(XCore::Class) andthen (e.owner() <> XCore and not e.isAbstract)
+           then 
+             if e.inheritsFrom(XCore::Dependency)
+             then dependencyToolGroups := Seq{e | dependencyToolGroups}
+             elseif e.inheritsFrom(XCore::Class) and not e.inheritsFrom(XCore::Package)
+             then classToolGroups := Seq{e | classToolGroups}
+             elseif e.inheritsFrom(XCore::Package)
+             then packageToolGroups := Seq{e | packageToolGroups}
+             elseif e.inheritsFrom(XCore::Attribute)
+             then attributeToolGroups := Seq{e | attributeToolGroups}
+             else otherToolGroups := Seq{e | otherToolGroups}
+             end
+           end
+         end;
+     
+         // If there are any sub-classes of the standard model elements for a class
+         // diagram then we need a stereotypes node group to create them...
+      
+         if not (dependencyToolGroups->isEmpty and
+                 packageToolGroups->isEmpty and 
+                 classToolGroups->isEmpty and 
+                 attributeToolGroups->isEmpty)
+         then 
+           diagram.defineToolGroup(languageName)
+         end;
+
+         // Add in a catch all element creator that will offer all model element
+         // types in the meta-package via a selection list.
+         
+         if xmf.preference("EnableMeta")
+         then
+           diagram.defineNewHandler(
+             "XCore",
+             "Object",
+             false,
+             "XCore/Other.gif",
+             let 
+               p = self.package;
+               m = self 
+             in
+               @Operation(x,y)
+                 m.dropOtherNode( x,y,p.metaPackage().allClasses()
+                   ->select(c | not c.isAbstract)
+                   - Set{// the following cannot be created by raw instantiation
+                         // or cannot supported by class diagrams...
+                         BasicArray,Bind,Buffer,Classifier,CodeBox,Collection,
+                         CompiledOperation,Constructor,Daemon,Doc,Exception,
+                         ForeignOperation,InitialisedAttribute,InterpretedOperation,
+                         MachineException,Operation,Parameter,Seq,Set,Snapshot,SnapshotSet } )
+               end
+             end)
+         end;
+
+         // Add in the stereotype creation buttons...
+         
+         @For c in packageToolGroups do
+           let handler = 
+                 @Operation(x,y) 
+                   self.newPackageNode(x,y,c.pathSeq())
+                 end
+           in diagram.defineNewHandler(
+                languageName,
+                c.name.toString(),
+                false,
+                "XCore/Package.gif",
+                handler)
+           end
+         end;
+         @For c in classToolGroups do
+           let handler = 
+                 @Operation(x,y) 
+                   self.newClassNode(x,y,c.pathSeq())
+                 end
+           in diagram.defineNewHandler(
+                languageName,
+                c.name.toString(),
+                false,
+                "XCore/Class.gif",
+                handler)
+           end
+         end;
+         @For c in attributeToolGroups do
+           let handler = 
+                 @Operation(sourcePort,targetPort) 
+                   self.newAttributeEdge(sourcePort,targetPort,c.pathSeq())
+                 end
+           in diagram.defineNewHandler(
+                languageName,
+                c.name.toString(),
+                true,
+                "XCore/Attribute.gif",
+                handler)
+           end
+         end;
+         @For c in dependencyToolGroups do
+           let handler = 
+                 @Operation(sourcePort,targetPort) 
+                   self.newDependencyEdgeCommand(sourcePort,targetPort,c.pathSeq())
+                 end
+           in diagram.defineNewHandler(
+                languageName,
+                c.name.toString(),
+                true,
+                "XCore/Dependency.gif",
+                handler)
+           end
+         end;
+         @For c in otherToolGroups do
+           let p = self.package;
+               m = self then
+               handler = 
+                 @Operation(x,y) 
+                   let instance = try c() catch(exception) try c.new() catch(exception) null end end then
+                       message = "Do you want to add this element to the contents of package " + p.name() + "?" then
+                       addToPackage =
+                         if instance.isReallyKindOf(Contained)
+                         then xmf.question(message)
+                         else false
+                         end
+                   in
+                      if instance <> null
+                      then 
+                        if instance.isKindOf(NamedElement)
+                        then instance.setName(p.newName(c.name().toString()))
+                        end;
+                        m.elementAdded(instance,x,y);
+                        if addToPackage
+                        then p.add(instance)
+                        end
+                      end
+                   end
+                 end
+           in diagram.defineNewHandler(
+                languageName,
+                c.name.toString(),
+                false,
+                "XCore/Object.gif",
+                handler)
+           end
+         end
+       end
+    end
+
+    @Operation element()
+      package
+    end
+
+    @Operation diagram()
+      diagram
+    end
+
+    @Operation subMaps()
+      self.classMaps +
+      self.packageMaps +
+      self.docMaps +
+      self.elementMaps +
+      self.inheritanceMaps +
+      self.attributeMaps +
+      self.containerMaps +
+      self.dependencyMaps +
+      self.associationMaps
+    end
+    
+    @Operation setToPartialSyncMode()
+      super();
+      self.addEventFilter("class added",ElementXDiagram::defaultEventFilterHandler);
+      self.addEventFilter("package added",ElementXDiagram::defaultEventFilterHandler)
+    end
+    
+    @Operation setToTotalSyncMode()
+      super();
+      self.removeEventFilter("class added");
+      self.removeEventFilter("package added")
+    end
+
+    @Operation missingPackageContents()
+      let packageClasses = package.classes;
+          packagePackages = package.packages then
+          diagramClasses = classMaps->collect(m | m.class)->asSet;
+          diagramPackages = packageMaps->collect(m | m.package)->asSet then
+          missingClasses = packageClasses - diagramClasses;
+          missingPackages = packagePackages - diagramPackages
+      in
+          missingClasses + missingPackages
+      end
+    end
+    
+    @Operation addMissingContents()
+      let missingContents = self.missingPackageContents()
+      in
+        if not missingContents->isEmpty
+        then
+          let elementSeq = missingContents->asSeq.sortNamedElements_CaseIndependent();
+              stringOp = 
+                @Operation(element)
+                  element.nameString() + " : " + element.of().nameString()
+                end then
+              elements = xmf.selects("Add Missing Package Contents",
+                                     "Select package contents to add to this diagram",
+                                     elementSeq,
+                                     null,
+                                     stringOp)
+          in
+            if elements <> 0-1
+            then
+              @For e in elements do
+                self.addDropped(e)
+              end
+            end
+          end
+        else
+          xmf.message("All package contents are already shown in the diagram.")
+        end
+      end
+    end
+
+    @Operation handleDiagramEvent(diagram,event)
+      super(diagram,event);
+      let eventType = event->at(0)
+      in
+        @Case eventType of
+          "add missing contents" do self.addMissingContents() end
+        else self
+        end
+      end
+    end
+    
+    @Operation validEdge(edge)
+      let
+        type = edge.of(); 
+        source = edge.source.owner;
+        target = edge.target.owner
+      in
+        @Case type of
+          [ContainsEdge] do
+            if source.isKindOf(NoteNode) or target.isKindOf(NoteNode)
+            then
+              edge.delete();
+              false
+            else
+              true
+            end
+          end
+          [AssociationEdge] do
+            if source.isKindOf(NoteNode) or target.isKindOf(NoteNode)
+            then
+              edge.delete();
+              false
+            else
+              true
+            end
+          end
+          else true
+        end
+      end
+    end
+    
+  end

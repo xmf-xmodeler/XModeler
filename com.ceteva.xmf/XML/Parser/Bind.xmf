@@ -1,0 +1,85 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Bind extends Pattern
+  
+    @Doc
+      A binding parses a pattern and then binds the names
+      to the values of the pattern.
+    end
+    
+    @Attribute names : Seq(String) end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(names,pattern) ! end
+    
+    @Operation binds():Seq(String)
+      names + pattern.binds()
+    end
+    
+    @Operation BNF():Pattern
+      Bind(names,pattern.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation CNF(handler:Operation)
+      pattern.CNF(
+        @Operation(pattern,newClauses)
+          handler(Bind(names,pattern),newClauses)
+        end)
+    end
+    
+    @Operation first(grammar)
+      pattern.first(grammar)
+    end
+    
+    @Operation follow(grammar)
+      pattern.follow(grammar)
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      pattern.flatten() + Seq{BindVar(names)}
+    end
+    
+    @Operation NNF(handler:Operation)
+      pattern.NNF(
+        @Operation(pattern,newClauses)
+          handler(Bind(names,pattern),newClauses)
+        end)
+    end
+    
+    @Operation nullable(grammar)
+      pattern.nullable(grammar)
+    end
+    
+    @Operation ONF():Pattern
+      Bind(names,pattern.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~{,~;~S~} = ",Seq{names});
+      pattern.pprint(out,indent)
+    end
+    
+    @Operation SNF(handler:Operation)
+      pattern.SNF(
+        @Operation(pattern,newClauses)
+          handler(Bind(names,pattern),newClauses)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      pattern.terminals()
+    end
+    
+  end

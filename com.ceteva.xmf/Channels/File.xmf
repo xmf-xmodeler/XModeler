@@ -1,0 +1,169 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class File extends NamedElement
+  
+    @Doc
+      A File is a model of a file in the file system the name is the
+      files absolute path.  When a File is constructed it builds a
+      tree of the file hierarchy for which it is the root
+    end
+    
+    //@Bind clipboard = null end
+    
+    @Constructor(owner,name)
+    end
+    
+    @Operation deleteActualFile()
+      let exists = self.fullPath().deleteFile() in
+        if exists and not self.owner.isKindOf(Null) then
+          self.owner.remove(self)
+        end
+      end;
+      self
+    end
+    
+/*    @Operation copyToClipboard()
+    
+      // if no target is passed then the file is stored on the
+      // clipboard to be retrieved by a future directory paste
+      
+      IO::File::clipboard := self
+    end
+*/
+    @Operation copy(target:String)
+      self.fullPath().copyFile(target)
+    end
+    
+    @Operation fullPath()
+      let selfName = self.name.toString() in
+        if owner <> null then
+          owner.fullPath() + "/" + selfName
+        else
+          selfName
+        end
+      end
+    end
+    
+    @Operation getExtension()
+      if self.name.indexOf(".") <> 0-1
+      then
+        self.name.splitBy(".",0,0)->last
+      else
+        ""
+      end
+    end
+    
+    @Operation move(newPath)
+      let 
+        oldFile = self.fullPath().readFile();
+        fout = FileOutputChannel(newPath + "//" + self.name) 
+      in
+        format(fout,"~S",Seq{oldFile});
+        fout.close();
+        
+        // go to the root directory and refresh in case the file
+        // has been dropped within the tree
+        
+        let dir = self.owner
+        in
+          @While dir.owner <> null do
+            dir := dir.owner
+          end;
+          dir.refreshFileTree()
+        end;
+        
+        // delete the old file
+        
+        self.deleteActualFile()
+      end
+    end
+    
+    @Operation nameWithoutTag()
+      let name = self.name.toString() in
+        name.subString(0,name.size()-4)
+      end
+    end
+    
+    @Operation path()
+      if owner <> null then
+        owner.fullPath()
+      else
+        ""
+      end
+    end
+
+    @Operation renameActualFile(newName)
+      let exists = self.fullPath().renameFile(self.path() + "/" + newName) in
+        if exists then
+          self.setName(newName)
+        end
+      end;
+      self
+    end
+    
+    @Operation search(pattern:String):ResourcePosition
+      let path = self.fullPath() then
+          size = path->fileSize then
+          fin = FileInputChannel(path);
+          vector = Vector(size) then
+          line = 1;
+          char = 1;
+          index = 0;
+          results = Seq{};
+          ssize = pattern.size()
+      in fin.read(vector);
+         fin.close();
+         @While index < size do
+           let same = true;
+               sindex = 0;
+               cindex = index;
+               lstart = line;
+               cstart = char
+           in @While same and cindex < size and sindex < ssize do
+                if vector->at(cindex) = pattern->at(sindex)
+                then 
+                  cindex := cindex + 1;
+                  sindex := sindex + 1
+                else same := false
+                end
+              end;
+              if same
+              then 
+                results := results->prepend(Position(lstart,cstart));
+                char := char + ssize;
+                index := cindex
+              else
+                if vector->at(index) = "\n"->at(0)
+                then 
+                  line := line + 1;
+                  char := 1
+                else char := char + 1
+                end;
+                index := index + 1
+              end
+           end
+         end;
+         if results->isEmpty
+         then null
+         else
+           let filePosition = FilePosition(self)
+           in @For position in results->reverse do
+                filePosition.add(position)
+              end;
+              filePosition
+           end
+         end
+      end
+    end
+    
+    @Operation tempFile(prefix:String,suffix:String,dir:String)
+      Kernel_tempFile(prefix,suffix,dir)
+    end
+   
+
+  end
+    

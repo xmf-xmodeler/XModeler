@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Gamma extends Node
+  
+    @Attribute name       : String    (?) end
+    @Attribute precedence : Integer   (?) end
+    @Attribute body       : Operation (?) end
+    
+    @Constructor(name,precedence,body) end
+    @Constructor(name,precedence) ! end
+    
+    @Operation add(t:Token,source:Node)
+      self.owner().add(Enabled(self,t))
+    end
+    
+    @Operation clear()
+      self
+    end
+    
+    @Operation fire(token:Token,net:Net)
+      if net.debug()
+      then self.trace(token)
+      end;
+      body.invoke(net,Seq{token})
+    end
+    
+    @Operation tokenObjects(token:Token):Seq(Tokens)
+      @TypeCase(token)
+        ObjectToken do 
+          Seq{token.object()} 
+        end
+        CompositeToken do 
+          self.tokenObjects(token.left()) + self.tokenObjects(token.right()) 
+        end
+        else Seq{}
+      end
+    end
+    
+    @Operation trace(token:Token)
+      format(stdout,"Fire ~S~%~{  ~S~%~}",Seq{name,self.tokenObjects(token)})
+    end
+    
+    @Operation remove(t:Token,source:Node)
+      self.owner().remove(Enabled(self,t))
+    end
+  
+  end

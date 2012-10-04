@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Database;
+
+context Database
+
+  @Class OfExp
+  
+    @Attribute type : Element end
+    
+    @Constructor(type)
+    end
+  
+  end

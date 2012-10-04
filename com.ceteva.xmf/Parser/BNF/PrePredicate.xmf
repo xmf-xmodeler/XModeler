@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class PrePredicate extends Recognizer
+  
+    // A pre predicate is a predicate that awaits transformation to
+    // a predicate. The missing information relates to the identifiers
+    // that are in scope when the predicate is invoked.
+    
+    @Attribute boolExp : Performable end
+    
+    @Constructor(boolExp) end
+    
+    @Operation body(FV:Set(String))
+      // Return the body of an operation whose argument is
+      // a machine environment binding all the parser bound
+      // variables that are currently in scope.
+      FV->iterate(var exp = boolExp | 
+            [| let <var> = env.lookup(<StrExp(var)>) 
+              in <exp> 
+              end 
+            |])
+    end
+    
+    @Operation code(out)
+       format(out,"? ");
+       boolExp.pprint(out,0)
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      self.error("A pre predicate should be transformed before parsing.")
+    end
+    
+    @Operation toExp(FV:Set(String))
+      let args = Seq{Varp("env")};
+          type = NamedType();
+          
+          // We want to save the source code of the predicate for
+          // documentation purposes. For large grammar files this
+          // causes us to go over the 256 constant limit. No source
+          // is saved until this bug is fixed....
+          
+          source = "No Source Saved." //boolExp.pprint()
+      in [| Root::Parser::BNF::Predicate(<Operation("anonymous",args,type,self.body(FV))>,<StrExp(source)>) |]
+      end
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      let predFun = Compiler::compileToFun("",self.body(FV),Seq{"env"},grammar.dynamics,true);
+          source = "No Predicate Saved" // boolExp.pprint()
+      in Predicate(predFun,source)
+      end
+    end
+    
+  end

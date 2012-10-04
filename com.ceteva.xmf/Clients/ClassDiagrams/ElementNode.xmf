@@ -1,0 +1,90 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class ElementNode extends Node
+  
+    // An element node represents a diagram element that we
+    // have no specific means of diagramming. All elements
+    // are an instance of a named classifier (referenced via 
+    // path) and have a printed representation represented
+    // using the string.
+  
+    @Attribute path : Seq(String) end
+    @Attribute label : String end
+    @Attribute labelText : Text end
+  
+    @Constructor(path,label,x,y)
+       self.width := 150;
+       self.height := 16 * 4;
+       self.labelText := Text(label,5,16,true)
+    end
+   
+    @Operation addDisplays()
+      let pathText = Text("<<" + path->last + ">>",5,16*2,false);
+          box = Box(0,0,self.width,self.height,0,Color(),Color())
+      in box.add(labelText);
+         box.add(pathText);
+         self.add(box)
+      end
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+
+    @Operation layoutId():String
+     
+       // Returns an id that is unique for nodes in this diagram. The id is
+       // used to relocate the node when layout data is read in.
+       
+       label
+     end
+     
+     @Operation maxHeight()
+      super() + 3
+    end
+    
+    @Operation maxWidth()
+      super() + 3
+    end
+    
+    @Operation minHeight()
+      self.maxHeight()
+    end
+    
+    @Operation minWidth()
+      self.maxWidth()
+    end
+    
+    @Operation resize(width,height)
+    
+      let width = width.max(self.minWidth());
+          height = height.max(self.minHeight())
+      in 
+      
+        super(width,height);
+      
+        @For port in ports do
+          port.resize(width,height)
+        end;
+      
+        @For display in displays do
+          display.resize(width,height)
+        end
+        
+      end
+      
+    end
+    
+    @Operation setLabel(label:String)
+      self.label := label;
+      self.labelText.setText(label)
+    end
+    
+  end

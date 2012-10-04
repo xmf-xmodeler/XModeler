@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest Features
+  @File Features end
+  @File Behaviour end
+  @File BehaviourDef end
+  @File Doit end
+  @File Feature end
+  @File FeatureDef end
+  @File FeatureRef end
+  @File FeatureRefDef end
+  @File NextFeature end
+  @File Transition end
+  @File TransitionDef end
+do
+  Features.init()
+end;

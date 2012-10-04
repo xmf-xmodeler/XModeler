@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Tools;
+
+context Tools
+
+  @Class LabelType extends DisplayType
+  
+    @Attribute text       : String  end
+    @Attribute attachedTo : String  end
+    @Attribute relx       : Integer end
+    @Attribute rely       : Integer end
+    @Attribute editable   : Boolean end
+    
+    @Constructor(text,attachedTo,relx,rely,editable) ! 
+      self.addToOperations(
+        @Operation text()
+          self.element.text
+        end);
+      self.addToOperations(
+        @Operation setText(text)
+          self.element.textChanged(text)
+        end)
+    end
+    
+    @Operation new(tool,diagram,parent,name)
+      let label = Label(text,attachedTo,relx,rely,editable) then
+          object = ToolObject(self,label) then
+          daemon = 
+            @Operation textChanged(slot,new,old)
+              if slot.toString() = "text"
+              then tool.raise("Changed(" + name + ")",object,new,old)
+              end
+            end
+      in parent.add(label);
+         label.new(parent);
+         label.addPersistentDaemon(daemon);
+         object
+      end
+    end
+    
+  end
+    

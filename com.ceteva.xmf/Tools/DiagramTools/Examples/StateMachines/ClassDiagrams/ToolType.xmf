@@ -1,0 +1,89 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import StateMachines;
+
+context StateMachines::Package::ClassDiagrams
+  @ToolType Editor
+    // StateMachine nodes can be connected using inheritance and attribute edges...
+    @NodeType StateMachine(hasport)
+      // Place a box round the contents of the class node...
+      @Box nodeBox minWidth = 100 
+        // Place a box round the name of the class...
+        @Box nameBox
+          // Display the name of the class...
+          @PaddedText name(CENTRE) "Machine Name" pad = 3 end
+        end
+        // The body of the class is a sequence of simple valued attributes...
+        @Box bodyBox
+          // There can be any number of attributes in the box (starting with 0)...
+          @Star
+            // An attribute consists of a name, ':', then the type of the attribute...
+           @PaddedBox attribute(HORIZONTAL,ALIGN,hideLeft,hideRight,hideTop,hideBottom) pad = 1
+              @PaddedText name(LEFT)  "name"    pad = 2 end
+              @Text sep(CENTRE)       ":"               end
+              @PaddedText type(RIGHT) "Element" pad = 2 end
+              // Attributes can be deleted, node layout is performed after a delete...
+              @Menu @MenuAction Delete self.delete(true) end end
+            end
+          end
+        end
+      end
+      @Menu
+        @MenuAction Delete self.delete()                                           end
+        // Adding a new attribute to the class class via its box...
+        @MenuAction AddAtt self.ref1(Seq{"nodeBox","bodyBox"}).addNew("attribute") end
+        @MenuAction "Show Diagram" tool.find(self).showDiagram() end
+        @MenuAction Edit tool.find(self).edit() end
+      end
+    end
+    @NodeType Clock(hasport)
+      // A clock is a state machine that generates clicks...
+      @Image clock(ALIGN) "Clock.gif" width = 75 height =75 end
+    end
+    // Inheritance arrows go from child to parent...
+    @EdgeType Inheritance StateMachine -> StateMachine targetHead = whiteArrow
+      @Menu @MenuAction Delete self.delete() end end
+    end
+    // Attribute arrows go from owner to type. The label is the name of the attribute...
+    @EdgeType Attribute StateMachine -> StateMachine targetHead = arrow
+      @Label name(end,10,10) "name" end
+      @Menu @MenuAction Delete self.delete() end end
+    end
+    @EdgeType Consumer Clock -> StateMachine targetHead = arrow
+      @Label name(middle,5,5) "consumer" end
+      @Menu @MenuAction Delete self.delete() end end
+    end
+    // A single group offers the creation buttons for the diagram components...
+    @ToolBar 
+      @ToolGroup Operations
+        @ToolButton StateMachine       icon = "StateMachines/StateMachine.gif" end 
+        @ToolButton Clock              icon = "StateMachines/Clock.gif"        end 
+        @ToolButton Inheritance isEdge icon = "XCore/Generalization.gif"       end
+        @ToolButton Attribute isEdge   icon = "XCore/Attribute.gif"            end
+        @ToolButton Consumer isEdge    icon = "XCore/Attribute.gif"            end
+      end
+    end
+    @Menu
+      @MenuAction Deploy
+        let canDeploy = true
+        in @For machine in tool.element().contentsOf(StateMachine) do
+             if  machine.initialState() = null
+             then
+               xmf.warning("No initial state set in " + machine.toString());
+               canDeploy := false
+             end
+           end;
+           if canDeploy 
+           then tool.element().deployJava()
+           else xmf.warning("State machines not deployed.")
+           end
+        end
+      end
+    end
+  end
+

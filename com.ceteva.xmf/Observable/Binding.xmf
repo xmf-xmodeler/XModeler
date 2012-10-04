@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class Binding extends Syntax
+  
+    @Attribute name : Symbol end
+    @Attribute exp : Exp end
+    
+    @Constructor(name,exp) ! end
+    
+  end 

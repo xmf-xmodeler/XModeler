@@ -1,0 +1,162 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import J2EE;
+   
+context J2EE
+
+  @Operation classesToSessionBean(name:String,C:Seq(XCore::Class)) 
+    Seq{sessionBean(name,C),sessionBeanHome(name,C),sessionBeanRemote(name,C)} 
+  end
+  
+context J2EE
+
+  @Operation sessionBean(name:String,C:Seq(XCore::Class))
+    [|
+      @Java
+        import java.util.*;
+        import javax.ejb.*;
+        import javax.naming.*;
+        
+        public class <name + "_Session"> implements SessionBean {
+        
+          <* sessionBeanGeneral() + sessionBeanMethods(C) *>
+          
+        }
+        
+      end
+    |]
+  end
+  
+context J2EE
+
+  @Operation sessionBeanGeneral()
+    Seq{
+      [| @Java public void ejbCreate() {} end |],
+      [| @Java public void setSessionContext(SessionContext sctx) {} end |],
+      [| @Java public void ejbRemove() {} end |],
+      [| @Java public void ejbActivate() {} end |],
+      [| @Java public void ejbPassivate() {} end |]}
+  end
+  
+context J2EE
+
+  @Operation sessionBeanMethods(C:Seq(XCore::Class))
+    C->collect(c | sessionBeanCreateNew(c)) +
+    C->collect(c | sessionBeanGet(c)) +
+    C->collect(c | sessionBeanGetAll(c))
+  end
+  
+context J2EE
+
+  @Operation sessionBeanCreateNew(c:XCore::Class)
+    [| 
+      @Java
+        public void <"createNew_" + c.name>(String id) {
+          try {
+            Context initial = new InitialContext();
+            String name = <JString("java:comp/env/ejb/" + c.name)>;
+            <Seq{c.name + "_Home"}> home = (<Seq{c.name + "_Home"}>)initial.lookup(name);
+            home.create(id);
+          } catch(Exception ex) {
+             System.out.println(<JString("createNew_" + c.name)> + ex);   
+          }
+        }
+      end
+    |]
+  end
+  
+context J2EE
+
+  @Operation sessionBeanGet(c:XCore::Class)
+    [| 
+      @Java
+        public <NamedType(Seq{c.name + "_Remote"})> <"get_" + c.name>(String id) {
+          try {
+            Context initial = new InitialContext();
+            String name = <JString("java:comp/env/ejb/" + c.name)>;
+            <Seq{c.name + "_Home"}> home = (<Seq{c.name + "_Home"}>)initial.lookup(name);
+            return home.findByPrimaryKey(id);
+          } catch(Exception ex) {
+             System.out.println(<JString("get_" + c.name)> + ex);  
+             return null; 
+          }
+        }
+      end
+    |]
+  end
+ context J2EE
+
+  @Operation sessionBeanGetAll(c:XCore::Class)
+    [| 
+      @Java
+        public Collection <"getAll_" + c.name>() {
+          try {
+            Context initial = new InitialContext();
+            String name = <JString("java:comp/env/ejb/" + c.name)>;
+            <Seq{c.name + "_Home"}> home = (<Seq{c.name + "_Home"}>)initial.lookup(name);
+            return home.findAll();
+          } catch(Exception ex) {
+             System.out.println(<JString("getAll_" + c.name)> + ex);  
+             return null; 
+          }
+        }
+      end
+    |]
+  end
+  
+context J2EE
+
+  @Operation sessionBeanHome(name:String,C:Seq(XCore::Class))
+    [|
+      @Java
+        import java.io.Serializable;
+        import java.rmi.RemoteException;
+        import javax.ejb.CreateException;
+        import javax.ejb.EJBHome;
+        
+        public interface <name + "_Home"> extends EJBHome {
+        
+          <NamedType(Seq{name + "_Remote"})> create() throws RemoteException, CreateException;
+          
+        }
+      end
+    |]
+  end
+  
+context J2EE
+
+  @Operation sessionBeanRemote(name:String,C:Seq(XCore::Class))
+    [|
+      @Java
+        import java.util.*;
+        import java.rmi.RemoteException;
+        import javax.ejb.EJBObject;
+        
+        public interface <name + "_Remote"> extends EJBObject {
+        
+          <* C->asSeq->collect(c | sessionBeanRemoteMethods(c))->flatten *>
+        
+        }
+      end
+    |]
+  end
+  
+context J2EE
+
+  @Operation sessionBeanRemoteMethods(c:XCore::Class)
+  
+    Seq{
+      [| @Java public void <"createNew_" + c.name()> (String id) throws RemoteException; end |],
+      [| @Java public <NamedType(Seq{c.name() + "_Remote"})> <"get_" + c.name()>(String id) throws RemoteException; end |],
+      [| @Java public Collection <"getAll_" + c.name()>() throws RemoteException; end |] 
+    }
+  end
+          

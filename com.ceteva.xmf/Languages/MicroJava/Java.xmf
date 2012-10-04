@@ -1,0 +1,102 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+import Languages;
+import MicroJava;
+import Structure;
+import Statements;
+import Expressions;
+
+context MicroJava
+
+  @Class Java
+  
+    @Grammar extends Statement.grammar, JExp.grammar, OCL::OCL.grammar
+    
+      Java ::= JCompilationUnit | Package | Feature.
+      
+      Class ::= Drop | Visibility isAbstract = OptAbstract 'class' name = AName parent = JParent implements = JImplements '{' features = Features '}' { Class(name,isAbstract,implements,parent,features) }.
+      
+      Package ::= Drop | 'package' name = AName '{' defs = PDefs '}' { Package(name,defs) }.
+      
+      PDefs ::= Drops | JCompilationUnit*.
+      
+      JCompilationUnit ::= i = JImport* c = (Class | Interface) { CompilationUnit(i,c) }.
+      
+      Interface ::= Drop | Visibility 'interface' name = AName parent = JParent implements = JImplements '{' features = IFeatures '}' { Interface(name,implements,parent,features) }.
+      
+      JImport ::= 'import' p = JImportPath ';' { Import(Path(p)) }.
+      
+      JImportPath ::= Path | p = Path '.' '*' { p + Seq{"*"} }.
+      
+      Drops ::= '<*' e = Exp '*>' { Drop(e) } | '<*|' e = Exp '|*>' { DropPattern(e) }.
+      
+      JParent ::= 'extends' (Path | Drop) | { null }.
+      
+      JImplements ::= 'implements' p = Path ps = (',' Path)* { Seq{p | ps} } | { Seq{} }.
+      
+      JThrows ::= 'throws' p = Path ps = (',' Path)* { Seq{p | ps} } | { Seq{} }.
+      
+      Features ::= Drops | Feature*.
+      
+      IFeatures ::= Drops | IFeature*.
+      
+      Feature ::= Field | Method | Drop.
+      
+      IFeature ::= Field | MethodSig | Drop.
+      
+      Field ::= visibility = Visibility isStatic = OptStatic type = JType name = AName value = ('=' JExp | { null }) ';' { Field(Modifiers(visibility,isStatic,false),type,name,value) }.
+      
+      MethodSig ::= 
+        visibility = Visibility 
+        isStatic = OptStatic 
+        isAbstract = OptAbstract 
+        type = ReturnType 
+        name = AName 
+        params = Formals 
+        throws = JThrows
+        ';' { 
+          MethodSig(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws) 
+        }.
+      
+      Method ::= 
+        visibility = Visibility 
+        isStatic = OptStatic 
+        isAbstract = OptAbstract 
+        type = ReturnType 
+        name = AName 
+        params = Formals 
+        throws = JThrows
+          (  body = Block { 
+               Method(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws,body) 
+             } 
+               | 
+             ';' { 
+               MethodSig(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws) 
+             }
+          ).
+      
+      JType ::= Drop | path = Path ( '[]' { ArrayType(NamedType(path)) } | { NamedType(path) } ).
+      
+      Path ::= n = Name ns = ('.' Name)* { Seq{n|ns} }.
+      
+      ReturnType ::= 'void' { Void() } | JType.
+      
+      Formals ::= Drops | '(' FormalList ')'.
+      
+      FormalList ::= formal = Formal formals = (',' Formal)* { Seq{formal | formals} } | { Seq{} }.
+      
+      Formal ::= type = JType name = AName { Formal(type,name) }.
+      
+      Visibility ::= 'public' { "public" } | 'private' { "private" } | 'protected' { "protected" } | { "public" }.
+      
+      OptStatic ::= 'static' { true } | { false }.
+      
+      OptAbstract ::= 'abstract' { true } | { false }.
+      
+    end
+    
+  end

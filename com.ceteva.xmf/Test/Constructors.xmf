@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+format(stdout,"Classes can be defined with constructors. The constructors are~%");
+format(stdout,"used to define how to initialise a new instance of the class.");
+format(stdout,"You should see a new point.~%");
+
+context Root
+  @Class Point
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    @Constructor(x,y) end
+    @Operation toString()
+      "<Point " + x + " " + y + ">"
+    end
+  end
+  
+format(stdout,"~S~%~%",Seq{Point(100,200)}); 
+
+format(stdout,"Constructors are inherited and may include bodies. In the following~%");
+format(stdout,"yout should see a 3D point with z = 0 and with z = 300.~%");
+
+context Root
+  @Class Point3D extends Point
+    @Attribute z:Integer end
+    @Constructor(x,y,z) 
+      format(stdout,"Complete 3D point initialization.~%")
+    end
+    @Operation toString()
+      "<Point3D " + x + " " + y + " " + z + ">"
+    end
+  end
+  
+format(stdout,"~S~%~S~%",Seq{Point3D(100,200),Point3D(100,200,300)});

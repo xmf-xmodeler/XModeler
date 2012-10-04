@@ -1,0 +1,91 @@
+parserImport XOCL;
+
+import XCore;
+import Clients::Menus;
+
+context Element
+  @Operation assignToGlobal(varName:String)
+    Root.contents.put(Symbol(varName),self);
+    self
+  end
+  
+context Element
+  @Operation assignToGlobal()
+    let varName =
+      xmf.input("Assign to Global Variable","Enter a name for the global variable to set this element to","")
+    in
+      if varName <> null andthen varName <> ""
+      then
+        self.assignToGlobal(varName);
+        null
+      end
+    end
+  end
+
+context Element
+  @Operation browse_redirect()
+    self.browse()
+  end
+
+context Element
+  @Operation edit_redirect()
+    //gc();
+    self.edit()
+  end
+
+context Element
+  @Operation evaluateExpression()
+    let exp = xmf.getExp("Evaluate Expression",
+                         "Enter an expression to evaluate.\n" +
+                         "'self' refers to the model element.")
+    in
+      if exp <> null
+      then exp.eval(self,Env::NullEnv(),Seq{XCore,Root})
+      end
+    end
+  end
+
+context Element
+  @Operation invokeOp()
+    let zeroArityOps = self.of().allOperations()
+          ->select(op | op.arity()=0)->asSeq.sortNamedElements_CaseIndependent();
+        stringOp = 
+          @Operation(op)
+            op.name().toString() + " from " + op.owner.toString()
+          end then
+        op = xmf.select("Invoke Operation",
+                        "Select an operation to invoke",
+                        zeroArityOps,
+                        null,
+                        stringOp)
+    in
+      if op <> null
+      then
+        let O = self.of().allOperations().dropWhile(@Operation(o) o <> op end) then
+            result = op.invoke(self,Seq{},O)
+        in
+          if result <> null
+          then result.edit()
+          end
+        end
+      end
+    end
+  end
+
+context Element
+  @Operation selectModelBrowserNode(doSelected:Boolean)
+    let found = false
+    in
+      @For mappingClient in Clients::ModelBrowsers::AbstractMappingClient::implementedClients do
+        if not found
+        then found := mappingClient.selectModelBrowserNode(self,doSelected)
+        end
+      end
+    end
+  end
+
+context Element
+  @Operation showModelBrowserNode()
+    // this is only required for legacy projects - referenced in old menus
+    self.selectModelBrowserNode(true)
+  end

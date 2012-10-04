@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class DisplayAtt isabstract extends Root::XDiagMaps::Display
+  
+    @Attribute attribute  : Attribute (?,!) end
+    @Attribute renderText : RenderText = RenderToString() (?,!) end
+
+    @Constructor(attribute,renderText) ! end
+    
+    @Constructor(attribute) end
+    
+    @Operation attributes():Set(Attribute)
+      Set{attribute}
+    end
+    
+    @AbstractOp writeHandlers(dir,toolDescriptorType,root,class,path,manifest)
+    
+    end
+    
+    @AbstractOp writeMenu(out,path,indent)
+      
+    end
+    
+    @AbstractOp writeRegister(out,path)
+      
+    end
+    
+    @AbstractOp writeRegisterCode(out,indent,path,node,object)
+      
+    end
+    
+    @AbstractOp writeDeregisterCode(out,indent,path,node)
+      
+    end
+    
+    @AbstractOp writeCreateDiagram(out,path)
+      
+    end
+    
+    @AbstractOp writeType(out,indent)
+      
+    end
+      
+  end

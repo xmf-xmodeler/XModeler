@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler If in AST(aIf,arg,seen)
+  let aelse = self.dispatch(aIf.get("else"),arg);
+      athen = self.dispatch(aIf.get("then"),arg);
+      atest = self.dispatch(aIf.test,arg)
+  in ASTNode(aIf,Seq{atest,athen,aelse})
+  end
+end;

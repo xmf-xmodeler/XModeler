@@ -1,0 +1,64 @@
+Start ::= 
+  XBNF_Grammar.
+
+XBNF_Action ::= 
+  '{' exp = Exp '}' 
+  { PreAction(exp) }.
+    
+XBNF_Atom ::= 
+  XBNF_Action    | 
+  XBNF_Literal   | 
+  XBNF_Call      | 
+  '(' XBNF_Disjunction ')'.
+  
+XBNF_Binding ::= 
+  name = Name '=' atom = XBNF_Sequence { 
+    And(atom,Bind(name)) 
+  }.
+  
+XBNF_Call ::= 
+  name = Name { Call(name) }.
+  
+XBNF_Clause ::= 
+  name = Name '::=' body = XBNF_Disjunction '.' { Clause(name,body) }. 
+  
+XBNF_Conjunction ::= 
+  elements = XBNF_Element+ { 
+   elements->tail->iterate(e conj = elements->head | 
+     And(conj,e)) 
+  }. 
+  
+XBNF_Disjunction ::= 
+  element = XBNF_Conjunction [ 
+    '|' rest = XBNF_Disjunction element = { Or(element,rest) } 
+  ] 
+  { element }.
+   
+XBNF_Element ::= 
+  XBNF_Optional  | 
+  XBNF_Binding   | 
+  XBNF_Sequence.
+  
+XBNF_Grammar ::= 
+  clauses = XBNF_Clause* EOF { Grammar(Set{},clauses->asSet,"") }.
+
+XBNF_Literal ::= 
+  'Char' { (Parser::BNF.getElement("Char"))() }     |
+  'Str' { (Parser::BNF.getElement("Str"))() }       | 
+  'Terminal' { (Parser::BNF.getElement("Term"))() } |
+  'Int' { (Parser::BNF.getElement("Int"))() }       | 
+  'Name' { (Parser::BNF.getElement("Name"))() }     | 
+  'EOF' { (Parser::BNF.getElement("EOF"))() }       | 
+  '!' { (Parser::BNF.getElement("Cut"))() }         |
+  terminal = Terminal
+   { (Parser::BNF.getElement("Terminal"))(terminal) }.
+
+XBNF_Optional ::= 
+  '[' opt = XBNF_Disjunction ']'
+  { Opt(opt) }.
+  
+XBNF_Sequence ::= 
+  element = XBNF_Atom [ 
+    '*' element = { StarCons(element) } | 
+    '+' element = { PlusCons(element) } ] 
+    { element }.

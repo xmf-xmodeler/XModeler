@@ -1,0 +1,955 @@
+\documentclass{article}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\lhead{}
+\chead{A Primer for XOCL}
+\rhead{\thepage}
+\cfoot{(c) 2004 Ceteva Ltd.}
+
+\title{A Primer for XOCL\\(Incomplete Draft)}
+
+\author{Ceteva Ltd.}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+XMF is an environment for domain specific language design. XMF can be used
+to define and deploy both diagrammatic languges such as UML and text-based
+languages. The kernel of XMF is defined in a language called XOCL. XOCL
+is the language that is used to define XMF and as such is the basic language
+that XMF developers will use to develop XMF applications including new
+domain specific languages. 
+
+This document is a primer for XOCL. The approach is informal and we aim to 
+introduce features of the language by example, occasionally using features 
+in examples before they are completely introduced.
+
+\section{Basic Data Types and Expressions}
+
+XOCL provides basic data types for integers and booleans. Operations for
+arithmetic ($+$, $-$, $/$ and $*$) are supported in addition to the usual
+relational operators ($<$, $>$, $=$, $<=$ and $>=$). Boolean logic is supported
+by infix operators {\tt and} and {\tt or} and prefix {\tt not}. The following example
+shows an operator definition for factorial. The operator is named {\tt fact},
+takes a single argument {\tt n} and is defined in the global context {\tt Root}
+which means that the name {\tt fact} is available everywhere:
+\begin{verbatim}
+context Root
+  @Operation fact(n)
+    if n = 0
+    then 1
+    else n * fact(n - 1)
+    end
+  end
+\end{verbatim}
+Another example of a global operation definition is {\tt gcd} below that computes
+the greatest common divisor for a pair of positive integers. The example shows that
+operations can optionally have argument and return types:
+\begin{verbatim}
+context Root
+  @Operation gcd(m:Integer,n:Integer):Integer
+    if m = n 
+    then n
+    else
+      if m > n 
+      then gcd(m-n,n)
+      else gcd(m,n-m)
+      end
+    end
+  end
+\end{verbatim}
+Integers are represented in 24 bits in XMF. The operators {\tt and} and {\tt or} are
+overloaded to perform bit comparison when supplied with integers. The operators {\tt lsh}
+and {\tt rsh} are defined on integers. They take the number of bits to shift left and
+right respectively. The following operation adds up the number of bits in an integer:
+\begin{verbatim}
+context Root
+  @Operation addBits(n:Integer):Integer
+    if n = 0 or n < 0
+    then 0
+    else 
+      (n and 1) + (addBits(n.rsh(1)))
+    end
+  end
+\end{verbatim}
+In addition, integers support the follosing operators: {\tt mod}, {\tt abs}, {\tt bit},
+{\tt max}, {\tt min} and {\tt byte}.
+
+XMF supports floating point numbers. All numeric operators described above are defined
+for floating point numbers. In general integers and floats can be mixed in expressions
+and the integer is translated to the equivalent float. You can construct a float using the
+constructor {\tt Float} so that {\tt 3.14} is created by {\tt Float(3,14)}. Floats
+are translated to integers by the operations {\tt round} (upwards) and {\tt floor} (downwards).
+
+Integer division is performed by the operation {\tt div} and floating point division is
+performed by the infix operator {\tt /} (translating integers to floats as necessary).
+The operators {\tt sqrt}, {\tt sin} and {\tt cos} are defined for floats. 
+
+All values in XMF support the operation {\tt of} that returns the most specific class of 
+the receiver. A value can be asked whether it is of a given class using the operator {\tt isKindOf}.
+Classes can be compared using {\tt inheritsFrom} where a class is considered to inherit 
+from itself. We could define {\tt isKindOf} as:
+\begin{verbatim}
+context Element
+  @Operation isKindOf(type:Classifier):Boolean
+    self.of().inheritsFrom(type)
+  end
+\end{verbatim}
+The distinguished value {\tt null}, of type {\tt Null}, is special in that it returns
+{\tt true} when asked whether it {\tt isKindOf} any class. It is used as the default value
+for all non-basic classes in XMF.
+
+The following operation returns {\tt true} when supplied with a number:
+\begin{verbatim}
+context Root
+  @Operation isNum(x)
+    (x.isKindOf(Integer) or
+     x.isKindOf(Float)) and
+    x <> null
+  end
+\end{verbatim}
+
+\section{Strings, Symbols and Equality}
+
+XMF strings are of type {\tt String}. The following operation wraps the string {\tt "The"} and
+{\tt "."} around a supplied string:
+\begin{verbatim}
+context Root
+  @Operation makeSentence(noun:String):String
+    "The " + noun + "."
+  end
+\end{verbatim}
+Strings are sequences of characters indexed starting from 0. Equality of strings is
+defined by {\tt =} on a character by character comparison. Characters are represented
+as integer ASCII codes. The following operation checks whether a string starts with an
+upper case char:
+\begin{verbatim}
+context Root
+  @Operation startsUpperCase(s:String):Boolean
+    if s->size > 0
+    then
+      let c = s->at(0)
+      in "A"->at(0) <= c and c <= "Z"->at(0)
+      end
+    else false
+    end
+  end
+\end{verbatim}
+Strings can be compared using {\tt <}, {\tt <=}, {\tt >} and {\tt >=} in which case the usual
+lexicographic ordering applies.
+
+Since strings are compared on a character by character basis this makes string comparison
+relatively inefficient when performing many comparisons. Strings are often used as the
+keys in lookup tables (for example as the names of named elements). In order to speed up
+comparison, XMF provides a specialization of {\tt String} called {\tt Symbol}. A symbol is
+the same as a string except that two symbols with the same sequence of characters have the
+same identity. Comparison of symbols by identity rather than character by character is much
+more efficient. A string {\tt s} can be converted into a symbol by {\tt Symbol(s)}.
+
+Any value can be converted into a string using the operation {\tt toString}. To get the
+string representation of a number for example: {\tt 100.toString())}.
+
+\section{Tables}
+
+A table is used to associate keys with values. A table has operations to add associations
+between keys and values and lookup a given key. A table is created using the {\tt Table}
+constructor supplying a single argument that indicates the approximate number of elements
+to be stored in the table. Suppose that a library maintains records on borrowers:
+\begin{verbatim}
+context Root
+  @Class Library
+    @Attribute borrowers : Table = Table(100) end
+  end
+\end{verbatim}
+A new borrower is added by supplying the id, name and address. When the new borrower is added
+we check that no borrower has been allocated the same id. If the id is not already in use then
+we register the new borrower by associating the id with a borrower record in the table:
+\begin{verbatim}
+context Library
+  @Operation newBorrower(id:String,name:String,address:String)
+    if not borrowers.hasKey(id)
+    then
+      let borrower = Borrower(id,name,address)
+      in borrowers.put(id,borrower)
+      end
+    else self.error("Borrower with id = " + id + " already exists.")
+    end
+  end
+\end{verbatim}
+The library also provides an operation that gets a borrower record:
+\begin{verbatim}
+context Library
+  @Operation getBorrower(id:String):Borrower
+    if borrowers.hasKey(id)
+    then borrowers.get(id)
+    else self.error("No borrower with id = " + id)
+    end
+  end
+\end{verbatim}
+Tables provide operations to get all the keys and all the values:
+\begin{verbatim}
+context Library
+  @Operation idsInUse():Set(String)
+    borrowers.keys()
+  end
+  
+context Library
+  @Operation allBorrowers():Set(Borrower)
+    borrowers.values()
+  end
+\end{verbatim}
+
+\section{Sets}
+
+A set is an unordered collection of elements. The elements of a set need not all be of the same type.
+When {\tt T} is the type of each element of the set then the set is of type {\tt Set(T)}. Operations
+are provided to add and remove elements from sets and to combine sets. Sets can be used in iterate
+expressions. This section describes set-specific operations; iteration is described in section 
+\ref{iteration}.
+
+Sets are created by evaluating a set expression of the form: {\tt Set\{x,y,z,...\}} where {\tt x},
+{\tt y}, {\tt z} etc are element expressions. For example:
+\begin{verbatim}
+Set{1,true,Set{"a","b","c"},Borrower("1","Fred","3 The Cuttings")}
+\end{verbatim}
+The expression {\tt Set\{\}} produces the empty set.
+A set is unordered. An element can be selected at random from a non-empty set by performing {\tt S->sel}.
+A set is empty when {\tt S->isEmpty} produces true (or when it is {\tt =} to {\tt Set\{\}}).
+An element {\tt e} is added to a set by {\tt S->including(e)} and removed from a set by 
+{\tt S->excluding(e)}. The union of two sets is produced by {\tt S1 + S2} and the difference
+is constructed by {\tt S1 - S2}. An element is contained in a set when {\tt S->includes(e)}.
+
+Suppose that the set operation {\tt includes} was not provided as part of XOCL. It could be defined
+by:
+\begin{verbatim}
+context Set(Element)
+  @Operation includes(e:Element):Boolean
+    if self->isEmpty
+    then false
+    else 
+      let x = self->sel
+      in if x = e
+         then true
+         else self->excluding(x)->includes(e)
+         end
+      end
+    end
+  end
+\end{verbatim}
+
+\section{Sequences}
+
+A sequence is an ordered collection of elements. The elements in the sequence need not all be of the
+same type. When {\tt T} is the type of each element in the sequence then the sequence is of type
+{\tt Seq(T)}. Sequences can be used in iterate expressions as described in section \ref{iterate}.
+This section describes sequence operations.
+
+Sequences are created by evaluating a sequence expression or by translating an existing element into 
+a sequence. Sets, strings, integers and vectors can be translated to sequences of elements, characters,
+bits and elements respectively by performing {\tt e.asSeq()}. 
+
+The following operations are defined on sequences: {\tt +} appends sequences; {\tt asSet} transforms
+a sequence into a set; {\tt asString} transforms a sequence of character codes into a string; {\tt asVector}
+transforms a sequence into a vector; {\tt at} takes an index and returns the element at that position
+in the sequence, it could be defined as:
+\begin{verbatim}
+context Seq(Element)
+  @Operation at(n:Integer):Element
+    if self->size = 0
+    then self.error("Seq(Element).at: empty sequence.")
+    else if n <= 0 
+         then self->head
+         else self->tail.at(n - 1)
+         end
+    end
+  end  
+\end{verbatim}
+The operation {\tt butLast} returns all elements in a sequence but the last element. It could
+have been defined as follows, note the use of {\tt Seq\{head | tail\}} to construct a sequence
+with the given head and tail:
+\begin{verbatim}
+context Seq(Element)
+  @Operation butLast():Seq(Element)
+    if self->size = 0
+    then self.error("Seq(Element)::butLast: empty sequence.")
+    else if self->size = 1
+         then Seq{}
+         else Seq{self->head | self->tail->butLast}
+         end
+    end
+  end
+\end{verbatim}
+The operation {\tt contains} returns true when a sequence contains a supplied element; {\tt drop}
+takes an integer and returns a sequence that is the result of dropping the supplied number of elements;
+{\tt flatten} maps a sequence of sequences to a sequence:
+\begin{verbatim}
+context Seq(Element)
+  @Operation flatten():Seq(Element)
+    if self->isEmpty
+    then self
+    else self->head + self->tail->flatten
+    end
+  end
+\end{verbatim}
+The operation {\tt hasPrefix} takes a sequence as an argument and returns true when the receiver has a
+prefix that is equal to the argument; {\tt including} takes an element and returns a new sequence, this is
+the receiver if it contains to the argument or the argument prepended to the receiver; {\tt indexOf} takes 
+an element and returns the index of the argument in the receiver:
+\begin{verbatim}
+context SeqOfElement
+  @Operation indexOf(element:Element):Integer
+    if self = Seq{}
+    then -1
+    else 
+      if self->head = element
+      then 0
+      else self->tail->indexOf(element) + 1
+      end
+    end
+  end
+\end{verbatim}
+The operation {\tt insertAt} takes an element and an index and inserts the element at the given index; 
+{\tt last} returns the last element in a sequence; {\tt hasSuffix} takes a sequence as an argument and
+returns true when the receiver ends with the argument:
+\begin{verbatim}
+context Seq(Element)
+  @Operation hasSuffix(suffix):Boolean
+    self->reverse->hasPrefix(suffix->reverse)
+  end
+\end{verbatim}
+The operation {\tt head} returns the head of a non-empty sequence; {\tt includes} returns true when the 
+argument is included in the receiver; {\tt isEmpty} returns true when the receiver is empty; {\tt isProperSequence}
+returns true when the final element in the sequence is a pair whose tail is {\tt Seq\{\}}; {\tt map}
+applies an operation to each element of a sequence, the definition of {\tt map} shows the {\em varargs} feature
+of XOCL operations where the last argument may be preceded by a {\tt .} indicating that any further
+supplied arguments are bundled up into a sequence and supplied as a single value:
+\begin{verbatim}
+context Seq(Element)
+  @Operation map(message:String . args:Seq(Element)):Element
+    self->collect(x | x.send(message,args))
+  end
+\end{verbatim}
+The operation {\tt max} finds the maximum of a sequence of integers; {\tt prepend} adds an element to 
+the head of a sequence; {\tt qsort} takes a binary predicate operation and sorts the receiver into an
+order that satisfies the predicate using the quicksort algorithm:
+\begin{verbatim}
+context Seq(Element)
+  @Operation qsort(pred):Seq(Element)
+    if self->isEmpty
+    then self
+    else 
+      let e = self->head
+      in let pre = self->select(x | pred(x,e));
+             post = self->select(x | x <> e and not pred(x,e))
+         in pre->sort(pred) + Seq{e} + post->sort(pred)
+         end
+      end
+    end
+  end
+\end{verbatim}
+The operation {\tt ref} can be used to lookup a namespace path represented as a sequence of strings
+to the element found at the path. The operation takes a sequence of namespaces as an argument;
+the namespace arguments are used as the basis for the lookup, for example:
+\begin{verbatim}
+Seq{"Root","EMOF","Class","attributes"}->ref(Seq{Root})
+\end{verbatim}
+returns the attribute named {\tt attributes}. Note that namespace {\tt Root} contains itself.
+
+The operation {\tt reverse} reverses the receiver:
+\begin{verbatim}
+context Seq(Element)
+ @Operation reverse():Seq(Element)
+    if self->isEmpty
+    then Seq{}
+    else self->tail->reverse + Seq{self->head}
+  end
+\end{verbatim}
+The operation {\tt separateWith} takes a string as an argument and returns the string that is formed
+by placing the argument between each element of the receiver after the element is transformed into
+a string using {\tt toString}.
+
+The operation {\tt subst} takes three arguments: {\tt new}, {\tt old} and {\tt all}; it returns the
+result of replacing element {\tt old} with {\tt new} in the receiver. If {\tt all} is true then 
+all elements are replaced otherwise just the first element is replaced.
+
+The operation {\tt subSequence} takes a staring and terminating indices and returns the appropriate
+subsequence; {\tt take} takes an integer argument and returns the prefix of the receiver with that number
+of elements; {\tt tail} returns the tail of a non-empty sequence.
+
+Sequences have identity in XOCL; the head and tail of a sequence can be updated using:
+\begin{verbatim}
+S->tail := e
+\end{verbatim}
+and
+\begin{verbatim}
+S->tail := e
+\end{verbatim}
+This makes sequences very flexible and can be used for efficient storage and update of large collections
+(otherwise each time a sequence was updated it would be necessary to copy the sequence).
+
+\section{A-Lists}
+
+An {\em a-list} is a sequence of pairs; each pair has a head that is a key and a tail that is the value 
+associated with the key in the a-list. A-lists are used as simple lookup tables. They are much more 
+lightweight than instances of the class {\tt Table} and have the advantage that the large number of
+builtin sequence operations apply to a-lists. 
+
+The following class shows how an a-list can be used to store the age of a collection of people:
+\begin{verbatim}
+context Root
+  @Class People
+    @Attribute table : Seq(Element) end
+    @Operation newPerson(name:String,age:Integer)
+      self.table := table->bind(name,age)
+    end
+    @Operation getAge(name:String):Integer
+      table->lookup(name)
+    end
+    @Operation hasPerson(name:String):Boolean
+      table->binds(name)
+    end
+    @Operation birthday(name:String)
+      // Assumes name is in table:
+      table->set(name,table->lookup(name) + 1)
+    end
+  end
+\end{verbatim}
+
+\section{Iteration}
+
+Iteration expressions in XOCL allow collections (sets and sequences) to be manipulated in a convenient
+way. Iteration expressions are a shorthand for higher-order operations that take an operation as
+an argument and apply the argument operation to each element of the collection in turn. As such,
+iteration expressions can be viewed as sugar for the invocation of the equivaent higher-order operations.
+This section defines the XOCL iteration expressions and shows how they can be defined as higher-order
+operations.
+
+A collection can be filtered using a {\tt select} expression:
+\begin{verbatim}
+S->select(x | e)
+\end{verbatim}
+where {\tt x} is a variable and {\tt e} is a predicate expression. The result is the sub-collection
+of the receiver where each element {\tt y} in the sub-collection satisfies the predicate when {\tt x} is 
+bound to {\tt y}. This can be defined as follows for sequences:
+\begin{verbatim}
+context Seq(Element)
+  @Operation select(pred:Operation):Seq(Element)
+    if self->isEmpty
+    then self
+    else 
+      if pred(self->head)
+      then Seq{self->head | self->tail.select(pred)}
+      else self->tail.select(pred)
+      end
+    end
+  end
+\end{verbatim}
+The {\tt reject} expression is like {\tt select} except that it produces all elements that fail
+the predicate; here is the definition of {\tt refject} for sets:
+\begin{verbatim}
+context Set(Element)
+  @Operation reject(pred:Operation):Set(Element)
+    if self->isEmpty
+    then self
+    else 
+      let x = self->sel
+      in if pred(x)
+         then self->excluding(x)->reject(pred)
+         else self->excluding(x)->reject(pred)->including(x)
+         end
+      end
+    end
+  end
+\end{verbatim}
+The {\tt collect} expression maps a unary operation over a collection:
+\begin{verbatim}
+S->collect(x | e)
+\end{verbatim}
+It is defined for sequences as follows:
+\begin{verbatim}
+context Seq(Element)
+  @Operation collect(map:Operation):Seq(Element)
+    if not self->isEmpty
+    then 
+      let x = self->sel
+      in self->excluding(x)->select(map)->including(map(x))
+      end
+    else self
+    end
+  end
+\end{verbatim}
+\label{iteration}
+The expression {\tt iterate} has the form:
+\begin{verbatim}
+S->iterate(x y = v | e)
+\end{verbatim}
+This expression steps through the elements of {\tt S} and repeatedly sets the value of {\tt y} to be
+the value of {\tt e} where {\tt e} may refer to {\tt x} and {tt y}. The initial value of {\tt y} is
+the value {\tt v}. The following shows an example that adds up the value of a sequence of integers:
+\begin{verbatim}
+Seq{1,2,3,4,5}->iterate(i sum = 0 | sum + i)
+\end{verbatim}
+Th definition of {\tt iterate} as a higher order operation on sequences is as follows:
+\begin{verbatim}
+context Seq(Element)
+  @Operation iterate(y:Element,map:Operation):Element
+    if self->isEmpty
+    then y
+    else self->tail.iterate(map(self->head,y),map)
+    end
+  end
+\end{verbatim}
+
+\section{Variables and Scoping}
+
+Variables in XMF are of three types: {\em slots}, {\em dynamic} and {\em lexical}. When a message is
+sent to an object, all of the slots defined by the object are bound to the slot values, For example:
+\begin{verbatim}
+context Root
+  @Class Point
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    @Constructor(x,y) ! end
+    @Operation getX():Integer
+      x
+    end
+    @Operation getY():Integer
+      y
+    end
+  end
+\end{verbatim}
+The references to {\tt x} and {\tt y} in the accessor operations defined in {\tt Point} are variables
+of type {\em slot}. The class definition given for {\tt Point} is equivalent to the shorthand
+definition:
+\begin{verbatim}
+context Root
+  @Class Point
+    @Attribute x : Integer (?) end
+    @Attribute y : Integer (?) end
+    @Constructor(x,y) ! end
+  end
+\end{verbatim}
+where the {\tt (?)} are attribute definition modifiers. Slot variables can always be replaced with a qualified reference using {\tt self}
+as in {\tt self.x} and {\tt self.y}. Using qualified references is a matter of taste: somtimes it is
+more readable to use a qualified reference. Note that it is not possible to update slots using variable
+syntax: {\tt x := 0}; it is always necessary to update slots using a qualified update as follows:
+{\tt self.x := 0}.
+
+Dynamic variables are typically values
+associated with names in {\em name-spaces}. Dynamic variables are established when the association between
+the variable name and the value is created and typically persist for the rest of the lifetime of the XMF session.
+Lexical variables are typically created when values are supplied as arguments to an operation or when local
+definitions are executed. The association between the lexical variable name and the value persist for the duration 
+of the operation definition or the execution of the body of the local block. In both cases, as the name suggests,
+variable values can change by side-effect.
+
+A dynamic variable added to the {\tt Root} name-space has global scope because {\tt Root} is {\em imported}
+everywhere. A new dynamic variable in a name-space {\tt N} is created as follows:
+\begin{verbatim}
+N::v := e;
+\end{verbatim}
+where {\tt v} is the name of the variable and {\tt e} is an expression that produces the initial value. In
+order to make the names in a name-space visible you need to import the name-space. Imports can take place
+{\em locally} using the form:
+\begin{verbatim}
+import N in e end
+\end{verbatim}
+or {\em globally} in a file, by placing an {\tt import N;} at the head of the file.
+
+Lexical variables are established when arguments are passed to an operation or using a {\tt let}
+expression. In both cases the variable can be referenced in the body of the expression, but not
+outside the body. In both cases the variables can be updated using {\tt v := e}. Suppose we require
+an operation that takes two integers and returns a pair where the head is the smallest integer and 
+the tail is the other integer:
+\begin{verbatim}
+context Root
+  @Operation orderedPair(x,y)
+    let min = 0;
+        max = 0
+    in if x < y then min := x else min := y end;
+       if x > y then max := x else max := y end;
+       Seq{min | max}
+    end
+  end
+\end{verbatim}
+The definition of {\tt orderedPair} shows how a {\tt let} expression can introduce a number of
+variables (in this case {\tt min} and {\tt max}). If the {\tt let}-bindings are separated using {\tt ;}
+then the bindings are established {\em in-parallel} meaning that the variables cannot affect each
+other (i.e. the value for {\tt max} cannot refer to {\tt min} and vice versa). If the bindings are
+separated using {\tt then} they are established {\tt in-series} meaning that values in subsequent
+bindings can refer to variables in earlier bindings, for example:
+\begin{verbatim}
+context Root
+  @Operation orderedPair(x,y)
+    let min = if x < y then x else y end then
+        max = if min = x then y else x end
+    in Seq{min | max}
+    end
+  end
+\end{verbatim}
+
+\section{Looping and Find}
+
+XMF provides {\tt While} and {\tt For} for looping through collections and provides {\tt Find} for
+selecting an element in a collection that satisfies a condition. This section provides examples 
+of these constructs.
+
+A {\tt While} loop performs an action until a condition is satisfied (not a named element may use
+a symbol for its name so we ensure the name is a string using the {\tt toString} operation):
+\begin{verbatim}
+context Root
+  @Operation findElement(N:Set(NamedElement),name:String)
+    let found = null
+    in @While not N->isEmpty do
+         let n = N->sel
+         in if n.name().toString() = name
+            then found := n
+            else N := N->excluding(n)
+            end
+         end
+       end;
+       found
+    end
+  end
+\end{verbatim}
+It is often the case that {\tt While} loops are used to iterate through a collection. This pattern
+is captured by a {\tt For} loop:
+\begin{verbatim}
+context Root
+  @Operation findElement(N:Set(NamedElement),name:String)
+    let found = null
+    in @For n in N do
+         if n.name().toString() = name
+         then found := n
+         end
+       end;
+       found
+    end
+  end
+\end{verbatim} 
+In general a {\tt For} loop {\tt @For x in S do e end} is equivalent to the following
+{\tt While} loop:
+\begin{verbatim}
+let forColl = S;
+    isFirst = true
+in @While not forColl->isEmpty do
+     let x = forColl->sel
+     in forColl := forColl->excluding(x);
+        let isLast = forColl->isEmpty
+        in e;
+           isFirst := false
+        end
+     end
+   end
+end
+\end{verbatim}
+where the variables {\tt forColl}, {\tt isFirst} and {\tt isLast} are scoped over the
+body of the loop {\tt e}. These can be useful if we want the body action to depend on
+whether this is the first or last iteration, for example turning a sequence into a 
+string:
+\begin{verbatim}
+context Seq(Operation)
+  @Operation toString()
+    let s = "Seq{"
+    in @For e in self do
+         s := s + e.toString();
+         if not isLast then s := s + "," end
+       end;
+       s + "}"
+    end
+  end
+\end{verbatim}
+A {\tt For} loop may return a result. The keyword {\tt do} states that the body of the
+{\tt For} loop is an action and that the result of performing the entire loop will be
+ignored when the loop exits. Alternatively, the keyword {\tt produce} states that the
+loop will return a sequence of values. The values are the results returned by the loop
+body each time it is performed. For example, suppose we want to calculate the sequence
+of names from a sequence of people:
+\begin{verbatim}
+context Root
+  @Operation getNames(people:Seq(Person)):Seq(String)
+    @For person in people produce 
+      person.name 
+    end
+  end
+\end{verbatim}
+The keyword {\tt in} is a {\tt For}-loop {\it directive}. After {\tt in} the loop
+expects one or more collections. The {\tt in} directive supports multiple variables.
+This feature is useful when stepping through multiple collections in sync, as in:
+\begin{verbatim}
+context Root
+  @Operation createTable(names:Seq(String),addresses:Seq(String),telNos:Seq(String))
+    @For name,address,telNo in names,addresses,telNos produce
+      Seq{name,address,telNo}
+    end
+  end
+\end{verbatim}
+A {\tt For}-loop can be used to iterate through a table. Often we want to iterate
+either through the table values or the table keys. If we use the {\tt in}
+directive to iterate through either of these then we will create an intermediate
+collection:
+\begin{verbatim}
+context Root
+  @Operation addToAll(n:Integer,t:Table)
+    @For k in table.keys() do
+      k.put(k,t.get(k) + n)
+    end
+  end
+\end{verbatim}
+The expression {\tt table.keys()} creates an intermediate collection of all the keys
+in the table. The collection is not returned and cannot be referenced independently
+within the body of the loop. Therefore the collection is transient. The allocation of 
+transient table collections can be avoided using the {\tt For}-loop directives 
+{\tt inTableValues} and {\tt inTableKeys}:
+\begin{verbatim}
+context Root
+  @Operation addToAll(n:Integer,t:Table)
+    @For k inTableKeys table do
+      k.put(k,t.get(k) + n)
+    end
+  end
+\end{verbatim}
+            
+\section{Operations}
+
+XMF operations are used to implement both procedures and functions. An operation has an optional
+name, some parameters, a return type and a body. Operations are objects with internal state;
+part of the internal state is the name, parameter information, type and body. Operations
+also have {\it property lists} that can be used to attach information to the operation for
+use by XMF programs.
+
+Operations can be created and stored in XMF data items. In particular, operations can be added
+to name spaces and then referenced via the name space (either where the name space is {\it imported}
+or directly by giving the path to the operation). We have seen many examples of adding
+operations to the name space called {\tt Root} in earlier parts of this primer. The syntax:
+\begin{verbatim}
+context Root
+  @Operation add(x,y) x + y end
+\end{verbatim}
+can occur at the top-level of an XMF source file, compiled and loaded. It is equivalent to the
+following expression:
+\begin{verbatim}
+Root.add(@Operation add(x,y) x + y end);
+\end{verbatim}
+Unlike the {\tt context} expression, the call to {\tt add} may occur anywhere in XMF code.
+
+Operations are performed by sending them a message {\tt invoke} with two arguments: the
+value of {\tt self} (or {\it target}) to be used in the body of the operation and a sequence of 
+argument values. The target of the invocation is important because it provides the value 
+of {\tt self} in the ody of the operation and supplies the values of the {\it slot}-bound
+variables. The {\tt add} operation can be invoked by:
+\begin{verbatim}
+add.invoke(null,Seq{1,2})
+\end{verbatim}
+produces the value {\tt 3}. Note that in this case there is no reference to {\tt self}
+or slot-bound variables in the body and therefore the target of the invocation is {\tt null}.
+A shorthand for invocation is provided:
+\begin{verbatim}
+add(1,2)
+\end{verbatim}
+however, note that no target can be supplied with the shorthand. In this case the target will
+default to the value of {\tt self} that was in scope when the operation was created.
+
+Lexically bound variables that are scoped over an operation are available within the body
+of the operation event though the operation is returned from the lexical context. This is
+often referred to as {\it closing} the lexical variable into the operation (or {\it closure}).
+This feature is very useful when generating behaviour that differs only in terms of
+context. Suppose that transition machine states have an action that is implemented as an
+operation and that the action is to be performed when the state is entered:
+\begin{verbatim}
+context StateMachines
+  @Class State
+    @Attribute name : String end
+    @Attribute action : Operation end
+    @Constructor(name,action) end
+    @Operation enter()
+      action()
+    end
+  end
+\end{verbatim}
+
+      
+
+\section{Arrays and Vectors}
+
+\section{NameSpaces, Bindings and Named Elements}
+
+\section{Documentation}
+
+\section{Exception Handling}
+
+When an error occurs in XOCL, the source of the error {\em throws} an exception. The exception is a value
+that, in general, contains a description of the problem and any data that might help explain the
+reason why the problem occurred. 
+
+An exception is thrown to the most recently established handler; intermediate code is discarded. If
+no handler exists then the XOCL VM will terminate. In most cases, the exception is {\em caught} by a user
+defined handler or, for example in the case of the XMF console, a handler established by the top
+level command interpreter.
+
+When an exception is caught, the handler can inspect the contents of the exception and decide what to do.
+For example it may be necessary to re-throw the exception to the next-most recently established handler,
+since it cannot be dealt with. On the other hand, it is usual to catch the exception, print a message,
+patch up the problem, or just give up on the requested action.
+
+\appendix
+
+\section{XOCL Grammar}
+
+\small
+\begin{verbatim}
+  AName ::= Name | Drop. 
+
+  Apply ::= PathExp Args | KeyArgs .
+
+  ArithExp ::= UpdateExp [ ArithOp ArithExp ].
+
+  ArithOp ::= '+' | '-' | '*' | '/'.
+
+  Args ::= '(' (')' | Exp (',' Exp)* ')'.
+
+  AtExp ::= '@' AtPath @ 'end'.
+
+  AtPath ::= Name ('::' Name)*.
+
+  Atom ::= VarExp | 'self' | Str | Int | IfExp | Bool | LetExp | 
+           CollExp | AtExp | Drop | Lift | '(' Exp ')' | Throw | Try | 
+           ImportIn | Float.
+
+  AtomicPattern ::= Varp | Constp | Objectp | Consp | Keywordp.
+    
+  Binding ::= AName '=' LogicalExp.
+
+  Bindings ::= Binding (';' Binding)*.
+
+  Bool ::= 'true' | 'false'.
+
+  CollExp ::= SetExp | SeqExp. 
+
+  CompareExp ::= ArithExp [ CompareOp CompareExp ].
+
+  CompareOp ::= '='| '<' | '>' | '<>' | '>=' | '<='. 
+
+  CompilationUnit ::= ParserImport* Import* (Def | TopLevelExp)* EOF.
+  
+  Consp ::= Pairp | Seqp | Emptyp.
+
+  Constp ::=  Int | Str | Bool | Expp.
+
+  Def ::= 'context' PathExp Exp. 
+ 
+  Drop ::= '<' Exp '>'. 
+
+  EmptyColl ::= Name '{' '}'.
+
+  Emptyp ::= Name '{' '}'.
+
+  Exp ::= OrderedExp.
+    
+  Expp ::= '[' Exp ']'.
+    
+  Float ::= Int '.' Int.
+
+  Import ::= 'import' TopLevelExp.
+
+  ImportIn ::= 'import' Exp 'in' Exp 'end'.
+
+  ParserImport ::= 'parserImport' Name ('::' Name)* ';' ImportAt.
+
+  IfExp ::= 'if'Exp 'then'Exp IfTail.
+
+  IfTail ::= 'else' Exp 'end' | 'elseif' Exp 'then' Exp IfTail | 'end'.
+
+  KeyArgs ::= '[' (']' | KeyArg (',' KeyArg)* ']'.
+    
+  KeyArg ::= Name '=' Exp.
+    
+  Keywordp ::= Name ('::' Name)* '[' Keyps ']'.
+    
+  Keyps ::= Keyp (',' Keyp)* | .
+    
+  Keyp ::= Name '=' Pattern.
+    
+  Lift ::= '[|' Exp '|]'.
+
+  LetBody ::= 'in'Exp| 'then' Bindings LetBody.
+
+  LetExp ::= 'let'Bindings LetBody 'end'.
+    
+  LogicalExp ::= NotExp [ LogicalOp LogicalExp ].
+
+  LogicalOp ::= 'and' | 'or' | 'implies'.
+
+  NonEmptySeq ::= Name '{' Exp ((',' Exp)* '}' | '|' Exp '}').
+    
+  NonEmptyColl ::= Name '{' Exp (',' Exp)* '}'.
+
+  NotExp ::= CompareExp | 'not' CompareExp.
+
+  Objectp ::= Name ('::' Name)* '(' Patterns ')'.
+
+  OrderedExp ::= LogicalExp [ ';' OrderedExp ].
+
+  OptionallyArgs ::= Args | .
+
+  Pairp ::= Name '{' Pattern '|' Pattern '}'.
+    
+  PathExp ::= Atom [ '::' AName ('::' AName)* ].
+
+  Pattern ::= AtomicPattern ('->' Name '(' Pattern ')')* ('when'  Exp  | ).
+
+  Patterns ::= Pattern (',' Pattern)* | .
+    
+  RefExp ::= Apply 
+      (
+        '->' 
+         (
+            'iterate' '(' AName AName '=' Exp '|' Exp ')' 
+          | 
+           AName 
+            ( 
+              OptionallyArgs 
+            | 
+              '(' AName '|' Exp ')'  
+            |
+            
+            ) 
+          ) 
+     
+        | 
+          '.' AName 
+          (
+            Args
+          |   
+          
+          )   
+      )*. 
+  
+    Seqp ::=  Name '{' Pattern SeqpTail.
+
+    SeqpTail ::= ',' Pattern SeqpTail | '}'.
+    
+    SeqExp ::= EmptyColl | NonEmptySeq.
+
+    SetExp ::= EmptyColl | NonEmptyColl. 
+
+    Throw ::= 'throw' LogicalExp.
+
+    TopLevelExp ::= LogicalExp ';'.
+
+    Try ::= 'try' Exp 'catch' '(' Name ')' Exp 'end'.
+
+    UpdateExp ::= RefExp (':=' ! LogicalExp | ).
+
+    VarExp ::= Name Token.
+
+    Varp ::= AName ('=' Pattern | ) (':' Exp | ).
+
+\end{verbatim}
+
+
+\end{document}

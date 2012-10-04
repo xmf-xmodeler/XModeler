@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class ConfirmDialog extends ContainedClientElement
+  
+    @Attribute message : String end
+    
+    @Constructor(message) end
+  
+    @Operation new()
+      let reply = self.commandInterpreter().newConfirmDialog(self) in
+        if reply = "Yes" then true
+        else false end
+      end
+    end
+  
+  end

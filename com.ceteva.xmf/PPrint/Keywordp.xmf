@@ -1,0 +1,17 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Keywordp in PPrint(aKeywordp,out,seen)
+  let index = 0
+  in format(out,"~S~{~;::~S~}[",Seq{aKeywordp.class,aKeywordp.names});
+     @For key in aKeywordp.keys do
+       self.dispatch(key.out);
+       if not isLast
+       then format(out,",")
+       end
+     end;
+     format(out,"]")
+  end
+end;

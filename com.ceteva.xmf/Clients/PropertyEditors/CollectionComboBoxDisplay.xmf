@@ -1,0 +1,581 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CollectionComboBoxDisplay
+  
+    @Bind buttonWidth = 128 end
+    @Bind buttonGap = 5 end
+    
+    @Attribute comboBox : FormActiveComboBox end
+    @Attribute list : FormList end
+    @Attribute label : FormLabel end
+    @Attribute openButton : FormButton end
+    @Attribute modifyButton : FormButton end
+    @Attribute element : Element end
+    @Attribute slotName : String end // used for daemon monitoring
+  
+    @Constructor(label,comboBox,list,element)
+      let comboItems = comboBox.contents in
+        if not comboItems->isEmpty then
+          let comboSelection = comboItems.at(0) in
+            self.slotName := comboSelection;
+            comboBox.selected := comboSelection
+          end
+        else
+          self.slotName := null;
+          comboBox.selected := null
+        end
+      end;
+      let
+        modifyAction = @Operation() self.modifyCollection() end;
+        openAction =   @Operation() element.get(slotName).edit() end
+      in
+        self.modifyButton := FormButton(0,0,0,0,"Modify Collection",modifyAction);
+        self.openButton := FormButton(0,0,0,0,"Open Collection Viewer",openAction)
+      end
+    end
+
+    @Operation addToForm(form:Form,x,y,labelHeight,listWidth,listHeight,comboHeight,yGap)
+      self.addLabel(form,x+98,y); //+3+CollectionComboBoxDisplay::buttonGap
+      self.addButton(form,openButton,x+listWidth-CollectionComboBoxDisplay::buttonWidth,y+18,CollectionComboBoxDisplay::buttonWidth,20);
+      self.addButton(form,modifyButton,x,y+18,CollectionComboBoxDisplay::buttonWidth,20);
+      self.addComboBox(form,x,y+14+labelHeight+yGap+CollectionComboBoxDisplay::buttonGap,listWidth,comboHeight);
+      self.addList(form,x,y+14+(2*(labelHeight+yGap))+CollectionComboBoxDisplay::buttonGap,listWidth,listHeight)
+    end
+
+    @Operation addButton(form,button,x,y,width,height)
+      button.setX(x);
+      button.setY(y);
+      button.setWidth(width);
+      button.setHeight(height);
+      form.addElement(button)
+    end
+
+    @Operation addLabel(form,x,y)
+      label.setX(x);
+      label.setY(y);
+      form.addElement(label)
+    end
+
+    @Operation addComboBox(form,x,y,width,height)
+      comboBox.setX(x);
+      comboBox.setY(y);
+      comboBox.setWidth(width);
+      comboBox.setHeight(height);
+      form.addElement(comboBox)
+    end
+
+    @Operation addList(form,x,y,width,height)
+      list.setX(x);
+      list.setY(y);
+      list.setWidth(width);
+      list.setHeight(height);
+      form.addElement(list)
+    end
+
+    @Operation buttonAction_modify()
+      self.println()
+    end
+
+    @Operation buttonAction_open()
+      element.get(slotName).edit()
+    end
+
+    @Operation getListElementFor(e)
+      @Find(item,self.list.contents)
+        when item.element = e
+        else null
+      end
+    end
+
+    @Operation resetList()
+      let coll = element.of().getAttribute(slotName)
+      in
+        self.resetList(coll,true)
+      end
+    end
+
+    @Operation resetList(coll)
+      self.resetList(coll,false)
+    end
+
+    @Operation resetList(coll,alwaysRefresh:Boolean)
+      if coll <> null
+      then
+        let
+          newSlotName = coll.name.toString()
+        in
+          if slotName<>newSlotName or alwaysRefresh then
+            self.slotName := newSlotName;
+            list.clearContents();
+            let
+              slotvalue = self.element.get(newSlotName) then
+              values =
+                if coll.type.inheritsFrom(Table) then
+                  slotvalue.values()->asSeq.sortByString(true)
+                elseif coll.type.inheritsFrom(SetOfElement) then
+                  if not slotvalue.isKindOf(SetOfElement) andthen not slotvalue.isKindOf(SeqOfElement) then
+                    let
+                      dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) then                 
+                      ok = dialog.newConfirmDialog("Cannot display the value of '" + newSlotName + "' because it is not a set. Do you want to put the current slot value into a set?")
+                    in
+                      if ok then
+                        self.element.set(newSlotName,Set{slotvalue});
+                        slotvalue := self.element.get(newSlotName)
+                      else
+                        slotvalue := Set{"ERROR: Slot value not valid"}
+                      end
+                    end
+                  end;
+                  if slotvalue.isKindOf(SeqOfElement)
+                  then slotvalue
+                  else slotvalue->asSeq.sortByString(true)
+                  end
+                else
+                  if not slotvalue.isKindOf(SetOfElement) andthen not slotvalue.isKindOf(SeqOfElement) then
+                    let
+                      dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) then                 
+                      ok = dialog.newConfirmDialog("Cannot display the value of '" + newSlotName + "' because it is not a sequence. Do you want to put the current slot value into a sequence?")
+                    in
+                      if ok then
+                        self.element.set(newSlotName,Seq{slotvalue});
+                        slotvalue := self.element.get(newSlotName)
+                      else
+                        slotvalue := Seq{"ERROR: Slot value not valid"}
+                      end
+                    end
+                  end;
+                  if slotvalue.isKindOf(SeqOfElement)
+                  then slotvalue
+                  else slotvalue->asSeq.sortByString(true)
+                  end
+                end
+            in
+              if not values->isEmpty then
+                @For e inSeq values do
+                  let
+                    editable = e.isKindOf(NamedElement);          
+                    itemText = e.labelString()
+                  then            
+                    item = CollectionListElement(itemText,e)
+                  in
+                    list.addItem(item)
+                  end           
+                end
+              end
+            end;
+            list.renewContents()
+          end
+        end
+      else
+        list.clearContents()
+      end
+    end
+
+    @Operation modifyCollection()
+      let
+        collection = element.get(slotName) then
+        options = 
+          if collection.isKindOf(SetOfElement)
+          then Seq{"Add Element",
+                   "Add Element (Instance of Set Element Type)",
+                   "Remove Element",
+                   "Remove All Elements"}
+          elseif collection.isKindOf(SeqOfElement)
+          then Seq{"Add Element",
+                   "Add Element (Instance of Sequence Element Type)",
+                   "Remove Element",
+                   "Remove All Elements",
+                   "Move Element to Specified Position"}
+          //elseif collection.isKindOf(Table)
+          //then Seq{"Add Element",
+          //         "Remove Element",
+          //         "Remove All Elements"}
+          else Seq{}
+          end
+      in
+        if not options->isEmpty
+        then
+          let choice = xmf.select("Modify Collection","Select the type of modification you wish to perform:",options,null,null)
+          in
+            if collection.isKindOf(Table)
+            then
+              @Case choice of 
+                "Add Element"          do self.addTableElement(collection) end
+                "Remove Element"       do self.removeTableElement(collection) end
+                "Remove All Elements"  do self.clearTable(collection) end
+                else null
+              end
+            else
+              @Case choice of
+                "Add Element"                        do self.addSetSeqElement(collection) end
+                "Add Element (Instance of Set Element Type)"        do self.addSetSeqTypeInstance(collection) end
+                "Add Element (Instance of Sequence Element Type)"   do self.addSetSeqTypeInstance(collection) end
+                "Remove Element"                     do self.removeSetSeqElement(collection) end
+                "Remove All Elements"                do self.clearSetSeq(collection) end
+                "Move Element to Specified Position" do self.moveSeqElement(collection) end
+                else null
+              end
+            end
+          end
+        elseif collection.isKindOf(Table)
+        then
+          collection.edit()
+        else
+          xmf.warning("No support is currently provided for modifying this collection.")
+        end
+      end
+    end
+
+    @Operation getSetSeqTypeInstance(collection)
+      let attType = element.of().getAttribute(slotName).type
+      in
+        if not attType.isKindOf(Set) and not attType.isKindOf(Seq)
+        then
+          if xmf.question("Attribute type is not a set or sequence type.\n" +
+                          "Do you want to create an element by evaluating an expression instead?")
+          then self.getSetSeqElement(collection)
+          else null
+          end
+        else
+          let elementType = attType.elementType
+          in
+            if elementType = Element
+            then
+              if xmf.question("Collection type is XCore::Element which is too vague to instantiate.\n" +
+                              "Do you want to create an element by evaluating an expression instead?")
+              then self.getSetSeqElement(collection)
+              else null
+              end
+            else
+              let availableClasses = Root.allContentsOf(Class)->select(c | c.inheritsFrom(elementType) and not c.isAbstract)
+                    ->asSeq.sortNamedElements_CaseIndependent()
+              in
+                if availableClasses->isEmpty
+                then
+                  if xmf.question("There are no concrete sub-classes of '" + elementType.name.toString() + "' to instantiate.\n" +
+                                  "Do you want to create an element by evaluating an expression instead?")
+                  then self.getSetSeqElement(collection)
+                  else null
+                  end
+                else
+                  let stringOp = 
+                        @Operation(class)
+                          class.name().toString() + " from " + class.owner.toString()
+                        end then
+                      class = xmf.select("Add Collection Element",
+                                 "Select a class to instantiate and add to the collection",
+                                 availableClasses,
+                                 null,
+                                 stringOp)
+                  in
+                    if class <> null
+                    then class()
+                    else null
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation addSetSeqTypeInstance(collection)
+      let value = self.getSetSeqTypeInstance(collection)
+      in
+        if value <> null
+        then
+          self.addSetSeqElement(collection,value)
+        end
+      end
+    end
+
+    @Operation getSetSeqElement(collection)
+      self.expressionEvaluator(
+        "Add Element",
+        "Enter an expression to evaluate to get\n" +
+        "the value to add to the collection.")
+    end
+
+    @Operation addSetSeqElement(collection)
+      let value = self.getSetSeqElement(collection)
+      in
+        if value <> null
+        then
+          self.addSetSeqElement(collection,value)
+        end
+      end
+    end
+
+    @Operation addSetSeqElement(collection,value)
+      let ops = self.getAddToSlotOps();
+          directSlotOp = CollectionComboBoxDisplay::addToSlotDirect
+      in
+        if ops->isEmpty
+        then self.addToSlotDirect(collection,value);
+             if collection.isKindOf(SeqOfElement)
+             then self.moveAddedSeqElement(value,collection)
+             end
+        else        
+          ops := Seq{directSlotOp} + ops;
+          let stringOp = 
+                @Operation(op)
+                  if op = directSlotOp
+                  then "Modify '" + slotName + "' slot directly"
+                  else "Call '" + op.path().subst("","Root::",false) + "' operation"
+                  end
+                end then
+              modifyOp = xmf.select("Add Collection Element",
+                                    "How to you want to add the new element to the collection?",
+                                    ops,
+                                    null,
+                                    stringOp)
+          in
+            if modifyOp <> null
+            then
+              if modifyOp = directSlotOp
+              then self.addToSlotDirect(collection,value);
+                   if collection.isKindOf(SeqOfElement)
+                   then self.moveAddedSeqElement(value,collection)
+                   end
+              else modifyOp.invokes(element,Seq{value})
+              end
+            end
+          end
+        end  
+      end
+    end
+
+    @Operation getAddToSlotOps()
+      let ops = self.getSlotOps("com.ceteva.xmf.collectionSlotAdd");
+          modString = "addTo" + slotName.upperCaseInitialLetter()
+      in
+        if element.of().hasElement(modString)
+        then ops + Seq{element.of().getElement(modString)}
+        else ops
+        end
+      end
+    end
+
+    @Operation getRemoveFromSlotOps()
+      let ops = self.getSlotOps("com.ceteva.xmf.collectionSlotRemove");
+          modString = "removeFrom" + slotName.upperCaseInitialLetter()
+      in
+        if element.of().hasElement(modString)
+        then ops + Seq{element.of().getElement(modString)}
+        else ops
+        end
+      end
+    end
+
+    @Operation addToSlotDirect(collection,e)
+      element.set(slotName,collection->including(e))
+    end
+
+    @Operation removeFromSlotDirect(collection,e)
+      element.set(slotName,collection->excluding(e))
+    end
+
+    @Operation clearSlotDirect(collection)
+      if collection.isKindOf(SeqOfElement)
+      then element.set(slotName,Seq{})
+      else element.set(slotName,Set{})
+      end
+    end
+
+    @Operation removeSetSeqElement(collection)
+      let value = self.getCollectionElement(collection,
+                                            "Remove Collection Element",
+                                            "Choose an element to remove from the collection")
+      in
+        if value <> null
+        then        
+          let ops = self.getRemoveFromSlotOps();
+              directSlotOp = CollectionComboBoxDisplay::removeFromSlotDirect
+          in
+            if ops->isEmpty
+            then
+              if xmf.question("Are you sure you want to remove this element?")
+              then self.removeFromSlotDirect(collection,value)
+              end
+            else        
+              ops := Seq{directSlotOp} + ops;
+              let stringOp = 
+                    @Operation(op)
+                      if op = directSlotOp
+                      then "Modify '" + slotName + "' slot directly"
+                      else "Call '" + op.path().subst("","Root::",false) + "' operation"
+                      end
+                    end then
+                  modifyOp = xmf.select("Remove Collection Element",
+                                        "How to you want to remove the new element from the collection?",
+                                        ops,
+                                        null,
+                                        stringOp)
+              in
+                if modifyOp <> null andthen xmf.question("Are you sure you want to remove this element?")
+                then
+                  if modifyOp = directSlotOp
+                  then self.removeFromSlotDirect(collection,value)
+                  else modifyOp.invokes(element,Seq{value})
+                  end
+                end
+              end
+            end  
+          end
+        end
+      end
+    end
+
+    @Operation clearSetSeq(collection)
+      let ops = self.getRemoveFromSlotOps();
+          directSlotOp = CollectionComboBoxDisplay::clearSlotDirect
+      in
+        if ops->isEmpty
+        then
+          if xmf.question("Are you sure you want to remove all elements?")
+          then self.clearSlotDirect(collection)
+          end
+        else        
+          ops := Seq{directSlotOp} + ops;
+          let stringOp = 
+                @Operation(op)
+                  if op = directSlotOp
+                  then "Clear '" + slotName + "' slot directly"
+                  else "Call '" + op.path().subst("","Root::",false)
+                                + "' operation for each element"
+                  end
+                end then
+              modifyOp = xmf.select("Clear Collection",
+                                    "How to you want to clear the collection?",
+                                    ops,
+                                    null,
+                                    stringOp)
+          in
+            if modifyOp <> null andthen xmf.question("Are you sure you want to remove all elements?")
+            then
+              if modifyOp = directSlotOp
+              then self.clearSlotDirect(collection)
+              else
+                @For value in collection do
+                  modifyOp.invokes(element,Seq{value})
+                end
+              end
+            end
+          end
+        end  
+      end
+    end
+
+    @Operation moveAddedSeqElement(value,collection)
+      if xmf.question("The new element has been added to the end of the sequence.\n"
+                    + "Do you want to choose a different position?")
+      then
+        self.moveSeqElement(value,collection)
+      end
+    end
+
+    @Operation moveSeqElement(collection)
+      let value = self.getCollectionElement(collection,
+                                            "Move Sequence Element",
+                                            "Choose an element whose position in the sequence you want to change")
+      in
+        if value <> null
+        then
+          self.moveSeqElement(value,collection)
+        end
+      end
+    end
+
+    @Operation moveSeqElement(value,collection)
+      let options = collection->excluding(value) + Seq{"end"};
+          stringOp = 
+            @Operation(e)
+              if e = "end"
+              then "- End of Sequence -"
+              else e.toString()
+              end
+            end;
+          message = "Select the element in the sequence that you want to insert "
+                    + value.toString() + " before" then
+          beforeElement = xmf.select("Move Sequence Element",
+                                     message,
+                                     options,
+                                     null,
+                                     stringOp)
+      in
+        if beforeElement <> null
+        then
+          collection := collection->excluding(value);
+          if beforeElement = "end"
+          then
+            collection := collection + Seq{value}
+          else
+            let newPos = collection.indexOf(beforeElement)
+            in  collection := collection.insertAt(value,newPos)
+            end
+          end;
+          element.set(slotName,collection)
+        end
+      end
+    end
+
+    @Operation expressionEvaluator(title,message)
+      let exp = xmf.getExp(title,message)
+      in
+        if exp <> null
+        then exp.eval(null,Env::NullEnv(),Seq{XCore,Root})
+        else null
+        end
+      end
+    end
+
+    @Operation getCollectionElement(collection,title,message)
+      if collection.isKindOf(SetOfElement)
+      then collection := collection->asSeq.sortByString(true)
+      end;
+      let stringOp = @Operation(e) e.toString() end
+      in
+        xmf.select(title,message,collection,null,stringOp)
+      end
+    end
+
+    @Operation getSlotOps(id)
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint(id) then
+          contributions = registryPoint.find(element.of());
+          ops = Seq{}
+        in
+          if not contributions->isEmpty then
+            @For contribution in contributions do
+              let conSlotName = contribution.getValue(0)
+              in
+                if conSlotName.toString() = slotName.toString()
+                then
+                  ops := ops->prepend(contribution.getValue(1))
+                end
+              end
+            end
+          end;
+          ops
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation addTableElement(collection) xmf.message("Not yet supported") end
+    
+    @Operation removeTableElement(collection) xmf.message("Not yet supported") end
+
+    @Operation clearTable(collection) xmf.message("Not yet supported") end
+
+  end

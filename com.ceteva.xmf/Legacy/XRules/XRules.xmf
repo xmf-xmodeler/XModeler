@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+context Root
+
+  @Package XRules
+  
+    @Doc
+      This package defines data driven rules that can be used to 
+      monitor the behaviour of objects as they change. Rules consist
+      of pattern-based conditions that apply to multiple objects.
+      When the conditions are satisfied, the rule fires by executing
+      its body. The implementation of the rules is based on a RETE
+      network. This is efficient because it maintains the state of
+      incomplete matches. When an object changes state, a rule is
+      fired without having to re-examine existing objects that have
+      already satisfied parts of the rule.
+      
+      XRules are inte-nded to be used to define consistency conditions
+      that are required to hold between multiple objects. Typically we
+      might state that we require the names of two objects with the
+      same owner to be different and to inform the user if this invariant
+      is violated. Another typical case is requiring that the slots of
+      two objects contain collections of the same size.
+      
+      XRules is built from the basic Daemon mechanisms defined in the
+      XMap package.
+    end
+  
+  end

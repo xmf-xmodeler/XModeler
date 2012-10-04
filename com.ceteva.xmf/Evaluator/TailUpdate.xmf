@@ -1,0 +1,29 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler TailUpdate in Eval(aTailUpdate,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aTailUpdate.seq,
+       @Operation(next,result,call,return)
+         self.eval(aTailUpdate.seq,env,target,imports,next,result,call,return,
+           @Operation(seq)
+             next(aTailUpdate.value,
+               @Operation(next,result,call,return)
+                 self.eval(aTailUpdate.value,env,target,imports,next,result,call,return,
+                   @Operation(value)
+                     let x = seq->tail := value
+                     in result(aTailUpdate,x,cont)
+                     end
+                   end)
+               end)
+           end)
+        end)
+   end
+end;

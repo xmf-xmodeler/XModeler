@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+context Root
+
+  @Class Preference extends NamedElement
+  
+    @Attribute value   : Element              end
+    @Attribute type    : Classifier = Element end
+    @Attribute askUser : Boolean (!)          end
+    
+    @Constructor(name,value,type,askUser) end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation askUser()
+      @Case type of
+        [String] do
+          xmf.getString("Preference","Enter the value of " + name,value)
+        end
+        [Integer] do
+          xmf.getInteger("Preference","Enter the value of " + name,value)
+        end
+        [Boolean] do
+          xmf.getBoolean("Preference","Enter the value of " + name,value)
+        end
+        else value
+      end
+    end
+
+    @Operation convertValue(v)
+      if v.isKindOf(String)
+      then
+        @Case type of
+          [Integer] do
+            v.asInt()
+          end
+          [Boolean] do
+            v.asBool()
+          end
+          else
+            self.error("Conversion from string values to this preference type is not supported.")
+        end
+        else
+          self.error("Only string values can be converted into other primitive preference types.")
+        end
+    end
+
+    @Operation setValue(v)
+      if v.isKindOf(type)
+      then self.value := v
+      else self.value := self.convertValue(v)        
+      end;
+      self
+    end
+    
+    @Operation value()
+      if askUser
+      then self.askUser()
+      else value
+      end
+    end
+
+  end

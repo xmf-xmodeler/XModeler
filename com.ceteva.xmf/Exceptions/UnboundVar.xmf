@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class UnboundVar extends Exception
+  
+    @Attribute name : String end
+    
+    @Constructor(name,lineCount,charCount) !
+      self.setBacktrace();
+      self.message := "The variable " + name + " is unbound."
+    end
+    
+  end
+      
+     

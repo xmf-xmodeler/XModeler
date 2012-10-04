@@ -1,0 +1,146 @@
+parserImport XOCL;
+
+context Root
+  @Package CPM
+  
+    @Class Model 
+    
+      @Attribute events : Set(Event) (?) end
+      @Attribute activities : Set(Activity) (?) end
+      
+      @Operation activitiesBetween(e1,e2)
+        activities->select(activity |
+          activity.startEvent() = e1 and
+          activity.endEvent() = e2)
+      end
+      
+      @Operation predecessors(event)
+        events->select(e | 
+          activities->exists(activity |
+            activity.startEvent() = e and
+            activity.endEvent() = event))
+      end
+      
+      @Operation roots():Set(Event)
+        events->select(event |
+          not activities->exists(activity |
+            activity.endEvent() = event))
+      end
+      
+      @Operation successors(event)
+        events->select(e |
+          activities->exists(activity |
+            activity.endEvent() = e and
+            activity.startEvent() = event))
+      end
+      
+      @Operation terminals()
+        events->select(event |
+          not activities->exists(activity |
+            activity.startEvent() = event))
+      end
+      
+    end
+    
+    @Class Event extends NamedElement
+      @Attribute earliest : Integer (?,!) end
+      @Attribute latest   : Integer (?,!) end
+      @Operation timing():String
+        "(" + earliest + "," + latest + ")"
+      end
+    end
+    
+    @Class Activity extends NamedElement
+      @Attribute duration : Integer (?,!) end
+      @Attribute startEvent : Event (?) end
+      @Attribute endEvent : Event (?) end
+    end
+    
+    @Operation resetEdges(tool)
+      @For edge in tool.diagram().edges() do
+        edge.setStyle(1)
+      end
+    end
+    
+    @Operation performPasses(tool)
+      resetEdges(tool);
+      forwardPass(tool);
+      backwardPass(tool)
+      //showCriticalPath(tool)
+    end
+    
+    @Operation forwardPass(tool)
+      let model = tool.element().element() then
+          roots = model.roots() then
+          visited = roots
+      in @While visited <> model.events() do
+           @For event in model.events() do
+             if model.predecessors(event)->forAll(n | visited->includes(n)) and not visited->includes(event)
+             then 
+               let preds = model.predecessors(event);
+                   earliest = 0
+               in @For pred in preds do
+                    @For activity in model.activitiesBetween(pred,event) do
+                      earliest := earliest.max(pred.earliest() + activity.duration())
+                    end
+                  end;
+                  event.setEarliest(earliest);
+                  visited := visited->including(event)
+               end
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation backwardPass(tool)
+      let model = tool.element().element() then
+          terminals = model.terminals() then
+          visited = terminals
+      in if terminals->size <> 1
+         then self.error("A CPM network must have 1 termnial event.")
+         else terminals->sel.setLatest(terminals->sel.earliest())
+         end;
+         @While visited <> model.events() do
+           @For event in model.events() do
+             if model.successors(event)->forAll(n | visited->includes(n)) and not visited->includes(event)
+             then 
+               let succs = model.successors(event);
+                   latest = 9999
+               in @For succ in succs do
+                    @For activity in model.activitiesBetween(event,succ) do
+                      latest := latest.min(succ.latest() - activity.duration())
+                    end
+                  end;
+                  event.setLatest(latest);
+                  visited := visited->including(event)
+               end
+             end
+           end
+         end
+      end
+    end 
+    
+    @Operation showCriticalPath(tool)
+      let model = tool.element().element() then
+          root = graph.roots()->sel then
+          paths = graph.paths(root)->select(p | graph.terminals()->includes(p->last)) then
+          criticalPath = paths->select(p | p->forAll(n | n.data().latest() - n.data().earliest() = 0))->sel
+      in @Letrec showPath =
+           @Operation(path)
+             if not (path->isEmpty orelse path->tail->isEmpty)
+             then 
+               let source = path->head;
+                   target = path->tail->head then
+                   edges = graph.edgesBetween(source,target)
+               in self.find(edges->sel.data()).setStyle(2);
+                  showPath(path->tail)
+               end
+             end
+           end
+         in showPath(criticalPath)
+         end
+       end
+     end
+           
+  end

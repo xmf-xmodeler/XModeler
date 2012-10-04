@@ -1,0 +1,389 @@
+parserImport XOCL;
+
+import IO;
+import XBNF;
+import Grammars;
+import Tokens;
+
+context Grammar
+  @Operation parse(inch:InputChannel,nonTerminal:String,args:Seq(Element))
+  
+    // Parsing is table driven. The table associates nonterminals (clause names)
+    // and terminals (tokens) with sequences of actions. The parsing machine is in a
+    // state consisting of a current token, a sequence of actions, some synthesized
+    // values and some local variables. If the action is a CALL then the table is
+    // used to find the sequence of actions given the next token and the state is
+    // updated. The state also contains fail states which are copies of the machine
+    // state to be used to backtrack if the table indicates that no further actions
+    // can be taken on a CALL. The fail states are created (pushed) if the grammar
+    // is not LL(1); multiple action sequences occur at ambiguous points in the table.
+    
+    @WithoutSourcePos
+    let clauseTable = clauseTable;
+        EndOfFile = Tokenizer::EOF;
+        tokenizer = Tokenizer(inch);          // Tokens derived from the input channel.
+        token = "";                           // Cached token.
+        type = 0;                             // Cached token type.
+        tokenBuffer = Buffer(1000,false);     // Save tokens if grammar is not LL(1).
+        typeBuffer = Buffer(1000,false);      // Save tokens if grammar is not LL(1).
+        bufferIndex = 0;                      // Save tokens if grammar is not LL(1).
+        parsers = Seq{Call(nonTerminal,args)};// A stack of actions derived from the PPT table.
+        fails = Seq{};                        // Fail states.
+        values = Seq{};                       // Synthesized values, pushed and popped.
+        locals = Seq{args->asVector};         // Local bindings, named are allocated positions.
+        indent = 0;                           // Used for debugging.
+        return = Return()                     // An action pushed on entry to a clause.
+    in tokenizer.nextToken(terminals);
+       token := tokenizer.token;
+       type := tokenizer.type;
+       
+       @While not parsers->isEmpty do
+       
+         @CaseObj parsers->head of
+         
+           Call[name,BOA] do
+           
+             // Look up the name and current token in the table to find a
+             // sequence of actions. If no actions are found then fail or
+             // backtrack. If 1 action sequence is found then push then on
+             // the current action list. Otherwise set up fail states and 
+             // push the first sequence.
+             
+             parsers := parsers->tail;
+             
+             // Use the lookup table to index a sequence of action sequences.
+             // This will result in 0, 1 or many action sequences.
+             
+             let clause = Kernel_tableGet(clauseTable,name) then
+                 bodies = Kernel_arrayRef(clause.PPTCache,type);
+                 newLocalsIndex = 0
+             in 
+                // Any arguments that are passed in are referenced using the
+                // BOA map. This creates a new locals frame for the new call.
+             
+                locals := Seq{Vector(clause.locals) | locals};
+                
+                @For index in BOA do
+                  locals->head.put(newLocalsIndex,locals->tail->head->at(index));
+                  newLocalsIndex := newLocalsIndex + 1
+                end;
+             
+                // If no action sequences are available then, the non-terminal may
+                // generate the empty sequence of terminals in which case this is
+                // recorded as EOF.
+                
+                if bodies->size = 0
+                then bodies := Kernel_arrayRef(Kernel_tableGet(clauseTable,name).PPTCache,EndOfFile)
+                end;
+                
+                // If no action sequences are available then this is a FAIL. If we 
+                // have any fail states then we can backtrack. Otherwise the whole
+                // parse fails.
+                
+                if bodies->size = 0
+                then 
+                  if fails->isEmpty
+                  then clauseTable.get(name).parseError(self,type,token)
+                  else
+                    if debug then format(stdout,"~VFail~%",Seq{indent}) end;
+                    let failState = fails->head
+                    in fails := fails->tail;
+                       bufferIndex := failState->at(0);
+                       parsers := failState->at(1);
+                       values := failState->at(2);
+                       locals := failState->at(3);
+                       indent := failState->at(4);
+                       token := failState->at(5);
+                       type := failState->at(6)
+                    end
+                  end 
+                elseif bodies->size = 1
+                then 
+                  if debug then format(stdout,"~VCall ~S(~{,~;~S~}) ~S values = ~S~%",Seq{indent,name,locals->head->asSeq,fails->size,values}) end;
+                  indent := indent + 1;
+                  parsers := bodies->head + Seq{return | parsers}
+                else 
+                  indent := indent + 1;
+                  let nextActions = bodies->head;
+                      failActionSeqs = bodies->tail
+                  in @For failActions in failActionSeqs do
+                       let parsers = failActions + Seq{return | parsers} then
+                           failState = Seq{bufferIndex,parsers,values,locals,indent,token,type}
+                       in fails := Seq{failState | fails}
+                       end
+                     end;
+                     parsers := nextActions + Seq{return | parsers}
+                  end
+                end
+             end
+           end
+           
+           Return[ ] do
+           
+             // This action is pushed on entry to a clause. It pops the currently
+             // active locals frame so that variables are local to a clause.
+             
+             indent := indent - 1;
+             locals := locals->tail;
+             if debug then format(stdout,"~VReturn values = ~S~%",Seq{indent,values}) end;
+             parsers := parsers->tail
+           end
+           
+           Terminal[terminal] do
+           
+             // Consume the current token. Fail if the current token does not
+             // match the expectation (although the table lookahead should never 
+             // allow this situation to occur).
+             
+             if not token = terminal
+             then 
+               if fails->isEmpty
+               then self.error("Expecting " + terminal + " got " + token)
+               else
+                 if debug then format(stdout,"~VFail terminal ~S~%",Seq{indent,terminal}) end;
+                 let failState = fails->head
+                 in fails := fails->tail;
+                    bufferIndex := failState->at(0);
+                    parsers := failState->at(1);
+                    values := failState->at(2);
+                    locals := failState->at(3);
+                    indent := failState->at(4);
+                    token := failState->at(5);
+                    type := failState->at(6)
+                 end
+               end 
+             else
+               if debug then format(stdout,"~VConsumed token ~S~%",Seq{indent,token}) end;
+               if bufferIndex < tokenBuffer->size
+               then
+                 token := tokenBuffer.ref(bufferIndex);
+                 type := typeBuffer.ref(bufferIndex);
+                 bufferIndex := bufferIndex + 1
+               else 
+                 tokenizer.nextToken(terminals);
+                 token := tokenizer.token;
+                 type := tokenizer.type;
+                 if not fails->isEmpty
+                 then 
+                   tokenBuffer.add(token);
+                   typeBuffer.add(type);
+                   bufferIndex := bufferIndex + 1
+                 end
+               end;
+               parsers := parsers->tail
+             end
+           end
+           
+           Name[ ] do
+           
+             // A builtin non-terminal.
+             
+             values := Seq{token.toString() | values};
+             parsers := parsers->tail;
+             if not type = Tokenizer::NAME
+             then 
+               if fails->isEmpty
+               then self.error("Expecting a name, but got " + token)
+               else
+                 if debug then format(stdout,"~VFail Name~%",Seq{indent}) end;
+                 let failState = fails->head
+                 in fails := fails->tail;
+                    bufferIndex := failState->at(0);
+                    parsers := failState->at(1);
+                    values := failState->at(2);
+                    locals := failState->at(3);
+                    indent := failState->at(4);
+                    token := failState->at(5);
+                    type := failState->at(6)
+                 end
+               end 
+             else
+               if debug then format(stdout,"~VConsumed name ~S~%",Seq{indent,token}) end;
+               if bufferIndex < tokenBuffer.size()
+               then 
+                 token := tokenBuffer.ref(bufferIndex);
+                 type := typeBuffer.ref(bufferIndex);
+                 bufferIndex := bufferIndex + 1
+               else 
+                 tokenizer.nextToken(terminals);
+                 token := tokenizer.token;
+                 type := tokenizer.type;
+                 if not fails->isEmpty
+                 then
+                   tokenBuffer.add(token);
+                   typeBuffer.add(type);
+                   bufferIndex := bufferIndex + 1
+                 end
+               end
+             end
+           end
+           
+           Int[ ] do
+           
+             // A builtin non-terminal.
+             
+             values := Seq{tokenizer.token | values};
+             parsers := parsers->tail;
+             if not type = Tokenizer::INT
+             then 
+               if fails->isEmpty
+               then self.error("Expecting an integer, but got " + token)
+               else
+                 if debug then format(stdout,"~VFail Name~%",Seq{indent}) end;
+                 let failState = fails->head
+                 in fails := fails->tail;
+                    bufferIndex := failState->at(0);
+                    parsers := failState->at(1);
+                    values := failState->at(2);
+                    locals := failState->at(3);
+                    indent := failState->at(4);
+                    token := failState->at(5);
+                    type := failState->at(6)
+                 end
+               end
+             else
+               if debug then format(stdout,"~VConsumed int ~S~%",Seq{indent,token}) end;
+               if bufferIndex < tokenBuffer.size()
+               then 
+                 token := tokenBuffer.ref(bufferIndex);
+                 type := typeBuffer.ref(bufferIndex);
+                 bufferIndex := bufferIndex + 1
+               else 
+                 tokenizer.nextToken(terminals);
+                 token := tokenizer.token;
+                 type := tokenizer.type;
+                 if not fails->isEmpty
+                 then
+                   tokenBuffer.add(token);
+                   typeBuffer.add(type);
+                   bufferIndex := bufferIndex + 1
+                 end
+               end
+             end
+           end
+           
+           Str[ ] do
+           
+             // A builtin non-terminal.
+             
+             values := Seq{tokenizer.token | values};
+             parsers := parsers->tail;
+             if not type = Tokenizer::STRING
+             then 
+               if fails->isEmpty
+               then self.error("Expecting a string, but got " + token)
+               else
+                 if debug then format(stdout,"~VFail Name~%",Seq{indent}) end;
+                 let failState = fails->head
+                 in fails := fails->tail;
+                    bufferIndex := failState->at(0);
+                    parsers := failState->at(1);
+                    values := failState->at(2);
+                    locals := failState->at(3);
+                    indent := failState->at(4);
+                    token := failState->at(5);
+                    type := failState->at(6)
+                 end
+               end
+             else
+               if debug then format(stdout,"~VConsumed string ~S~%",Seq{indent,token}) end;
+               if bufferIndex < tokenBuffer.size()
+               then 
+                 token := tokenBuffer.ref(bufferIndex);
+                 type := typeBuffer.ref(bufferIndex);
+                 bufferIndex := bufferIndex + 1
+               else 
+                 tokenizer.nextToken(terminals);
+                 token := tokenizer.token;
+                 type := tokenizer.type;
+                 if not fails->isEmpty
+                 then
+                   tokenBuffer.add(token);
+                   typeBuffer.add(type);
+                   bufferIndex := bufferIndex + 1
+                 end
+               end
+             end
+           end
+           
+           BindVar[name,index] do
+           
+             // Variables are positional. Pop the most recently syntheisized
+             // value and add it to the current locals frame. NB variables cannot 
+             // be bound more than once with this mechanism.
+             
+             parsers := parsers->tail;
+             locals->head.put(index,values->head);
+             if debug then format(stdout,"~VBind ~S,~S = ~S~%",Seq{indent,name,index,values->head}) end;
+             values := values->tail
+           end
+           
+           OCLAction[exp,BOA] do
+           
+             // The action is an operation show arguments are the currently bound 
+             // variables at this point in the clause (whether they are used or not
+             // in the body of the operation).
+             
+             let value = exp.perform(self,BOA->collect(i | locals->head->at(i)))
+             in parsers := parsers->tail;
+                values := Seq{value | values};
+                if debug then format(stdout,"~VAction ~S = ~S~%",Seq{indent,exp.exp().pprint(),value}) end
+             end
+           end
+           
+           Empty[ ] do
+           
+             // Do nothing.
+             
+             parsers := parsers->tail
+           end
+           
+           NilAction[ ] do
+           
+             // A builtin action to push Seq{}.
+             
+             values := Seq{Seq{} | values};
+             parsers := parsers->tail
+           end
+           
+           ConsAction[ ] do
+           
+             // A builtin action to pop the tail and head of a sequence from
+             // the values stack and push the cons of these values back to the
+             // values stack.
+             
+             let tail = values->head;
+                 head = values->tail->head
+             in values := Seq{Seq{head | tail} | values->tail->tail};
+                parsers := parsers->tail
+             end
+           end
+           
+           EOF[ ] do
+           
+             if type = Tokenizer::EOF
+             then 
+               if debug then format(stdout,"~VEOF Succeeds~%",Seq{indent}) end;
+               parsers := parsers->tail
+             else
+               if debug then format(stdout,"~VFail EOF~%",Seq{indent}) end;
+               let failState = fails->head
+               in fails := fails->tail;
+                  bufferIndex := failState->at(0);
+                  parsers := failState->at(1);
+                  values := failState->at(2);
+                  locals := failState->at(3);
+                  indent := failState->at(4);
+                  token := failState->at(5);
+                  type := failState->at(6)
+               end
+             end 
+           end
+           
+           else self.error("Unknown parser " + parsers->head.toString())
+         end
+       end;
+       values->head
+    end
+    end
+  end

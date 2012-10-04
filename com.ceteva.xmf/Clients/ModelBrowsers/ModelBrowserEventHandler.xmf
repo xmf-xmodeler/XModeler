@@ -1,0 +1,212 @@
+parserImport XOCL;
+
+import Clients;
+
+context ModelBrowsers
+
+  @Class ModelBrowserEventHandler extends ModelClipboard::DroppableEventHandler
+  
+    @Doc
+       This class defines operations to handle the following incoming
+       events from the client. In each case the event is a sequence of strings
+       and integers. Each event has a fixed arity. Raising an event in the mapping
+       causes the appropriate model browser element (usually the containing element) to be
+       sent a message with the supplied arguments + the mapping. The model browser element
+       is then responsible for updating the model browser model and using the commands
+       listed above to update the client. Users of the mapping should always raise
+       events and not perform the commands directly. New types of model browser element can
+       handle the events in different ways. New types of model browser mapping can exten-d
+       the interface of events that can be raised.
+           [modelBrowserClosed(modelBrowserId)]
+           [focusGained(modelBrowserId)]
+           [focusLost(modelBrowserId)]
+           [textChanged(nodeId,text)]
+           [getEditableText(nodeId)]
+           [selected(nodeId)]
+           [doubleSelected(nodeId)]
+           [expanded(nodeId)]
+           [rightClickMenuSelected(ownerId,option)]
+           [undo(diagramId)]
+           [redo{diagramId)]
+     end
+
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "modelBrowserClosed" 	   do self.readModelBrowserClosed(parameters) end
+        "focusGained"				do self.readFocusGained(parameters) end
+        "focusLost"					do self.readFocusLost(parameters) end
+        "textChanged"		      do self.readTextChanged(parameters) end
+        "getEditableText"	   	do self.readGetEditableText(parameters) end
+        "deselected"             do self.readDeselected(parameters) end
+        "selected"               do self.readSelected(parameters) end
+        "doubleSelected"         do self.readDoubleSelected(parameters) end
+        "expanded"               do self.readExpanded(parameters) end
+        "rightClickMenuSelected" do self.readRightClickMenuSelected(parameters) end
+        "acceptDrop"             do self.readAcceptDrop(parameters) end
+        "dragAndDrop"            do self.readDragAndDrop(parameters) end
+        // "undo"                   do self.readUndo(parameters) end
+        // "redo"                   do self.readRedo(parameters) end
+      end;
+      self
+    end
+    
+    @Operation getEditableText(nodeId)
+      self.debug("getEditableText[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).getEditableText()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation focusGained(modelBrowserId)
+      self.debug("focusGained[~S]~%",Seq{modelBrowserId});
+      if xmf.clientManager().idManager.hasId(modelBrowserId)
+      then self.find(modelBrowserId).focusGained()
+      else self.debug("  id ~S disposed~%",Seq{modelBrowserId})
+      end
+    end
+
+    @Operation focusLost(modelBrowserId)
+      self.debug("focusLost[~S]~%",Seq{modelBrowserId});
+      if xmf.clientManager().idManager.hasId(modelBrowserId)
+      then self.find(modelBrowserId).focusLost()
+      else self.debug("  id ~S disposed~%",Seq{modelBrowserId})
+      end
+    end
+
+    @Operation modelBrowserClosed(modelBrowserId)
+      self.debug("modelBrowserClosed[~S]~%",Seq{modelBrowserId});
+      self.find(modelBrowserId).close()
+    end
+
+    @Operation nodeDeselected(nodeId)
+      self.debug("deselected[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).deselected()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation nodeDoubleSelected(nodeId)
+      self.debug("doubleSelected[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).doubleSelected()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation nodeExpanded(nodeId)
+      self.debug("expanded[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).expand()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation nodeSelected(nodeId)
+      self.debug("selected[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).selected()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation readDeselected(parameters)
+      let nodeId = parameters.at(0) in
+        self.nodeDeselected(nodeId)
+      end
+    end
+
+    @Operation readDoubleSelected(parameters)
+      let nodeId = parameters.at(0) in
+        self.nodeDoubleSelected(nodeId)
+      end
+    end
+
+    @Operation readExpanded(parameters)
+      let nodeId = parameters.at(0) in
+        self.nodeExpanded(nodeId)
+      end
+    end
+
+    @Operation readFocusGained(parameters)
+      let modelBrowserId = parameters.at(0)
+      in self.focusGained(modelBrowserId)
+      end
+    end
+
+    @Operation readFocusLost(parameters)
+      let modelBrowserId = parameters.at(0)
+      in self.focusLost(modelBrowserId)
+      end
+    end
+
+    @Operation readGetEditableText(parameters)
+      let nodeId = parameters.at(0) in
+        self.getEditableText(nodeId)
+      end
+    end
+
+    @Operation readModelBrowserClosed(parameters)
+      let modelBrowserId = parameters.at(0)
+      in self.modelBrowserClosed(modelBrowserId)
+      end
+    end
+
+    @Operation readRightClickMenuSelected(parameters)
+      let menuId = parameters.at(0)
+      in self.rightClickMenuSelected(menuId)
+      end
+    end
+
+    @Operation readSelected(parameters)
+      let nodeId = parameters.at(0) in
+        self.nodeSelected(nodeId)
+      end
+    end
+    
+    @Operation readTextChanged(parameters)
+      let nodeId = parameters.at(0) in
+        let text = parameters.at(1) in
+          self.textChanged(nodeId,text)
+        end
+      end
+    end
+
+    @Operation redo(browserId)
+      self.debug("redo[~S]~%",Seq{browserId});
+      self.find(browserId).redo()
+    end
+
+    @Operation rightClickMenuSelected(menuId) 
+      self.debug("rightClickMenuSelected[~S]~%",Seq{menuId});
+      self.find(menuId).select()
+    end
+
+    @Operation textChanged(nodeId,text)
+      self.debug("textChanged[~S,~S]~%",Seq{nodeId,text});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).textChangedIn(text)
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation undo(browserId)
+      self.debug("undo[~S]~%",Seq{browserId});
+      self.find(browserId).undo()
+    end
+
+ end
+ 

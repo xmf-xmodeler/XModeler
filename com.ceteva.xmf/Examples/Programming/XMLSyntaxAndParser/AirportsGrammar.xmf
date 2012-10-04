@@ -1,0 +1,53 @@
+parserImport XML::Parser;
+parserImport XOCL;
+
+import XML;
+import Parser;
+import Airports;
+
+context Root
+  @Operation grammar()
+    @Grammar AirportsGrammar
+      AirportsGrammar ::= Airport.
+      
+      Airport ::= 
+        <Airport name>
+          airlines = Airline*
+        </Airport> {Airport[name=name, airlines=airlines]}.
+        
+      Airline ::=
+        <Airline name>
+          routes = Route*
+        </Airline> {Airline[name=name, routes=routes]}.
+        
+      Route ::=
+        <Route capacity name source destination>
+        </Route> {Route[capacity=capacity->asInt(),name = name,source=source,destination=destination]}.
+        
+    end
+  end
+  
+  context Root
+    @Operation loadAirportsXML(file)
+      let g = grammar().compile()
+      in @WithOpenFile(fin <- file) 
+         let xin = ParserChannel(fin,g)
+         in 
+            // Set this to true if you want to
+            // get a debug trace in the console
+            xin.debug := true;
+            xmf.busy("Parsing XML");
+            xin.parse("AirportsGrammar") 
+         end
+       end
+    end
+  end
+  
+  context Root
+    @Operation importAirportsXML()
+      let i = xmf.openFile(xmf.homeDir(),"*.xml") then
+          model = loadAirportsXML(i) in
+              xmf.killProgressDialogs();
+              model.edit()
+      end   
+    end

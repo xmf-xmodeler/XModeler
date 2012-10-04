@@ -1,0 +1,84 @@
+parserImport XOCL;
+
+import Walkers;
+import OCL;
+
+context Walkers
+
+  @Class SyntaxPattern extends Walker
+  
+    // Transforms a syntax pattern into a keyword pattern.
+  
+    @Operation defaultWalk(e:Element,arg:Element):Element
+      self.error("Cannot transform syntax pattern to object pattern: " + e.toString())
+    end
+    
+    @Operation reWalk(v:Element,arg:Element):Element
+      self.error("Sharing should not occur in syntax patterns.")
+    end
+    
+    @Operation walkBoolean(b:Boolean,arg:Element):Element 
+      Constp(BoolExp(b))
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      Constp(IntExp(i))
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      Constp([|null|])
+    end
+     
+    @Operation walkOperation (o:Operation,arg:Element):Element
+      self.error("Operations cannot occur in syntax patterns.")
+    end
+    
+    @Operation walkPreObject(o:Object,arg:Element)
+      null
+    end
+    
+    @Operation walkObject(o:Object,arg:Element):Element
+      if o.isKindOf(DropPattern)
+      then o.pattern()
+      elseif o.isKindOf(Var)
+      then self.walkVar(o,arg)
+      else 
+        let path = o.of().pathSeq() then
+            slotNames = o.getStructuralFeatureNames()->asSeq then
+            keyps = slotNames->collect(s | Keyp(s,self.walk(o.get(s),arg)))
+        in Keywordp(path->head,path->tail,keyps)
+        end
+      end
+    end
+     
+    @Operation walkPostObject(o:Object,arg:Element)
+      null
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,arg:Element):Element 
+      if s->isEmpty
+      then Constp([|Seq{}|])
+      else Consp(self.walk(s->head,arg),self.walk(s->tail,arg))
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,arg:Element):Element 
+      self.error("Syntax patterns cannot contain sets.")
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      Constp(StrExp(s))
+    end
+    
+    @Operation walkTable(t:Table,arg:Element):Element
+      self.error("Syntax patterns cannot contain tables.")
+    end
+    
+    @Operation walkVar(var:Var,arg:Element):Element
+      // Necessary because variables contain positional information
+      // that will cause the match to fail.
+      Keywordp("Root",Seq{"OCL","Var"},Seq{Keyp("name",Constp(StrExp(var.name)))})
+    end
+     
+  end
+     

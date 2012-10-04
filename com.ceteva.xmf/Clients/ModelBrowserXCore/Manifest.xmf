@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ModelBrowserXCore
+  ModelBrowserXCore = @File ModelBrowserXCore end
+  @File MappingCreator end
+  @File ElementXNode end
+  @File ObjectXNode end
+  @File ContainerXNode end
+  @File ClassXNode end
+  @File BrowserTreeMapping end
+  @File MappingClient end
+  @File ConstructorXNode end
+  @File SnapshotXNode end
+  @File TableXNode end
+  @File DiagramXNode end
+  @File SyncableDiagramXNode end
+  @File Extensions end
+do Project(ModelBrowserXCore,dir,self)
+end;

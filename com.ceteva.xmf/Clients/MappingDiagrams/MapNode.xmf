@@ -1,0 +1,91 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import MappingDiagrams;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class MapNode extends ClassifierNode
+    
+    @Attribute name    : Text   end
+    @Attribute package : String end
+    @Attribute shape   : MapShape end
+  
+    @Constructor(name,package,x,y)
+      self.width := 70;
+      self.height := 40;
+      self.shape := MapShape(0,0,width,height);
+      self.name := Text(name,width.div(4),(height.div(2))-7,true)
+    end
+
+    @Operation addDisplays()
+      self.add(shape);
+      self.add(name) 
+    end
+
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Invert",target,Seq{},MapNode::invert));
+        globalMenu
+      end
+    end
+
+    @Operation dispose()
+      name.dispose();
+      shape.dispose();
+      super()
+    end
+
+    @Operation invert()
+      self.shape.invert := not self.shape.invert;
+      self.resize(self.width,self.height)
+    end
+
+    @Operation layoutId():String
+     
+       // Returns an id that is unique for nodes in this diagram. The id is
+       // used to relocate the node when layout data is read in.
+       
+       self.name()
+     end
+    
+    @Operation minHeight()
+      2 * name.maxHeight()
+    end
+     
+    @Operation minWidth()
+      2 * name.maxWidth()
+    end
+
+    @Operation name()
+      self.name.text()
+    end
+    
+    @Operation resize(width,height)
+      let width = width.max(self.minWidth());
+          height = height.max(self.minHeight())
+      in 
+        super(width,height);
+        self.name.move(width.div(4),(height.div(2))-5);
+        self.shape.resize(width,height);
+        @For port in ports do
+          port.resize(width,height)
+        end
+      end
+    end
+    
+    @Operation setName(name)
+      self.name.setText(name)
+    end
+
+  end

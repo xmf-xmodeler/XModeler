@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Dot extends OCL::OCL
+  
+    @Doc
+      A dot expression is a slot navigation. The target of the dot can be any value.
+      If the value is a collection then the dot operator is applied to each element
+      of the collection and the resulting values are flattened if necessary. If the
+      value is an object then the corresponding slot value is returned or an 
+      error is signaled. If the value is not an object then either the machine knows
+      how to resolve the slot reference or the message 'slot/1' is sent to the 
+      value.
+      
+      Constructor: Dot(target,name)
+        The target is an expression and the name is a symbol.
+    end
+    
+    @Attribute target : OCL::OCL end
+    @Attribute name : String end
+    
+    @Constructor(target,name) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S.~S",Seq{target.pprint(indent),if name.isKindOf(Drop) then name.pprint() else name end})
+    end
+    
+  end

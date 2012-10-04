@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Stacks;
+import OCL;
+import Walkers;
+  
+context Walkers
+
+  @Class Lift metaclass Dispatcher 
+  
+    @Attribute stack : Stack = Stack() end
+    @Attribute varCount : Integer end
+    
+    @Operation newExp(o)
+      let path = o.of().pathSeq()
+      in Apply(Path(Var(path->head.toString()),path->tail),Seq{})
+      end
+    end
+    
+    @Operation newVar()
+      self.varCount := varCount + 1;
+      "var" + varCount.toString()
+    end
+    
+  end
+
+
+

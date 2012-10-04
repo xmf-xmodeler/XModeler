@@ -1,0 +1,151 @@
+parserImport XOCL;
+
+import Clients;
+
+context TextEditor
+
+  @Class TextEventHandler extends EventHandler
+         
+    @Operation commitText(textId,text)
+      self.find(textId).textCommitted(text)
+    end
+    
+    @Operation editorClosed(editorId)
+      self.find(editorId).close()
+    end
+    
+    @Operation editorDirty(textId,dirty)
+      if xmf.clientManager().idManager.hasId(textId)
+      then
+        let editor = self.find(textId)
+        in
+          if dirty
+          then editor.setDirty()
+          else editor.setClean()
+          end
+        end
+      else
+        self.debug("  id ~S disposed~%",Seq{textId})
+      end
+    end
+    
+    @Operation focusGained(textId)
+      self.find(textId).focusGained()
+    end
+    
+    @Operation focusLost(textId)
+      self.find(textId).focusLost()
+    end
+
+    @Operation saveText(textId,text)
+      self.find(textId).commitText(text)
+    end
+
+    @Operation urlRequest(browserId,url)
+      self.find(browserId).requestURL(url)
+    end
+    
+    @Operation undoStacked(textId)
+      self.find(textId).undoStacked()
+    end
+    
+    @Operation rightClickMenuSelected(id)
+      self.debug("rightClickMenuSelected[~S]~%",Seq{id});
+      self.find(id).select()
+    end
+    
+    @Operation textReceived(editorId,text)
+      text
+    end
+         
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "rightClickMenuSelected" do self.readRightClickMenuSelected(parameters) end
+        "urlRequest" 			 do self.readUrlRequest(parameters) end
+        "editorText"             do self.readEditorText(parameters) end
+        "textClosed"             do self.readTextClosed(parameters) end
+        "textDirty"              do self.readTextDirty(parameters)  end
+        "undoStacked"			 do self.readUndoStacked(parameters) end
+        "focusGained"			 do self.readFocusGained(parameters) end
+        "focusLost"			 	 do self.readFocusLost(parameters) end
+        "saveText"			 	 do self.readSaveText(parameters) end
+        "oleClosed"              do self.oleClosed(parameters) end
+      end
+    end
+    
+    @Operation oleClosed(parameters)
+      let id = parameters->at(0)
+      in self.find(id).oleClosed()
+      end
+    end
+    
+    @Operation readRightClickMenuSelected(parameters)
+      let id = parameters.at(0)
+      in self.rightClickMenuSelected(id)
+      end
+    end
+    
+    @Operation readCommitText(parameters)
+      let textId = parameters.at(0) in
+        let text = parameters.at(1) in
+          self.commitText(textId,text)
+        end
+      end  
+    end
+    
+    @Operation readUrlRequest(parameters)
+      let browserId = parameters.at(0) in
+        let url = parameters.at(1) in
+          self.urlRequest(browserId,url)
+        end
+      end
+    end
+    
+    @Operation readEditorText(parameters)
+      let editorId = parameters.at(0) in
+        let text = parameters.at(1) in
+          self.textReceived(editorId,text)
+        end
+      end
+    end
+
+    @Operation readSaveText(parameters)
+      let textId = parameters.at(0) in
+        let text = parameters.at(1) in
+          self.saveText(textId,text)
+        end
+      end  
+    end
+
+    @Operation readTextClosed(parameters)
+      let editorId = parameters.at(0) in
+        self.editorClosed(editorId)
+      end
+    end
+    
+    @Operation readTextDirty(parameters)
+      let editorId = parameters.at(0) then
+          dirty = parameters.at(1) in
+        self.editorDirty(editorId,dirty)
+      end
+    end
+    
+    @Operation readUndoStacked(parameters)
+      let editorId = parameters.at(0) in
+        self.undoStacked(editorId)
+      end
+    end
+    
+    @Operation readFocusGained(parameters)
+      let editorId = parameters.at(0) in
+        self.focusGained(editorId)
+      end
+    end
+    
+    @Operation readFocusLost(parameters)
+      let editorId = parameters.at(0) in
+        self.focusLost(editorId)
+      end     
+    end
+    
+  end

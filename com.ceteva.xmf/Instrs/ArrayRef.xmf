@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class ArrayRef extends Instr
+  
+    @Doc
+      Expects an array above an index on the stack and pushes the
+      value of the array at the index onto the stack after popping 
+      operands.
+    end
+     
+    @Operation toString():String
+      "<ArrayRef>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

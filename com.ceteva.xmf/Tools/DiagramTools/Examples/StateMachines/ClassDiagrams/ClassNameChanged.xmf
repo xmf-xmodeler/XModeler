@@ -1,0 +1,9 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler StateMachine_nodeBox_nameBox_name_Changed()
+    let class = find(event.root())
+    in class.setName(event.new())
+    end
+  end
+  

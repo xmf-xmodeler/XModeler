@@ -1,0 +1,59 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Fork extends Sugar
+  
+    @Doc
+      The fork construct creates a new execution thread. The body of the
+      Fork construct is the expression to be evaluated by the thread when 
+      it starts up. A forked thread does not start immediately. At any given
+      time there is a current thread that can choose to YIELD control. At
+      this point in time, if there are any other threads waiting to
+      run then one is (re)started. The order in which threads are activated
+      via yield is in the order of thread creation.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Fork ::= name = ForkName body = Exp { Fork(name,body) }.
+      
+      ForkName ::= '(' name = Name ')' { name } | { "" }.
+      
+    end 
+    
+    @Attribute name : String end
+    @Attribute body : Performable end
+    
+    @Constructor(name,body) end
+    
+    @Operation desugar() 
+      [| @Operation() 
+           try
+             <body> 
+           catch(exception)
+             xmf.raise(exception);
+             Kernel_die()
+           end
+         end.fork(<self.name()>)  
+      |]
+    end
+    
+    @Operation name():Performable
+      if name = ""
+      then [| self.toString() |]
+      else OCL::StrExp(name) 
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Fork ~%~V",Seq{indent + 2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

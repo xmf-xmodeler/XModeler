@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Const in PPrint(aConst,arg,seen)
+  if seen
+  then aConst
+  else
+    let value = self.dispatch(aConst.value,arg)
+    in aConst
+    end
+  end
+end;

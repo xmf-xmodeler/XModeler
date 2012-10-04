@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import DisplayType;
+import Box;
+
+context DisplayTypes
+
+  @Class PaddedBox extends Box
+  
+    @Grammar extends Box.grammar
+    
+      PaddedBox ::= box = Box {
+        [| let box = <box>
+           in box.setPadLeft(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              box.setPadRight(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              box.setPadTop(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              box.setPadBottom(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              box
+           end
+        |]
+      }.
+      
+    end
+    
+  end

@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CollectionDisplay
+  
+    @Attribute label : FormLabel end
+    @Attribute list : FormList end
+  
+    @Constructor(label,list)
+    end
+
+    @Operation addToForm(form:Form,x,y,labelHeight,listWidth,listHeight)
+      self.addLabel(form,x,y);
+      self.addList(form,x,y+labelHeight,listWidth,listHeight)
+    end
+
+    @Operation addLabel(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+    
+    @Operation addList(form,x,y,width,height)
+      self.list.setX(x);
+      self.list.setY(y);
+      self.list.setWidth(width);
+      self.list.setHeight(height);
+      form.addElement(self.list)
+    end
+    
+    @Operation getListElementFor(e)
+      @Find(item,self.list.contents)
+        when item.element = e
+        else null
+      end
+    end
+
+  end

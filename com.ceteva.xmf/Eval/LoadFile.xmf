@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Exceptions;
+import Evaluator;
+import Parser::Machine;
+
+context Evaluator
+
+  @Operation loadFile(name:String,target,env,imports)
+    let fileStem = if name->hasSuffix(".xmf") then name.reverse().drop(4).reverse() else name end then
+        sourceFile = fileStem + ".xmf"
+    in if not sourceFile.fileExists()
+       then throw FileNotFound(sourceFile)
+       else
+         format(stdout,"[ Load ~S",Seq{sourceFile});
+         let time = Time() then
+             unit = parseEvaluationUnit(sourceFile) 
+         in format(stdout," (~S)",Seq{(Time() - time).pprint()});
+            time := Time();
+            let value = unit.eval(target,env,imports)
+            in format(stdout," (~S)",Seq{(Time() - time).pprint()});
+               format(stdout," ]~%");
+               value
+            end
+         end
+       end
+    end
+  end
+  
+context Evaluator
+
+  @Operation parseEvaluationUnit(file:String):EvaluationUnit
+  
+     @WithOpenFile(input <- file)
+       let state = State(OCL::OCL.grammar,input) then
+           unit = state.run("EvaluationUnit") 
+       in if state.failed
+          then 
+            let consumed = state.getConsumedChars() then
+                exception = Parser::BNF::ParseError(file)
+            in exception.consumed := consumed;
+               throw exception
+            end
+          else unit
+          end
+       end
+     end
+     
+   end

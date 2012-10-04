@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XCore;
+
+context XCore
+
+  @Class SnapshotSet
+  
+    @Attribute type : Element end
+    @Attribute set  : Set(Element) end
+    
+    @Constructor(type)
+    end
+  
+  end

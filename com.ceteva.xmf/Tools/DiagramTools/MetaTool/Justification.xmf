@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @Or Justification
+    @Image Left(RIGHT) "Left.gif" width = 16 height = 16
+      @Menu
+        @MenuAction Right self.owner().changeTo("Justification","Right") end
+        @MenuAction Align self.owner().changeTo("Justification","Align") end
+        @MenuAction Centre self.owner().changeTo("Justification","Centre") end
+      end
+    end
+    @Image Right(RIGHT) "Right.gif" width = 16 height = 16 
+       @Menu
+        @MenuAction Left self.owner().changeTo("Justification","Left") end
+        @MenuAction Centre self.owner().changeTo("Justification","Centre") end
+        @MenuAction Align self.owner().changeTo("Justification","Align") end
+      end
+    end
+    @Image Centre(RIGHT) "Centre.gif" width = 16 height = 16
+      @Menu
+        @MenuAction Left self.owner().changeTo("Justification","Left") end
+        @MenuAction Right self.owner().changeTo("Justification","Right") end
+        @MenuAction Align self.owner().changeTo("Justification","Align") end
+      end
+    end
+    @Image Align(RIGHT) "Align.gif" width = 15 height = 15 
+      @Menu
+        @MenuAction Left self.owner().changeTo("Justification","Left") end
+        @MenuAction Right self.owner().changeTo("Justification","Right") end
+        @MenuAction Centre self.owner().changeTo("Justification","Centre") end
+      end
+    end
+  end

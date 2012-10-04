@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+
+context Structure
+
+  @Class Feature isabstract
+  
+    @Attribute owner : Element (?,!) end
+    
+    @Operation delete()
+      owner.delete(self)
+    end
+  
+  end

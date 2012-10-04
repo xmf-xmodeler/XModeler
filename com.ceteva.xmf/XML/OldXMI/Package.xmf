@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import IO;
+
+context Package
+  @Operation deployXMI11(file:String)
+    // Deploys the contents of the package as XMI v1.1
+    @WithOpenFile(fout -> file)
+      self.writeXMI11Document(fout)
+    end
+  end
+  
+context Package
+  @Operation writeXMI11(out:OutputChannel)
+    format(out,"<UML:Package xmi.id='~S' name='~S'>~%",Seq{self.path(),name});
+    format(out,"<UML:Namespace.ownedElement>~%");
+    self.writeXMI11OwnedElements(out);
+    format(out,"</UML:Namespace.ownedElement>~%");
+    format(out,"</UML:Package>~%")
+  end
+   
+context Package 
+  @Operation writeXMI11Document(out:OutputChannel)
+    format(out,"<XMI xmi.version='1.1' xmlns:UML='//org.omg/UML/1.3'>~%");
+    self.writeXMI11Header(out);
+    format(out,"<XMI.content>~%");
+    self.writeXMI11Model(out);
+    format(out,"</XMI.content>~%");
+    format(out,"</XMI>~%")
+  end
+  
+context Package
+  @Operation writeXMI11Header(out:OutputChannel)
+    format(out,"<XMI.header>~%");
+    format(out,"<XMI.documentation>~%");
+    format(out,"<XMI.exporter>~%");
+    format(out,"XMF-Mosaic~%");
+    format(out,"</XMI.exporter>~%");
+    format(out,"<XMI.exporterVersion>~%");
+    format(out,"~S~%",Seq{xmf.version()});
+    format(out,"</XMI.exporterVersion>~%");
+    format(out,"</XMI.documentation>~%");
+    format(out,"<XMI.metamodel xmi.name='UML' xmi.version='1.1'/>~%");
+    format(out,"</XMI.header>~%")
+  end
+  
+context Package
+  @Operation writeXMI11Model(out:OutputChannel)
+    format(out,"<UML:Model xmi.id='~S' name='~S' visibility='public'>~%",Seq{self.path(),name});
+    format(out,"<UML:Namespace.ownedElement>~%");
+    self.writeXMI11DataTypes(out);
+    self.writeXMI11OwnedElements(out);
+    format(out,"</UML:Namespace.ownedElement>~%");
+    format(out,"</UML:Model>~%")
+  end
+  
+context Package
+  @Operation writeXMI11DataTypes(out:OutputChannel)
+    @For dataType in Seq{Boolean,Integer,Float,String} do
+      format(out,"<UML:DataType xmi.id='~S' name='~S'/>~%",Seq{dataType.path(),dataType.name()})
+    end
+  end 
+  
+context Package 
+  @Operation writeXMI11OwnedElements(out:OutputChannel)
+    @For class in classes do
+      class.writeXMI11(out)
+    end;
+    @For package in packages do
+      package.writeXMI11(out)
+    end
+  end
+  

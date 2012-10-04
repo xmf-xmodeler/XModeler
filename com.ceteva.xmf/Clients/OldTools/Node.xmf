@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Tools
+
+  @Class Node extends Node
+  
+    @Attribute handler : Operation = @Operation(event,target,width,height) null end (!) end
+  
+    @Constructor(x,y,width,height) !
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation resize(width,height)
+      if width <> self.width or height <> self.height
+      then
+        super(width,height);
+        @For port in self.ports() do
+          port.resize(width,height)
+        end;
+        handler("Resized",self,width,height)
+      end
+    end
+    
+  end

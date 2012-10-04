@@ -1,0 +1,16 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Varp in Eval(aVarp,arg,seen)
+  if seen
+  then aVarp
+  else
+    let type = self.dispatch(aVarp.type,arg);
+        pattern = self.dispatch(aVarp.pattern,arg);
+        name = self.dispatch(aVarp.name,arg)
+    in aVarp
+    end
+  end
+end;

@@ -1,0 +1,204 @@
+parserImport XOCL;
+
+import IO;
+import Projects;
+import Exceptions;
+import Manifests;
+
+context Projects
+
+  @Class ProjectManager extends NameSpace, Resource
+  
+    @Doc
+      A project manager has a collection of projects. The manager is associated with a 
+      resource name that defines the default location for the projects. The resource
+      associated with the project manager also contains a manifest file that lists
+      all of the projects. 
+    end
+    
+    @Attribute manifest   : ManifestEntry (?,!) end
+    @Attribute deployment : Table   = Table(10) end
+    //@Attribute expandedProjects : Seq(Project) = Seq{} end
+  
+    @Constructor(name,resourceName,manifest) 
+      self.deploy("XOCL",@Operation(project) project.deploy() end);
+      self.deploy("HTML",@Operation(project) project.toHTML(xmf.docDir() + "/Root") end)
+    end
+  
+    @Operation add(element)
+    
+      // Only one project with any given name in the project manager. If another
+      // project exists then remove it.
+      
+      @TypeCase(element)
+        Project do
+          @Find(p,self.contents())
+            when p.name().toString() = element.name().toString()
+            do
+              xmf.warning("The loaded project has replaced a project that already existed with the same name: "+element.name());
+              self.remove(p)
+          end;
+          super(element)
+        end
+        else super(element)
+      end
+      
+    end
+
+    @Operation deploy()
+    
+       // Write out a manifest file that lists all of the projects
+       // managed by the receiver. The manifest file can then be
+       // loaded to provide access to the projects.
+       
+       try
+         if manifest.fileExists()
+         then manifest.renameFile(manifest + ".bak")
+         end;
+         let fout = FileOutputChannel(manifest);
+             ptitle = "Manifest Ordering";
+             pmessage = "The projects shown on the left are currently defined by " +
+                       "this project manager. Create a manifest by selecting the " +
+                       "projects you want to be available from this manager. " +
+                       "If the projects are loaded from XAR files then the order " +
+                       "on the right defines the load order." then
+             projects = xmf.order(ptitle,pmessage,self.projects()->asSeq);
+             ltitle = "Project Loading";
+             lmessage = "Select the projects to load at startup." then
+             loaded = xmf.selects(ltitle,lmessage,projects,null,null)
+         in format(fout,"@Manifest~%~V",Seq{2});
+            @For project in projects do
+              project.writeEntry(fout,loaded->includes(project));
+              format(fout,"~%~V",Seq{2})
+            end;
+            format(fout,"~%end");
+            fout.close()
+         end
+       catch(exception)
+         format(stdout,"Error writing manifest: ~S~%",Seq{exception})
+       end
+    end       
+   
+    @Operation deploy(name:String,handler:Operation)
+    
+      // Define a deployment handler.
+      
+      deployment.put(name,handler)
+      
+    end
+    
+    @Operation deployProject(project:Project)
+      let choice = xmf.select("Deploy Project","What do you want to deploy " + project.toString() + " as?",self.deploymentTypes()->asSeq,null,null)
+      in if deployment.hasKey(choice)
+         then
+           let handler = deployment.get(choice)
+           in try 
+                handler(project);
+                xmf.message(project.toString() + " deployed.")
+              catch(exception)
+                exception.println()
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation deploymentTypes():Set(String)
+      deployment.keys()
+    end
+    
+    @Operation fixProject()
+    
+      // Load a project and run the fixer on it. The fixer will add in
+      // any missing slots. This is useful when project formats have been 
+      // updated.
+      
+      self.loadProject(true)
+    end
+
+    @Operation loadProject(fix:Boolean):Element
+      
+      // Loads a XAR file containing a project. The file path is found using an
+      // open file dialog. The XAR file contains Seq{project | extraInfo}. The 
+      // project is loaded and installed and the pair is returned. If fix is true
+      // then the project is fixed (i.e. missing slots are added).
+        
+      self.loadProject(xmf.openFile(xmf.saveDir(),"*.xar"),fix)
+    end
+    
+    @Operation importRoseXMI11()
+      Root::XML::XMI::XMI11Rose::importRoseXMI11(self)
+    end
+    
+    @Operation importXMI12()
+      Root::XML::XMI::XMI12Poseidon::importXMI12(self)
+    end
+      
+    @Operation importEMFXMI()
+      importEMFXMI(self)
+    end
+    
+    @Operation loadProject(path:String,fix:Boolean):Element
+    
+      // Loads a XAR file containing a project. The XAR file contains 
+      // Seq{project | extraInfo}. The project is loaded and installed 
+      // and the pair is returned. Note that a project is saved with
+      // the daemons inactive (to prevent the save mechanism firing
+      // daemons unnecessarily). Make sure the daemons are made active
+      // when the project is installed.
+        
+      let install = true
+      in if path.fileExists()
+         then
+           let ein = ElementInputChannel(GZipInputChannel(FileInputChannel(path))) then
+               pair = ein.read()
+           in let project = pair->head then 
+                  package = project.package;
+                  resourceName = path
+              in if fix then Walkers::Fix().walk(pair,null) end;
+                 if Root.hasElement(package.name.toString())
+                 then install := xmf.confirm("Overwrite " + package.name.toString() + "?")
+                 end;
+                 if install
+                 then
+                   if project.resourceName.subst("","/",true).subst("","\\",true) <> 
+                      resourceName.subst("","/",true).subst("","\\",true)
+                   then
+                     //xmf.warning("Project save directory appears to have changed.\n" +
+                     //  "Saved directory " + project.resourceName + " <>  load directory " + resourceName + ".\n" +
+                     //  "Modifying project save directory to " + resourceName);
+                     project.resourceName := resourceName
+                   end;
+                   project.setDaemons();
+                   self.add(project); 
+                   Root.add(package);
+                   project.setDaemonsActive(true);
+                   ein.close()
+                 else
+                   pair := null
+                 end;
+                 pair
+              end
+           end
+         else if path <> "" then throw FileNotFound(path) end
+         end
+      end
+        
+     end
+     
+     @Operation projects():Set(Project)
+       self.contentsOf(Project)
+     end
+    
+     @Operation remove(element)
+       @TypeCase(element)
+        Project do
+          super(element);
+          element.remove()
+        end
+        else
+          super(element)
+        end
+     end
+
+  end 

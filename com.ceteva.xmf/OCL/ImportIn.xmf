@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ImportIn extends OCL::OCL
+  
+    @Doc
+      A namespace can be imported for the scope of an expression. The names in
+      the name space are available in the expression. Note that if the names 
+      are the same as lexically bound names currently in scope then the 
+      lexically bound names take precedence.
+      Constructor: ImportIn(nameSpace,body)
+        The name space is an expression whose value is a name space and the
+        body is an arbitrary expression.
+    end
+  
+    @Attribute nameSpace : Performable end
+    @Attribute body : Performable end
+   
+    @Constructor(nameSpace,body) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"import ");
+      nameSpace.pprint(out,indent + 2);
+      format(out,"~%~Vin ",Seq{indent});
+      body.pprint(out,indent + 2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

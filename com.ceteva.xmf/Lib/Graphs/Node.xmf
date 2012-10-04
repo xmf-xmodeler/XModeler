@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+context Graphs
+
+  @Class Node 
+  
+    @Attribute data : Element (!,?) end
+    
+    @Constructor(data) ! end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(Node)
+      then data.equals(other.data())
+      else false
+      end
+    end
+    
+    @Operation pprint(out)
+      format(out,"~S",Seq{data})
+    end
+    
+  end

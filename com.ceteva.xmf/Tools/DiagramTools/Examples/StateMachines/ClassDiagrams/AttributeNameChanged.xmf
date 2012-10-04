@@ -1,0 +1,16 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Attribute_name_Changed()
+    let attribute = find(event.value())
+    in attribute.setName(event.new())
+    end
+  end
+  
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler StateMachine_nodeBox_bodyBox_attribute_name_Changed()
+    let attribute = find(event.value())
+    in attribute.setName(event.new())
+    end
+  end
+  

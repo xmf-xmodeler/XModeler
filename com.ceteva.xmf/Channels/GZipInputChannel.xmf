@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class GZipInputChannel extends InputChannel
+  
+    @Doc
+      Reads from an existing input channel and reflates the zipped format.
+    end
+  
+    @Attribute input : InputChannel end
+    @Attribute zin : Element end
+    
+    @Constructor(input) ! 
+      self.zin := Kernel_gzipInputChannel(input.channel())
+    end
+    
+    @Operation channel()
+      zin
+    end
+    
+    @Operation close()
+      Kernel_close(zin)
+    end
+    
+    @Operation eof() 
+      Kernel_eof(zin)
+    end
+    
+    @Operation peek():Integer
+      Kernel_peek(zin)
+    end
+    
+    @Operation read():Integer
+       Kernel_read(zin)
+    end
+    
+    @Operation setChannel(channel)
+      input.setChannel(channel)
+    end
+    
+  end

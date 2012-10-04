@@ -1,0 +1,36 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class Table extends Layout
+  
+    @Attribute id         : String end
+    @Attribute name       : String end
+    @Attribute isReadOnly : Boolean end
+    @Attribute columns    : Seq(TableColumn) end
+    
+    @Constructor(id,name,isReadOnly,x,y,width,height,columns) end
+    
+    @ToXML(TABLE)[Id=id,Name=name,Is_Readonly = isReadOnly,X_Position = x,Y_Position = y,X_Size = width,Y_Size = height]
+      columns*
+    end 
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else
+        @Find(col,columns)
+          when col.find(id) <> null
+          do col.find(id)
+          else null
+        end
+      end
+    end
+    
+  end
+    

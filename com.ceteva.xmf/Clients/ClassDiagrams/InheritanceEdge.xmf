@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class InheritanceEdge extends Edge
+  
+    @Constructor(source,target) 
+      self.init(Seq{source,target,0,Edge::whiteArrow,Color()})
+    end
+    
+    @Operation layoutId():String
+      "Inheritance"
+    end
+
+  end
+  

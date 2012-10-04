@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Color
+  
+    @Attribute red   : Integer = 0-1 (?) end
+    @Attribute green : Integer = 0-1 (?) end
+    @Attribute blue  : Integer = 0-1 (?) end
+    
+    // construct without any parameters for the client to use
+    // its default colours
+    
+    @Constructor()
+    end
+    
+    @Constructor(red,green,blue) !
+    end
+    
+  end

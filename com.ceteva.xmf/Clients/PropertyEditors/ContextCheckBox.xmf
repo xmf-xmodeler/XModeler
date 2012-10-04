@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class ContextCheckBox extends FormCheckBox, ContextFormElement
+
+    @Operation setBooleanIn(newValue:Boolean)
+      try
+        contex.set(slotName,newValue)
+      catch(exception)
+        if exception.isKindOf(Exceptions::NoSlot)
+        then
+          if xmf.confirm(
+            "The slot \"" + slotName +"\" no longer exists. It is likely that " +
+            "the properties relating to the object's type has been changed and the " +
+            "property editor needs refreshing.\n\nWould you like to refresh?")
+          then
+            owner.clearAndRefresh()
+          end
+        else
+          throw exception
+        end
+      end
+    end
+
+  end

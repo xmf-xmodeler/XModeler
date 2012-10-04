@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Font extends Entry
+
+    @Attribute face : String (?,!) end
+    @Attribute colour : String (?,!) end
+    @Attribute size : Integer (?,!) end
+    @Attribute entry : Entry (?,!) end
+    
+    @Operation contents()
+      Seq{entry}
+    end
+
+  end

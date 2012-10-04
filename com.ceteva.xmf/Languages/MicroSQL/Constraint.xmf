@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import XOCL;
+import Languages;
+import MicroSQL;
+
+context MicroSQL
+
+  @Class Constraint
+  
+    @Attribute name       : String end
+    @Attribute primaryKey : Set(String) end
+    @Attribute foreignKey : Set(String) end
+  
+    @Constraint cannotHavePrimaryAndForeign
+      not primaryKey->isEmpty and not foreignKey->isEmpty
+      fail "Cannot have both primary and foreign keys within a constraint"
+    end
+    
+    @Operation toString(string)
+      if not primaryKey->isEmpty then
+        let first = true in
+          @For key in primaryKey do
+            if not first then
+              string := string + ","
+            else
+              first := false
+            end;
+            string := string + key
+          end
+        end
+      elseif not foreignKey->isEmpty then
+        let first = true in
+          @For key in foreignKey do
+            if not first then
+              string := string + ","
+            else
+              first := false
+            end;
+            string := string + key
+          end
+        end
+      end
+    end
+  
+  end

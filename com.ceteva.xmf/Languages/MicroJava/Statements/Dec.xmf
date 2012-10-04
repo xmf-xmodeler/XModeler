@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Dec extends Statement
+  
+    @Attribute type  : Seq(String) (?) end
+    @Attribute name  : String      (?) end
+    @Attribute value : JExp        (?) end
+    
+    @Constructor(type,name,value) ! end
+  
+    @Operation pprint(out,indent)
+      if type.isKindOf(SeqOfElement)
+      then
+        format(out,"~{.~;~S~}",Seq{type})
+      else type.pprint(out,indent)
+      end;
+      format(out," ");
+      if name.isKindOf(String)
+      then format(out,"~S",Seq{name})
+      else name.pprint(out,indent)
+      end;
+      if value <> null
+      then 
+        format(out," = ");
+        value.pprint(out)
+      end;
+      format(out,";")
+    end
+    
+  end

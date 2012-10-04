@@ -1,0 +1,196 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolType extends Class, RightClickable
+  
+    @Attribute toolBar      : ToolBar = ToolBar()     end
+    @Attribute nodeTypes    : Seq(NodeType)     (+,-) end
+    @Attribute edgeTypes    : Seq(EdgeType)     (+,-) end
+    @Attribute handlers     : Seq(Handler)      (+,-) end
+    @Attribute elementType  : Classifier = Element    end
+    
+    @Constructor(name,elementType) end
+    
+    @Constructor(name) ! 
+      self.setName(name)
+    end
+    
+    @Operation addAttribute(tool,type,att,typeName)
+      let object = tool.associatedObject(type);
+          attributeType = nodeAttributeType() then
+          attObject = attributeType.new(tool,object.element,0,0,50,50,"Node::atts")
+      in attObject.slotValue("name").element.setText(att.name);
+         attObject.slotValue("type").element.setText(typeName);
+         object.addTo(attObject,"atts");
+         object.layout();
+         tool.associate(att.type,object);
+         object
+      end
+    end
+    
+    @Operation addAttributes(tool,type)
+      @For att in type.attributes do
+        @TypeCase(att.type)
+          BarType do 
+            self.addAttribute(tool,type,att,"Bar")
+          end
+          BoxType do 
+            let object = tool.newNode("Box",0,0) 
+            in tool.associate(att.type,object);
+               self.addAttributes(tool,att.type);
+               object
+            end
+          end
+          GroupType do 
+            let object = tool.newNode("Displays",0,0) 
+            in tool.associate(att.type,object);
+               self.addAttributes(tool,att.type);
+               object
+            end
+          end
+          EllipseType do
+            self.addAttribute(tool,type,att,"Ellipse")
+          end
+          ExpType do
+            self.addAttribute(tool,type,att,"Exp")
+          end
+          MenuType do
+            null
+          end
+          ImageType do
+            self.addAttribute(tool,type,att,"Image")
+          end
+          TextType do
+            self.addAttribute(tool,type,att,"Text")
+          end 
+        end
+      end
+    end
+    
+    @Operation addEdgeCreationButton(group,edge)
+      toolBar.addEdgeCreationButton(group,edge)
+    end     
+    
+    @Operation addNodeCreationButton(group,node)
+      toolBar.addNodeCreationButton(group,node)
+    end     
+    
+    @Operation defaultParents()
+      Set{Tool}
+    end
+    
+    @Operation getNodeType(name)
+      @Find(type,nodeTypes)
+        when type.name = name
+        else null
+      end 
+    end
+    
+    @Operation getEdgeType(name)
+      @Find(type,edgeTypes)
+        when type.name = name
+        else null
+      end
+    end
+    
+    @Operation groupNames()
+      toolBar.groupNames()
+    end
+    
+    @Operation labelString()
+      self.toString()
+    end
+    
+    @Operation newGroup(name)
+      toolBar.newGroup(name)
+    end
+    
+    @Operation newTool()
+      if self.owner <> null
+      then self(self.owner.newName(name),elementType())
+      else self(name,elementType())
+      end
+    end
+    
+    @Operation toTool()
+      // Just for testing....
+      self.toTool("X")
+    end
+    
+    @Operation toTool(name:String)
+      
+      // An instance of ToolType can be transformed to a tool that
+      // has the tool type as its element. This will automatically
+      // display the tool diagram.
+      
+      let metaTool = Tools::metaTool() then
+          tool = metaTool(name,self)
+      in tool.showDiagram();
+         tool.setHandleEvents(false);
+         @For node in nodeTypes do
+           let object = tool.newNode("Node",0,0)
+           in tool.associate(node,object);
+              object.slotValue("nodeName").slotValue("name").element.setText(node.name)
+           end
+         end;
+         @For node in nodeTypes do
+           let sourceObject = tool.associatedObject(node) then
+               sourceNode = sourceObject.element then
+               sourcePort = sourceNode.ports->sel;
+               parents = node.parents 
+           in @For parent in parents do
+                let parentObject = tool.associatedObject(parent) then
+                    parentNode = parentObject.element then
+                    parentPort = parentNode.ports->sel
+                in tool.newEdge("Inherit",sourcePort,parentPort)
+                end
+              end
+           end
+         end;
+         @For node in nodeTypes do
+           self.addAttributes(tool,node)
+         end;
+         @For edge in edgeTypes do
+           let sourceType = edge.source;
+               targetType = edge.target then
+               sourceObject = tool.associatedObject(sourceType);
+               targetObject = tool.associatedObject(targetType) then
+               sourcePort = sourceObject.element.ports->sel;
+               targetPort = targetObject.element.ports->sel then
+               object = tool.newEdge("Edge",sourcePort,targetPort)
+           in tool.associate(edge,object);
+              object.slotValue("name").element.textChanged(edge.name)
+           end
+         end;
+        
+         tool.setHandleEvents(true);
+         tool.diagram.layout();
+         tool
+      end
+    end
+    
+    @Operation raise(eventName,data,tool)
+      @For handler in handlers do
+        handler.raise(eventName,data,tool)
+      end
+    end
+    
+    @Operation showDiagram()
+      let name = 
+        if owner <> null
+        then owner.newName("Tool")
+        else "Tool"
+        end then
+        tool = self.toTool(name)
+      in if owner <> null
+         then owner.add(tool)
+         end;
+         tool
+      end
+    end
+    
+  end

@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class RenderConstant extends RenderText
+  
+    @Attribute text : String (?,!) end
+    
+    @Constructor(text) ! end
+    
+    @Operation code(value:String):String
+      "\"" + text + "\""
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText)
+      null
+    end
+
+  end

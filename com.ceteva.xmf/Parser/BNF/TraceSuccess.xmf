@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class TraceSuccess extends Recognizer
+  
+    // Used to print out a diagnostic when a nonterminal is
+    // successfully completed.
+  
+    @Attribute name : String end
+    
+    @Constructor(name) end
+    
+    @Operation parse(machine)
+      machine.decIndent();
+      if machine.grammar.debug then machine.debug(name + " succeeded.") end
+    end
+   
+  end

@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import OCL;
+import Structure;
+
+context Structure
+
+  @Class Formal
+  
+    @Attribute type : Type end
+    @Attribute name : String end
+    
+    @Constructor(type,name) ! end
+    
+    @Operation pprint(out)
+      type.pprint(out);
+      format(out," ~S",Seq{name})
+    end
+    
+  end

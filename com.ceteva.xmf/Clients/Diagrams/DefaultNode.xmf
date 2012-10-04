@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class DefaultNode extends Node
+  
+    @Constructor(x,y,width,height) 
+      let box = Box(0,0,width,height,0);
+          port = Port(0,0,width,height);
+          text = Text("Default Node",10,10,true)
+      in self.add(port);
+         self.add(box);
+         box.add(text);
+         self
+      end
+    end    
+    
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Node::delete));
+        globalMenu
+      end
+    end
+
+  end

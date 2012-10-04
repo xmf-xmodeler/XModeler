@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest Events
+
+  Events = 
+    @File Events             end
+    @File Event              end
+    @File EventHandler       end
+    @File Observer           end
+    @File ElementManager     end
+do Events
+end;

@@ -1,0 +1,55 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Or extends Recognizer
+  
+    // This recognizer permits two recognizers to be tried as alternatives.
+    
+    @Attribute left : Recognizer end
+    @Attribute right : Recognizer end
+    
+    @Constructor(left,right) end
+    
+    @Operation code(outputChannel)
+      left.code(outputChannel);
+      format(outputChannel," | ");
+      right.code(outputChannel)
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      left.nextSet(grammar)->union(right.nextSet(grammar))
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals()->union(right.terminals())
+    end
+    
+    @Operation parse(machine) 
+      machine.choice(right);
+      left.parse(machine)
+    end
+    
+    @Operation setOwner(owner)
+      left.setOwner(owner);
+      right.setOwner(owner)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Or(<left.toExp(FV)>,<right.toExp(FV)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self.left := left.transform(FV,grammar);
+      self.right := right.transform(FV,grammar)
+    end
+    
+  end 
+      

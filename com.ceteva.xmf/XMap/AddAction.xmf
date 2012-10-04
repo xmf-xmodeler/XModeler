@@ -1,0 +1,52 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+import XMap;
+
+context XMap
+
+  @Class AddAction extends Sugar, SyncContainerAction
+  
+    @Doc
+      An add action is a general action that can occur to a container.
+      The AddAction construct is general and is specialized to particular 
+      forms of container synchronization and mapping.
+    end
+  
+    @Attribute arg : String end
+    @Attribute body : Performable end
+    @Attribute name : String (!) end
+    
+    @Constructor(arg,body) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      AddAction ::= '(' arg = Name ')' body = Exp { AddAction(arg,body) }.
+      
+    end
+    
+    @Operation desugar():Performable
+      import OCL
+      in
+        [| @Operation(slot,newValue,oldValue)
+             if slot.name = <StrExp(name)>
+             then
+               let new = newValue - oldValue
+               in if not new->isEmpty
+                  then 
+                    @For <arg> in new do
+                      let <name> = self.<name>
+                      in <body>
+                      end
+                    end
+                  end
+               end
+             end 
+           end
+         |]
+       end
+     end
+     
+   end    

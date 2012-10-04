@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class TextAreaDialog extends ContainedClientElement
+  
+    @Bind error	 	= "error" end
+    @Bind info	 	= "info" end
+    @Bind question	= "question" end
+    @Bind warning	= "warning" end
+  
+    @Attribute type    : String end
+    @Attribute message : String end
+    @Attribute text    : String end
+    
+    @Constructor(type,message,text) 
+    end
+    
+    @Operation new()   
+      self.commandInterpreter().newTextAreaDialog(self);
+      self.dispose()
+    end
+  
+  end

@@ -1,0 +1,159 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class Form isabstract extends ContainedClientElement
+  
+    @Attribute name         : String           (?)     end
+    @Attribute contents     : Seq(FormElement) (?,!,+,-) end
+    @Attribute isOpen       : Boolean          (!,?)     end
+    @Attribute hasFocus     : Boolean end
+    
+    @Constructor(name) end
+    
+    @Constructor(id,name,contents) ! end
+
+    @Operation add(element:FormElement)
+      // For consistency use add rather than addElement...
+      element.setOwner(self);
+      self.addToContents(element)
+    end
+    
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the form is created and if the
+      // displays are ever refreshed.
+
+      self
+    end
+    
+    @Operation addElement(element:FormElement)
+      self.contents := contents->prepend(element);
+      element.setOwner(self)
+    end
+    
+    @Operation addTools()
+      // Redefine this to add form tools in subclasses.
+      self
+    end
+    
+    @Operation clearContents()
+      self.contents := Seq{}
+    end
+    
+    @Operation close()
+      if owner.isReallyKindOf(FormClient)
+      then
+        self.owner.remove(self)
+      end;
+      self.isOpen := false;
+      self
+    end
+
+    @Operation closeCommand()
+      self.commandInterpreter().closeFormCommand(self);
+      self.close()
+    end
+
+    @Operation dispose()
+      self.owner := null;
+      self.disposeCollection(contents);
+      super()
+    end
+
+    @Operation focusGained()
+      self.hasFocus := true
+    end
+
+    @Operation focusLost()
+      self.hasFocus := false
+    end
+
+    @Operation getEditableText(textComponent)
+      self.commandInterpreter().setEditableTextCommand(textComponent,textComponent.text.toString())
+    end
+    
+    @Operation handleClientNewForm(client:FormClient)
+      client.newFormDefinitely(self)
+    end
+
+    @Operation new()
+      @AsPacket(self.commandInterpreter(),15)
+        self.commandInterpreter().newFormCommand(self);
+        self.refresh()
+      end
+    end
+    
+    @Operation newContents()
+      @For content in contents do
+        content.new(self)
+      end
+    end
+
+    @Operation refresh()
+      self.isOpen := true;
+      self.addTools();
+      self.addContents();
+      self.newContents();
+      self
+    end
+
+    @Operation renew(newForm:Boolean)
+      if isOpen
+      then
+        if newForm
+        then
+          self.removeFromIdManager();
+          self.commandInterpreter().newFormCommand(self)
+        end;
+        self.addTools();
+        @For element in contents do
+          element.dispose();
+          element.renew(self)
+        end
+      end
+    end
+    
+    @Operation renew()
+      self.renew(true)
+    end
+    
+    @Operation removeElement(element:FormElement)
+      self.contents := contents->excluding(element)
+    end
+    
+    @Operation setName(name:String)
+      self.name := name;
+      self.commandInterpreter().setFormText(self,name);
+      self
+    end
+        
+    @Operation type()
+      "com.ceteva.form"
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        type = Seq{"type",self.type()};
+        name = Seq{"name",name};
+        isOpen = Seq{"isOpen",isOpen};
+        hasFocus = Seq{"hasFocus",hasFocus} then
+        attributes = Seq{id,type,name,isOpen,hasFocus}
+      in
+        @Command(self) startElement("form",attributes) end;
+        @For content in contents
+        do
+          content.synchronise()
+        end;
+        @Command(self) endElement("form") end
+      end
+    end
+
+  end

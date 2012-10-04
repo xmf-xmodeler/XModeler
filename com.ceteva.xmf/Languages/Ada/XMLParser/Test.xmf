@@ -1,0 +1,114 @@
+parserImport XOCL;
+
+import XML::Parser;
+
+import IO;
+
+import Clients::ExtensionPoints;
+import Clients::XmfFileTree;
+import Languages::Ada;
+
+context AdaObject
+  @Operation calcChildrenSlots()
+    self.getStructuralFeatureNames()
+      ->map("toString")
+      ->reject(name |
+        name = "char" or
+        name = "line")
+  end
+  
+context Root
+  @Class SearchResults
+    @Attribute name : String end
+    @Attribute results : Seq(Element) end
+    @Constructor(name) ! end
+    @Constructor(name,results) end
+    @Operation calcChildrenSlots()
+      Seq{"results"}
+    end
+  end
+
+context AdaFile
+  @Operation parseXML()
+    let path = self.fullPath() then
+        xmlFile = path->asSeq->take(path->size - 4)->asString + ".xml"
+    in if xmlFile.fileExists()
+       then 
+         @Busy("Translating XML Representation of Ada")
+           @WithOpenFile(fin <- xmlFile)
+             let xin = ParserChannel(fin,AdaXML)
+             in //xin.debug := true;
+                xin.parse("AdaSystem").browse()
+             end
+           end
+         end
+       else xmf.warning("XML file " + xmlFile + " does not exist")
+       end
+    end
+  end
+
+let 
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.menus"
+in
+  registry.addContribution(id,
+    Contribution(AdaFile,Seq{
+      Seq{},
+      AdaFile::parseXML,
+      Seq{"Create Model"},"",false}));
+  registry.addContribution(id,
+    Contribution(Languages::Ada::AdaObject,Seq{
+      Seq{},
+      @Operation() self.code().edit() end,
+      Seq{"Source Code"},"",false}));
+  registry.addContribution(id,
+    Contribution(Languages::Ada::AdaObject,Seq{
+      Seq{},
+      @Operation()
+        let exp = xmf.getExp("Query","Type Query Expression. Use x as variable.")
+        in if exp <> null
+           then 
+             let pred = Compiler::compileToFun("",exp,Seq{"x"},Seq{Root,XCore,Languages::Ada},true) then
+                 find = Walkers::Find(pred)
+             in find.walk(self,null);
+                SearchResults(exp.pprint(),find.results()).browse()
+             end
+           end
+        end
+      end,
+      Seq{"Search ..."},"",false}))
+end;
+  
+
+
+context Root
+
+  @Operation test()
+    let g = AdaXML;
+        t0 = Time()
+    in @WithOpenFile(fin <- xmf.openFile(xmf.homeDir(),"*.xml"))
+         let xin = ParserChannel(fin,g)
+         in //xin.debug := true;
+            Root::g := g;
+            xin.parse("AdaSystem");
+            (Time() - t0).pprint().println();
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+
+  @Operation test2()
+    let g = AdaXML
+    in @WithOpenFile(fin <- (xmf.homeDir() + "/Languages/Ada/AdaSource/bags.xml"))
+         let xin = SAXInputChannel(fin)
+         in //xin.debug := true;
+            Root::g := g;
+            xin.parse();
+            xin
+         end
+       end
+    end
+  end

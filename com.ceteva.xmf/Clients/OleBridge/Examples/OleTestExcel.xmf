@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftExcel;
+
+let 
+  excel = Excel() then
+  book = excel.newBook() then
+  sheet1 = book.newSheet();
+  sheet2 = book.newSheet()
+in
+  excel.show();
+  sheet1.setCellValue("C3","C3","5");
+  sheet1.setCellValue("C4","C4","8");
+  sheet1.setCellValue("C5","C5","=C3+C4");
+  sheet2.setCellValue("A1","A1","HELLO A1")
+end;

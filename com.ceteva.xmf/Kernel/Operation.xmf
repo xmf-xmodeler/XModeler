@@ -1,0 +1,298 @@
+parserImport XOCL;
+
+context Operation
+  @AbstractOp arity():Integer
+  end
+  
+context Operation
+  @Bind TraceIndent = 0 end
+  
+context Operation
+  @AbstractOp break()
+    @Doc
+      Adds a breakpoint to the receiver. When the receiver is
+      called, execution halts and allows the user to investigate
+      the current context.
+    end
+  end
+  
+context Operation
+  @Operation breakFun(fun)
+    @Doc
+      This operation returns a function that can be invoked to
+      enter a break point. When the break point returns the
+      original operation is called.
+    end
+    let breakFun =
+      @Operation(target,args,supers)
+        try
+          let op = fun.copy();
+              names = self.paramNames() then
+              pairs = names.zip(args) then
+              env = pairs->iterate(p e = Env::NullEnv() | e.bind(p->head,p->tail));
+              ex = Exception(formats("Break ~S.~S(~{,~;~S~})~%",Seq{target,fun.name(),args}))
+          in op.untrace();
+             format(stdout,"Enter Break ~S.~S(~{,~;~S~})~%",Seq{target,fun.name(),args});
+             @For name,arg in names,args do
+               format(stdout,"  ~S = ~S~%",Seq{name,arg})
+             end;
+             ex.edit();
+             // needs a re-entry operation in top level....
+             xmf.topLevel().loop(target,env,"Break> ",false,Seq{XCore,Root});
+             let value = Kernel_invoke(op,target,args,supers)
+             in format(stdout,"Exit Break ~S.~S(~{,~;~S~}) => ~S~%",Seq{target,fun.name(),args,value});
+                value
+             end
+          end
+        catch(exception)
+          format(stdout,"Error in breakpoint.");
+          throw exception
+        end
+      end
+    in if owner.isReallyKindOf(Classifier)
+       then 
+         let supers = Kernel_operatorPrecedenceList(owner)
+         in @While (not supers->isEmpty) andthen (not supers->head = self) do
+              supers := supers->tail
+            end;
+            if supers->isEmpty
+            then breakFun.supers := Seq{breakFun}
+            else breakFun.supers := supers
+            end;
+            breakFun
+         end
+       else breakFun
+       end
+    end
+  end
+  
+context Operation
+  @AbstractOp dynamics()
+    @Doc
+      The dynamics of an operation are the imported name spaces.
+    end
+  end
+
+context Operation 
+  @Operation fork()
+    // The following definition allows the kernel primitive to 
+    // expect compiled operations while we can fork off any
+    // sub-class of Operation.
+    Kernel_fork("Unknown",@Operation() self.invoke(self,Seq{}) end)
+  end
+  
+context Operation 
+  @Operation fork(name:String)
+    // The following definition allows the kernel primitive to 
+    // expect compiled operations while we can fork off any
+    // sub-class of Operation.
+    Kernel_fork(name,@Operation() self.invoke(self,Seq{}) end)
+  end
+  
+context Operation
+  @AbstractOp globals()
+    @Doc
+      The environment of freely referenced variables in the body
+      of the operation. 
+    end
+  end
+  
+context Operation
+  @Operation invoke(target:Element,args:Seq(Element)):Element
+    @Doc
+      An operation is performed by invoking it. The arguments are
+      given as the target (the value of self) and the sequence of
+      arguments required by the operation. Deal with var args here
+      by turning any extra arguments into a single argument that is
+      a sequence.
+    end
+    if not self.isVarArgs() and args->size = self.arity()
+    then Kernel_invoke(self,target,args,self.supers)
+    elseif self.isVarArgs() and args->size >= self.arity()-1
+    then Kernel_invoke(self,target,args->take(self.arity()-1) + Seq{args->drop(self.arity()-1)},self.supers)
+    else throw Exceptions::ArityError(self,args)
+    end
+  end
+
+context Operation
+  @Operation invoke(target:Element,args:Seq(Element),supers:Seq(Operation)):Element
+    @Doc
+      An operation is performed by invoking it. The arguments are
+      given as the target (the value of self) and the sequence of
+      arguments required by the operation. Deal with var args here
+      by turning any extra arguments into a single argument that is
+      a sequence. The supers argument is used to supply the supers
+      value allowing the sun-super mechanism to restart the lookup.
+    end
+    if not self.isVarArgs() and args->size = self.arity()
+    then Kernel_invoke(self,target,args,supers)
+    elseif self.isVarArgs() and args->size >= self.arity()-1
+    then Kernel_invoke(self,target,args->take(self.arity()-1) + Seq{args->drop(self.arity()-1)},supers)
+    else throw Exceptions::ArityError(self,args)
+    end
+  end
+
+context Operation
+  @Operation invokes(target:Element,args:Seq(Element)):Element
+    @Doc
+      This version of invoke calculates its supers from its owner which
+      is then passes as the argument to the 3 argument invoke.
+    end
+    if owner <> null
+    then
+      let ops = owner.allOperations()
+      in      
+        @While not self.matchesSignature(ops->head)
+        do ops := ops->tail
+        end;
+        self.invoke(target,args,ops)
+      end
+    else
+      self.invoke(target,args)
+    end
+  end
+
+context Operation
+  @Operation matchesId(id)
+    false
+  end
+
+context Operation
+  @Operation matchesSignature(op)
+    op.name() = self.name and op.arity() = self.arity()
+  end
+
+context Operation
+  @Operation matchesTarget(object,target)
+    false
+  end
+ 
+context Operation
+  @AbstractOp name():Symbol
+  end
+  
+context Operation
+  @AbstractOp paramNames():Seq(String)
+  end
+  
+context Operation
+  @AbstractOp setDynamics(dynamics)
+  end
+  
+context Operation
+  @AbstractOp setGlobals(globals)
+    @Doc
+      Set the environment of freely reference variables.
+    end
+  end
+  
+context Operation
+  @AbstractOp setSupers(supers:Seq(Operation))
+  end
+  
+context Operation
+  @AbstractOp setTarget(target)
+    @Doc
+      Set the value that will be used as 'self' in the evaluation
+      of the body of the operation.
+    end
+  end
+  
+context Operation
+  @AbstractOp sig()
+    @Doc
+      Returns the signature of the receiver.
+    end
+  end
+  
+context Operation
+  @AbstractOp source():String
+  end
+  
+context Operation 
+  @AbstractOp supers()
+    @Doc
+      The supers of an operation define where the search continues
+      when the body performs performs 'super'
+    end
+  end
+  
+context Operation
+  @AbstractOp target():Element
+    @Doc
+      Returns the value of 'self' that was current when the operation
+      was created (unless the operation has been modified since).
+    end
+  end
+  
+context Operation
+  @AbstractOp trace()
+    @Doc
+      Call this operation to trace an operation. When
+      the operation is called it will print out on
+      entry and exit.
+    end
+  end
+  
+context Operation
+  @AbstractOp traced():Boolean
+    @Doc
+      Returns true when the received is traced.
+    end
+  end
+  
+context Operation
+  @Operation traceFun(fun)
+    @Doc
+      This operation returns a function that can be invoked to
+      trace the operation fun.
+    end
+    let traceFun =
+      @Operation(target,args,supers)
+        try
+          let op = fun.copy()
+          in op.untrace();
+             Operation::TraceIndent := Operation::TraceIndent + 1;
+             format(stdout,"~VEnter ~S.~S(~{,~;~S~})~%",Seq{Operation::TraceIndent*2,target,fun.name(),args});
+             let value = Kernel_invoke(op,target,args,supers)
+             in format(stdout,"~VExit ~S.~S = ~S~%",Seq{Operation::TraceIndent*2,target,fun.name(),value});
+                Operation::TraceIndent := Operation::TraceIndent - 1;
+                value
+             end
+          end
+        catch(exception)
+          format(stdout,"~VError ~S in ~S~%",Seq{Operation::TraceIndent*2,exception,fun.name()});
+          Operation::TraceIndent := Operation::TraceIndent - 1;
+          throw exception
+        end
+      end
+    in if owner.isReallyKindOf(Classifier)
+       then 
+         let supers = Kernel_operatorPrecedenceList(owner)
+         in @While (not supers->isEmpty) andthen (not supers->head = self) do
+              supers := supers->tail
+            end;
+            if supers->isEmpty
+            then traceFun.supers := Seq{traceFun}
+            else traceFun.supers := supers
+            end;
+            traceFun
+         end
+       else traceFun
+       end
+    end
+  end
+  
+context Operation 
+  @AbstractOp untrace()
+    @Doc
+      Call this operation to untrace an operation.
+    end
+  end
+  
+context Operation 
+  @AbstractOp unbreak()
+    @Doc
+      Call this operation to unbreak an operation.
+    end
+  end

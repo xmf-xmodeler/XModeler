@@ -1,0 +1,39 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+import Clients;
+import DiagramsMapping;
+import ExtensionPoints;
+
+context XOCL
+
+  @Class Theme extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar
+      
+      Theme ::= name = Name 'appliesTo' applies = Exp defs = Exp* {
+        Theme(name,applies,defs)
+      }.
+    
+    end
+    
+    @Attribute name : String end
+    @Attribute applies : Exp end
+    @Attribute defs : Exp end
+    
+    @Constructor(name,applies,defs)
+    end
+    
+    @Operation desugar():Performable
+      [| let 
+  		   registry = xmf.registry();
+  		   themes = "com.ceteva.xmf.themes"
+		 in
+		   registry.replaceContribution(themes,Clients::ExtensionPoints::StringContribution(<StrExp(name)>,<SetExp("Seq",defs)>));
+		   Clients::DiagramsMapping::themeBindings.put(<StrExp(name)>,<applies>)
+		 end |]
+    end
+  
+  end

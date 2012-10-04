@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+import XMap;
+
+context XMap
+
+  @Class DeleteLeft extends DeleteAction
+  
+    @Doc
+      See DeleteRight. This is the same except the daemon fires when elements are
+      removed from the left hand container.
+    end
+  
+    @Grammar extends DeleteAction.grammar
+    
+      DeleteLeft ::= delAction = DeleteAction { DeleteLeft(delAction.arg,delAction.body) }.
+      
+    end
+     
+   end    

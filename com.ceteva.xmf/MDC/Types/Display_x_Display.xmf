@@ -1,0 +1,117 @@
+parserImport XOCL;
+
+import MDC;
+import Types;
+import Displays;
+
+context ! Types
+
+  @Class Display_x_Display extends AbstractMappingType
+  
+    // A general mapping between a model location and a display
+    // type. Allows the values displayed to be filtered in order
+    // to provide a specific view of the value...
+
+    @Attribute displayType : Tools::DiagramTools::Types::DisplayTypes::DisplayType (?,!) end
+    @Attribute filter      : Operation = self.mkValueFilter() (?,!) end
+    
+    @Constructor(displayType) end
+    
+    @Operation allNodes()
+      Set{}
+    end
+    
+    @Operation applyFilter(value):String
+      filter(value)
+    end
+    
+    @Operation build(tool,value,display)
+    
+      // Called to populate the diagram. 
+      
+      null
+      
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      Seq{}
+    end
+    
+    @Operation decreasePadding()
+      displayType.padTop := 0.max(displayType.padTop - 5);
+      displayType.padLeft := 0.max(displayType.padLeft - 5);
+      displayType.padBottom := 0.max(displayType.padBottom - 5);
+      displayType.padRight := 0.max(displayType.padRight - 5)
+    end
+    
+    @Operation deref()
+      // Used to strip surrounding ref's...
+      self
+    end
+    
+    @Operation increasePadding()
+      displayType.padTop := displayType.padTop + 5;
+      displayType.padLeft := displayType.padLeft + 5;
+      displayType.padBottom := displayType.padBottom + 5;
+      displayType.padRight := displayType.padRight + 5
+    end
+    
+    @Operation mkValueFilter()
+      @Operation[closure="MDC::Types::Display_x_Display::mkValueFilter"](value)
+        if value = ""
+        then "<EMPTY>"
+        else value.toString()
+        end
+      end.setOwner(null)
+    end
+    
+    @Operation newValueFilter()
+    
+      // When values are displayed, they are filtered to allow
+      // the display mechanism to provide a view of the value...
+      
+      let filter = 
+        @Operation(value):String
+          if value = ""
+          then "<EMPTY>"
+          else value.toString()
+          end
+        end
+      in filter.setOwner(null);
+         filter
+      end
+      
+    end
+    
+    @Operation populate(tool,value,element)
+      null
+    end
+    
+    @Operation setDisplay(tool,value,element)
+    
+      @CaseObj displayType of
+      
+        // Initially just do text, but leave room for
+        // other things to change state based on the
+        // element value.
+      
+        Text[ ] do
+          value.display().setText(filter(element))
+        end
+      
+        Tools::DiagramTools::Types::DisplayTypes::Text[ ] do
+          // legacy...
+          value.display().setText(filter(element))
+        end
+      
+        else null
+        
+      end
+
+    end
+    
+    @Operation toString()
+      "<Map " + displayType.toString() + ">"
+    end
+    
+  end

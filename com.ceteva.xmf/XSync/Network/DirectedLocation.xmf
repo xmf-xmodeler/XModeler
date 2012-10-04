@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class DirectedLocation extends Location
+  
+    @Attribute location : Location (?) end
+    
+    @Constructor(location) ! end
+  
+  end

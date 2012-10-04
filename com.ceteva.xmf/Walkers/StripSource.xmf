@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class StripSource extends Walker
+  
+    @Operation defaultWalk(e:Element,arg:Element):Element
+      null
+    end
+    
+    @Operation reWalk(v:Element,arg:Element):Element
+      null
+    end
+    
+    @Operation walkBoolean(b:Boolean,arg:Element):Element 
+      null
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      null
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      null
+    end
+     
+    @Operation walkOperation (o:Operation,arg:Element):Element
+      if o.isKindOf(CompiledOperation)
+      then o.setSource("")
+      else o
+      end
+    end
+    
+    @Operation walkPreObject(o:Object,arg:Element)
+      null
+    end
+     
+    @Operation walkPostObject(o:Object,arg:Element)
+      null
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,arg:Element):Element 
+      if not s->isEmpty
+      then
+        self.walk(s->head,arg);
+        self.walk(s->tail,arg)
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,arg:Element):Element 
+      @For x in s do
+        self.walk(x,arg)
+      end;
+      s
+    end
+     
+    @Operation walkSlot(o:Object,s:String,arg:Element)
+      self.walk(o.get(s),arg)
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      null
+    end
+    
+    @Operation walkSymbol(s:Symbol,arg:Element):Element
+      null
+    end
+    
+    @Operation walkTable(t:Table,arg:Element):Element
+      @For key in t.keys() do
+        self.walk(key,arg);
+        self.walk(t.get(key),arg)
+      end
+    end
+    
+    @Operation walkVector(v:Vector,arg:Element):Element
+      @Count i from 0 to v.size() - 1 do
+        self.walk(v.ref(i),arg)
+      end
+    end
+     
+  end
+    

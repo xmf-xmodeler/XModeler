@@ -1,0 +1,159 @@
+parserImport XOCL;
+parserImport StateMachines;
+
+context StateMachines
+  @Package ATM
+  
+    @StateMachine Bank 
+    
+      @InitialState Idle end
+      
+      @Attribute accounts : Seq(Account) end
+      
+      @Operation validate(c:Card):Boolean
+        @For account:Account in accounts do
+          if account.number().equals(c.number())
+          then @Return true end
+          end
+        end;
+        @Return false end
+      end
+      
+      @Operation balance(number:String):Integer
+        @For account:Account in accounts do
+          if account.number().equals(number)
+          then @Return account.funds() end
+          end
+        end;
+        @Return 0 end
+      end
+      
+      @Transition withdraw(funds:Integer,number:String) Idle -> Idle
+        when true
+        do @For account:Account in accounts do
+             if account.number().equals(number)
+             then
+               account.withdraw(funds)
+             end
+           end
+      end
+      
+    end
+    
+    @StateMachine Account
+      @InitialState Idle end
+      @Attribute number : String end
+      @Attribute funds : Integer end
+      
+      @Transition withdraw(amount:Integer) Idle -> Idle
+        when true
+        do self.funds := funds - amount
+      end
+      
+    end
+    
+    @StateMachine ATM
+    
+      @InitialState Idle end
+      @State Error end
+      @State ReadPIN end
+      @State ProcessPIN end
+      @State GetRequest end
+      @State ProcessRequest end
+      @State Withdraw end
+      
+      @Attribute bank : Bank end
+      @Attribute card : Card end
+      
+      @Transition insert(c:Card) Idle -> ReadPIN
+        when bank.validate(c)
+        do self.card := c;
+           self.readPIN()
+      end
+      
+      @Transition insert(c:Card) Idle -> Error
+        when not bank.validate(c)
+        do self.error("Card invalid")
+      end
+      
+      @Transition error(errorMessage:String) Error -> Error
+        when true
+        do self.trace(errorMessage)
+      end
+      
+      @Transition readPIN() ReadPIN -> ProcessPIN
+        when true
+        do self.processPIN(Main.readPIN())
+      end
+      
+      @Transition processPIN(pin:String) ProcessPIN -> Error
+        when not pin.equals(card.pin())
+        do self.error("Incorrect PIN")
+      end
+      
+      @Transition processPIN(pin:String) ProcessPIN -> GetRequest
+        when pin.equals(card.pin())
+        do self.getRequest()
+      end
+      
+      @Transition getRequest() GetRequest -> ProcessRequest
+        when true
+        do self.trace("");
+           self.trace("      ATM Services");
+           self.trace("-------------------------");
+           self.trace("1. Balance Enquiry");
+           self.trace("2. Funds Withdrawal");
+           self.trace("3. Quit");
+           self.trace("");
+           self.processRequest(Main.readRequest())
+      end
+      
+      @Transition processRequest(action:String) ProcessRequest -> GetRequest
+        when not(action.equals("1") or action.equals("2") or action.equals("3"))
+        do self.getRequest()
+      end
+      
+      @Transition processRequest(action:String) ProcessRequest -> GetRequest
+        when action.equals("1")
+        do self.trace("Balance = " + bank.balance(card.number()));
+           self.getRequest()
+      end
+      
+      @Transition processRequest(action:String) ProcessRequest -> Withdraw
+        when action.equals("2")
+        do self.withdraw(Main.readWithdrawal())
+      end
+      
+      @Transition withdraw(amount:Integer) Withdraw -> GetRequest
+        when amount > bank.balance(card.number())
+        do self.trace("Insufficient funds");
+           self.getRequest()
+      end
+      
+      @Transition withdraw(amount:Integer) Withdraw -> GetRequest
+        when amount < bank.balance(card.number())
+        do bank.withdraw(amount,card.number());
+           self.trace("Delivered " + amount);
+           self.getRequest()
+      end
+      
+      @Transition processRequest(action:String) ProcessRequest -> Idle
+        when action.equals("3")
+        do self.card := null;
+           if Main.save(self)
+           then self.trace("Goodbye")
+           else self.trace("Problem in saving.")
+           end
+      end
+      
+    end
+    
+    @StateMachine Card 
+      @InitialState Idle end
+      @Attribute number : String end
+      @Attribute pin : String end
+    end
+    
+  end
+    
+    

@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import ExtensionPoints;
+
+let 
+  registry  = xmf.registry();
+  iconId    = "com.ceteva.xmf.modelBrowsers.icons";
+  sortOp    = "com.ceteva.xmf.modelBrowsers.sortOp";
+  sortId    = "com.ceteva.xmf.modelBrowsers.nodeSort";
+  mappingId = "com.ceteva.xmf.modelBrowsers.mappings" then
+  iconPoint   = InheritanceExtensionPoint(iconId);
+  sortOpPoint = InheritanceExtensionPoint(sortOp);
+  sortPoint   = InheritanceExtensionPoint(sortId);
+  mappingPoint  = InheritanceExtensionPoint(mappingId)
+in
+  registry.addExtensionPoint(iconPoint);
+  registry.addExtensionPoint(sortOpPoint);
+  registry.addExtensionPoint(sortPoint);
+  registry.addExtensionPoint(mappingPoint);
+  ModelBrowserNode::iconRegistryPoint := iconPoint;
+  ModelBrowserNode::sortRegistryPoint := sortPoint
+end;
+
+
+

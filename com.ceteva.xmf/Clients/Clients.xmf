@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Clients
+  
+    @Doc
+       This package contains definitions relating to XMF clients.
+       An XMF client is a (possibly external) program that communicates
+       with the XMF engine.
+     end
+     
+   end

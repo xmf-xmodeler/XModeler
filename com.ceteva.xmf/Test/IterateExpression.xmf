@@ -1,0 +1,43 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe an IterateExpression within the context of the namespace Frames
+context Frames
+
+	// the class IterateExpression provides support for iteration over
+	// elements of the Frame
+    @Class IterateExpression extends CompositeExpression
+		// create an instance of tha class and bind to the appropriate attribute
+		@Constructor(theRange) end
+		
+		//
+		@Grammar extends OCL::OCL.grammar
+			IterateExpression ::= theRange=Exp elements=Exp*
+				{
+				import OCL
+				in elements->iterate(element concept = 
+					[| import Frames in IterateExpression( <theRange> ) end |] |
+					[| <concept>.add( <element> ) |] )
+				end
+				}.
+		end
+		
+		@Attribute theRange : Seq(Element) end
+		
+		// overide the default operator
+		// iterate over the range processing each of the subordinate 
+		// FrameExpression elements on each iteration
+		@Operation asStringSequence():Seq(String)
+			self.theRange->iterate(item result=Seq{} | result + 
+				self.expr->iterate(el acc=Seq{} | acc + el.asStringSequence()))
+		end
+		
+		// query operation
+		@Operation isIterateExpression():Boolean
+			true
+		end
+    end

@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+  @Class VarUpdate extends OCL::OCL
+  
+    // A variable update expression.
+    
+    @Attribute name : String end
+    @Attribute value : Performable end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation pprint(out,indent)
+      let nameString = if name.isKindOf(Drop) or name.isKindOf(DropPattern) then name.pprint() else name end
+      in format(out,"~S := ~S",Seq{nameString,value.pprint(indent + nameString->size + 4)})
+      end
+    end
+    
+  end

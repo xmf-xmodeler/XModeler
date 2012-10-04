@@ -1,0 +1,8 @@
+context Null
+
+    // The null value is used as the default value of
+    // many classes. It represents unitialised data.
+    
+    @Operation toString():String
+      "null"
+    end  

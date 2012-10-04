@@ -1,0 +1,3 @@
+(xmf.homeDir() + "/XBNF/XBNF.o").loadBin();
+(xmf.homeDir() + "/XBNF/Tokens/Boot.o").loadBin(false);
+(xmf.homeDir() + "/XBNF/Grammars/Boot.o").loadBin(false);

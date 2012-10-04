@@ -1,0 +1,187 @@
+parserImport XOCL;
+
+context Attribute
+  @Operation attString()
+    name.toString() + " : " + self.multString() + self.underlyingType().name.toString()
+  end
+
+context Attribute
+  @Operation decodeMultString(multString:String)
+    try
+      if multString = "" or multString = "1" or multString = null
+      then SingleMult(false)
+      elseif multString = "!"
+      then SingleMult(true)
+      else
+        if multString = "*"
+        then CollectionMult(false,false,0,0)
+        elseif multString = "$" or multString = "$*"
+        then CollectionMult(true,false,0,0)
+        else
+          let ordered = multString.hasPrefix("$") then
+              rangeSeq = if ordered
+                         then multString.subString(1,multString.size()).splitBy(".",0,0)
+                         else multString.splitBy(".",0,0)
+                         end then
+              lowerBound = rangeSeq->head->asInt;
+              hasUpperBound = not (rangeSeq->at(2) = "*") then
+              upperBound = if hasUpperBound then rangeSeq->at(2)->asInt else 0 end
+          in
+            if hasUpperBound andthen upperBound < lowerBound
+            then throw Exception("Invalid multiplicity '"+multString.toString() + "': upper bound is less than lower bound")
+            else CollectionMult(ordered,hasUpperBound,lowerBound,upperBound)
+            end
+          end
+        end
+      end
+    catch(exception)
+      throw Exception("Invalid multiplicity '"+multString.toString() + "'")
+    end    
+  end
+
+context Attribute 
+  @Operation dependencies():Set(Element)
+    Set{self.underlyingType()}
+  end 
+
+context Attribute
+  @Operation hasAtomicType():Boolean
+    not(self.hasSeqType() or self.hasSetType())
+  end
+  
+context Attribute
+  @Operation hasSeqType():Boolean
+    type.of() = Seq
+  end
+  
+context Attribute
+  @Operation hasSetType():Boolean
+    type.of() = Set
+  end
+  
+context Attribute
+  @Operation init(args)
+    if args->size = 0
+    then 
+      self.name := Symbol("att");
+      self.type := Element
+    elseif args->size = 1
+    then
+      self.name := Symbol(args->at(0).toString());
+      self.type := Element
+    elseif args->size <= 3
+    then
+      self.name := 
+        if args->at(0).isKindOf(Symbol) 
+        then args->at(0) 
+        else Symbol(args->at(0)) 
+        end;
+      self.type := args->at(1);
+      self.updateMultFromType();
+      if args->size = 3
+      then self.init := args->at(2)
+      end;
+      self
+    else super(args)
+    end 
+  end
+
+context Attribute
+  @Operation init():Element
+    if type.isKindOf(Operation) and owner <> null
+    then self.type := type();
+         self
+    else self
+    end
+  end
+
+context Attribute
+  @Operation getInitialValue():Element
+    if init = null
+    then type.default()
+    else init()
+    end
+  end
+  
+context Attribute
+  @Operation isStatic():Boolean
+    init = null orelse
+    init.hasProperty("value")
+  end
+  
+context Attribute
+  @Operation mult():Multiplicity
+    if self.mult.isKindOf(String) // this includes the null situation
+    then self.mult := self.decodeMultString(mult)
+    end;
+    mult
+  end
+
+context Attribute
+  @Operation multString():String
+    self.mult().multString()
+  end
+
+context Attribute 
+  @Operation repopulate(a:Attribute)
+    self.isComposite := a.isComposite;
+    self.init := a.init;
+    self.name := a.name;
+    self.owner := a.owner;
+    self.type := a.type
+  end
+
+context Attribute
+  @Operation setMultString(multString:String)
+    // This needs to be refactored take into account the possibility of nested collection types, e.g. Set(Set(Element))
+    self.mult := self.decodeMultString(multString);
+    self.updateTypeFromMult()
+  end
+
+context Attribute
+  @Operation toString()
+    "<Attribute " + self.attString() + ">"
+  end 
+  
+context Attribute
+  @Operation underlyingType():Classifier
+  
+    @Doc
+      The underlying type of an attribute is the type as
+      would appear at the target of a directed association on
+      a class diagram. All occurrences of Set(..) and Seq(..) 
+      are stripped off.
+    end
+      
+    let t = type
+    in @While t.isKindOf(Seq) or t.isKindOf(Set) do
+         t := t.elementType
+       end;
+       t
+    end
+  end
+
+context Attribute
+  @Operation updateMultFromType()
+    if self.type.isKindOf(Set)
+    then self.mult := self.decodeMultString("*")
+    elseif self.type.isKindOf(Seq)
+    then self.mult := self.decodeMultString("$")
+    end
+  end
+
+context Attribute
+  @Operation updateTypeFromMult()
+    let mult = self.mult()
+    in
+      if mult.isKindOf(SingleMult)
+      then self.type := self.underlyingType()
+      else if mult.isKindOf(CollectionMult)
+           then if mult.isOrdered
+                then self.type := Seq(self.underlyingType())
+                else self.type := Set(self.underlyingType())
+                end
+           end
+      end
+    end
+  end

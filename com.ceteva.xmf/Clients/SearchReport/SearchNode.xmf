@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import SearchReport;
+
+context SearchReport
+
+  @Class SearchNode isabstract extends TreeNode
+    
+    @Constructor(text,icon)
+    end
+    
+    @Operation addContents()
+      null
+    end
+    
+    @Operation edit()
+      self.edit("")
+    end
+    
+    @Operation edit(pattern:String)
+      let formsClient = xmf.findClient(FormClient);
+          editor = SearchForm(pattern,self)
+      in if formsClient <> null
+         then
+           formsClient.newForm(editor)
+         end
+      end;
+      self
+    end
+    
+    @Operation doubleSelected()
+      null
+    end 
+    
+  end

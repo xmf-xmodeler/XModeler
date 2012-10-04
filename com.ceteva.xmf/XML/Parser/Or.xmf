@@ -1,0 +1,88 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Or extends Pattern
+  
+    @Doc
+      Succeeds when either the left or the right pattern succeeds.
+      Binding and return value occurs due to the successful pattern.
+    end
+    
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation binds():Seq(String)
+      left.binds() + right.binds()
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      left.checkForMissingClauses(grammar);
+      right.checkForMissingClauses(grammar)
+    end
+    
+    @Operation CNF(handler:Operation)
+      let name = "C" + Grammar::clauseCounter
+      in Grammar::clauseCounter := Grammar::clauseCounter + 1;
+         left.CNF(
+          @Operation(left,newClauses1)
+            right.CNF(
+              @Operation(right,newClauses2)
+                let clause = Clause(name,Seq{left,right})
+                in handler(Call(name),(newClauses1 + newClauses2)->including(clause))
+                end
+              end)
+          end)
+      end
+    end
+    
+    @Operation first(grammar):Set(String)
+      left.first(grammar) + right.first(grammar)
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      left.flatten() + right.flatten()
+    end
+    
+    @Operation NNF(handler:Operation)
+      left.NNF(
+        @Operation(left,newClauses1)
+          right.NNF(
+            @Operation(right,newClauses2)
+              handler(Or(left,right),newClauses1 + newClauses2)  
+            end)
+        end)
+    end
+    
+    @Operation ONF():Pattern
+      Or(left.ONF(),right.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      format(out," | ");
+      right.pprint(out,indent)
+    end
+    
+    @Operation SNF(handler:Operation)
+      left.SNF(
+        @Operation(left,newClauses1)
+          right.SNF(
+            @Operation(right,newClauses2)
+              handler(Or(left,right),newClauses1 + newClauses2)  
+            end)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals() + right.terminals()
+    end
+    
+  end

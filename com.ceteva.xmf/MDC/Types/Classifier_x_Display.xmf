@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+
+context ! Types
+
+  @Class Classifier_x_Display extends AbstractMappingType
+
+    @Attribute display : Display_x_Display (?,!) end
+    @Attribute classifier : Classifier (?,!) end
+
+    @Constructor(classifier,display) end
+    
+    @Operation addNew(tool,value,rootNode,displayContainer)
+      let display = displayContainer.addNew(displayType.name().toString())
+      in tool.associate(value,display);
+         display
+      end
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        T := display.allMappingTypes(T)
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      display.allNodes()
+    end
+    
+    @Operation associate(tool,value,display)
+      value.associate(tool,display)
+    end
+    
+    @Operation attributeChanged(tool,value,display,new,old)
+      null
+    end
+    
+    @Operation build(tool,element,display)
+      let value =
+        if classifier.isKindOf(Class)
+        then 
+          if self.display.deref().isKindOf(RootElementType)
+          then Values::ControlledObject(self.display.deref(),element,display)
+          else Values::Object(self,element,display)
+          end
+        else Values::Atom(self,element,display)
+        end
+      in self.display.build(tool,value,display);
+         value
+      end
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      display.collectionAttributes()
+    end
+    
+    @Operation disassociate(tool,value,display)
+      let display = indexFor(display,displayType)
+      in tool.disassociate(value,display)
+      end
+    end
+    
+    @Operation inheritsFrom(cxd)
+      self.classifier.inheritsFrom(cxd.classifier)
+    end
+    
+    @Operation populate(tool,value,element)
+    
+      // Used to register the element as being observed by
+      // the tool. All elements should go through this when
+      // they are initially registered.
+      
+      if classifier.isKindOf(Class) and classifier <> Element and element <> null
+      then element.observeBy(tool,true)
+      end;
+      display.populate(tool,value,element)
+    end
+
+  end

@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import XOCL;
+import XML::Parser;
+
+context XML::Parser
+
+  @Class Nil extends Command
+  
+    @Constructor() ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"Nil")
+    end
+  
+  end

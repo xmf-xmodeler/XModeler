@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Projects;
+import Manifests;
+
+context Projects
+
+  @Class ProjectStub extends XCore::NamedElement, Resource 
+  
+    @Doc
+      A project stub is used as a placeholder for a project that
+      exists but is not loaded. The manifest of the stub describes
+      how to build and load the project.
+    end
+  
+    @Attribute manifest : ManifestEntry (?,!) end  
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,resourceName,manifest) 
+      self.setName(name)
+    end
+    
+    @Operation build()
+      manifest.build(resourceName)
+    end
+    
+    @Operation load()
+      let package = manifest.load(resourceName)
+      in if owner.isReallyKindOf(ProjectManager) 
+         then 
+           if package.isReallyKindOf(XCore::Package)
+           then
+             let projectManager = owner 
+             in owner.remove(self);
+                projectManager.add(Project(package,resourceName,manifest))
+             end
+           else xmf.warning("Unknown result from loading project stub manifest: " + package.toString())
+           end
+         else xmf.warning("Cannot find owning project manager for project stub: " + name)
+         end
+      end 
+    end
+    
+    @Operation name():Symbol
+      name
+    end
+   
+  end

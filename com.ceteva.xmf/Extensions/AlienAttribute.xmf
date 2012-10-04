@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class AlienAttribute extends Attribute
+  
+    @Bind bob = null end
+  
+  end

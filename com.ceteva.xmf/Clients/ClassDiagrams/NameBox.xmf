@@ -1,0 +1,77 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class NameBox extends Box
+  
+    // A name box is used in a class node to show the information
+    // about the class name. A name box must have a name and may
+    // have information about where the class has been imported
+    // from.
+  
+    @Attribute name          : Text end
+    @Attribute isAbstract	 : Boolean end
+    @Attribute sourcePackage : String end
+    @Attribute stereotype    : String end 
+  
+    @Constructor(name,sourcePackage,isAbstract,stereotype,x,y,width) !
+      self.cornerCurve := 0;
+      self.name := if name.isKindOf(String) then Text(name,5,0,true,false,isAbstract) else name end;
+      self.showAllEdges()
+    end
+    
+    @Operation addDisplays()
+      self.add(name);
+      if sourcePackage <> "" 
+      then 
+        self.add(Text(sourcePackage,5,0,false))
+      end;
+      if stereotype <> ""
+      then 
+        self.add(Text(stereotype,5,0,false))
+      end
+    end
+    
+    @Operation editName()
+      name.editText()
+    end
+
+    @Operation maxHeight()
+      super() + 3
+    end
+    
+    @Operation maxWidth()
+      super() + 3
+    end
+    
+    @Operation name():String
+      name.text()
+    end
+    
+    @Operation packHeight()
+      // Make sure everything stacks up...
+      let y = 0
+      in @For d in displays do
+           d.move(d.x(),y);
+           d.packHeight();
+           y := y + d.height()
+         end
+      end;
+      super()
+    end
+    
+    @Operation setName(name:String)
+      self.name.setText(name)
+    end
+    
+    @Operation setAbstract(abstract)
+      self.name.setItalicise(abstract)
+    end
+  end
+    
+    

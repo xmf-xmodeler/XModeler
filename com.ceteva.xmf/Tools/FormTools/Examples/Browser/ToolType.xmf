@@ -1,0 +1,55 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+context X::Browser
+  @ToolType Type(VERTICAL)
+    @Tree Tree
+      minWidth = 500
+      minHeight = 500
+      @NodeChoice Value
+        @TreeNode Null "null" end
+        @TreeNode Integer "0" end
+        @TreeNode String "" end
+        @TreeNode Boolean "true" end
+        @TreeNode Pair "Pair"
+          @TreeNode Head "Head"
+            @Ref Value end
+          end
+          @TreeNode Tail "Tail"
+            @Ref Value end
+          end
+        end
+        @TreeNode Seq "Seq{}"
+          @Nodes Elements
+            @Ref Value end
+          end
+        end
+        @TreeNode Set "Set{}"
+          @Nodes Elements
+            @TreeNode Element "element"
+              @Ref Value end
+            end
+          end
+        end
+        @TreeNode Object "object"
+          @Nodes Slots
+            @TreeNode Slot "slot"
+              @Ref Value end
+              @Menu
+                @MenuItems Set
+                  @MenuAction Null
+                    self.changeTo("Value","Null")
+                  end
+                  @MenuAction Int
+                    self.changeTo("Value","Int")
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end

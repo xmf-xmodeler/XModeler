@@ -1,0 +1,338 @@
+parserImport XOCL;
+parserImport XMap;
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+import Clients;
+import Tools;
+import Languages;
+import Activities;
+
+context Activities
+
+  let Activities = ToolType("ActivityTool",ActivityModel);
+      
+        activities = ToolGroup("Activites");
+      
+        newActor = NodeCreationButton("Actor","Tools/Actor.gif");
+        newActivity = NodeCreationButton("Activity","Tools/Activity.gif");
+        newCondition = NodeCreationButton("Condition","Tools/Exp.gif");
+        newStart = NodeCreationButton("Start","Tools/Start.gif");
+        newEnd = NodeCreationButton("End","Tools/End.gif");
+        
+        newPerforms = EdgeCreationButton("Performs","Tools/Edge.gif");
+        newPre = EdgeCreationButton("PreCondition","Tools/Edge.gif");
+        newPost = EdgeCreationButton("PostCondition","Tools/Edge.gif");
+        newStep = EdgeCreationButton("Step","Tools/Edge.gif");
+        
+        stepSource = NodeType("StepSource");
+        stepTarget = NodeType("StepTarget") then
+        abstractStep = NodeType("Step",Set{stepSource,stepTarget}) then
+        actor = NodeType("Actor");
+        condition = NodeType("Condition");
+        activity = NodeType("Activity",Set{abstractStep});
+        start = NodeType("Start",Set{stepSource});
+        terminal = NodeType("End",Set{stepTarget}) then
+        
+        performs = EdgeType("Performs",actor,activity,0,1);
+        preCondition = EdgeType("PreCondition",activity,condition,0,0,Diagrams::Line::dashLine);
+        postCondition = EdgeType("PostCondition",activity,condition,0,0,Diagrams::Line::dashLine);
+        step = EdgeType("Step",stepSource,stepTarget,0,1);
+        
+        delete = MenuAction("Delete",@Operation delete(object,tool) tool.removeObject(object) end);
+        edit = MenuAction("Edit",@Operation edit(object,tool) tool.associatedModel(object).edit() end);
+        showDiagram = MenuAction("ShowDiagram",
+          @Operation showDiagram(object,tool) 
+            let activity = tool.associatedModel(object) then
+                implementation = activity.imp
+            in if implementation = null
+               then
+                 let newTool = Activities.newTool()
+                 in activity.imp := newTool.element;
+                    newTool.element.setOwner(activity);
+                    tool.associate(newTool.element,newTool);
+                    newTool.showDiagram()
+                 end
+               else
+                 let otherTool = tool.associatedObject(implementation)
+                 in otherTool.showDiagram()
+                 end
+               end
+            end
+          end);
+        trace = MenuAction("Trace",
+          @Operation trace(object,tool)
+            let activity = tool.associatedModel(object)
+            in activity.trace := true
+            end
+          end);
+        untrace = MenuAction("Untrace",
+          @Operation trace(object,tool)
+            let activity = tool.associatedModel(object)
+            in activity.trace := false
+            end
+          end);
+        addOp = MenuAction("Add Operation",
+          @Operation addOp(object,tool)
+            let activity = tool.associatedModel(object) then
+                classifier = activity.findClassifier()
+            in if classifier <> null
+               then
+                 let op = @Operation() null end;
+                     name = activity.name
+                 in op.setName(name);
+                    op.setSource("@Operation " + name + "() null end");
+                    classifier.add(op);
+                    op.edit()
+                 end
+               end
+            end
+          end);
+        
+        handleNewActor = Handler("New(Actor)",
+          @Operation(object,tool)
+            let name = object.slotValue("name").element.text then
+                actor = Actor(name)
+            in tool.associate(actor,object);
+               tool.element.addToActors(actor)
+            end
+          end);
+        handleActorNameChanged = Handler("Changed(Actor::name)",
+          @Operation(object,name,old)
+            let actor = self.associatedModel(self.rootFor(object))
+            in actor.setName(name)
+            end
+          end);
+        handleDeleteActor = Handler("Delete(Actor)",
+          @Operation(object)
+            let actor = self.associatedModel(object)
+            in self.element.deleteFromActors(actor)
+            end
+          end);
+        handleNewActivity = Handler("New(Activity)",
+          @Operation(object,tool)
+            let name = object.slotValue("name").element.text then
+                activity = Activity(name)
+            in tool.associate(activity,object);
+               tool.element.addActivity(activity)
+            end
+          end);
+        handleActivityNameChanged = Handler("Changed(Activity::name)",
+          @Operation(object,name,old)
+            let activity = self.associatedModel(self.rootFor(object))
+            in activity.setName(name)
+            end
+          end);
+        handleDeleteActivity = Handler("Delete(Activity)",
+          @Operation(object)
+            let activity = self.associatedModel(object)
+            in self.element.deleteFromActivities(activity);
+               @For actor in self.element.actors do
+                 actor.deleteFromActivities(activity)
+               end
+            end
+          end);
+        handleNewCondition = Handler("New(Condition)",
+          @Operation(object,tool)
+            let expObject = object.slotValue("exp") then
+                type = expObject.type;
+                text = expObject.element then
+                exp = type.exp(text.text)
+            in tool.associate(exp,object) 
+            end
+          end);
+        handleConditionChanged = Handler("Changed(Condition::exp)",
+          @Operation(object,exp,old)
+            let modelExp = self.associatedModel(self.rootFor(object))
+            in modelExp.op := exp.op;
+               modelExp.exp := exp.exp
+            end
+          end);
+        handleDeleteCondition = Handler("Delete(Condition)",
+          @Operation(object)
+            null
+          end);
+        handleNewStart = Handler("New(Start)",
+          @Operation(object,tool)
+            let start = Start()
+            in tool.associate(start,object);
+               tool.element.setStart(start)
+            end
+          end);
+        handleDeleteStart = Handler("Delete(Start)",
+          @Operation(object)
+            let start = self.associatedModel(object)
+            in if self.element.start = start 
+               then self.element.setStart(null)
+               end
+            end
+          end);
+        handleNewEnd = Handler("New(End)",
+          @Operation(object,tool)
+            let terminal = End()
+            in tool.associate(terminal,object);
+               tool.element.addToEnds(terminal)
+            end
+          end);
+        handleDeleteEnd = Handler("Delete(End)",
+          @Operation(object)
+            let terminal = self.associatedModel(object)
+            in self.element.deleteFromEnds(terminal)
+            end
+          end);
+        handleNewPerforms = Handler("New(Performs)",
+          @Operation(edge,sourceObject,targetObject,tool)
+            let actor = tool.associatedModel(sourceObject);
+                activity = tool.associatedModel(targetObject)
+            in actor.addToActivities(activity)
+            end
+          end);
+        handleDeletePerforms = Handler("Delete(Performs)",
+          @Operation(object)
+            let sourceObject = object.source;
+                targetObject = object.target then
+                actor = self.associatedModel(sourceObject);
+                activity = self.associatedModel(targetObject)
+            in actor.deleteFromActivities(activity)
+            end
+          end);
+        handleNewPreCondition = Handler("New(PreCondition)",
+          @Operation(edge,sourceObject,targetObject,tool)
+            let activity = tool.associatedModel(sourceObject);
+                condition = tool.associatedModel(targetObject)
+            in activity.setPre(condition)
+            end
+          end);
+        handleDeletePreCondition = Handler("Delete(PreCondition)",
+          @Operation(object)
+            let activityObject = object.source;
+                conditionObject = object.target then
+                activity = self.associatedModel(activityObject);
+                condition =self.associatedModel(conditionObject)
+            in if condition = activity.pre
+               then activity.setPre(null)
+               end
+            end
+          end);
+        handleNewPostCondition = Handler("New(PostCondition)",
+          @Operation(edge,sourceObject,targetObject,tool)
+            let activity = tool.associatedModel(sourceObject);
+                condition = tool.associatedModel(targetObject)
+            in activity.setPost(condition)
+            end
+          end);
+        handleDeletePostCondition = Handler("Delete(PostCondition)",
+          @Operation(object)
+            let activityObject = object.source;
+                conditionObject = object.target then
+                activity = self.associatedModel(activityObject);
+                condition = self.associatedModel(conditionObject)
+            in if condition = activity.post
+               then activity.setPost(null)
+               end
+            end
+          end);
+        handleNewStep = Handler("New(Step)",
+          @Operation(edge,sourceObject,targetObject,tool)
+            let stepSource = tool.associatedModel(sourceObject);
+                stepTarget = tool.associatedModel(targetObject) then
+                step = Step(stepSource,stepTarget)
+            in tool.associate(step,edge);
+               tool.element.addToSteps(step)
+            end
+          end);
+        handleDeleteStep = Handler("Delete(Step)",
+          @Operation(object)
+            let step = self.associatedModel(object)
+            in self.element.deleteFromSteps(step)
+            end
+          end)
+       
+      in Activities.toolBar.addToGroups(activities);
+         
+         Activities.addToHandlers(handleNewActor);
+         Activities.addToHandlers(handleNewActivity);
+         Activities.addToHandlers(handleNewCondition);
+         Activities.addToHandlers(handleNewStart);
+         Activities.addToHandlers(handleNewEnd);
+         Activities.addToHandlers(handleNewPerforms);
+         Activities.addToHandlers(handleNewPreCondition);
+         Activities.addToHandlers(handleNewPostCondition);
+         Activities.addToHandlers(handleNewStep);
+         
+         Activities.addToHandlers(handleDeleteActor);
+         Activities.addToHandlers(handleDeleteActivity);
+         Activities.addToHandlers(handleDeleteCondition);
+         Activities.addToHandlers(handleDeleteStart);
+         Activities.addToHandlers(handleDeleteEnd);
+         Activities.addToHandlers(handleDeletePerforms);
+         Activities.addToHandlers(handleDeletePreCondition);
+         Activities.addToHandlers(handleDeletePostCondition);
+         Activities.addToHandlers(handleDeleteStep);
+         
+         Activities.addToHandlers(handleActorNameChanged);
+         Activities.addToHandlers(handleActivityNameChanged);
+         Activities.addToHandlers(handleConditionChanged);
+         
+         actor.addToAttributes(ToolComponentAttribute("icon",false,ImageType("Actor.gif",0,0,30,30)));
+         actor.addToAttributes(ToolComponentAttribute("name",false,TextType("Actor"),"CENTRE"));
+         activity.addToAttributes(ToolComponentAttribute("icon",false,EllipseType(0,0,30,30)));
+         activity.addToAttributes(ToolComponentAttribute("name",false,TextType("Activity"),"CENTRE"));
+         condition.addToAttributes(ToolComponentAttribute("exp",false,ExpType("true"),"CENTRE"));
+         start.addToAttributes(ToolComponentAttribute("icon",false,ImageType("Start.gif",0,0,30,30)));
+         terminal.addToAttributes(ToolComponentAttribute("icon",false,ImageType("End.gif",0,0,30,30)));
+         preCondition.addToAttributes(ToolComponentAttribute("label",false,LabelType("pre","end",10,10,false)));
+         postCondition.addToAttributes(ToolComponentAttribute("label",false,LabelType("post","end",10,10,false)));
+         
+         activity.layout := "OVERLAY";
+           
+         actor.menuType.addToItems(delete);
+         actor.menuType.addToItems(edit);
+         activity.menuType.addToItems(delete);
+         activity.menuType.addToItems(edit);
+         activity.menuType.addToItems(trace);
+         activity.menuType.addToItems(untrace);
+         activity.menuType.addToItems(showDiagram);
+         activity.menuType.addToItems(addOp);
+         condition.menuType.addToItems(delete);
+         condition.menuType.addToItems(edit);
+         start.menuType.addToItems(delete);
+         start.menuType.addToItems(edit);
+         terminal.menuType.addToItems(delete);
+         terminal.menuType.addToItems(edit);
+         performs.menuType.addToItems(delete);
+         preCondition.menuType.addToItems(delete);
+         postCondition.menuType.addToItems(delete);
+         step.menuType.addToItems(delete);
+         
+         Activities.addToNodeTypes(stepSource);
+         Activities.addToNodeTypes(stepTarget);
+         Activities.addToNodeTypes(abstractStep);
+         Activities.addToNodeTypes(actor);
+         Activities.addToNodeTypes(activity);
+         Activities.addToNodeTypes(condition);
+         Activities.addToNodeTypes(start);
+         Activities.addToNodeTypes(terminal);
+         
+         Activities.addToEdgeTypes(performs);
+         Activities.addToEdgeTypes(preCondition);
+         Activities.addToEdgeTypes(postCondition);
+         Activities.addToEdgeTypes(step);
+         
+         activities.addToButtons(newActor);
+         activities.addToButtons(newActivity);
+         activities.addToButtons(newCondition);
+         activities.addToButtons(newStart);
+         activities.addToButtons(newEnd);
+         activities.addToButtons(newPerforms);
+         activities.addToButtons(newPre);
+         activities.addToButtons(newPost);
+         activities.addToButtons(newStep);
+         
+         @Handler Activities in Lift(o,arg,encountered)
+           [| self.error("Cannot lift a meta-tool") |]
+         end; 
+         
+         Activities
+      end

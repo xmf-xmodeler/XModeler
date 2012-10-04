@@ -1,0 +1,53 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Menu extends InterfaceElement
+  
+    @Attribute path : Seq(String) (?) end
+    @Attribute name : Seq(String) (?) end
+    
+    @Constructor(path,name) ! end
+    
+    @Grammar 
+    
+      Menu ::= path = Path name = Path { Menu(path,name) }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          name = name then
+          o = 
+            @Operation() 
+              if name->size = 1
+              then class.getOperation(name->head,0).invoke(self,Seq{}) 
+              else name.lookup().invoke(self,Seq{})
+              end
+            end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, self.displayPath(),"",false,true}))
+      end 
+    end
+    
+    @Operation displayPath()
+      let newPath = Seq{}
+      in
+        @For s in self.path
+        do
+          newPath := newPath + Seq{s.replaceUnderscoresWithSpaces()}
+        end;
+        newPath
+      end
+    end
+    
+  end

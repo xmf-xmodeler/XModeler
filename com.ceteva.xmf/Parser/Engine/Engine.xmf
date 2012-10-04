@@ -1,0 +1,662 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+  
+context Parser::BNF
+
+  @Class Engine
+ 
+    @Attribute callStack  : Vector = Vector(1024 * 9)        end
+    @Attribute failStack  : Vector = Vector(1024 * 3)        end
+    @Attribute buffer     : Buffer = Buffer(1024,true)       end
+    @Attribute parseError : Boolean                    (?,!) end
+    @Attribute expected   : Buffer = Buffer(10,false)  (?,!) end
+    @Attribute maxCharPos : Integer                          end
+    @Attribute lastToken  : String                           end
+    @Attribute frame      : Integer = (0-1)                  end
+    @Attribute fail       : Integer = (0-1)                  end
+    @Attribute TOCS       : Integer                          end
+    @Attribute TOFS       : Integer                          end
+    @Attribute RESULT     : Integer                          end
+    @Attribute token      : String                           end
+    @Attribute type       : Integer                          end
+    @Attribute tokenizer  : Tokenizer                        end
+    @Attribute imports    : Seq(NameSpace)                   end
+    @Attribute consumeToken : Boolean                        end
+      
+    @Operation atClassifier()
+      // The top of the stack should be a sequence of names that leads
+      // to a classifier with respect to the currently imported name spaces.
+      let names = RESULT
+      in if names.isKindOf(SeqOfElement)
+         then 
+           let rootName = names->at(0);
+               elementNames = names->tail
+           in let nameSpaces = imports->select(nameSpace | nameSpace.hasElement(rootName))
+              in if nameSpaces->isEmpty
+                 then self.error("Cannot find " + rootName + " perhaps you need to import it.")
+                 else elementNames->iterate(name nameSpace = nameSpaces->head.getElement(rootName) |
+                   let value = nameSpace.getElement(name)
+                   in if value = null
+                      then self.error("At: " + nameSpace.toString() + "::" + name + " does not exist.")
+                      else value
+                      end
+                   end)
+                 end
+               end
+            end
+         else self.error("At: expecting a sequence of names, got " + names.toString())
+         end
+       end
+     end
+      
+    @Operation atNameSpace()
+      let names = RESULT
+      in if names.isKindOf(SeqOfElement)
+         then 
+           let rootName = names->at(0);
+               elementNames = names->tail
+           in elementNames->iterate(name nameSpace = Kernel_getVar(rootName) | 
+                if nameSpace.hasElement(name)
+                then nameSpace.getElement(name)
+                else self.error("At: " + nameSpace.toString() + "::" + name + " does not exist.")
+                end)
+           end
+         else self.error("At: expecting a sequence of names, got " + names.toString())
+         end
+      end
+    end
+    
+    @Operation atPath()
+      if type = NAME
+      then 
+        let path = Seq{token.toString()};
+            isPath = true
+        in @While isPath do
+             let charPos = tokenizer.charPos()
+             in self.nextToken();
+                if token.stringEqual("::")
+                then
+                  self.nextToken();
+                  if type = NAME
+                  then path := path + Seq{token.toString()}
+                  else self.error(":: must be followed by name: " + path)
+                  end
+                else 
+                  tokenizer.setCharPos(charPos);
+                  self.nextToken();
+                  isPath := false
+                end
+             end
+           end;
+           self.RESULT := path
+        end
+      else self.error("@ must be followed by a path.")
+      end
+    end
+    
+    @Operation call(grammar,indent,name,argMap,isTailCall)
+      if callStack.ref(frame + GRAMMAR).debug
+      then self.debug("Try " + name)
+      end;
+      let clause = grammar.clauseNamed(name)
+      in if clause = null
+         then self.error(formats("No clause named ~S in ~{,~;~S~}",Seq{name,grammar.clauses.name->asSeq}))
+         else
+          let blocks = clause.predict(token,type) then
+              target = callStack.ref(frame + TARGET)
+          in if blocks->isEmpty
+             then self.failCall(clause) 
+             elseif blocks->size = 1
+             then 
+               let code = blocks->head.instrs();
+                   locals = blocks->head.locals();
+                   frameMap = blocks->head.argMap();
+                   prev = frame
+               in if isTailCall and argMap->isEmpty
+                  then 
+                    // Tail call...
+                    self.TOCS := frame;
+                    self.frame := callStack.ref(frame + PREV_FRAME)
+                  end;
+                  self.frame := self.pushCall(frame,grammar,code,indent,target,fail,locals);
+                  @Count i from 0 to argMap->size do
+                    callStack.put(frame + LOC0 + frameMap->at(i),callStack.ref(prev + LOC0 + argMap->at(i)))
+                  end
+               end
+             else 
+               let prev = callStack.ref(frame + PREV_FRAME);
+                   cut = callStack.ref(frame + CUT);
+                   locals = callStack.ref(frame + LOCALS)
+               in if isTailCall and argMap->isEmpty
+                  then 
+                    // Tail call...
+                    self.TOCS := frame;
+                    self.frame := prev
+                  end;
+                  let frameMap = blocks->head.argMap();
+                      prev = frame
+                  in  self.frame := self.pushCall(frame,grammar,blocks->head.instrs(),indent+2,target,fail,blocks->head.locals());
+                      @Count i from 0 to argMap->size do
+                        let arg = callStack.ref(prev + LOC0 + argMap->at(i))
+                        in callStack.put(frame + LOC0 + frameMap->at(i),arg)
+                        end
+                      end;
+                      self.pushFail(prev,fail,tokenizer.charPos(),grammar,blocks->tail,indent,target,fail,token.toString(),type,name,argMap)
+                  end
+               end
+             end
+          end
+         end
+      end
+    end
+    
+    @Operation code()
+      callStack.ref(frame + CODE)
+    end 
+    
+    @Operation cut()
+      self.fail := callStack.ref(frame + CUT);
+      if fail >= 0
+      then self.TOFS := fail + FAIL_ARG0 + failStack.ref(fail + FAIL_ARGS)
+      end
+    end
+    
+    @Operation debug(message)
+      if callStack.ref(frame + GRAMMAR).debug
+      then format(stdout,"~V[~S,~S,~S,~S]~S~%",Seq{callStack.ref(frame + INDENT),frame,TOCS,fail,TOFS,message})
+      end
+    end
+    
+    @Operation dupFrame()
+      let locals = callStack.ref(frame + LOCALS)
+      in callStack.put(TOCS + PREV_FRAME,callStack.ref(frame + PREV_FRAME));
+         callStack.put(TOCS + GRAMMAR,callStack.ref(frame + GRAMMAR));
+         callStack.put(TOCS + CODE,callStack.ref(frame + CODE));
+         callStack.put(TOCS + INDENT,callStack.ref(frame + INDENT));
+         callStack.put(TOCS + TARGET,callStack.ref(frame + TARGET));
+         callStack.put(TOCS + CUT,callStack.ref(frame + CUT));
+         callStack.put(TOCS + LOCALS,locals);
+         @Count x from 0 to locals do
+           callStack.put(TOCS + LOC0 + x,callStack.ref(frame + LOC0 + x))
+         end;
+         self.frame := TOCS;
+         self.TOCS := TOCS + LOC0 + locals
+      end
+    end
+    
+    @Operation fail(expected)
+      if tokenizer.charPos() >= maxCharPos
+      then self.expected.add(expected)
+      end;
+      self.unwindFail();
+      if fail >= 0
+      then 
+        self.popFail()
+      else throw TokenExpected(tokenizer.buffer().toString(),maxCharPos,lastToken,self.expected.asSeq()->asSet)
+      end
+    end
+    
+    @Operation failCall(clause)
+      if callStack.ref(frame + GRAMMAR).debug
+      then self.debug(formats("Fail ~S not in ~{,~;~S~}",Seq{token,clause.expected()->asSeq}))
+      end;
+      self.unwindFail();
+      if tokenizer.charPos() >= maxCharPos 
+      then 
+        @For term in clause.expected() do
+          expected.add(term)
+        end
+      end;
+      if fail >= 0
+      then self.popFail()
+      elseif type = EOI
+      then throw TokenExpected(tokenizer.buffer().toString(),tokenizer.charPos(),"EOF",clause.expected())
+      else
+        throw TokenExpected(tokenizer.buffer().toString(),maxCharPos,lastToken,expected.asSeq()->asSet)
+      end
+    end                    
+    
+    @Operation nextToken()
+      tokenizer.nextToken();
+      self.token := tokenizer.token();
+      self.type := tokenizer.type();
+      if tokenizer.charPos() > maxCharPos
+      then 
+        self.maxCharPos := tokenizer.charPos();
+        self.lastToken := token.toString();
+        expected.setSize(0)
+      end
+    end
+   
+    @Operation parse(target,grammar,code,tokenizer,imports)
+      self.reset();
+      self.tokenizer := tokenizer;
+      self.imports := imports;
+      self.frame := self.pushCall(0-1,grammar,code,0,target,0-1,0);
+      self.nextToken();
+        
+      // Dispatch...
+        
+      @While frame >= 0 and not parseError do
+        
+        //self.printFrame(frame);
+        //if fail >= 0 then self.printFail(fail)
+        //end;
+          
+        //format(stdout,"frame = ~S fail = ~S~%",Seq{frame,fail});
+          
+        if callStack.ref(frame + CODE)->isEmpty
+        then self.popFrame()
+        else 
+          let instr = self.popInstrs()
+          in
+          @CaseObj instr of
+            At[ ] do
+              self.atPath();
+              let classifier = self.atClassifier()
+              in self.startAt(classifier)
+              end
+            end
+            Call[name,argMap] do
+              let grammar = callStack.ref(frame + GRAMMAR);
+                  indent = callStack.ref(frame + INDENT)
+              in self.call(grammar,indent,name,argMap,self.code()->isEmpty)
+              end
+            end
+            Int[ ] do
+              if callStack.ref(frame + GRAMMAR).debug
+              then self.debug("Try Int")
+              end;
+              if type <> INT
+              then
+                // Fail... 
+                self.debug("Fail Int");
+                self.fail("Int")
+              else
+                // Push the integer...
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Succeed Int " + token)
+                end;
+                self.RESULT := token.toString().asInt();
+                self.nextToken()
+              end
+            end
+            Float[ ] do
+              if callStack.ref(frame + GRAMMAR).debug
+              then self.debug("Try Float")
+              end;
+              if type <> FLOAT
+              then
+                // Fail... 
+                self.debug("Fail Float");
+                self.fail("Float")
+              else
+                // Push the float...
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Succeed Float " + token)
+                end;
+                self.RESULT := token.toString().asFloat();
+                self.nextToken()
+              end
+            end
+            Name[ ] do
+              if callStack.ref(frame + GRAMMAR).debug
+              then self.debug("Try Name")
+              end;
+              if type <> NAME orelse callStack.ref(frame + GRAMMAR).terminals()->includes(token.toString())
+              then
+                // Fail... 
+                self.debug("Fail Name: " + token + "(" + type + ")");
+                self.fail("Name")
+              else
+                // Push the name...
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Succeed Name " + token)
+                end;
+                self.RESULT := token.toString();
+                self.nextToken()
+              end
+            end
+            Str[ ] do
+              self.debug("Try Str");
+              if type <> STRING
+              then
+                // Fail... 
+                self.debug("Fail Str");
+                self.fail("Str")
+              else
+                // Push the integer...
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Succeed Str " + token)
+                end;
+                self.RESULT := token.toString();
+                self.nextToken()
+              end
+            end
+            BNF::EOF[ ] do
+              self.debug("Try EOF");
+              if type <> EOI
+              then
+                // Fail... 
+                self.debug("Fail EOF " + token + "(" + type + ")");
+                self.fail("EOF")
+              else self.debug("Succeed EOF ")
+              end
+            end 
+            CompiledAction[op] do
+              self.RESULT := op(callStack,frame);
+              self.debug("Action: " + RESULT)
+            end 
+            CompiledPredicate[op] do
+              if op(callStack,frame)
+              then self.debug("Predicate OK")
+              else self.fail("Predicate")
+              end
+            end
+            SetLoc[index] do
+              callStack.put(frame + LOC0 + index,RESULT)
+            end
+            Cut[ ] do
+              self.cut()
+            end
+            Nil[ ] do
+              self.RESULT := Seq{}
+            end
+            Cons[headIndex,tailIndex] do
+              self.RESULT := Seq{callStack.ref(frame + LOC0 + headIndex) | callStack.ref(frame + LOC0 + tailIndex)}
+            end
+            Tok[ ] do
+              self.RESULT := Token(type,token.toString(),0,0,0,"")
+            end
+            Terminal[terminal] do
+              if callStack.ref(frame + GRAMMAR).debug
+              then self.debug("Try Terminal " + terminal)
+              end;
+              if token.toString() <> terminal
+              then
+                // Fail... 
+                self.debug("Fail Terminal " + terminal + " <> " + token + "(" + type + ")");
+                self.fail(terminal)
+              else 
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Consume " + token)
+                end;
+                if consumeToken then self.nextToken() end
+              end
+            end
+            ImportAt[ ] do 
+              self.imports := Seq{self.atNameSpace() | self.imports}
+            end
+            PState[ ] do
+              self.RESULT := self
+            end
+            Char[ ] do
+              self.readChar()
+            end
+            Chars[ ] do
+              self.readChars()
+            end
+            Line[ ] do
+              self.readLine()
+            end
+            Term[ ] do
+              if callStack.ref(frame + GRAMMAR).debug
+              then self.debug("Try Term ")
+              end;
+              if type <> TERM
+              then
+                // Fail... 
+                self.debug("Fail Term " + token + "(" + type + ")");
+                self.fail("Term")
+              else 
+                if callStack.ref(frame + GRAMMAR).debug
+                then self.debug("Consume " + token)
+                end;
+                self.RESULT := token.toString();
+                self.nextToken()
+              end
+            end
+            TypeCheck[type] do
+              self.typeCheck(type)
+            end
+            else self.error("Unknown instruction " + instr.toString())
+          end
+        end
+        end
+      end;
+      RESULT
+    end
+    
+    @Operation popFail()
+      let blocks = failStack.ref(fail + FAIL_CODE);
+          prev = failStack.ref(fail + FAIL_PREV);
+          grammar = failStack.ref(fail + FAIL_GRAMMAR);
+          indent = failStack.ref(fail + FAIL_INDENT);
+          target = failStack.ref(fail + FAIL_TARGET);
+          cut = failStack.ref(fail + FAIL_CUT);
+          name = failStack.ref(fail + FAIL_NAME);
+          charPos = failStack.ref(fail + FAIL_CHARPOS)
+      in failStack.put(fail + FAIL_CODE,blocks->tail);
+         self.token := failStack.ref(fail + FAIL_TOKEN);
+         self.type := failStack.ref(fail + FAIL_TYPE);
+         if callStack.ref(frame + GRAMMAR).debug
+         then format(stdout,"~VRetry ~S~%",Seq{indent,name})
+         end;
+         self.TOCS := prev + callStack.ref(prev + LOCALS) + LOC0;
+         self.frame := self.pushCall(prev,grammar,blocks->head.instrs(),indent,target,cut,blocks->head.locals());
+         @Count i from 0 to failStack.ref(fail + FAIL_ARGS) do
+           let arg = failStack.ref(fail + FAIL_ARG0 + i);
+               local = blocks->head.argMap()->at(i)
+           in callStack.put(frame + LOC0 + local,arg)
+           end
+         end;
+         self.unwindFail();
+         tokenizer.setCharPos(charPos)
+      end
+    end
+    
+    @Operation popInstrs()
+      let instrs = callStack.ref(frame + CODE)
+      in callStack.put(frame + CODE,instrs->tail);
+         instrs->head
+      end
+    end
+      
+    @Operation popFrame()
+      self.frame := callStack.ref(frame + PREV_FRAME);
+      if frame >= 0 andthen callStack.ref(frame + GRAMMAR).debug
+      then format(stdout,"~VReturn ~S~%",Seq{callStack.ref(frame + INDENT),RESULT})
+      end;
+      // Discard all unwanted call frames...
+      if fail >= 0 andthen failStack.ref(fail + FAIL_PREV) >= frame
+      then 
+        let frame = failStack.ref(fail + FAIL_PREV) then
+            locals = callStack.ref(frame + LOCALS)
+        in self.TOCS := frame + LOC0 + locals
+        end
+      else self.TOCS := frame + LOC0 + callStack.ref(frame + LOCALS)
+      end;
+      // A frame may be returned to multiple times
+      // due to choice points. A return must copy a 
+      // non-empty frame...
+      if frame >= 0 andthen (not callStack.ref(frame + CODE)->isEmpty) andthen fail >= 0 andthen failStack.ref(fail + FAIL_PREV) >= frame
+      then self.dupFrame()
+      end
+    end       
+    
+    @Operation printFrame(frame)
+      format(stdout,"frame = ~S, TOS = ~S~%",Seq{frame,TOCS});
+      format(stdout,"PREV = ~S~%",Seq{callStack.ref(frame + 0)});
+      format(stdout,"GRAMMAR = ~S~%",Seq{callStack.ref(frame + 1)});
+      format(stdout,"CODE = ~S~%",Seq{callStack.ref(frame + 2)});
+      format(stdout,"INDENT = ~S~%",Seq{callStack.ref(frame + 3)});
+      format(stdout,"TARGET = ~S~%",Seq{callStack.ref(frame + 4)});
+      format(stdout,"CUT = ~S~%",Seq{callStack.ref(frame + 5)});
+      format(stdout,"LOCALS = ~S~%",Seq{callStack.ref(frame + 6)});
+      @Count i from 0 to callStack.ref(frame + 6) do
+        format(stdout,"Loc(~S) = ~S~%",Seq{i,callStack.ref(frame + 7 + i)})
+      end;
+      format(stdout,"~%~%")
+    end
+    
+    @Operation printFail(fail)
+      format(stdout,"fail = ~S~%",Seq{fail});
+      format(stdout,"PREV = ~S~%",Seq{failStack.ref(fail + 0)});
+      format(stdout,"FAIL = ~S~%",Seq{failStack.ref(fail + 1)});
+      format(stdout,"CHARPOS = ~S~%",Seq{failStack.ref(fail + 2)});
+      format(stdout,"GRAMMAR = ~S~%",Seq{failStack.ref(fail + 3)});
+      format(stdout,"CODE = ~S~%",Seq{failStack.ref(fail + 4)});
+      format(stdout,"INDENT = ~S~%",Seq{failStack.ref(fail + 5)});
+      format(stdout,"TARGET = ~S~%",Seq{failStack.ref(fail + 6)});
+      format(stdout,"CUT = ~S~%",Seq{failStack.ref(fail + 7)});
+      format(stdout,"NAME = ~S~%",Seq{failStack.ref(fail + 8)});
+      format(stdout,"TOKEN = ~S~%",Seq{failStack.ref(fail + 9)});
+      format(stdout,"TYPE = ~S~%",Seq{failStack.ref(fail + 10)});
+      format(stdout,"ARGS = ~S~%",Seq{failStack.ref(fail + 11)});
+      @Count i from 0 to failStack.ref(fail + 11) do
+        format(stdout,"ARG(~S) = ~S~%",Seq{i,failStack.ref(fail + FAIL_ARG0 + i)})
+      end;
+      format(stdout,"~%~%")
+    end
+    
+    @Operation pushCall(prev,grammar,code,indent,target,cut,locals)
+      callStack.put(TOCS + PREV_FRAME,prev);
+      callStack.put(TOCS + GRAMMAR,grammar);
+      callStack.put(TOCS + CODE,code);
+      callStack.put(TOCS + INDENT,indent);
+      callStack.put(TOCS + TARGET,target);
+      callStack.put(TOCS + CUT,cut);
+      callStack.put(TOCS + LOCALS,locals);
+      self.TOCS := TOCS + LOC0 + locals;
+      TOCS - (LOC0 + locals) 
+    end
+    
+    @Operation pushFail(prev,fail,charPos,grammar,code,indent,target,cut,token,type,name,argMap)
+      failStack.put(TOFS + FAIL_PREV,prev);
+      failStack.put(TOFS + FAIL_FAIL,fail);
+      failStack.put(TOFS + FAIL_CHARPOS,charPos);
+      failStack.put(TOFS + FAIL_GRAMMAR,grammar);
+      failStack.put(TOFS + FAIL_CODE,code);
+      failStack.put(TOFS + FAIL_INDENT,indent);
+      failStack.put(TOFS + FAIL_CUT,cut);
+      failStack.put(TOFS + FAIL_TOKEN,token);
+      failStack.put(TOFS + FAIL_TYPE,type);
+      failStack.put(TOFS + FAIL_NAME,name);
+      failStack.put(TOFS + FAIL_ARGS,argMap->size);
+      @Count i from 0 to argMap->size do
+        let arg = callStack.ref(prev + LOC0 + argMap->at(i))
+        in failStack.put(TOFS + FAIL_ARG0 + i,arg)
+        end
+      end;
+      self.fail := TOFS;
+      self.TOFS := TOFS + FAIL_ARG0 + argMap->size
+    end
+    
+    @Operation readChar()
+      tokenizer.setCharPos(tokenizer.lastCharPos());
+      let char = tokenizer.readChar()
+      in if char = 256
+         then self.fail("Char")
+         else 
+           self.RESULT := char;
+           self.nextToken()
+         end
+      end
+    end
+    
+    @Operation readChars()
+      tokenizer.setCharPos(tokenizer.lastCharPos());
+      let char = tokenizer.readChar()
+      in if char = 256
+         then self.fail("Chars")
+         else 
+           let chars = Seq{char};
+               reading = true
+           in @While reading do
+                if not tokenizer.peek("end")
+                then
+                  char := tokenizer.readChar();
+                  if char = 256
+                  then reading := false
+                  else chars := Seq{char | chars}
+                  end
+                else reading := false
+                end
+              end;
+              self.RESULT := chars->reverse;
+              self.nextToken()
+           end
+         end
+      end
+    end
+    
+    @Operation readLine()
+      tokenizer.setCharPos(tokenizer.lastCharPos());
+      let chars = Buffer(80,true);
+          char = tokenizer.readChar()
+      in @While char <> 256 and char <> "\n"->at(0) do
+           chars.add(char)
+         end;
+         self.RESULT := chars.toString()
+      end
+    end
+    
+    @Operation reset()
+      buffer.setSize(0);
+      self.parseError := false;
+      expected.setSize(0);
+      self.maxCharPos := 0;
+      self.frame := 0-1;
+      self.fail := 0-1;
+      self.TOFS := 0;
+      self.TOCS := 0;
+      self.imports := Seq{};
+      self.consumeToken := true
+    end
+      
+    @Operation startAt(classifier)
+      let grammar = classifier.grammar
+      in if grammar = null
+         then self.error("At: " + classifier.path() + " does not define a grammar.")
+         else 
+           let name = grammar.startingSymbol.toString()
+           in self.call(grammar,0,name,Seq{},false)
+           end
+         end
+      end
+    end
+      
+    @Operation typeCheck(path:Seq(String))
+      let type =
+        @Find(nameSpace,imports)
+          when nameSpace.hasElement(path->head)
+          do path->tail->iterate(name nameSpace = nameSpace.getElement(path->head) |
+               if nameSpace.hasElement(name)
+               then nameSpace.getElement(name)
+               else throw NameSpaceRef(nameSpace,name)
+               end)
+          else throw PathNotFound(path,imports)
+        end
+      in if not RESULT.isKindOf(type)
+         then 
+           self.debug(formats("Fail TypeCheck ~S : ~{::~;~S~}",Seq{RESULT,path}));
+           self.fail("Type Check")
+         else self.debug("Type check " + RESULT + ":" + type.path() + " succeeds.")
+         end
+      end
+    end   
+    
+    @Operation unwindFail()
+      @While fail >= 0 andthen failStack.ref(fail + FAIL_CODE)->isEmpty do
+        self.fail := failStack.ref(fail + FAIL_FAIL)
+      end;
+      if fail >= 0
+      then self.TOFS := fail + failStack.ref(fail + FAIL_ARGS) + FAIL_ARG0
+      else self.TOFS := 0
+      end
+    end
+    
+  end
+        

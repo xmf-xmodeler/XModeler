@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+
+// *** Register node paths against menu action handlers ***
+
+let menuActionTable = xmf.toolManager().menuActionTable()
+in
+  menuActionTable.put(MDC::Browser::menuEditor,"Items:Editor");
+  menuActionTable.put(MDC::Browser::menuBrowser,"Items:Browser");
+  menuActionTable.put(MDC::Browser::menuDelete,"Items:Delete");
+  menuActionTable.put(MDC::Browser::checkOp,"Items:Check");
+  menuActionTable.put(MDC::Browser::menuClipboardCopy,"Items:ClipboardCopy");
+  menuActionTable.put(MDC::Browser::menuClipboardCut,"Items:ClipboardCut");
+  menuActionTable.put(MDC::Browser::menuClipboardPaste,"Items:ClipboardPaste");
+  menuActionTable.put(MDC::Browser::copyDiagramToClipboardOp,"Items:CopyDiagramToClipboard");
+  menuActionTable.put(MDC::Browser::hideDialogOp,"Items:Hide");
+  menuActionTable.put(MDC::Browser::showDialogOp,"Items:Show");
+  menuActionTable.put(MDC::Browser::renderModeOp,"Items:RenderMode");
+  menuActionTable.put(MDC::Browser::zoomInOp,"Items:ZoomIn");
+  menuActionTable.put(MDC::Browser::zoomOutOp,"Items:ZoomOut");
+  menuActionTable.put(MDC::Browser::zoomTo,"Items:ZoomTo");
+  menuActionTable.put(MDC::Browser::zoomToFitOp,"Items:ZoomToFit");
+  menuActionTable.put(MDC::Browser::newTheme,"Items:NewTheme");
+  menuActionTable.put(MDC::Browser::applyTheme,"Items:ApplyTheme");
+  menuActionTable.put(MDC::Browser::deleteTheme,"Items:DeleteTheme");
+  menuActionTable.put(MDC::Browser::removeTheme,"Items:RemoveTheme");
+  menuActionTable.put(MDC::Browser::editTheme,"Items:EditTheme");
+  menuActionTable.put(MDC::Browser::saveTheme,"Items:SaveTheme");
+  menuActionTable.put(MDC::Browser::loadTheme,"Items:LoadTheme")
+end;
+
+
+// *** Register menu multi handlers ***
+/*
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.multiHandler"
+in
+  registry.addContribution(id,
+    Contribution(MDC::Browser::menuEditor,Seq{
+      @Operation(collection)
+        collection.edit()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Contained::delete_client_redirect,Seq{
+      @Operation(collection)
+        let stringOp = @Operation(e) e.labelString() end then
+            elements = xmf.selects("Delete Elements","Confirm which elements you want to delete",collection,collection,stringOp)
+        in if elements <> 0-1
+           then
+             @For e in elements do
+               e.delete_client()
+             end
+           end
+        end
+      end
+  }));
+  self
+end;
+*/

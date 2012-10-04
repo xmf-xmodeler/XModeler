@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class LocalRef extends Instr
+  
+    @Doc
+      This machine instruction references a local variable location
+      in the current stack frame. The index of the local variab;e
+      location is in the machine instruction word. The instruction
+      leaves the local value on the top of the stack.
+    end
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+    @Operation toString():String
+      "<LocalRef " + name + "," + offset + ">"
+    end
+    
+  end
+  

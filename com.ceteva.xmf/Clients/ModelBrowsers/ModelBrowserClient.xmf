@@ -1,0 +1,87 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+import IO;
+import ModelBrowsers;
+
+context ModelBrowsers
+
+  @Class ModelBrowserClient extends Client
+  
+    @Attribute modelBrowsers : Seq(ModelBrowser) = Seq{} end
+    @Attribute browsersWithFocus : Set(ModelBrowser) = Set{} (+,-) end
+  
+    @Constructor(name)
+      self.setCommandInterpreter(ModelBrowserCommandInterpreter());
+      self.setEventHandler(ModelBrowserEventHandler())
+    end
+    
+    @Operation add(modelBrowser)
+      self.modelBrowsers := modelBrowsers->prepend(modelBrowser);
+      modelBrowser.owner := self
+    end
+
+    @Operation nodeExpansionSuppressed():Boolean
+      browsersWithFocus->isEmpty
+    end
+
+    @Operation newModelBrowser(modelBrowser)
+      self.add(modelBrowser);
+      modelBrowser.new()
+    end
+
+    @Operation preSave()
+      @For mapping in modelBrowsers do
+        mapping.setOwner(null)
+      end
+    end
+    
+    @Operation postSave()
+      @For mapping in modelBrowsers do
+        mapping.setOwner(self)
+      end
+    end
+    
+    @Operation remove(modelBrowser)
+      self.modelBrowsers := self.modelBrowsers.excluding(modelBrowser);
+      modelBrowser.dispose()
+    end
+    
+    @Operation save(modelBrowser,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName))
+      in try
+           // The model browser must be de-linked from its
+           // parent in order to define the save boundary.
+           modelBrowser.setOwner(null);
+           out.write(modelBrowser,Seq{XCore,Root,Clients,ModelBrowsers});
+           out.close();
+           modelBrowser.setOwner(self);
+           format(stdout,"Written model browser to ~S~%",Seq{fileName})
+         catch(exception)
+           format(stdout,"~S~%",Seq{exception});
+           modelBrowser.setOwner(self)
+         end
+      end
+    end
+
+    @Operation suppressNodeExpansion()
+      self.browsersWithFocus := Set{}
+    end
+    
+    @Operation synchronise()
+      
+      // Produces an XML document of the browser client's state
+      // this is communicated and the remote client is expected
+      // it to use as a basis for synchronising its state
+
+      @Command(self) startDocument() end;
+      @For browser in modelBrowsers
+      do
+        browser.synchronise()
+      end;
+      @Command(self) endDocument() end
+    
+    end
+
+  end

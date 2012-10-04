@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class ScopeEdge extends Edge
+  
+    @Constructor(source,target)
+      self.sourceHead := Edge::noArrow;
+      self.targetHead := Edge::arrow; 
+      self.lineStyle := Line::dottedLine
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Edge::delete));
+        globalMenu
+      end
+    end
+
+  end

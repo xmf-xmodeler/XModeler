@@ -1,0 +1,72 @@
+parserImport XOCL;
+
+import XML::Parser;
+
+context Package
+  @Operation deployXMLGrammar()
+    // Ask for the directory, package and grammar names...
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then 
+         let pname = xmf.getString("Package Name","Name of Java package","")
+         in if pname <> null
+            then
+              let gname = xmf.getString("Grammar Name","Name of Grammar",name)
+              in if gname <> null
+                 then
+                   let grammar = self.toXMLGrammar().compile()
+                   in grammar.toJavaFile(pname,dir,gname);
+                      xmf.message("Package " + name + " deployed as XML grammar to " + dir);
+                      true
+                   end
+                 else false
+                 end
+              end
+            else false
+            end
+          end
+       else false
+       end
+     end
+   end
+
+context Package
+  @Operation toXMLGrammar()
+    Grammar(name,Seq{},classes->collect(class | 
+      class.toXMLClause()))
+  end
+  
+context Class
+  @Operation toXMLClause()
+    let attributes = self.allAttributes()->asSeq->sortNamedElements then
+        simpleAttributes = attributes->select(a | a.underlyingType().isKindOf(DataType)) then
+        A = simpleAttributes->collect(a | BindAtt(a.name()))->asSeq;
+        children = Case(Seq{},self.matchXMLComplexAttributes(attributes)) then
+        element = Element(name.toString(),A->including(BindAtt("id")),children) then
+        commands = Seq{Event("new" + name,attributes->collect(a | CommandVar(a.name().toString())),true)} then
+        main = And(element,Update("id",Commands(commands)));
+        ref = Element("Ref",Seq{BindAtt("id")},Case(Seq{},Empty()))
+    in Clause(name,Seq{main,ref})
+    end
+  end
+  
+context Class
+  @Operation matchXMLComplexAttributes(attributes:Seq(Attribute))
+    let complexAttributes = attributes->select(a | 
+          not a.underlyingType().isKindOf(DataType))->asSeq 
+    in complexAttributes->iterate(a p = Empty() |
+         let bind = Bind(Seq{a.name()},
+                      @Case a.type of
+                        Seq(T) do
+                          Star(Call(a.underlyingType().name().toString()))
+                        end
+                        Set(T) do
+                          Star(Call(a.underlyingType().name().toString()))
+                        end
+                        else Call(a.underlyingType().name().toString())
+                      end)
+          in And(Element(a.name(),Seq{},Case(Seq{},bind)),p)
+          end)
+    end
+  end
+        

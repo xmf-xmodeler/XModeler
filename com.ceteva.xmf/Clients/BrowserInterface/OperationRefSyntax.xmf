@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class OperationRefSyntax isabstract extends Syntax
+
+    @Attribute opRef : Seq(String) end
+    
+    @Constructor(opRef) ! end
+    
+    @Grammar
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+    end
+    
+    @AbstractOp register(class:Class)
+    end
+
+  end

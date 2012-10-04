@@ -1,0 +1,89 @@
+parserImport XOCL;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Display isabstract 
+  
+    @Operation attributes():Set(Attribute)
+     
+      // Calculates attributes contained in the receiver...
+      Set{}
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,path,manifest)
+    
+      // Write code for each of the attributes in the display
+      // The handlers deal with cases where the data changes.
+      // The root is the tool class, the class is the current
+      // owner of any attributes, the path is a string defining
+      // the name of any event handler.
+      
+      null
+      
+    end
+    
+    @Operation writeMenu(out,path,indent)
+      
+      // Write menu items for the enclosing node.
+      
+      null
+      
+    end
+    
+    @Operation writeObservationHandlers(dir,toolDescriptorType,class,att,path,map,manifest)
+    
+      // Write out handlers that update the display if the 
+      // attribute changes in an instance.
+      
+      null
+      
+    end
+  
+    @Operation writeRegister(out,path)
+    
+      // Write code that registers the display component against
+      // the instance represented by the containing node. The path
+      // is a sequence of names indexing the display element relative
+      // to the containing node.
+      
+      null
+    end
+    
+    @Operation writeRegisterCode(out,indent,path,node,object)
+    
+      // Write out code that registers any display elements owned by
+      // the node against the object...
+      
+      null
+      
+    end
+    
+    @Operation writeDeregisterCode(out,indent,path,node)
+    
+      // Write out code that deregisters any display elements owned
+      // by the node...
+      
+      null
+      
+    end
+    
+    @Operation writeCreateDiagram(out,path)
+    
+      // Do any registration necessary during show diagram...
+      
+      null
+    end
+
+    @AbstractOp writeType(out,indent)
+    end
+
+  end

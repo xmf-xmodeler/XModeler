@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler Transition_guard_Changed()
+    let transition = find(event.value());
+        guard = event.value().exp() 
+    in transition.setPred(guard)
+    end
+  end

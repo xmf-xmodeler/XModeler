@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import XSync;
+import Env;
+import OCL;
+import Syntax;
+
+context Syntax
+
+  @Class SlotRef extends Value
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+    @Operation code(varEnv:Env):Performable
+      [| SlotLocation(<StrExp(name)>) |]
+    end
+    
+    @Operation relocate(direction:String)
+      @Case direction of
+        "LEFT" do Left(self) end
+        "RIGHT" do Right(self) end
+      end
+    end
+    
+    @Operation source():String
+      name
+    end
+    
+    @Operation vars():Set(String)
+      Set{}
+    end
+    
+  end

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Compiler;
+import Instrs;
+
+context Compiler
+   
+    @Class Global extends Var
+    
+      // A global is a location associated with an operation. It is created when
+      // the operation is created and corresponds to a local variable in an enclosing
+      // scope.
+      
+      @Attribute frame : Integer end
+      @Attribute offset : Integer end
+      
+      @Constructor(name,frame,offset) ! end
+      
+      @Operation ref()
+        Seq{GlobalRef(name,frame,offset)}
+      end
+    end

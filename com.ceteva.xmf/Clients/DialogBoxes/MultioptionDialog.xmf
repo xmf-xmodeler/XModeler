@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class MultioptionDialog extends ContainedClientElement
+  
+    @Bind error	 	= "error" end
+    @Bind info	 	= "info" end
+    @Bind question	= "question" end
+    @Bind warning	= "warning" end
+  
+    @Attribute message  : String end
+    @Attribute type    : String end
+    @Attribute options : Seq(String) end
+    
+    @Constructor(message,type,options) 
+    end
+    
+    @Operation new()   
+      self.commandInterpreter().newMultioptionDialog(self)      
+    end
+  
+  end

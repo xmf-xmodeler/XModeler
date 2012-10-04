@@ -1,0 +1,16 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Objectp in Eval(aObjectp,arg,seen)
+  if seen
+  then aObjectp
+  else
+    let slots = aObjectp.slots->collect(x | self.dispatch(x,arg));
+        names = aObjectp.names->collect(x | self.dispatch(x,arg));
+        class = self.dispatch(aObjectp.class,arg)
+    in aObjectp
+    end
+  end
+end;

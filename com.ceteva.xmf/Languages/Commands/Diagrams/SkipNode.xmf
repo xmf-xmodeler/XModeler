@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Clients;
+import Diagrams;
+import Languages;
+import Commands;
+import Diagrams;
+
+context Diagrams
+
+  @Class SkipNode extends Statement
+  
+    @Constructor(x,y) !
+       self.width := 50;
+       self.height := 16 + 10
+    end
+    
+    @Constructor() end
+    
+    @Operation addDisplays()
+      let text = Text("skip",5,5,true)
+      in self.add(text)
+      end
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation resize(width,height)
+      @For d in displays do
+        d.resize(width,height)
+      end;
+      super(width,height)
+    end
+    
+  end
+  
+  

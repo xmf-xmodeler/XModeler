@@ -1,0 +1,37 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class NameSpaceXMLFormatter extends ObjectXMLFormatter
+  
+    @Doc 
+      A name space formatter has a collection of name spaces that
+      will be written out in full using the basic object representation.
+      Name spaces that are not elements of this sequence are
+      written out as references. This provides a convenient way of
+      deliniating XML output between user data and system data.
+    end
+    
+    @Attribute nameSpaces : Seq(NameSpace) (?,+,-,!) end
+    
+    @Constructor(nameSpaces) end
+    
+    @Operation write(object:Object,out:ElementOutputChannel)
+      if object.isKindOf(NameSpace)
+      then self.writeNameSpace(object,out)
+      else super(object,out)
+      end
+    end
+    
+    @Operation writeNameSpace(nameSpace,out)
+      if nameSpaces->includes(nameSpace)
+      then self.writeObject(nameSpace,out)
+      else 
+        @XML(out)
+          <NameSpace path=nameSpace.path()/>
+        end
+      end
+    end
+  end

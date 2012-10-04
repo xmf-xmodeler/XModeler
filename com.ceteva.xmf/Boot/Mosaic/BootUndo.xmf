@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootUndo()
+    try 
+      let undoEngine = Clients::Undo::UndoClient("com.ceteva.undo")
+      in
+        xmf.clientManager().add(undoEngine);
+        @Fork(Undo)
+          undoEngine.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

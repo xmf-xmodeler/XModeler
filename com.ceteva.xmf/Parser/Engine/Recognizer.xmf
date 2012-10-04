@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Recognizer
+  @Operation nullable(grammar):Boolean
+     true
+  end
+  
+context Recognizer
+  @Operation first(grammar):Set(String)
+    Set{}
+  end
+  
+context Recognizer
+  @Operation follow(grammar):Set(String)
+    Set{}
+  end
+      
+context Recognizer
+  @Operation setFollow(grammar,follow)
+    null
+  end

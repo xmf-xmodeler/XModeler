@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler DropPattern in AST(aDropPattern,arg,seen)
+  let pattern = self.dispatch(aDropPattern.pattern,arg)
+  in ASTNode(aDropPattern,Seq{pattern})
+  end
+end;

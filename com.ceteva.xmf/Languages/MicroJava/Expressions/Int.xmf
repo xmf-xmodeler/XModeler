@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class Int extends JExp
+  
+    @Attribute value : Integer (?) end
+    
+    @Constructor(value) ! end
+    
+    @Operation pprint(out)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

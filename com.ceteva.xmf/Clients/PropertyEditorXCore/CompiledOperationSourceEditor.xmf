@@ -1,0 +1,36 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class CompiledOperationSourceEditor extends CodeboxEditor
+  
+    @Operation checkDaemons()
+      super();
+      let contex = textbox.contex
+      in
+        @SlotValueChanged multi once CompiledOperationSourceEditor::daemons_contexNameChanged(contex,"name") end;
+        @SlotValueChanged multi once CompiledOperationSourceEditor::daemons_contexCodeChanged(contex,"*") end
+      end
+    end
+
+    @Operation daemons_contexNameChanged(e,slot,newName,oldName)
+      self.setFormName();
+      self.setName(name)
+    end
+
+    @Operation daemons_contexCodeChanged(e,slot,newValue,oldValue)
+      slot:=slot.toString();
+      if slot="codeBox" or slot="source" then
+        textbox.setText(textbox.contex.source());
+        textbox.resetText()
+      end
+    end
+
+  end

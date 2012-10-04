@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context Debug
+
+  @Class MonitorCalls 
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      MonitorCalls ::= nameSpaces = NameSpaces body = Exp {
+      
+        [| Debug::monitorCalls(<SetExp("Seq",nameSpaces)>,@Operation() <body> end,<body.lift()>) |]
+     
+      }.
+      
+      NameSpaces ::= '(' ( ')' { Seq{} } | e = Exp es = (',' Exp)* ')' { Seq{e | es} }).
+      
+    end
+    
+  end

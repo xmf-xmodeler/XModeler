@@ -1,0 +1,98 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class XMLInput extends XMLData
+  
+    @Attribute name   : String end
+    @Attribute input  : StandardInputChannel end
+  
+    @Constructor(name)
+      self.createInput()
+    end
+    
+    @Constructor(input)
+    end
+    
+    @Operation chars(string)
+      self
+    end
+    
+    @Operation createInput()
+      let
+        input = Kernel_clientInputChannel(name) then
+        dchannel = Kernel_mkDataInputChannel(input)
+      in
+        self.input := StandardInputChannel(dchannel)
+      end
+    end
+    
+    @Operation endDocument()
+      self
+    end
+    
+    @Operation endElement(name)
+      self
+    end
+
+    @Operation start()
+      @While true do
+        self.processEvent(self.readData())
+      end
+    end
+    
+    @Operation processEvent(event)
+      @Case event of
+        1 do self.startDocument() end
+        2 do self.endDocument() end
+        3 do self.parseStartElement() end
+        4 do self.parseEndElement() end
+        5 do self.parseChars() end
+      end
+    end
+    
+    @Operation parseChars()
+      self.chars(self.readData())
+    end
+
+    @Operation parseEndElement()
+      let name = self.readData()
+      in
+        self.endElement(name)
+      end
+    end
+    
+    @Operation parseStartElement()
+      let
+        name = self.readData() then
+        attcount = self.readData();
+        attributes = Seq{}
+      in
+        @Count att from 0 to attcount 
+        do
+          let
+            name = self.readData() then
+            value = self.readData()
+          in
+            attributes := attributes->including(Seq{name,value})
+          end
+        end;
+        self.startElement(name,attributes)
+      end
+    end
+    
+    @Operation readData()
+      input.read()
+    end
+    
+    @Operation startDocument()
+      self
+    end
+    
+    @Operation startElement(name,attributes)
+      self
+    end
+    
+  end

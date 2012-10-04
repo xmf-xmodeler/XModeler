@@ -1,0 +1,70 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class DiagramMappingClient extends Client
+
+    @Attribute diagramClient : DiagramClient end
+    @Attribute mappings : Seq(ElementXDiagram) (?,+,-) end
+
+    @Constructor(name,diagramClient)
+      if diagramClient.hasCommandInterpreter()
+      then 
+        self.setCommandInterpreter(diagramClient.commandInterpreter);
+        self.setEventHandler(diagramClient.eventHandler)
+      end;
+      xmf.diagramManager().addToClients(self);
+      self
+    end
+
+    @Operation postSave()
+      xmf.diagramManager().addToClients(self);
+      //xmf.diagramManager().postSave();
+      @For mapping in mappings do
+        mapping.setOwner(self)
+      end
+    end
+
+    @Operation preSave()
+      xmf.diagramManager().deleteFromClients(self);      
+      //xmf.diagramManager().preSave();
+      @For mapping in mappings do
+        mapping.setOwner(null)
+      end
+    end
+
+    @Operation remove(mapping)
+      self.deleteFromMappings(mapping);
+      mapping.dispose()
+    end
+
+    @Operation removeDiagram(diagram)
+      // diagram.deleteCommand();
+      let maps = mappings->select(m | m.diagram = diagram)
+      in
+        @For map in maps do
+          self.remove(map)
+        end
+      end
+    end
+    
+    @Operation synchronise()
+    
+      // Produces an XML document of the diagram client's state
+      // this is communicated and the remote client is expected
+      // it to use as a basis for synchronising its state
+    
+      
+      @Command(self) startDocument() end;
+      @For mapping in mappings do
+        mapping.diagram().synchronise()
+      end;
+      @Command(self) endDocument() end
+    
+    end
+
+  end

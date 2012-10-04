@@ -1,0 +1,91 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser::Machine;
+import IO;
+
+context Root
+  @Package Tables
+    @Class Table2D
+      // A table has a collection of rows...
+      @Attribute rows : Seq(Row) end
+      // A table can be constructed by supplied the rows...
+      @Constructor(rows) end
+      
+      @Operation writeFile(file:String)
+        // Write a table to a file...
+        @WithOpenFile(fout -> file)
+          self.write(fout)
+        end
+      end
+      
+      @Operation write(outch:OutputChannel)
+        // Write a table to an output channel...
+        format(outch,"table");
+        @For row in rows do
+          format(outch,"~%  ");
+          row.write(outch)
+        end;
+        format(outch,"~%end")
+      end
+      
+      @Operation readFile(file:String)
+        // Read a file and create a table. Can be invoked
+        // via the class Table2D...
+        @WithOpenFile(fin <- file)
+          Table2D::read(fin)
+        end
+      end
+      
+      @Operation read(inch:InputChannel):Table2D
+      
+        // Create a parser machine state, initialise with the
+        // grammar and the input channel. Run the machine to
+        // perform the parse. Returns the synthesized element.
+        
+        let state = State(Table2D.grammar,inch)
+        in state.run("Table2D")
+        end
+      end
+      
+      @Operation toString():String
+        // Construct the string display for a table...
+        let soutch = StringOutputChannel()
+        in self.write(soutch);
+           soutch.getString()
+        end
+      end
+      
+    end
+    
+    @Class Row
+      // A row is a sequence of integers...
+      @Attribute cols : Seq(Integer) end
+      // A row is constructed by supplying the col values...
+      @Constructor(cols) end
+      
+      @Operation write(outch:OutputChannel)
+        // Write out the row element by element...
+        format(outch,"row~{ ~S~} end",Seq{cols})
+      end
+    end
+  end
+  
+context Tables::Table2D
+  @Grammar 
+    // The grammar for a table. Recognizes tables in the form:
+    //
+    // table ROW ROW ... ROW end
+    // where a row is of the form:
+    // row INT INT ... INT end
+    //
+    // Synthesizes the table...
+    
+    Table2D ::= 'table' rows = Row* 'end' { 
+      Tables::Table2D(rows) 
+    }.
+    
+    Row ::= 'row' cols = Int* 'end' { 
+      Tables::Row(cols) 
+    }.
+  end

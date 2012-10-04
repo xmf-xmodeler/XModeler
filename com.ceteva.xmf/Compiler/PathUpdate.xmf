@@ -1,0 +1,21 @@
+import OCL;
+
+context PathUpdate
+  @Operation FV():Set(String)
+    path.FV() + value.FV()
+  end
+  
+context PathUpdate
+  @Operation maxLocals():Integer
+    path.maxLocals() + value.maxLocals()
+  end
+  
+context PathUpdate
+  @Operation compile(env,frame,isLast,saveSource)
+    self.desugar().compile(env,frame,isLast,saveSource)
+  end
+  
+context PathUpdate
+  @Operation lift()
+    Apply(self.typeExp(),Seq{path.lift(),value.lift()})
+  end

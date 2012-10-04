@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class CollExp extends OCL::OCL
+
+    @Doc
+      A collection expression represents sen-ding a message to a
+      collection. The compiler knows about certain collection
+      operations that get compiled to machine instructions. Otherwise
+      a collection expression just sen-ds a message to the collection.
+      Note that when the message has no arguments, the parentheses can
+      be omitted.
+      Constructor: CollExp(coll,collOp,operands)
+        The coll argument is an expression whose value is a collection. the
+        collOp is a string naming the message to se-nd, and the operands is
+        a sequence of expressions.
+    end
+    
+    @Attribute collection : OCL::OCL end
+    @Attribute collOp : String end
+    @Attribute args : Seq(OCL::OCL) end
+    
+    @Constructor(collection,collOp,args) ! end
+    
+    @Operation pprint(out,indent)
+      let ppCollection = collection.pprint(indent);
+          ppArgs = args->collect(arg | arg.pprint(indent))
+      in format(out,"~S->~S~[~;(~{,~;~S~})~]",Seq{ppCollection,collOp,args->isEmpty,ppArgs})
+      end
+    end
+    
+  end

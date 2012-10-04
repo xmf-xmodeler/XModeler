@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class Implies extends Instr
+  
+    @Doc
+      A machine instruction. Expects two elements at the head
+      of the stack. Pops the elements and performs an implies operation.
+      If the operands are boolean then the machine performs the
+      operation directly, pushing the value on the stack. If the machine
+      does not understand the operand types then 'implies/1' is sent
+      to the left hand operand. The result is left at the head of the
+      stack.
+    end
+     
+    @Operation toString():String
+      "<Implies>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

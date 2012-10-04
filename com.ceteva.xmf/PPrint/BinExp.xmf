@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler BinExp in PPrint(aBinExp,out,seen)
+   self.dispatch(aBinExp.left,out);
+   if aBinExp.binOp.isKindOf(String)
+   then format(out," ~S ",Seq{aBinExp.binOp})
+   else self.dispatch(aBinExp.binOpout)
+   end;
+   self.dispatch(aBinExp.right,out)
+end;

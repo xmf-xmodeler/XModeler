@@ -1,0 +1,19 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+  @Class Message
+  
+    @Attribute name   : String end
+    @Attribute args   : Seq(MessageArg) end
+    @Attribute source : StateMachinableObject end
+    @Attribute target : StateMachinableObject end
+
+    @Constructor(name,args,source,target) end
+  end
+  

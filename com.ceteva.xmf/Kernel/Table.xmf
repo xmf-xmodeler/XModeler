@@ -1,0 +1,357 @@
+parserImport XOCL;
+
+context Table
+
+  @Operation addDaemon(d):Element
+  
+    @Doc
+      All tables have a collection of daemons. A daemon is an operation that is
+      invoked whenever a table is updated. The operation is any invokable value 
+      (either an operation or an object that implements the 'invoke/2' operation. 
+      The invocation occurs after the table has been updated and is supplied with 
+      the index, the new bucket and the old bucket that has changed.
+    end
+     
+    self.setDaemons(self.daemons() + Seq{d})
+  end
+  
+context Table
+  @Operation addKeyRemovedDaemon(d)
+    @Doc
+      Use this operation to add a daemon that monitors the removal of
+      keys from a table. The args of the daemon are the key that is removed
+      and its value in the table.
+    end    
+    self.addKeyRemovedDaemon(d,self)
+  end
+
+context Table
+  @Operation addNewKeyDaemon(d)
+    @Doc
+      Use this operation to add a daemon that monitors the addition of
+      new keys to a table. The args for the daemon are the new key
+      and its value.
+    end   
+    self.addNewKeyDaemon(d,self)
+  end
+
+context Table
+  @Operation addKeyValueChangedDaemon(d)
+    @Doc
+      Use this operation to add a daemon that monitors changes in key
+      values. This will not fire when the key is added or when the
+      key is removed. The args for the daemon are the key, the new value
+      and the old value.
+    end 
+    self.addKeyValueChangedDaemon(d,self)
+  end
+  
+context Table
+
+  @Operation addKeyRemovedDaemon(d,actionSource)
+  
+    @Doc
+      Use this operation to add a daemon that monitors the removal of
+      keys from a table. The args of the daemon are the key that is removed
+      and its value in the table.
+    end
+    
+    let daemon =
+      @Operation(index,newBucket,oldBucket)
+        if oldBucket->size > newBucket->size
+        then
+          let cell = (oldBucket - newBucket)->head
+          in d.invoke(actionSource,Seq{cell->head,cell->tail})
+          end
+        end
+      end
+    in
+      self.addDaemon(daemon);
+      daemon
+    end
+   end 
+
+context Table
+
+  @Operation addNewKeyDaemon(d,actionSource)
+  
+    @Doc
+      Use this operation to add a daemon that monitors the addition of
+      new keys to a table. The args for the daemon are the new key
+      and its value.
+    end
+    
+    let daemon =
+      @Operation(index,newBucket,oldBucket)
+        if newBucket->size > oldBucket->size
+        then
+          let cell = (newBucket - oldBucket)->head
+          in d.invoke(actionSource,Seq{cell->head,cell->tail})
+          end
+        end
+      end
+    in
+      self.addDaemon(daemon);
+      daemon
+    end
+   end 
+   
+context Table
+
+  @Operation addKeyValueChangedDaemon(d,actionSource)
+  
+    @Doc
+      Use this operation to add a daemon that monitors changes in key
+      values. This will not fire when the key is added or when the
+      key is removed. The args for the daemon are the key, the new value
+      and the old value.
+    end
+    
+    let daemon =
+      @Operation(index,newBucket,oldBucket)
+        if newBucket->size = oldBucket->size
+        then
+          @Find(newCell,newBucket)
+            when 
+              @Find(oldCell,oldBucket)
+                when 
+                  oldCell->head = newCell->head and 
+                  oldCell->tail <> newCell->tail
+                do d.invoke(actionSource,Seq{oldCell->head,newCell->tail,oldCell->tail});
+                   true
+                else false
+              end
+          end
+        end
+      end
+    in
+      self.addDaemon(daemon);
+      daemon
+    end
+  end
+  
+context Table
+  @Operation asVector():Vector
+    let v = Vector(self->size)
+    in @Count i from 0 to self->size do
+         v.put(i,self.ref(i))
+       end;
+       v
+    end
+  end
+
+context Table
+  @Operation clear():Table
+    @Doc
+      Clears the table. Fires any daemons defined for the table.
+    end
+    @Count index from 0 to Kernel_arrayLength(self) do
+      Kernel_arraySet(self,index,Seq{})
+    end;
+    self
+  end
+  
+context Table
+  // Get the current daemons defined for the table.
+  @Operation daemons()
+    Kernel_arrayDaemons(self)
+  end
+  
+context Table
+  @Operation daemonNamed(name)
+    @Find(daemon,self.daemons())
+      when daemon.name().toString() = name.toString()
+    end
+  end
+
+context Table
+  @Operation destroyDaemon(d:Daemon)
+    self.removeDaemon(d);
+    Daemon::removeFromDaemonTable(d)
+  end
+
+context Table
+  @Operation entries()
+    let entries = 0
+    in
+      @Count i from 0 to Kernel_arrayLength(self) do
+        let bucket = Kernel_arrayRef(self,i)
+        in if bucket <> Seq{}
+          then entries := entries + bucket->size
+          end
+        end
+      end;
+      entries
+    end
+  end
+
+context Table
+
+  @Operation fire(index,newBucket,oldBucket):Element
+  
+    @Doc
+      When a table is updated, its daemons are fired by calling this operation. 
+      The operation is supplied with the bucket index, the old state of the changed 
+      bucket and the new state of the changed bucket. The index is supplied to make
+      the daemon mechanism compatible with that for arrays. In most cases the index
+      will be of no value. The table specific daemon definition operations
+      hide away the index.
+    end
+     
+    let daemons = Kernel_arrayDaemons(self)
+    in 
+      @While daemons <> Seq{} do
+        daemons->at(0).invoke(self,Seq{index,newBucket,oldBucket});
+        daemons := daemons->tail
+      end
+    end;
+    self
+  end
+  
+context Table
+  @Operation hasDaemonNamed(name)
+    self.daemons()->exists(daemon | daemon.name().toString() = name.toString())
+  end
+
+
+context Table
+  @Operation get(key:Element):Element
+    @Doc
+      Return the valueof the supplied key in the table.
+      If the key does not exist then an exception is
+      raised. Use 'hasKey/1' to check if the key exists.
+    end
+    Kernel_tableGet(self,key)
+  end
+  
+context Table 
+  @Operation hasKey(key:Element):Boolean
+    @Doc
+      Tests whether the table has a key or not.
+    end
+    Kernel_tableHasKey(self,key)
+  end
+   
+context Table 
+  @Operation hasValue(value:Element):Boolean
+    @Doc
+      Tests whether the table has a value or not.
+    end
+    Kernel_tableHasValue(self,value)
+  end
+   
+context Table
+  @Operation init(args):Element
+    // Create a new table of a given size.
+    Kernel_mkTable(args->at(0))
+  end
+  
+context Table
+  @Operation keys():Seq(Element)
+    @Doc
+      Returns all the keys in the table.
+    end
+    Kernel_tableKeys(self)
+  end
+  
+context Table
+  @Operation pprint():String
+    @Doc
+      This operation prints out all the entries in a table.
+    end
+    let s = "<Table";
+        keys = self.keys()
+    in if not keys->isEmpty then s := s + " " end;
+       @While keys <> Seq{} do
+          let key = keys->at(0)
+          in s := s + key.toString() + " = " + self.get(key).toString();
+             keys := keys->tail;
+             if keys <> Seq{}
+             then s := s + ","
+             else s
+             end
+          end
+        end;
+        s + ">"
+     end
+   end
+  
+context Table 
+  @Operation put(key:Element,value:Element)
+    @Doc
+      Add an association between the supplied key and value.
+      Any existing association for the key is removed.
+    end
+    Kernel_tablePut(self,key,value)
+  end
+  
+context Table
+ @Operation remove(key:Element)
+   @Doc
+     Remove the supplied key from the table. This succeeds whether
+     the key exists in the tabel or not. Any daemons defined for the
+     table are performed. The table is returned.
+   end
+   let index = key.hashCode()->mod(Kernel_arrayLength(self)) then
+       bucket = Kernel_arrayRef(self,index)
+   in @Find(cell,bucket)
+        when cell->head = key
+        do Kernel_arraySet(self,index,bucket->excluding(cell))
+      end;
+      self
+   end
+ end  
+ 
+context Table
+  @Operation removeDaemon(d,target)
+    self.setDaemons(self.daemons()->excluding(d))
+  end
+  
+context Table
+  @Operation removeDaemonNamed(name)
+    if self.hasDaemonNamed(name)
+    then self.removeDaemon(self.daemonNamed(name))
+    else self
+    end
+  end
+  
+context Table
+  @Operation ref(index:Integer)
+    Kernel_arrayRef(self,index)
+  end
+  
+context Table
+  @Operation set(index:Integer,value)
+    Kernel_arraySet(self,index,value)
+  end
+  
+context Table
+  // Set the current list of daemons.
+  @Operation setDaemons(daemons)
+    Kernel_arraySetDaemons(self,daemons)
+  end
+  
+context Table
+  @Operation size():Integer
+    @Doc
+      Returns the size of a table.
+    end
+    Kernel_arrayLength(self)
+  end
+  
+context Table
+  @Operation toString():String
+    @Doc
+      Returns a string representation of a table.
+    end
+    "<Table length = " + Kernel_arrayLength(self) + " entries = " + self.entries() + ">"
+  end
+   
+ context Table 
+   @Operation values():Set(Element)
+     @Doc
+       Returns all elements in the table as a set. 
+     end
+     self.keys()->asSet->collect(k | self.get(k))
+   end
+

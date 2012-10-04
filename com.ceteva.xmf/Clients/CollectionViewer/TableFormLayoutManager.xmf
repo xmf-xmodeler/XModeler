@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class TableFormLayoutManager extends CollectionFormLayoutManager
+
+    @Operation layoutCollections(displays:Seq(CollectionDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let keyDisplay = displays->asSeq.at(0);
+            valueDisplay = displays->asSeq.at(1) then
+            listSize = keyDisplay.list.contents->size().max(1) then
+            keyColWidth = 208;
+            valueColWidth = 390;
+            localColHeight = (listSize*collectionItemHeight).round() + 18 then
+            finalY = startY + localColHeight + singletonHeight
+        in
+          keyDisplay.addToForm(owner,startX,startY,singletonHeight,keyColWidth,localColHeight);
+          valueDisplay.addToForm(owner,startX+keyColWidth+2,startY,singletonHeight,valueColWidth,localColHeight);
+          owner.addElement(FormLabel(0,startY + localColHeight + 2*singletonHeight," "));
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+  end

@@ -1,0 +1,540 @@
+<?xml version = '1.0' encoding = 'ISO-8859-1' ?>
+<!DOCTYPE XMI SYSTEM 'uml.dtd' >
+<XMI>
+  <XMI.header>
+    <XMI.metamodel name='uml' version='1.1'/>
+  </XMI.header>
+  <XMI.content>
+    <DataType XMI.id='odd.9573'>
+      <name>LargeBinary</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9570'>
+      <name>LargeString</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9558'>
+      <name>Boolean</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9560'>
+      <name>Date</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9562'>
+      <name>DateTime</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9564'>
+      <name>Integer</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9566'>
+      <name>Real</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9568'>
+      <name>String</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <DataType XMI.id='odd.9556'>
+      <name>Binary</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+    </DataType>
+    <Class XMI.id='odd.9576'>
+      <name>Customer</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <isActive XMI.value='false'/>
+      <taggedValue>
+        <TaggedValue>
+          <tag>persistence</tag>
+          <value>false</value>
+        </TaggedValue>
+      </taggedValue>
+      <feature>
+        <Attribute XMI.id='odd.9584'>
+          <name>name</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9568'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+    </Class>
+    <Class XMI.id='odd.9578'>
+      <name>WebSite</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <isActive XMI.value='false'/>
+      <taggedValue>
+        <TaggedValue>
+          <tag>persistence</tag>
+          <value>false</value>
+        </TaggedValue>
+      </taggedValue>
+      <feature>
+        <Operation XMI.id='odd.9592'>
+          <name>present</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <isQuery XMI.value='false'/>
+          <concurrency XMI.value='sequential'/>
+          <isPolymorphic XMI.value='true'/>
+          <operationSpecification/>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Operation>
+      </feature>
+      <feature>
+        <Operation XMI.id='odd.9593'>
+          <name>accept_order</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <isQuery XMI.value='false'/>
+          <concurrency XMI.value='sequential'/>
+          <isPolymorphic XMI.value='true'/>
+          <operationSpecification/>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Operation>
+      </feature>
+    </Class>
+    <Class XMI.id='odd.9580'>
+      <name>PurchaseOrder</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <isActive XMI.value='false'/>
+      <taggedValue>
+        <TaggedValue>
+          <tag>persistence</tag>
+          <value>false</value>
+        </TaggedValue>
+      </taggedValue>
+      <feature>
+        <Attribute XMI.id='odd.9585'>
+          <name>currency</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9566'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+      <feature>
+        <Attribute XMI.id='odd.9586'>
+          <name>charge</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9566'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+      <feature>
+        <Attribute XMI.id='odd.9587'>
+          <name>terms</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9570'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+      <feature>
+        <Attribute XMI.id='odd.9588'>
+          <name>date_time</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9562'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+      <feature>
+        <Attribute XMI.id='odd.9589'>
+          <name>lead_time</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9562'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+    </Class>
+    <Class XMI.id='odd.9582'>
+      <name>ProductInfo</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <isActive XMI.value='false'/>
+      <taggedValue>
+        <TaggedValue>
+          <tag>persistence</tag>
+          <value>false</value>
+        </TaggedValue>
+      </taggedValue>
+      <feature>
+        <Attribute XMI.id='odd.9590'>
+          <name>ID</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9564'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+      <feature>
+        <Attribute XMI.id='odd.9591'>
+          <name>description</name>
+          <visibility XMI.value='public'/>
+          <ownerScope XMI.value='instance'/>
+          <changeable XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <targetScope XMI.value='instance'/>
+          <initialValue></initialValue>
+          <type>
+            <XMI.reference target='odd.9570'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </Attribute>
+      </feature>
+    </Class>
+    <Generalization XMI.id='odd.9572'>
+      <name/>
+      <visibility XMI.value='public'/>
+      <discriminator/>
+      <subtype>
+        <XMI.reference target='odd.9570'/>
+      </subtype>
+      <supertype>
+        <XMI.reference target='odd.9568'/>
+      </supertype>
+    </Generalization>
+    <Generalization XMI.id='odd.9575'>
+      <name/>
+      <visibility XMI.value='public'/>
+      <discriminator/>
+      <subtype>
+        <XMI.reference target='odd.9573'/>
+      </subtype>
+      <supertype>
+        <XMI.reference target='odd.9556'/>
+      </supertype>
+    </Generalization>
+    <Association XMI.id='odd.unassigned.1'>
+      <name>sales</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <connection>
+        <AssociationEnd XMI.id='odd.9598'>
+          <name/>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>0..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9578'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+      <connection>
+        <AssociationEnd XMI.id='odd.9599'>
+          <name>orders</name>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>0..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9580'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+    </Association>
+    <Association XMI.id='odd.unassigned.2'>
+      <name>catalog</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <connection>
+        <AssociationEnd XMI.id='odd.9600'>
+          <name/>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>0..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9578'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+      <connection>
+        <AssociationEnd XMI.id='odd.9601'>
+          <name>products</name>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>0..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9582'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+    </Association>
+    <Association XMI.id='odd.unassigned.3'>
+      <name>invoice</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <connection>
+        <AssociationEnd XMI.id='odd.9594'>
+          <name>products</name>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>1..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9582'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+      <connection>
+        <AssociationEnd XMI.id='odd.9595'>
+          <name>orders</name>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>1..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9580'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+    </Association>
+    <Association XMI.id='odd.unassigned.4'>
+      <name>e-commerce</name>
+      <visibility XMI.value='public'/>
+      <isAbstract XMI.value='false'/>
+      <isLeaf XMI.value='false'/>
+      <isRoot XMI.value='false'/>
+      <connection>
+        <AssociationEnd XMI.id='odd.9596'>
+          <name>supplier</name>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>1..1</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9578'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+      <connection>
+        <AssociationEnd XMI.id='odd.9597'>
+          <name/>
+          <visibility XMI.value='public'/>
+          <isNavigable XMI.value='true'/>
+          <isOrdered XMI.value='false'/>
+          <aggregation XMI.value='none'/>
+          <multiplicity>0..*</multiplicity>
+          <changeable XMI.value='none'/>
+          <targetScope XMI.value='instance'/>
+          <type>
+            <XMI.reference target='odd.9576'/>
+          </type>
+          <taggedValue>
+            <TaggedValue>
+              <tag>persistence</tag>
+              <value>false</value>
+            </TaggedValue>
+          </taggedValue>
+        </AssociationEnd>
+      </connection>
+    </Association>
+  </XMI.content>
+</XMI>

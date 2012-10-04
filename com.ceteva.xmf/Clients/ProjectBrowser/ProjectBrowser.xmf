@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package ProjectBrowser
+  
+    @Operation showDefaultBrowser()
+      let client = xmf.clientManager().findClientByName("com.ceteva.modelBrowser:XCore")
+      in
+        client.showModelBrowser(xmf.projectManager())
+      end
+    end
+
+    @Operation showSystemBrowser()
+      let client = xmf.clientManager().findClientByName("com.ceteva.modelBrowser:XCore")
+      in
+        client.showModelBrowser(xmf.projectManager("System"))
+      end
+    end
+
+    @Operation showUserBrowser()
+      let client = xmf.clientManager().findClientByName("com.ceteva.modelBrowser:XCore")
+      in
+        client.showModelBrowser(xmf.projectManager("MyProjects"))
+      end
+    end
+
+    @Operation newProject() 
+      (xmf.projectManager("MyProjects")).newProject()
+    end  
+  
+    @Operation openProject()
+      (xmf.projectManager("MyProjects").loadFixedProject(false))()
+    end
+  end

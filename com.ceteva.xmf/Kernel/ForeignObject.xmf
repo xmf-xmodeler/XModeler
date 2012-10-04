@@ -1,0 +1,65 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class ForeignClass extends Class
+  
+    @Operation getInstanceSlot(target,name)
+      Kernel_getForeignSlot(target,name)
+    end
+    
+    @Operation hasInstanceSlot(target,name)
+      Kernel_hasForeignSlot(target,name)
+    end
+    
+    @Operation setInstanceSlot(target,name,value)
+      Kernel_setForeignSlot(target,name,value)
+    end
+    
+    @Operation sendInstance(target,message,args)
+      let O = self.allOperations()->select(o | o.name() = message and o.arity() = args->size)
+      in if O->isEmpty
+         then Kernel_sendForeignInstance(target,message,args)
+         else O->head.invoke(target,args,O)
+         end
+      end
+    end
+    
+  end
+
+Kernel_setOf(ForeignObject,ForeignClass);
+
+context ForeignObject
+  @Operation toString()
+    Kernel_sendForeignInstance(self,"toString",Seq{})
+  end
+  
+context ForeignObject
+  @Operation target()
+    self
+  end
+  
+context ForeignObject
+  @Operation invoke(target,args)
+    let Class = Kernel_forName("java.lang.Class",Seq{})
+    in if self.getClass() = Class
+       then 
+         let C = self.getConstructors();
+             c = null
+         in @While c = null and not C->isEmpty do
+              let constructor = C->head
+              in if constructor.getParameterTypes()->size = args->size
+                 then c := constructor
+                 else C := C->tail
+                 end
+              end
+            end;
+            if c = null
+            then self.newInstance()
+            else c.newInstance(args)
+            end
+         end
+       else super(target,args)
+       end
+    end
+  end

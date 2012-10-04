@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MappingDiagrams
+  MappingDiagrams = @File MappingDiagrams end
+  @File MapShape end
+  @File MapNode end
+  @File SyncShape end
+  @File SyncNode end
+  @File DomainEdge end
+  @File RangeEdge end
+  @File ScopeEdge end
+  @File MappingDiagram end
+do Project(MappingDiagrams,dir,self)
+end;

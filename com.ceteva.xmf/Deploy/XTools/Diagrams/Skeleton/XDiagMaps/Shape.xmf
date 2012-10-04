@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+
+context ! Root::XDiagMaps
+
+  @Class Shape extends Root::XDiagMaps::Display
+
+    @Attribute points : Seq(Element) (?,!,+,-) end
+    @Attribute outline : Boolean end
+    @Attribute fillColor : Color end
+    @Attribute lineColor : Color end
+    
+    @Constructor(outline,fillColor,lineColor,points) ! end
+    
+    @Operation writeType(out,indent)
+      format(out,"~V@Shape shape~%",Seq{indent});
+      format(out,"minWidth = ~S~%",Seq{points->iterate(p w = 0 | w.max(p->at(0)))});
+      format(out,"minHeight = ~S~%",Seq{points->iterate(p h = 0 | h.max(p->at(1)))});
+      if lineColor <> null
+      then format(out,"~VlineColor=\"~S,~S,~S\"~%",Seq{indent,lineColor.red,lineColor.green,lineColor.blue})
+      end;
+      if fillColor <> null
+      then format(out,"~VfillColor=\"~S,~S,~S\"~%",Seq{indent,fillColor.red,fillColor.green,fillColor.blue})
+      end;
+      @For point in points do
+        format(out,"~V  @Point(~S,~S) end~%",Seq{indent,point->at(0),point->at(1)})
+      end;
+      format(out,"~Vend~%",Seq{indent})
+    end
+
+  end

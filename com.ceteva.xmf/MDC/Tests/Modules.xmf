@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+context Root
+  @Package Modules
+    @Class Model
+      @Attribute modules : Set(Module) end
+      @Attribute required : Set(Required) end
+      @Attribute provided : Set(Provided) end
+      @Attribute flows : Set(Flow) end
+      @Attribute data : Set(Data) end
+    end
+    @Class Named 
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class Module extends Named
+      @Attribute model : Model  = Model() end
+    end
+    @Class Service extends Named
+      @Attribute transports : Data end
+    end
+    @Class Provided  extends Service 
+    end
+    @Class Required extends Service
+    end
+    @Class Flow
+      @Attribute source : Provided end
+      @Attribute target : Required end
+      @Attribute description : String end
+    end
+    @Class Data extends Named 
+      @Attribute fields : Set(Field) end
+    end
+    @Class Field extends Named
+      @Attribute type : String end
+    end
+  end
+  

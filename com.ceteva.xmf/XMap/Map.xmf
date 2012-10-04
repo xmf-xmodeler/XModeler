@@ -1,0 +1,183 @@
+parserImport XOCL;
+
+import Compiler;
+import XMap;
+
+context XMap
+
+  @Class Map extends XCore::Class
+  
+    @Doc
+      A mapping is a class that can be used to transform
+      from some domain elements to a single range element
+      (NB the range element could be a collection). A
+      mapping consists of a collection of clauses each
+      of which has a sequence of guard patterns and a
+      body. When an instance of the mapping is supplied
+      with a sequence of domain elements (by applying the
+      instance to the elements as arguments), each of the
+      clauses is tried in turn. the first clause whose guard
+      patterns match the arguments transforms the inputs
+      by performing its body and returning the result
+      (which should be an instance of the range).
+    end
+  
+    @Attribute domains : Seq(Classifier) end
+    @Attribute range   : Classifier end
+    @Attribute clauses : Seq(Clause) end
+    
+    @Operation add(element)
+      if element.isKindOf(Clause)
+      then 
+        self.addClause(element);
+        super(element)
+      else super(element)
+      end
+    end
+    
+    @Operation addClause(clause)
+      self.resolveNameClash(clause.name,clauses);
+      clause.setOwner(self);
+      self.clauses := clauses + Seq{clause};
+      
+      // Only reGenerate if we are initialised. Otherwise
+      // we are probably being constructed and already have
+      // an invoke operation.
+      
+      if self.owner() <> null
+      then self.reGenerate()
+      end;
+      self
+    end
+    
+    @Operation addClauseAt(clause,index)
+      clause.setOwner(self);
+      self.clauses := clauses->insertAt(clause,index);
+      XCore::NameSpace::add.invoke(self,Seq{clause});
+      self.reGenerate()
+    end
+    
+    @Operation defaultParents()
+      Set{Mapping}
+    end
+    
+    @Operation getInvokeOperation()
+      if self.hasElement("invoke")
+      then
+        self::invoke
+      else
+        null
+      end
+    end
+    
+    @Operation init()
+      if self.owner <> null
+      then
+        if domains.isReallyKindOf(Operation)
+        then self.domains := domains()
+        end;
+        if range.isReallyKindOf(Operation)
+        then self.range := range()
+        end;
+        super()
+      else super()
+      end
+    end
+
+  @Operation reGenerate()      
+    if self.hasElement("invoke")
+    then 
+      let oldInvoke = self::invoke then
+          dynamics = oldInvoke.dynamics() then
+          newInvoke = self.reGenerateInvoke(dynamics)
+      in
+         newInvoke.importNameSpace(owner);
+         newInvoke.importNameSpaces(owner.allOwners());
+         newInvoke.importNameSpace(XCore);
+         oldInvoke.update(newInvoke)
+         //self.remove(oldInvoke);
+         //self.add(newInvoke)
+      end
+    else 
+      let invoke = self.reGenerateInvoke(Seq{})
+      in invoke.importNameSpace(owner);
+         invoke.importNameSpaces(owner.allOwners());
+         invoke.importNameSpace(XCore);
+         self.add(invoke)
+      end
+    end
+  end
+    
+    /* @Operation reGenerate()
+    
+      // One of the clauses has changed. Regenerate the
+      // 'invoke' operation and override the existing
+      // operation.
+      
+      if self.hasElement("invoke")
+      then 
+        let oldInvoke = self::invoke then 
+            dynamics = oldInvoke.dynamics() then
+            newInvoke = self.reGenerateInvoke(dynamics)
+        in
+           newInvoke.importNameSpace(owner);
+           newInvoke.importNameSpaces(owner.allOwners());
+           newIvoke.importNameSpace(XCore);
+           self.remove(oldInvoke);
+           self.add(newInvoke)
+        end
+      else
+        let invoke = self.reGenerateInvoke(dynamics)
+        in invoke.importNameSpace(owner);
+           invoke.importNameSpaces(owner.allOwners());
+           invoke.importNameSpace(XCore);
+           self.add(invoke)
+        end
+      end
+    end */
+    
+    @Operation reGenerateInvoke(dynamics)
+      let invokeSource = self.reGenerateInvokeSource()
+      in compileToFun("invoke",invokeSource,Seq{"target","args"},dynamics,true)
+      end
+    end
+    
+    @Operation reGenerateInvokeSource()
+      let values = 0.to(domains->size - 1)->collect(i | [| args->at(<OCL::IntExp(i)>) |]);
+      //let values = Seq{[| args->at(<OCL::IntExp(0)>) |]}; // needs fixing for more than one domain
+          arms = clauses->collect(c | c.syntax().desugar())
+      in XOCL::Case(values,arms,[| throw Exceptions::MapFailed(self,<OCL::SetExp("Seq",values)>) |])
+      end
+    end
+    
+    @Operation remove(element)
+      if element.isKindOf(Clause)
+      then
+        self.removeClause(element);
+        super(element)
+      else super(element)
+      end
+    end
+
+    @Operation removeClause(clause:Clause)
+      //clause.removeFromOwner();
+      self.clauses := clauses->excluding(clause);
+      if self.owner() <> null
+      then
+        self.reGenerate()
+      end
+    end
+    
+    @Operation sourceChanged(oldClause:Clause)
+      let index = clauses->indexOf(oldClause);
+          newClause = oldClause.reGenerate()
+      in 
+         self.remove(oldClause);
+         //self.clauses := clauses->excluding(oldClause);
+         self.addClauseAt(newClause,index);
+         newClause
+      end
+    end
+         
+    
+  end

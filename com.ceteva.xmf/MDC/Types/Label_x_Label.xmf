@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Tools::DiagramTools::Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+import Tools::Menus;
+import MDC::Types;
+
+context ! Types
+
+  @Class Label_x_Label extends AbstractMappingType
+  
+    // Allows listeners to be added to labels on edges.
+    // Each listener has two arguments: the source and
+    // target elements. The listener is invoked when
+    // the text on the label is changed.
+
+    @Attribute label : Root::Tools::DiagramTools::Types::Label (?,!) end
+    @Attribute listeners : Seq(Operation) (+,-,?) end
+    
+    @Constructor(label) ! end
+    
+    @Operation fireListeners(tool,source,target,new,old)
+      @For listener in listeners do
+        listener(tool,source,target,new,old)
+      end
+    end
+    
+    @Operation newListener()
+      let listener = 
+        @Operation listener(tool,source,target,new,old) 
+          xmf.message("Listener Fires: " + new) 
+        end
+      in listener.setOwner(null);
+         listener
+      end
+    end
+      
+    
+  end

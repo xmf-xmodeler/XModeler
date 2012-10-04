@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Fail extends Recognizer
+  
+    // This recognizer causes the machine to fail when it is invoked.
+    
+    @Operation code(outputChannel)
+      format(outputChannel," Fail ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      if machine.grammar.debug then machine.debug("FAIL") end;
+      machine.fail()
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Fail() |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

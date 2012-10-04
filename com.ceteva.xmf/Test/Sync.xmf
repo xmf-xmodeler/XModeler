@@ -1,0 +1,36 @@
+parserImport XMap;
+parserImport XOCL;
+
+Class.setDaemons(Seq{});
+Object.setDaemons(Seq{});
+
+Class.constraints := Set{100};  
+
+@SyncContainers(Class,constraints,Object,constraints)
+  @AddLeft(x)
+    format(stdout,"~S added left Class.constraints = ~S~%",Seq{x,constraints});
+    if not Object.constraints->includes(x)
+    then Object.constraints := Object.constraints->including(x)
+    end
+  end
+  @DeleteLeft(x)
+    format(stdout,"~S deleted left Class.constraints = ~S~%",Seq{x,constraints});
+    if Object.constraints->includes(x)
+    then Object.constraints := Object.constraints->excluding(x)
+    end
+  end
+  @AddRight(x)
+    format(stdout,"~S added right Object.constraints = ~S~%",Seq{x,constraints});
+    if not Class.constraints->includes(x)
+    then Class.constraints := Class.constraints->including(x)
+    end
+  end
+  @DeleteRight(x)
+    format(stdout,"~S deleted right Object.constraints = ~S~%",Seq{x,constraints});
+    if Class.constraints->includes(x)
+    then Class.constraints := Class.constraints->excluding(x)
+    end
+  end
+end;
+
+Class.constraints :=  Class.constraints->including(900);        

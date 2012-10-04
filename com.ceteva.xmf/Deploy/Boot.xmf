@@ -1,0 +1,7 @@
+(xmf.homeDir() + "/Deploy/Java.o").loadBin(true);
+(xmf.homeDir() + "/Deploy/XML.o").loadBin(true);
+(xmf.homeDir() + "/Deploy/XOCL/Boot.o").loadBin(false);
+(xmf.homeDir() + "/Deploy/Java/Boot.o").loadBin(false);
+(xmf.homeDir() + "/Deploy/Snapshot/DeploySnapshot.o").loadBin(false);
+(xmf.homeDir() + "/Deploy/Walkers/Generator.o").loadBin(false);
+(xmf.homeDir() + "/Deploy/EMFXMI/EMFExporter.o").loadBin(false);

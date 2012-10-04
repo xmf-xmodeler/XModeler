@@ -1,0 +1,25 @@
+import OCL;
+import Instrs;
+
+context BoolExp
+  @Operation FV():Element
+    Set{}
+  end
+
+context BoolExp
+  @Operation maxLocals():Element
+    0
+  end
+
+context BoolExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if value
+    then Seq{PushTrue()}
+    else Seq{PushFalse()}
+    end
+  end
+  
+context BoolExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{BoolExp(value)})
+  end

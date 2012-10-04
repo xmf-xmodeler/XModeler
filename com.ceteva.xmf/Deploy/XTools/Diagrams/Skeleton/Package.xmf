@@ -1,0 +1,779 @@
+parserImport XOCL;
+
+// This file defines the root functionality for deploying a skeleton XTool Diagram Editor.
+// The editor is for instances of a single class in a package. All classes in the package
+// are offered as possible node types and all non-basic types attributes are offered as
+// edge types. Based on the selections, skeleton event handlers are deployed. The deployment
+// writes a directory containing all the skeleton files and a manifest that builds it.
+// After deployment it is expected that the user will fill in the detail of the display
+// elements for nodes and the event handler bodies.
+// 
+// *************************************** NOTE *****************************************
+// This file depends on the full diagram deployment having been loaded. If loaded separately
+// then extract the necessary generic deployment operations from Deploy/XTools/Diagrams/Full.
+//
+// Displays on nodes are encoded as elements of type D defined below:
+//
+// Seq{Image,path,width,height}
+// Seq{Attribute,A} (equiv to text)
+// Seq{Ellipse,width,height,Seq{r,g,b}}
+// Seq{Box,fill,border,align,Seq{r,g,b},Seq{d,d,...,d}}
+
+import Exceptions;
+
+context Exceptions
+
+  @Class CancelXDiagSkelDeploy extends Exception
+  
+    // Used to catch cancellations.
+    
+  end
+
+context Package
+
+  @Operation deployXDiagSkel()
+  
+    // Ask for the appropriate elements and then deploy...
+    
+    try 
+    
+      let dir = self.deployXDiagSkelDir() then
+          diagramType = self.deployXDiagSkelDiagramType() then
+          class = self.deployXDiagSkelRootClass() then
+          nodes = self.deployXDiagSkelNodeClasses(class) then
+          nodeClasses = nodes->collect(n | n->at(0)) then
+          edges = self.deployXDiagSkelEdgeClasses(nodeClasses->including(class)) then
+          edgeAtts = self.deployXDiagSkelEdgeAtts(edges,class);
+          manifest = OrderedContainer();
+          toolDescriptorType = "DiagramTool_"+diagramType.stripInvalidNameChars();
+          createDiagramOpName = "createDiagram_" + class.name().toString() + "_" + diagramType.stripInvalidNameChars()
+      in self.writeXDiagSkelToolDescriptor(dir,class,Descriptor,manifest,diagramType,createDiagramOpName);
+         self.writeXDiagSkelToolType(dir,class,Descriptor,nodes,edges,edgeAtts,manifest);
+         self.writeXDiagSkelElementManager(dir,class,Descriptor,nodes,edges,edgeAtts,manifest);
+         self.writeXDiagSkelCreateDiagram(dir,class,Descriptor,nodes,edges,edgeAtts,manifest,toolDescriptorType,diagramType,createDiagramOpName);
+         self.writeDiagramManifest(dir,manifest);
+         xmf.message("Skeleton XTool for " + self.name() + " deployed in " + dir)
+      end
+      
+    catch(x)
+      @TypeCase(x)
+        CancelXDiagSkelDeploy do
+          xmf.warning("Deployment cancelled.")
+        end
+        else throw x
+      end
+    end
+    
+  end
+  
+context Package
+  @Operation writeXDiagSkelToolDescriptor(dir:String,class:Class,name:String,manifest:OrderedContainer,diagramType:String,
+                                          createDiagramOpName:String)
+    @WithOpenFile(out -> dir + "/ToolDescriptor.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{class.path()});
+      format(out,"  @ToolDescriptor ~S~%",Seq{name});
+      format(out,"    @Menu
+                        @MenuItems New
+                          @MenuAction \"~S\"
+                            ~S().~S(null)
+                          end
+                        end
+                        @MenuAction Load
+                          let file = xmf.openFile(xmf.projDir(),\"*.xml\")
+                          in if file.fileExists()
+                             then 
+                               let object = 
+                                     @WithOpenFile(fin <- file)
+                                       let xin = XMLInputChannel(fin,NameSpaceXMLInflater())
+                                       in xin.parse()
+                                       end
+                                     end;
+                                   layout = file.splitBy(\".\",0,0)->head + \"Layout.xml\"
+                               in if layout.fileExists()
+                                  then object.showAndLayoutDiagram(layout)
+                                  else object.~S(null)
+                                  end
+                               end
+                             end
+                          end
+                       end
+                     end",Seq{diagramType,class.path(),createDiagramOpName,createDiagramOpName});
+      format(out,"  end~%");
+      manifest.add("ToolDescriptor")
+    end
+  end
+
+context Package
+
+   @Operation deployXDiagSkelDiagramType()
+     
+     // Choose a name for the diagram type that will be
+     // shown in the 'Create Diagram' menu option.
+
+     let diagramType = xmf.input("New Diagram Type",
+                          "Element types can have multiple diagram types associated with them." +
+                          "Enter a name for this diagram type.",
+                          "Default_Diagram")
+     in if diagramType <> null andthen diagramType <> ""
+        then
+          diagramType
+        else
+          throw CancelXDiagSkelDeploy()
+        end
+      end
+    end
+
+context Package
+
+  @Operation deployXDiagSkelDir()
+  
+    // Get the directory for the deployment.
+    
+    xmf.selectDirectory(xmf.projDir())
+  end
+  
+context Package
+  
+   @Operation deployXDiagSkelRootClass()
+     
+     // Choose the root class that the XTool diagram editor
+     // will use as the element type.
+     
+     let classes = self.allContentsOf(Class)
+     in if classes->isEmpty
+        then
+          xmf.warning("No classes to deploy");
+          throw CancelXDiagSkelDeploy()
+        else 
+          let class = xmf.select("Root Class","Select Class for Editor:",classes,null,null)
+          in if class = null
+             then throw CancelXDiagSkelDeploy()
+             else class
+             end
+          end
+        end
+      end
+    end
+    
+context Package
+
+  @Operation deployXDiagSkelNodeClasses(class) 
+  
+    // Choose the classes that will be used as node types.
+    
+    let classes = self.allContentsOf(Class)->excluding(class)
+    in if not classes->isEmpty
+       then 
+         let N = xmf.selects("Node Types","Select node types for diagram editor:",classes,null,null)
+         in N->collect(n | self.deployXDiagSkelMkNode(n))
+         end
+       else Seq{}
+       end
+    end
+    
+  end
+  
+context Package
+  @Operation deployXDiagSkelMkNode(class)
+  
+    // Construct a record Seq{c,d,a} where c is the class and
+    // d is a display descriptor for the node that represents
+    // instances of the class. The attribute a, if non-null, is
+    // used as the layout id for instances of the class.
+    
+    let unlabelledDisplays = Seq{"Ellipse","Box","Image"};
+        labelledDisplays = Seq{"Label","Label Under Ellipse","Label On Ellipse","Label On Box","Labelled Image"};
+        A = class.allAttributes()->select(a | a.type = String or a.type = Integer or a.type = Boolean)->asSeq then
+        L = class.allAttributes()->select(a | a.type = String or a.type = Integer)->asSeq;
+        displays = if A->isEmpty then unlabelledDisplays else labelledDisplays + unlabelledDisplays end then
+        display = xmf.select("Display Style","Choose display style for " + class.name(),displays,null,null);
+        choose = 
+          @Operation(A,reason)
+            if A->isEmpty
+            then null 
+            elseif A->size = 1 
+            then A->head 
+            else 
+              let a = xmf.select("Label","Choose an attribute " + reason,A,null,null)
+              in if a = null
+                 then throw CancelXDiagSkelDeploy()
+                 else a 
+                 end
+              end
+            end
+          end;
+        colour =
+          @Operation()
+            let colours = Seq{"Red","Green","Blue","Black","Other"} then
+                colour = xmf.select("Colour","Choose a colour for nodes of type " + class.name(),colours,null,null)
+            in if colour = null
+               then throw CancelXDiagSkelDeploy()
+               else 
+                 @Case colour of
+                   "Red" do
+                     Seq{255,0,0}
+                   end
+                   "Green" do
+                     Seq{0,255,0}
+                   end
+                   "Blue" do
+                     Seq{0,0,255}
+                   end
+                   "Black" do
+                     Seq{0,0,0}
+                   end
+                   else 
+                     let red = xmf.getInteger("Red","Red intensity [0-255]",0) then
+                         green = xmf.getInteger("Green","Green intensity [0-255]",0) then
+                         blue = xmf.getInteger("Blue","Blue intensity [0-255]",0)
+                     in Seq{red,green,blue}
+                     end   
+                 end
+               end
+            end
+          end
+    in @Case display of
+         "Label" do
+           Seq{class,Seq{"Attribute",choose(A,"to be used as a label")},choose(L,"to be used as an id for each instance")}
+         end
+         "Ellipse" do
+           Seq{class,Seq{"Ellipse",50,50,colour()},choose(L,"to be used as an id for each instance")}
+         end
+         "Label Under Ellipse" do
+           Seq{class,Seq{"Box",false,false,"VERTICAL",null,Seq{Seq{"Ellipse",50,50,colour()},Seq{"Attribute",choose(A,"to be used as a label")}}},choose(L,"to be used as an id for each instance")}
+         end
+         "Label On Ellipse" do
+           Seq{class,Seq{"Box",false,false,"OVERLAY",null,Seq{Seq{"Ellipse",50,50,colour()},Seq{"Attribute",choose(A,"to be used as a label")}}},choose(L,"to be used as an id for each instance")}
+         end
+         "Box" do
+           Seq{class,Seq{"Box",true,true,"OVERLAY",colour(),Seq{}},choose(L,"to be used as an id for each instance")}
+         end
+         "Label On Box" do
+           Seq{class,Seq{"Box",true,true,"OVERLAY",colour(),Seq{Seq{"Attribute",choose(A,"to be used as a label")}}},choose(L,"to be used as an id for each instance")}
+         end
+         "Image" do
+           Seq{class,Seq{"Image",xmf.openFile(xmf.projDir(),"*.gif"),50,50},choose(L,"to be used as an id for each instance")}
+         end
+         "Labelled Image" do
+           Seq{class,Seq{"Box",false,false,"VERTICAL",null,Seq{Seq{"Image",xmf.openFile(xmf.projDir(),"*.gif"),50,50},Seq{"Attribute",choose(A,"to be used as a label")}}},choose(L,"to be used as an id for each instance")}
+         end
+         else throw CancelXDiagSkelDeploy()
+       end
+    end
+  end
+  
+context Package
+
+  @Operation deployXDiagSkelEdgeClasses(nodeClasses) 
+  
+    // Choose the classes that will be used as edge types.
+    // An edge class is a class that is not already chosen as
+    // a node class and has at least 2 attributes with types
+    // that are node classes. Returns a sequence of tuples:
+    // Seq{c,s,t,L} where c is the edge class, s and t are
+    // attributes of c that have types in the package. L are
+    // the attributes to be used as labels.
+    
+    let classes = self.allContentsOf(Class)->asSeq - nodeClasses then
+        allEdgeClasses = 
+          classes->select(c | 
+            c.allAttributes()->exists(a1 |
+              c.allAttributes()->exists(a2 |
+                a1 <> a2 and
+                nodeClasses->exists(c | c.inheritsFrom(a1.underlyingType())) and
+                nodeClasses->exists(c | c.inheritsFrom(a2.underlyingType())))))
+    in if not allEdgeClasses->isEmpty
+       then 
+         let edgeClasses = xmf.selects("Edge Types","Select edge types for diagram editor:",allEdgeClasses,null,null)
+         in // Translate the classes to tuples as above. 
+            edgeClasses->collect(c |
+              let A = c.allAttributes()->select(a | nodeClasses->exists(c | c.inheritsFrom(a.underlyingType())))->asSeq then
+                  source = xmf.select("Source","Select attribute designating source of edge of type " + c.name(),A,null,null)
+              in if source = null
+                 then throw CancelXDiagSkelDeploy()
+                 else 
+                   let target = xmf.selects("Target","Select attribute designating target of an edge of type " + c.name(),A->excluding(source),null,null)
+                   in if target = null
+                      then throw CancelXDiagSkelDeploy()
+                      else 
+                        let L = 
+                          let B = c.allAttributes()->select(a | a.type = String or a.type = Boolean or a.type = Integer or a.type = XOCL::Exp)->asSeq
+                          in if not B->isEmpty
+                             then xmf.selects("Labels","Select attributes of " + c.name() + " to be displayed as labels.",B,null,null)
+                             else Seq{}
+                             end
+                          end
+                        in Seq{c,source,target,L}
+                        end
+                      end
+                   end
+                 end
+              end)
+          end
+       else Seq{}
+       end
+    end
+  end
+  
+context Package
+
+  @Operation deployXDiagSkelEdgeAtts(edgeClasses,class)
+  
+    // Choose the attributes that determine the edge types...
+    
+    let classes = self.allContentsOf(Class)->asSeq - edgeClasses->collect(t | t->at(0))->including(class) then
+        attributes = classes->iterate(c A = Seq{} | A + c.attributes->asSeq) then
+        attributes = attributes->select(a | classes->includes(a.underlyingType())) then
+        displays = attributes->collect(a | formats("~S::~S : ~S",Seq{a.owner().name(),a.name(),a.underlyingType().name()}))
+    in if attributes->isEmpty
+       then Seq{}
+       else 
+         let chosen = xmf.selects("Edge Types","Select edge types for diagram editor:",displays,null,null)
+         in chosen->collect(c | attributes->at(displays->indexOf(c)))
+         end
+       end
+    end
+  end
+  
+context Package
+  
+  @Operation writeXDiagSkelToolType(dir:String,class:Class,name:String,nodes,edges,atts,manifest:OrderedContainer)
+    
+    // A tool type defines a collection of node types and edge types. Each node and
+    // edge type must have an entry in the tool bar for the tool. Note edges are
+    // supplied as tuples of the form Seq{c,s,t,L} and are classes and attributes
+    // describing how to deploy a class as an edge type.
+    
+    @WithOpenFile(out -> dir + "/Type.xmf")
+      self.writeDiagramToolHeader(out);
+      self.writeXDiagSkelTypeComment(out);
+      format(out,"context ~S::~S::~S~%",Seq{self.path(),class.name(),name});
+      format(out,"  @ToolType Editor~%");
+      self.writeXDiagSkelClassTypes(out,nodes);
+      self.writeXDiagSkelEdgeTypes(out,edges);
+      self.writeXDiagSkelAttEdgeTypes(out,atts);
+      self.writeXDiagSkelToolBar(out,nodes,edges,atts);
+      self.writeXDiagSkelToolMenu(out,nodes);
+      format(out,"  end~%");
+      manifest.add("Type")
+    end
+    
+  end 
+  
+context Package
+  
+  @Operation writeXDiagSkelToolMenu(out,nodes)
+    format(out,"  @Menu~%");
+    format(out,"    @MenuAction Edit~%");
+    format(out,"      tool.element().edit()~%");
+    format(out,"    end~%");
+    format(out,"    @MenuAction Check~%");
+    format(out,"      tool.element().of().classify(tool.element()).edit()~%");
+    format(out,"    end~%");
+    format(out,"    @MenuAction Save~%");
+    format(out,"      let flatten = Walkers::Flatten() then~%");
+    format(out,"          dummy = flatten.walk(tool.element(),10) then~%");
+    format(out,"          file = xmf.saveFile(xmf.projDir(),\"*.xml\")~%");
+    format(out,"      in if file <> \"\"~%");
+    format(out,"         then~%");
+    @For node in nodes do
+      if node->at(2) <> null
+      then
+        format(out,"           let O = flatten.results()->select(o | o.isKindOf(~S))~%",Seq{node->at(0).path()});
+        format(out,"           in @For o in O do~%");
+        format(out,"                if tool.isRegistered(o)~%");
+        format(out,"                then tool.find(o).setLayoutId(o.~S)~%",Seq{node->at(2).name()});
+        format(out,"                end~%");
+        format(out,"              end~%");
+        format(out,"           end;~%")
+      end
+    end;
+    format(out,"           let fout = IO::XMLOutputChannel(IO::FileOutputChannel(file),IO::NameSpaceXMLFormatter(Seq{}));~%");
+    format(out,"               layout = file.splitBy(\".\",0,0)->head + \"Layout.xml\"~%");
+    format(out,"           in fout.writeValue(tool.element());~%");
+    format(out,"              @WithOpenFile(lout -> layout)~%");
+    format(out,"                tool.diagram().layoutData().pprint(lout,0)~%");
+    format(out,"              end;~%");
+    format(out,"              fout.close();~%");
+    format(out,"              xmf.browse(file);~%");
+    format(out,"              xmf.message(\"Written \" + self.toString() + \" to \" + file)~%");
+    format(out,"           end~%");
+    format(out,"         end~%");
+    format(out,"      end~%");
+    format(out,"    end~%");
+    format(out,"  end~%")
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelClassTypes(out,nodes)
+    // Write out the node types. Write out all classes as nodes
+    // so that inheritance can be made to work.
+    @For class in classes->asSet - nodes->collect(n | n->at(0))->asSet do
+      format(out,"    @NodeType ~S end~%",Seq{class.name()})
+    end;
+    @For node in nodes do
+      let class = node->at(0);
+          display = node->at(1)
+      in format(out,"    @NodeType ~S(hasport)",Seq{class.name()});
+         let parents = classes->excluding(class)->select(parent | class.inheritsFrom(parent))->asSeq
+         in if not parents->isEmpty
+            then format(out," extends ~{,~;~S~}~%",Seq{parents.name})
+            else format(out,"~%")
+            end
+         end;
+         self.writeXDiagSkelDisplay(out,6,display);
+         format(out,"      @Menu~%");
+         format(out,"        @MenuAction Delete self.delete() end~%");
+         format(out,"      end~%");
+         format(out,"    end~%")
+      end
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelDisplay(out,indent,display)
+  
+    @Case display of
+    
+      Seq{"Image",path,width,height} do
+        format(out,"~V@Image image(CENTRE) \"~S\" minWidth=~S minHeight=~S width=~S height=~S end~%",Seq{indent,path,width,height,width,height})
+      end
+      
+      Seq{"Box",fill,border,align,colour,contents} do
+        format(out,"~V@Box box(~S",Seq{indent,align});
+        if not fill then format(out,",nofill") end;
+        if not border then format(out,",hideTop,hideBottom,hideLeft,hideRight") end;
+        format(out,")~%");
+        format(out,"~VminWidth=100~%",Seq{indent});
+        format(out,"~VminHeight=50~%",Seq{indent});
+        if colour <> null
+        then format(out,"~VfillColor=\"~S,~S,~S\"~%",Seq{indent,colour->at(0),colour->at(1),colour->at(2)})
+        end;
+        @For display in contents do
+          self.writeXDiagSkelDisplay(out,indent + 2,display)
+        end;
+        format(out,"~Vend~%",Seq{indent})
+      end
+      
+      Seq{"Attribute",a} do
+        format(out,"~V@Text ~S(CENTRE) \"***\" end~%",Seq{indent,a.name()})
+      end
+      
+      Seq{"Ellipse",width,height,colour} do
+        format(out,"~V@Ellipse ellipse(ALIGN)~%",Seq{indent});
+        format(out,"~V  width=~S height = ~S~%",Seq{indent,width,height});
+        if colour <> null
+        then format(out,"~V  fillColor=\"~S,~S,~S\"~%",Seq{indent,colour->at(0),colour->at(1),colour->at(2)})
+        end;
+        format(out,"~Vend~%",Seq{indent})
+      end
+      
+    end
+    
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelEdgeTypes(out,edges)
+    @For edge in edges do
+      let class = edge->at(0) then
+          labels = edge->at(3); 
+          source = edge->at(1);
+          target = edge->at(2);
+          sourceHead = self.XDiagSkelEdgeHead("source",class.name()) then
+          targetHead = self.XDiagSkelEdgeHead("target",class.name()) then
+          lineStyle = self.XDiagSkelEdgeStyle(class.name())
+      in format(out,"    @EdgeType ~S ~S -> ~S~%",Seq{class.name(),source.underlyingType().name(),target.underlyingType().name()});
+         format(out,"      sourceHead = ~S~%",Seq{sourceHead});
+         format(out,"      targetHead = ~S~%",Seq{targetHead});
+         format(out,"      lineStyle = ~S~%",Seq{lineStyle});
+         format(out,"      @Label label(middle,10,10,readOnly) \"~S\" end~%",Seq{class.name()});
+         @For att in labels do
+           if att.type.inheritsFrom(XOCL::Exp)
+           then format(out,"      @Label ~S(middle,5,5,multiline) \"~S\" end~%",Seq{att.name(),att.name()})
+           else format(out,"      @Label ~S(middle,5,5) \"~S\" end~%",Seq{att.name(),att.name()})
+           end
+         end;
+         format(out,"      @Menu~%");
+         format(out,"        @MenuAction Delete self.delete() end~%");
+         format(out,"      end~%");
+         format(out,"    end~%") 
+      end
+    end
+  end
+  
+context Package
+
+  @Operation XDiagSkelEdgeHead(edgeEnd:String,name:String)
+    let headStyles = Seq{"noArrow","arrow","blackDiamond","whiteDiamond","blackArrow","whiteArrow"} then
+        style = xmf.select("Arrow","Choose style for " + edgeEnd + " of " + name,headStyles,null,null)
+    in if style = null
+       then throw CancelXDiagSkelDeploy()
+       else style
+       end
+    end
+  end
+  
+context Package
+
+  @Operation XDiagSkelEdgeStyle(name:String)
+    let lineStyles = Seq{"solidLine","dashLine","dottedLine","dashDottedLine","dashDotDotLine"} then
+        style = xmf.select("Line Style","Choose line style for " + name,lineStyles,null,null)
+    in if style = null
+       then throw CancelXDiagSkelDeploy()
+       else style
+       end
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelAttEdgeTypes(out,atts)
+    @For att in atts do
+      format(out,"    @EdgeType ~S ~S -> ~S~%",Seq{att.XDiagSkelName(),att.owner().name(),att.underlyingType().name()});
+      format(out,"      targetHead = arrow~%");
+      format(out,"      @Label label(middle,10,10,readOnly)~%");
+      format(out,"        \"~S\"~%",Seq{att.name()});
+      format(out,"      end~%");
+      format(out,"      @Menu~%");
+      format(out,"        @MenuAction Delete self.delete() end~%");
+      format(out,"      end~%");
+      format(out,"    end~%")
+    end
+  end
+  
+context Package
+ 
+  @Operation writeXDiagSkelToolBar(out,nodes,edges,atts)
+    let classes = nodes->collect(n | n->at(0))
+    in format(out,"    @ToolBar~%");
+       format(out,"      @ToolGroup Nodes~%");
+       @For class in classes do
+         format(out,"        @ToolButton ~S icon = \"XCore/Object.gif\" end~%",Seq{class.name()})
+       end;
+       format(out,"      end~%");
+       format(out,"      @ToolGroup Edges~%");
+       @For att in atts do
+         format(out,"        @ToolButton ~S isEdge icon = \"Tools/CurlEdge.gif\" end~%",Seq{att.XDiagSkelName()})
+       end;
+       @For edge in edges do
+         format(out,"        @ToolButton ~S isEdge icon = \"Tools/CurlEdge.gif\" end~%",Seq{edge->at(0).name()})
+       end;
+       format(out,"     end~%");
+       format(out,"   end~%")
+     end
+  end
+  
+context Package
+  
+  @Operation writeXDiagSkelTypeComment(out)
+    format(out,"// *** Guide to main diagram type elements ***~%");
+    format(out,"// -------------------------------------------~%");
+    format(out,"//~%");
+    format(out,"// @NodeType Name(hasport)~%");
+    format(out,"//   displays~%");
+    format(out,"//   menu~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"// @Box Name([VERTICAL|HORIZONTAL|OVERLAY],[ALIGN|LEFT|RIGHT|CENTRE],[nofill],[hideTop|hideBottom|hideLeft|hideRight]*)~%");
+    format(out,"//   [minHeight=N]~%");
+    format(out,"//   [minWidth=N]~%");
+    format(out,"//   [fillColor=\"r,g,b\"]~%");
+    format(out,"//   displays~%");
+    format(out,"//   menu~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"// @Text Name([ALIGN|LEFT|RIGHT|CENTRE],[underlne],[italics],[hasport],[readonly])~%");
+    format(out,"//   text~%");
+    format(out,"//   [padLeft=N]~%");
+    format(out,"//   [padRight=N]~%");
+    format(out,"//   [padTop=N]~%");
+    format(out,"//   [padBottom=N]~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"//  @Ellipse Name([ALIGN|LEFT|RIGHT|CENTRE],[noOutline],[nofill],[hasport])~%");
+    format(out,"//   [width=N]~%");
+    format(out,"//   [height=N]~%");
+    format(out,"//   [fillColor=\"r,g,b\"]~%");
+    format(out,"//   [padLeft=N]~%");
+    format(out,"//   [padRight=N]~%");
+    format(out,"//   [padTop=N]~%");
+    format(out,"//   [padBottom=N]~%");
+    format(out,"//  end~%");
+    format(out,"//~%");  
+    format(out,"// @Star Name~%");
+    format(out,"//   displays~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"// @Image Name([ALIGN|LEFT|RIGHT|CENTRE],[hasport])~%");
+    format(out,"//   file~%");
+    format(out,"//   [width=N]~%");
+    format(out,"//   [height=N]~%");
+    format(out,"//   [minHeight=N]~%");
+    format(out,"//   [minWidth=N]~%");
+    format(out,"//   [padLeft=N]~%");
+    format(out,"//   [padRight=N]~%");
+    format(out,"//   [padTop=N]~%");
+    format(out,"//   [padBottom=N]~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"// @EdgeType Name SourceName -> TargetName~%");
+    format(out,"//   [sourceHead = noArrow|arrow|blackDiamond|whiteDiamond|blackArrow|whiteArrow]~%");
+    format(out,"//   [targetHead = noArrow|arrow|blackDiamond|whiteDiamond|blackArrow|whiteArrow]~%");
+    format(out,"//   [lineStyle= solidLine|dashLine|dottedLine|dashDottedLine|dashDotDotLine]~%");
+    format(out,"//   labels~%");
+    format(out,"//   menu~%");
+    format(out,"// end~%");
+    format(out,"//~%");
+    format(out,"// @Label Name(end|start|middle,x,y,[readOnly],[underline],[multiline])~%");
+    format(out,"//   label~%");
+    format(out,"//   [truncate=N]~%");
+    format(out,"// end~%");
+    format(out,"//~%~%")
+    
+  end
+  
+context Attribute
+
+  @Operation XDiagSkelName():String
+  
+    // A name for an edge type for this attribute. Should
+    // be unique within the package.
+    
+    self.name() + "_" + self.owner().name() + "_To_" + self.underlyingType().name()
+    
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelElementManager(dir:String,root:Class,name:String,nodes,edges,atts,manifest:OrderedContainer)
+  
+    // Write an event handler for all the events that can occur on the diagram editor.
+    // Events include node and edge creation, and edge re-linking. Use the set of visited 
+    // classes to guide the event handler definitions...
+    
+    let dir = dir + "/ElementManager"
+    in if dir.mkDir()
+       then 
+         @WithOpenFile(out -> dir + "/ElementManager.xmf")
+           self.writeDiagramToolHeader(out);
+           format(out,"context ~S::~S~%",Seq{root.path(),name});
+           format(out,"  @ElementManager Manager ~%");
+           format(out,"  end~%");
+           manifest.add("ElementManager/ElementManager")
+         end;
+    
+         @For node in nodes do
+           self.writeXDiagSkelNodeHandlers(dir,root,name,node,manifest)
+         end;
+         
+         @For edge in edges do
+           self.writeXDiagSkelEdgeHandlers(dir,root,name,edge,manifest)
+         end;
+    
+         @For att in atts do
+           self.writeXDiagSkelAttHandlers(dir,root,name,att,manifest)
+         end
+    
+       else throw CancelXDiagSkelDeploy()
+       end
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelHandlerComment(out)
+    format(out,"// *** Guide to XTool Event Handlers ***~%");
+    format(out,"// -------------------------------------~%");
+    format(out,"//~%");
+    format(out,"// Each event handler has a name and an args list~%");
+    format(out,"// The name is a combination of the name of the type~%");
+    format(out,"// of the event and the name of the type of domain ~%");
+    format(out,"// element. In general the args list is empty.~%");
+    format(out,"// A handler is fired when an event that matches the~%");
+    format(out,"// name of the event is raised. The event is referenced~%");
+    format(out,"// as 'event' within the body of the handler. All events~%");
+    format(out,"// have an operation tool() that returns the tool raising~%");
+    format(out,"// the event and therefore the domain element is~%");
+    format(out,"// event.tool().element() and the diagram is event.tool().diagram()~%");
+    format(out,"// In general handlers are supplied with diagram elements~%");
+    format(out,"// and must map them to domain elements. The mapping is performed~%");
+    format(out,"// using the tool via the following operations:~%");
+    format(out,"//   event.tool().isRegistered(element):Boolean~%");
+    format(out,"//   event.tool().register(e1,e2)~%");
+    format(out,"//   event.tool().find(element)~%");
+    format(out,"//   event.tool().deregister(element)~%");
+    format(out,"// Specific types of event each support different operations~%");
+    format(out,"// that return values appropriate to the event. The following are~%");
+    format(out,"// typical paths as defined by the tool type:~%");
+    format(out,"//   NodeType~%");
+    format(out,"//   NodeType_name (name may involve several levels)~%");
+    format(out,"//   EdgeType~%");
+    format(out,"//   EdgeType_label~%");
+    format(out,"// Typical event types are:~%");
+    format(out,"//   New_NodeType~%");
+    format(out,"//     event.node():Node~%");
+    format(out,"//   New_EdgeType~%");
+    format(out,"//     event.edge():Edge~%");
+    format(out,"//     event.source():Node~%");
+    format(out,"//     event.target():Node~%");
+    format(out,"//   NodeType_Removed~%");
+    format(out,"//     event.node():Node~%");
+    format(out,"//   EdgeType_Removed~%");
+    format(out,"//     event.edge():Edge~%");
+    format(out,"//   NodeType_name_Changed~%");
+    format(out,"//     event.value():Display~%");
+    format(out,"//     event.root():Node~%");
+    format(out,"//     event.new():String~%");
+    format(out,"//     event.old():String~%");
+    format(out,"//   EdgeType_label_Changed~%");
+    format(out,"//     event.edge():Edge~%");
+    format(out,"//     event.new():String~%");
+    format(out,"//     event.old():String~%");
+    format(out,"//     event.source():Node~%");
+    format(out,"//     event.target():Node~%");
+    format(out,"//   NodeType_Clicked~%");
+    format(out,"//     event.node():Node~%");
+    format(out,"//     event.clicks():Integer~%");
+    format(out,"//   EdgeType_Clicked~%");
+    format(out,"//     event.node():Node~%");
+    format(out,"//     event.clicks():Integer~%");
+    format(out,"//   NodeType_Selected~%");
+    format(out,"//     event.value():Node~%");
+    format(out,"//     event.selected():Boolean~%");
+    format(out,"//   EdgeType_Selected~%");
+    format(out,"//     event.value():Edge~%");
+    format(out,"//     event.selected():Boolean~%");
+    format(out,"//   EdgeType_Source_Changed~%");
+    format(out,"//     event.edge():Edge~%");
+    format(out,"//     event.new():Node~%");
+    format(out,"//     event.old():Node~%");
+    format(out,"//   EdgeType_Target_Changed~%");
+    format(out,"//     event.edge():Edge~%");
+    format(out,"//     event.new():Node~%");
+    format(out,"//     event.old():Node~%");
+    format(out,"//~%")
+  end
+    
+context Package
+
+  @Operation writeXDiagSkelHandler(dir,class,name,handlerName,manifest)
+  
+    // Write a generic handler. Used when we want to write out a stub
+    // handler with no body...
+    
+    @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+      self.writeDiagramToolHeader(out);
+      self.writeXDiagSkelHandlerComment(out);
+      format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+      format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+      format(out,"    null~%");
+      format(out,"  end~%")
+    end;
+    manifest.add("ElementManager/" + handlerName)
+  end
+  
+

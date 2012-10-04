@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Parser
+
+  @Package Machine
+  
+    @Doc
+      This package defines the elements necessary to run the parsing
+      machine. Create an instance of the class State and then invoke
+      'run/0' or 'run/1' to parse the chars from an input channel.
+    end
+   
+  end

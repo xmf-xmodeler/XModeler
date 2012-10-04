@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+context Snapshot
+  @Operation deploySnapshotCode()
+    @Doc
+      This operation prompts for a target file and writes the
+      code out for a snapshot to the file.
+    end;
+    let file = xmf.saveFile(xmf.projDir(),"*.xmf",self.name);
+        name = self.name;
+        write = true
+    in if file <> "" then
+         if file.fileExists() then 
+           write := xmf.confirm(file + " exists. Overwite?")
+         end;
+         if write then
+           @Busy("Generating Snapshot Code")
+             @WithOpenFile(fout -> file)
+               self.deploySnapshot(fout)
+             end
+           end;
+           xmf.message("Snapshot Code Deployed in " + file)
+         end
+       end
+    end
+  end 
+
+
+context Snapshot
+
+  @Operation deploySnapshot(out)
+    @Doc 
+      Deploys a snapshot as code which can be 
+      loaded to reconstitute the snapshot
+    end;
+    format(out, "parserImport XOCL;~%~%",Seq{});
+    format(out, "context Root~%",Seq{});
+    self.deploySnapshotBody(out)
+  end
+  
+context Snapshot
+  @Operation deploySnapshotBody(out)
+    @Doc
+      Deploys the body of the snapshot as XOCL.
+      For each object in the snapshot its name
+      is set to be equal to the result of printing
+      out the names of the values of its slots.
+    end
+    format(out,"  @Snapshot ~S~%~%",Seq{name});
+    @For key in contents.keys() do
+      let obj = contents.get(key) then
+          names = obj.getStructuralFeatureNames() then
+          values = names->collect(n |
+            let value = obj.get(n) in
+              if value = null then 
+                n + " = " + "null"
+              elseif value.isKindOf(String) then
+                n + " = " + "\"" + obj.get(n) + "\""
+              elseif value.isKindOf(SetOfElement) then
+                n + " = Set{" + value->collect(v | 
+                  let c = contents.keys()->select(key | 
+                    contents.get(key) = v) in
+                    if c.isEmpty() then 
+                      ""
+                    else c->sel end end)->asSeq->reject(s | s="")->separateWith(",") + "}"
+              elseif value.isKindOf(SeqOfElement) then
+                n + " = Seq{" + value->collect(v | 
+                  let c = contents.keys()->select(key | 
+                    contents.get(key) = v) in
+                    if c.isEmpty() then 
+                      ""
+                    else c->sel end end)->asSeq->reject(s | s="")->separateWith(",") + "}"  
+              elseif value.of().isKindOf(DataType) then
+                n + " = " + obj.get(n)
+              elseif value.of().isKindOf(Class) and self.contents()->includes(value) then
+                n + " = " + contents.keys()->select(key | 
+                    contents.get(key) = value)->sel 
+              else ""
+              end
+            end)->excluding("")->asSeq->separateWith(";\n                  ") in 
+                format(out,"    ~S = ~S[~%                  ~S ]~%",Seq{key,obj.of().path(),values})
+      end
+    end; 
+    format(out,"~%  end",Seq{})
+  end

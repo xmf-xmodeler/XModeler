@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class Allocate extends Instr
+  
+    @Attribute size : Integer end
+    
+    @Constructor(size) ! end
+  
+  end

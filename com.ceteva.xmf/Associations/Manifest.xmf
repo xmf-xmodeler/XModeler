@@ -1,0 +1,21 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Associations
+  @File Associations   end
+  @File Multiplicity   end
+  @File Star           end
+  @File Mandatory      end
+  @File MandatoryOne   end
+  @File One            end
+  @File Opt            end
+  @File Range          end
+  @File End            end
+  @File EndDef         end
+  @File Association    end
+  @File AssociationDef end
+  @File PackageOps     end
+do Project(Associations,dir,self)
+end;

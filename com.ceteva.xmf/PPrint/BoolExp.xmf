@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler BoolExp in PPrint(aBoolExp,out,seen)
+  format(out,"~S",Seq{aBoolExp.value})
+end;

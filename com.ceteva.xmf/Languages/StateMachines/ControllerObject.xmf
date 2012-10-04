@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import Languages;
+import StateMachines;
+
+context StateMachines
+
+  @Class ControllerObject extends Object
+  
+    @Attribute machines : Seq(StateMachinableObject) end
+    
+    @Operation reset()
+      @For machine in machines do
+        machine.reset()
+      end
+    end
+
+    @Operation run()
+      self.reset();
+      let finish = false in
+        @While not finish do
+          self.updateQueues();
+          @For machine in machines do
+            machine.fireTransition()
+          end;
+          finish := not xmf.question("Go again?")
+        end
+      end
+    end
+    
+    @Operation updateQueues()
+      @For machine in machines do
+        @While not machine.outputQueue.isEmpty() do
+          let message = machine.outputQueue.pop() in
+            message.target.inputQueue.push(message)
+          end
+        end
+      end
+    end
+
+    @Operation runClocked()
+      self.reset();
+      let
+        updatesString = xmf.input("Enter number of events","How many controller events?","100")
+      then
+        delayString = xmf.input("Enter delay","Please enter a delay between events.","10")
+      then
+        if updatesString <> null andthen delayString <> null
+        then
+          let
+            updates = updatesString->asInt;
+            delay = delayString->asInt*10000
+          in
+            @Count u from 0 to updates do
+              self.updateQueues();
+              @For machine in machines do
+                machine.fireTransition()
+              end;
+              @Count t from 0 to delay do true end
+            end
+          end
+        end
+      end;
+      xmf.message("State machine execution complete.")
+    end
+
+  end

@@ -1,0 +1,251 @@
+parserImport Walkers;
+parserImport XOCL;
+parserImport XMap;
+
+import OCL;
+import Walkers;
+import Clients;
+import Diagrams;
+import Tools;
+
+context Tools
+
+  @Class Tool extends NamedElement
+  
+    @Doc
+      A tool is a combination of a diagram, an element and a tool type. The tool type
+      is defined to be the (meta) class of the tool. Tools are instantiated with a
+      name and an element. The result of instantiating a tool is a diagram that
+      can be edited to manage the underlying element contained in the tool. The
+      tool type defines how the edits are interpreted with respect to the unerlying
+      tool element. Generally, edits to the tool cause events to be generated that
+      are handled by event handlers in the tool type.
+    end
+  
+    @Attribute diagram      : Diagram                end
+    @Attribute debug        : Boolean = false        end
+    @Attribute element      : Element                end
+    @Attribute objects      : Seq(ToolObject)  (+,-) end
+    @Attribute associations : Seq(Association) (+,-) end
+    @Attribute handleEvents : Boolean = true   (!,?) end
+  
+    @Constructor(name,element) !
+      self.setName(name);
+      self.setHotLoad(true)
+    end
+    
+    @Operation associate(model,object)
+      if debug
+      then format(stdout,"ASSOCIATE model = ~S object = ~S~%",Seq{model,object})
+      end;
+      self.addToAssociations(Association(model,object))
+    end
+    
+    @Operation associatedModel(object)
+      let association = self.objectAssociation(object)
+      in if debug
+         then format(stdout,"ASSOCIATED MODEL object = ~S association = ~S~%",Seq{object,association})
+         end;
+         if association = null
+         then self.error("Cannot find model associated with " + object.toString())
+         else association.model
+         end
+      end
+    end
+    
+    @Operation associatedObject(model)
+      let association = self.modelAssociation(model)
+      in if debug
+         then format(stdout,"ASSOCIATED OBJECT model = ~S association = ~S~%",Seq{model,association})
+         end;
+         if association = null
+         then self.error("Cannot find object associated with " + model.toString())
+         else association.object
+         end
+      end
+    end
+    
+    @Operation disassociateModel(model)
+      self.deleteFromAssociations(self.modelAssociation(model))
+    end
+    
+    @Operation disassociateObject(object)
+      self.deleteFromAssociations(self.objectAssociation(object))
+    end
+    
+    @Operation edgeDeleted(edge)
+    
+      // The edge has been deleted. This may occur before or after the object
+      // associated with the edge has been deleted from the diagram. Check
+      // before firing the delete event that the edge object exists.
+      
+      let object = self.objectFor(edge)
+      in if object <> null
+         then
+           self.raise("Delete(" + object.type.name + ")",object);
+           self.deleteFromObjects(object);
+           self.removeAssociations(object)
+         end
+      end
+    end
+    
+    @Operation hotLoaded()
+      if diagram <> null
+      then
+        self.renewDiagram()
+      end;
+      @Handler self.of() in Lift(o,arg,encountered)
+         [| self.error("Cannot lift a meta-tool") |]
+      end
+    end
+    
+    @Operation labelString()
+      self.toString()
+    end
+    
+    @Operation modelAssociation(model)
+      @Find(association,associations)
+        when association.model = model
+        else null
+      end
+    end
+    
+    @Operation newEdge(typeName,sourcePort,targetPort)
+      let type = self.of().getEdgeType(typeName)
+      in if type = null
+         then self.error("Cannot find edge type " + typeName)
+         else type.new(self,diagram,sourcePort,targetPort)
+         end
+      end
+    end
+    
+    @Operation newNode(typeName,x,y)
+      let type = self.of().getNodeType(typeName)
+      in if type = null
+         then self.error("Cannot find node type " + typeName)
+         else type.new(self,diagram,x,y,50,50)
+         end
+      end
+    end
+    
+    @Operation newDiagram()
+      let this = self
+      in self.diagram := Diagram(self.of().name);
+         @SlotValueChanged - ! edgeRemoved(diagram.graph,"edges",edge)
+           this.edgeDeleted(edge)
+         end;
+         @Find(client,xmf.clientManager().clients)
+           when client.of() = Diagrams::DiagramClient
+           do client.add(diagram);
+              diagram.new();
+              self.of().toolBar.new(self);
+              self.of().menuType.new(ToolObject(self.of(),self.diagram),self)
+           else self.error("Cannot find a basic diagram client.")
+         end
+      end
+    end
+      
+    @Operation objectAssociation(object)
+      @Find(association,associations)
+        when association.object = object
+        else null
+      end
+    end
+    
+    @Operation objectFor(element)
+      @Find(object,objects)
+        when object.element = element
+        else null
+      end
+    end
+    
+    @Operation raise(eventName . data)
+      if handleEvents
+      then 
+        if debug
+        then format(stdout,"RAISE ~S(~S)~%",Seq{eventName,data})
+        end;
+        self.of().raise(eventName,data,self)
+      end
+    end
+    
+    @Operation removeAssociations(object)
+      @Find(association,associations)
+        when association.object = object
+        do self.deleteFromAssociations(association)
+      end;
+      @For slot in object.slots do
+        let value = slot.value()
+        in if value.isKindOf(ToolObject)
+           then self.removeAssociations(value)
+           else 
+             @For v in value do
+               self.removeAssociations(v)
+             end
+           end
+        end
+      end
+    end   
+    
+    @Operation removeNodeObject(object)
+      self.raise("Delete(" + object.type.name + ")",object);
+      self.deleteFromObjects(object);
+      object.element.delete();
+      self.removeAssociations(object)
+    end
+    
+    @Operation removeEdgeObject(object)
+      self.raise("Delete(" + object.type.name + ")",object);
+      self.deleteFromObjects(object);
+      object.element.delete();
+      self.removeAssociations(object)
+    end
+    
+    @Operation removeObject(object)
+      if objects->includes(object)
+      then
+        if object.element.isKindOf(Node)
+        then self.removeNodeObject(object)
+        elseif object.element.isKindOf(Edge)
+        then self.removeEdgeObject(object)
+        else 
+          @For object in object.elements() do
+             self.removeObject(object)
+          end;
+          object.element.delete();
+          self.deleteFromObjects(object)
+        end
+      end
+    end
+    
+    @Operation renewDiagram()
+      @Find(client,xmf.clientManager().clients)
+        when client.of() = Diagrams::DiagramClient
+        do client.renewDiagram(diagram)
+        else self.error("Cannot find a basic diagram client.")
+      end;
+      self.of().toolBar.new(self)
+    end
+    
+    @Operation rootFor(object)
+      @Find(root,objects)
+        when root = object or
+             root.containsObject(object)
+        else null
+      end
+    end
+    
+    @Operation showDiagram()
+      @Find(client,xmf.clientManager().clients)
+        when client.of() = Diagrams::DiagramClient
+        do if diagram = null
+           then self.newDiagram()
+           elseif not diagram.isOpen
+           then self.renewDiagram()
+           end;
+           client.showDiagram(diagram)
+        else self.error("Cannot find a basic diagram client.")
+      end
+    end
+    
+  end

@@ -1,0 +1,20 @@
+parserImport Manifests;
+
+@Manifest Types
+
+  Types = 
+    @File Types           end
+    @Ref DisplayTypes     end
+    @File ToolButton      end
+    @File ToolGroup       end
+    @File ToolBar         end
+    @File Label           end
+    @File LabelExp        end
+    @File NodeType        end
+    @File AbstractEdgeType        end
+    @File EdgeType        end
+    @File IntelliLinkType end
+    @File AllEdgesIntelliLinkType end
+    @File ToolType        end
+do Tools
+end;

@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile("Database/Boot",true,true);
+compileFile("Database/Database",true,true);
+compileFile("Database/Query/Makefile",true,true);
+compileFile("Database/Interfaces/Makefile",true,true);
+compileFile("Database/SQLDatabase/Makefile",true,true);
+(xmf.homeDir() + "/Database/Query/Makefile.o").loadBin(false);
+(xmf.homeDir() + "/Database/Interfaces/Makefile.o").loadBin(false);
+(xmf.homeDir() + "/Database/SQLDatabase/Makefile.o").loadBin(false);

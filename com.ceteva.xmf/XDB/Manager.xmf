@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+context Evaluator
+
+  @ElementManager XDBManager
+    
+  end
+    

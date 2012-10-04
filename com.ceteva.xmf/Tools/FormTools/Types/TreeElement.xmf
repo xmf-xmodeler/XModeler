@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Tools::FormTools::Types
+
+  @Class TreeElement isabstract extends NamedElement
+  
+    @Doc
+      A component of a tree in a browser.
+    end
+    
+    @Operation bind(env)
+      env.bind(name.toString(),self)
+    end
+    
+  end

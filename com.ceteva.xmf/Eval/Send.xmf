@@ -1,0 +1,6 @@
+import OCL;
+
+context Send
+  @Operation eval(element,env,imports)
+    target.eval(element,env,imports).send(message,args->collect(arg | arg.eval(element,env,imports)))
+  end

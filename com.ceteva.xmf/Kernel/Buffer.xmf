@@ -1,0 +1,225 @@
+parserImport XOCL;
+
+// A buffer is an indexed collection of elements that expands to contain the
+// elements as they are added. A string buffer is a special type of buffer
+// that behaves as though it is a string. Buffers are useful because they can
+// be reset so that their storage is reused.
+
+// A buffer has a LENGTH and a SIZE. The length of a buffer is the total
+// amount of storage it has available. The size of a buffer is the number
+// of elements in the length that are currently used.
+
+// A buffer is used in exactly the same way as a vector. Its elements are
+// indexed. If an element outside the size of the buffer is indexed then this
+// is an error. If an element is added outside the size of the buffer then
+// the buffer is expanded to contains the element, extending the storage if 
+// necessary.
+
+context Buffer
+  @Operation add(element)
+    @Doc 
+      Add the element at the next available index.
+    end
+    Kernel_arraySet(self,self->size,element)
+  end
+  
+context Buffer
+  @Operation append(elements)
+    @Doc 
+      Appen-d a sequence of elements. The argument
+      should be a sequence, buffer, vector or string.
+      The elements in the argument are added to the
+      receiver in order.
+    end
+    @Count i from 0 to elements->size do
+      self.add(elements->at(i))
+    end;
+    self
+  end
+
+context Buffer
+  @Operation asSeq():Seq(Element)
+    @Doc
+      Converts a buffer into a sequence.
+    end
+    let i = self.size() - 1;
+        seq = Seq{}
+    in @While i >= 0 do
+          seq := Seq{self.ref(i) | seq};
+          i := i - 1
+        end;
+        seq
+    end
+  end
+
+context Buffer
+  @Operation asString():Boolean
+    @Doc
+      Returns true when the buffer is treated as a string.
+    end
+    Kernel_bufferAsString(self)
+  end
+  
+context Buffer
+  @Operation at(index:Integer):Element
+    self->at(index)
+  end
+  
+context Buffer
+  @Operation contains(element):Boolean
+    let i = 0;
+        contains = false
+    in @While i < self->size and not contains do
+         contains := self->at(i) = element;
+         i := i + 1
+       end;
+       contains
+    end
+  end
+  
+context Buffer
+  @Operation daemons():Seq(Daemon)
+    @Doc
+      Returns the daemons that are monitoring the buffer.
+    end
+    Kernel_bufferDaemons(self)
+  end
+  
+context Buffer
+  @Operation daemonsActive():Seq(Daemon)
+    @Doc
+      Returns whether or not daemons dire then the buffer is updated.
+    end
+    Kernel_bufferDaemonsActive(self)
+  end
+  
+context Buffer
+  @Operation hasSuffix(s:Seq(Element)):Boolean
+    // Arg might be a string...
+    if self->size < s->size
+    then false
+    else 
+      let i = self->size - s->size;
+          j = 0;
+          same = true
+      in @While same and i < self->size do
+           if self->at(i) = s->at(j)
+           then i := i + 1; j := j + 1
+           else same := false
+           end
+         end;
+         same
+      end
+    end
+  end
+
+context Buffer
+  @Operation increment():Integer
+    @Doc
+      The amount of storage that the buffer grows by each time
+      it is expanded.
+    end
+    Kernel_bufferIncrement(self)
+  end
+
+context Buffer
+  @Operation init(args:Seq(Element))
+    let increment = args->at(0);
+        asString = args->at(1) then
+        buffer = Kernel_mkBuffer(increment)
+    in Kernel_bufferSetAsString(buffer,asString);
+       buffer
+    end
+  end
+  
+context Buffer
+  @Operation ref(index)
+    @Doc
+      Returns the value at position index in a buffer.
+    end
+    if self.size() > index
+    then Kernel_arrayRef(self,index)
+    else throw IndexOutOfBounds(self,index)
+    end
+  end
+  
+context Buffer
+  @Operation put(index,value)
+    @Doc
+      Put the element value into a buffer at position index.
+    end
+    Kernel_arraySet(self,index,value)
+  end
+  
+context Buffer
+  @Operation setSize(size:Integer)
+    @Doc
+      Sets the size of the buffer providing that size
+      is smaller than the current contents.
+    end
+    if size <= self.size()
+    then Kernel_bufferSetSize(self,size)
+    else self.error("Cannot use setSize to extend a buffer.")
+    end
+  end
+  
+context Buffer
+  @Operation size():Integer
+    @Doc
+      The number of elements currently in the buffer.
+    end
+    Kernel_bufferSize(self)
+  end
+  
+context Buffer
+  @Operation storage():Seq(Vector)
+    @Doc
+      Returns the sequence of vectors used as the underlying
+      storage for the buffer.
+    end
+    Kernel_bufferStorage(self)
+  end
+  
+context Buffer
+  @Operation stringEqual(string:String):Boolean
+    @Doc
+      Returns true when the supplied string contains the same chars
+      as the buffer.
+    end
+    if string->size = self->size
+    then 
+      let index = 0;
+          same = true
+      in @While index < string->size and same do
+           if string->at(index) <> self->at(index)
+           then same := false
+           else index := index + 1
+           end
+         end;
+         same
+      end
+    else false
+    end
+  end
+  
+context Buffer
+  @Operation subString(firstChar:String,pastLastChar:String):String
+    @Doc
+      Uses indices to chop up a string. The first
+      index is the starting character and the second index is 
+      1+ the final character.
+    end
+    let s = Buffer(100,true)
+    in @While firstChar < pastLastChar and firstChar < self.size() do
+         s.add(self->at(firstChar));
+         firstChar := firstChar + 1
+       end;
+       s.toString()
+    end
+  end
+  
+context Buffer
+  @Operation toString():String
+    Kernel_asString(self)
+  end
+        

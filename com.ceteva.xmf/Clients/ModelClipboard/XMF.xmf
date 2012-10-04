@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provide the model
+// clipboard property and associated helper operations.
+
+let clipboard = Clients::ModelClipboard::Clipboard() in
+  xmf.setProperty("clipboard",clipboard)
+end;
+
+context XMF
+  @Operation clipboard()
+    self.property("clipboard")
+  end

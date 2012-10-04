@@ -1,0 +1,21 @@
+parserImport Manifests;
+
+// Manifest deployed by Tony on Thu Jun 15 21:11:37 BST 2006
+ 
+@Manifest Documents
+  p = @File Documents end
+  @File Break end
+  @File ElementRef end
+  @File DocObject end
+  @File Text end
+  @File Section end
+  @File DocumentElement end
+  @File Document end
+  //@File Forward end
+  @File Definition end
+  //@File Backward end
+  @File Diagram end
+  @File Style end
+  @Ref Interface end
+do p.init()
+end;

@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Opt extends Recognizer
+  
+    @Attribute base : Recognizer end
+    
+    @Constructor(base) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      Or(base,Empty()).CNF(grammar,BV,handler)
+    end
+
+    @Operation FV():Set(String)
+      base.FV()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"[");
+      base.pprint(out,indent);
+      format(out,"]")
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      base.setLocals(locals,next)
+    end
+    
+    @Operation terminals():Set(String)
+      base.terminals()
+    end
+   
+  end

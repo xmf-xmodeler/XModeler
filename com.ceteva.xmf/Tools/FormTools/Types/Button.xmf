@@ -1,0 +1,58 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Tools::FormTools::Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Button extends FormElement
+
+  @Attribute action : Operation   (?,!) end
+  @Attribute label  : String      (?,!) end
+  
+  @Constructor(name,action,label) ! 
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+  
+    Button ::= name = EName patts = PosAtts natts = NamedAtts 'do' action = Exp defs = Exp* {
+    
+      [| let buttonType = <defs->iterate(t e = [| Tools::FormTools::Types::Button(<name>) |] | [| <e>.add(<t>) |])>
+         in buttonType.setAction(@Operation(tool) <action> end);
+            buttonType.setLabel(<name>);
+            buttonType.setMinWidth(<OCL::IntExp(FormElement::lookup(natts,"minWidth",0))>);
+            buttonType.setMaxWidth(<OCL::IntExp(FormElement::lookup(natts,"maxWidth",9999))>);
+            buttonType.setMinHeight(<OCL::IntExp(FormElement::lookup(natts,"minHeight",0))>);
+            buttonType.setMaxHeight(<OCL::IntExp(FormElement::lookup(natts,"maxHeight",9999))>);
+            buttonType.setPadLeft(<OCL::IntExp(FormElement::lookup(natts,"padLeft",0))>);
+            buttonType.setPadRight(<OCL::IntExp(FormElement::lookup(natts,"padRight",0))>);
+            buttonType.setPadTop(<OCL::IntExp(FormElement::lookup(natts,"padTop",0))>);
+            buttonType.setPadBottom(<OCL::IntExp(FormElement::lookup(natts,"padBottom",0))>);
+            buttonType.setLayout(<OCL::StrExp(FormElement::filterLayout(patts))>);
+            buttonType
+         end
+      |]
+    }.
+    
+  end
+  
+  @Operation new(parent,path,env,tool)
+  
+    // Create the button on the form and return it. This will
+    // not new the button because the parent may not have been
+    // newed.
+    
+    let button = Forms::Button(label,parent,Seq{tool},action)
+    in button.setType(self);
+       parent.add(button);
+       menu.setGlobalMenu(button,button,tool,path + Seq{name.toString()},Set{self,tool});
+       button
+    end
+  end
+  
+end

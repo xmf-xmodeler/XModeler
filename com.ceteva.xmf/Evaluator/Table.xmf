@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Table in Eval(aTable,arg,seen)
+  if seen
+  then aTable
+  else
+ aTable
+  end
+end;

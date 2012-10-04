@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<chapter>
+  <title>Generating Code</title>
+
+  <para>XMF-Mosaic provides a number of off the shelf routes for generating
+  code from models. These are available off the right click Deploy menu on a
+  package.</para>
+
+  <mediaobject>
+    <imageobject>
+      <imagedata fileref="Images/deploycode.jpg" />
+    </imageobject>
+  </mediaobject>
+
+  <section>
+    <title>Generating Java</title>
+
+    <para>Selecting Java from the deployment menu will generate a new
+    directory containing a Java implementation of the classes belonging to the
+    package. This will contain mappings of Class attributes to Java
+    attributes, and accessors and updaters for populating instances. In
+    addition, an operation for serialising the model in XML is also
+    generated.</para>
+
+    <programlisting>package Airports;
+
+public class Airline {
+
+ // Attributes...
+
+  private java.util.Vector routes;
+  private String name;
+
+ // Accessors...
+
+  public java.util.Vector routes() { return routes; }
+  public String name(){ return name; }
+
+ // Updaters...
+
+  public void setRoutes(java.util.Vector value) { this.routes = value; }
+  public void setName(String value){ this.name = value; }
+
+ // Display...
+
+  public String toString() {
+    String s = "Airline[";
+    s = s + "name=" + name();
+    return s + "]";
+  }
+
+// XML Serialization...
+
+  public void writeXML(java.io.PrintStream out,java.util.Hashtable idTable) {
+    if(idTable.containsKey(this))
+      out.print("&lt;Ref id='" + idTable.get(this) + "'/&gt;");
+    else {
+      String id = Integer.toHexString(this.hashCode()).toUpperCase();
+      out.print("&lt;Airline id='" + id + "'");
+      out.print(" name='S:" + this.name + "'");
+      out.print("&gt;");
+      out.print("&lt;Slot name='routes'&gt;");
+      out.print("&lt;Set&gt;");
+      for(int i = 0; i &lt; routes.size(); i++) {
+         Route o = (Route)routes.elementAt(i);
+         o.writeXML(out,idTable);
+      }
+      out.print("&lt;/Set&gt;");
+      out.print("&lt;/Slot&gt;");
+      out.print("&lt;/Airline&gt;");
+    }
+  }
+}</programlisting>
+  </section>
+</chapter>

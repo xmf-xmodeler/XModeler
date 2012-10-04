@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Order in PPrint(aOrder,out,seen)
+  self.mark(
+    @Operation()
+      self.dispatch(aOrder.first,out);
+      format(out,";");
+      self.newLine();
+      self.dispatch(aOrder.second,out)
+    end)
+end;

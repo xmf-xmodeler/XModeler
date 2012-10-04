@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Tools;
+
+context Tools
+
+  @Class EdgeType extends ToolComponentType
+  
+    @Attribute name       : String                      (!)   end
+    @Attribute source     : NodeType                    (!)   end
+    @Attribute target     : NodeType                    (!)   end
+    @Attribute sourceHead : Integer                           end
+    @Attribute targetHead : Integer                           end
+    @Attribute lineStyle  : Integer  = Line::solidLine        end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,source,target) end
+    
+    @Constructor(name,source,target,sourceHead,targetHead) end
+    
+    @Constructor(name,source,target,sourceHead,targetHead,lineStyle) end
+    
+    @Operation new(tool,diagram,sourcePort,targetPort)
+      let sourceNode = sourcePort.owner();
+          targetNode = targetPort.owner() then
+          sourceObject = tool.objectFor(sourceNode);
+          targetObject = tool.objectFor(targetNode)
+      in if sourceObject.toolIsKindOf(source) and targetObject.toolIsKindOf(target)
+         then
+           let edge = Edge(sourcePort,targetPort,sourceHead,targetHead) then
+               object = EdgeObject(self,edge,sourceObject,targetObject)
+           in tool.addToObjects(object);
+              diagram.add(edge);
+              edge.lineStyle := lineStyle;
+              edge.new(diagram);
+              menuType.new(object,tool);
+              @For attribute in attributes do
+                @TypeCase(attribute.type)
+                  LabelType do
+                    let name = name + "::" + attribute.name then
+                        labelObject = attribute.type.new(tool,diagram,edge,name)
+                    in object.addToSlots(SingletonSlot(attribute,labelObject))
+                    end
+                  end
+                  ExpType do
+                    let text = attribute.type.text;
+                        name = name + "::" + attribute.name;
+                        relx = 10;
+                        rely = 10 then
+                        labelObject = ExpLabelType(text,"middle",relx,rely,true).new(tool,diagram,edge,name)
+                    in object.addToSlots(SingletonSlot(attribute,labelObject))
+                    end
+                  end
+                end
+              end;
+              tool.raise("New(" + name + ")",object,sourceObject,targetObject,tool);
+              object
+           end
+         else format(stdout,"Cannot create edge type ~S not of type ~S or ~S not of type ~S~%",Seq{sourceObject,source,targetObject,target})
+         end
+      end
+    end
+    
+  end

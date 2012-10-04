@@ -1,0 +1,59 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+
+context XOCL
+
+  @Class WithoutSourcePos extends Performable
+  
+    @Doc
+      Turns off source position recording for the duration of the
+      body of the construct. Source positions are maintained by
+      emitted instructions into the executable. This can slow down
+      code that must be highly efficient.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      WithoutSourcePos ::= body = Exp { WithoutSourcePos(body) }.
+      
+    end 
+    
+    @Attribute body : Performable end
+    
+    @Constructor(body) ! end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      let sourcePos = Compiler::sourcePos
+      in try
+           Compiler::sourcePos := false;
+           let instrs = body.compile(env,frame,isLast,saveSource)
+           in Compiler::sourcePos := sourcePos;
+              instrs
+           end
+         catch(exception)
+           Compiler::sourcePos := sourcePos
+         end
+      end
+    end
+    
+    @Operation eval(target,env,imports)
+      body.eval(target,env,imports)
+    end
+   
+    @Operation FV():Set(String)
+      body.FV()
+    end
+    
+    @Operation maxLocals():Integer
+      body.maxLocals()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@WithoutSourcePos~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",seq{indent})
+    end
+    
+  end

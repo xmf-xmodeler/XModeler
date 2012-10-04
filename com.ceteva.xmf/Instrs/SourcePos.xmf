@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SourcePos extends Instr
+  
+    @Attribute lineCount : Integer end
+    @Attribute charCount : Integer end
+    
+    @Constructor(lineCount,charCount) end
+    
+    @Operation toString():String
+      "<SourcePos " + lineCount + "," + charCount + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      lineCount.lsh(8) or charCount
+    end 
+    
+  end      

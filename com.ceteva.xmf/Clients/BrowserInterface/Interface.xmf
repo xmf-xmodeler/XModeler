@@ -1,0 +1,81 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import XOCL;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Interface extends SyntaxConstant
+  
+    @Attribute children : Seq(Child) (+,?) end
+    @Attribute childSortMode : ChildSortMode end
+    @Attribute inheritChildren : Boolean = true (?) end
+    @Attribute image : Image end
+    @Attribute label : Label end
+    @Attribute menuRoot : MenuRoot end
+    @Attribute menus : Seq(Menu) (+) end
+    
+    @Constructor() ! end
+    
+    @Grammar extends OCL::OCL.grammar import BrowserInterface
+    
+      Interface ::= es = (Exp : InterfaceElement)* { es->iterate(e i = Interface() | i.add(e)) }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Child do
+          self.addToChildren(element)
+        end
+        ChildSortMode do
+          self.childSortMode := element
+        end
+        InheritChildren do
+          self.inheritChildren := element.inherits
+        end
+        Image do
+          self.image := element
+        end
+        Label do
+          self.label := element
+        end
+        MenuRoot do
+          self.menuRoot := element
+        end        
+        Menu do
+          self.addToMenus(element)
+        end
+      end
+    end
+    
+    @Operation getChildrenFor(object)
+      let C = Seq{}
+      in @For child in children do
+           C := C + child.getChildrenFor(object)
+         end;
+         C
+      end
+    end
+    
+    @Operation register(class:Class)
+      if self.image <> null
+      then image.register(class)
+      end;
+      if self.label <> null
+      then label.register(class)
+      end;    
+      if self.menuRoot <> null
+      then menuRoot.register(class)
+      end;
+      if self.childSortMode <> null
+      then childSortMode.register(class)
+      end;
+      @For menu in self.menus do
+        menu.register(class)
+      end
+    end
+    
+  end

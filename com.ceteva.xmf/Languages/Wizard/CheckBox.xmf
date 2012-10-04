@@ -1,0 +1,30 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class CheckBox extends Layout
+  
+    @Attribute id          : String end
+    @Attribute text        : String end
+    @Attribute value       : String end
+    @Attribute isReadOnly  : Boolean end
+    @Attribute tooltip     : String end
+    @Attribute givesReport : Boolean end
+    
+    @Constructor(id,text,value,isReadOnly,tooltip,givesReport,x,y,width,height) end
+    
+    @ToXML(CHECKBOX)[Id=id,Text=text,Value=value,Is_Readonly = isReadOnly,Tooltip=tooltip,Gives_Report = givesReport,X_Position = x,Y_Position = y,X_Size = width,Y_Size = height]
+    end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end 
+     
+  end

@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Instrs;
+import OCL;
+
+context Path
+  @Operation FV():Set(String)
+    root.FV()
+  end
+  
+context Path
+  @Operation maxLocals():Integer
+    root.maxLocals()
+  end
+  
+context Path
+  @Operation compile(env,frame,isLast,saveSource)
+    //names->iterate(name exp = root | [| <exp>.getElement(<StrExp(name)>) |]).compile(env,frame,isLast,saveSource)
+    let instrs = root.compile(env,frame,isLast,saveSource)
+    in names->iterate(name instrs = instrs |
+         instrs + Seq{GetElement(Symbol(name.toString()))})
+    end
+  end
+  
+context Path
+  @Operation lift()
+    let nameExps = names->collect(n | if n.isKindOf(Drop) then n.lift() else StrExp(n) end)
+    in Apply(self.typeExp(),Seq{root.lift(),SetExp("Seq",nameExps)})
+    end
+  end

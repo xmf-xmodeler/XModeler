@@ -1,0 +1,15 @@
+("Test/ImportDef.o").loadBin(true);
+("Test/ImportUse.o").loadBin(true);
+
+"I should not be able to reference C directly from this file".println();
+"however, if we invoke Root::Q::test() then we should get a C.".println(); 
+"Class C available here = " + Kernel_hasVar("C").println();
+Root::Q::test().toString().println();
+
+format(stdout,"Imports can be performed in a local scope. You should~%");
+format(stdout,"see an instance of an environment binding printed with no errors.~%");
+
+import Env
+in format(stdout,"~S~%",Seq{Binding("x",100)})
+end;
+ 

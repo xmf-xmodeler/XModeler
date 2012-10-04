@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import TextEditor;
+
+context TextEditor
+
+  @Class HTMLFileViewer extends HTMLViewer, FileEditor
+  
+    @Attribute editable : Boolean end
+  
+    @Constructor(file,name,tooltip,editable)
+      self.init(Seq{file});
+      self.url := file.fullPath()
+    end
+    
+    @Operation close()
+      super();
+      self.closeEvent()
+    end
+  
+  end

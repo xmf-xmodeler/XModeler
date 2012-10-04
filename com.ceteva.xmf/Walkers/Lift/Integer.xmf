@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Integer in Lift(i,arg,encountered)
+  IntExp(i)
+end; 
+
+context XCore::Integer
+  @Operation lift():Performable
+    IntExp(self)
+  end

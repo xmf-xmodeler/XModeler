@@ -1,0 +1,23 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler If in TypeChecker(exp,env,encountered)
+   let bType = self.dispatch(exp.test,env)
+   in if bType.type() = Boolean
+      then 
+        let tType = self.dispatch(exp.get("then"),env);
+            eType = self.dispatch(exp.get("else"),env)
+        in if tType.type().inheritsFrom(eType)
+           then TypeCheckExp(exp,eType.type(),Seq{bType,tType,eType})
+           elseif eType.type().inheritsFrom(tType.type())
+           then TypeCheckExp(exp,tType.type(),Seq{bType,tType,eType})
+           else TypeCheckFails("then/else type mismatch",TypeCheckExp(exp,Element,Seq{bType,tType,eType}))
+           end
+        end
+      else TypeCheckFails("if expects a boolean",TypeCheckExp(exp,Element,Seq{bType}))
+      end
+   end
+end;

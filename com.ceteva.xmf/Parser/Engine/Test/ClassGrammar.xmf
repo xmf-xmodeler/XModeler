@@ -1,0 +1,33 @@
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Class
+
+  @Grammar extends O
+  
+    Class ::= 
+      name = AName 
+      metaClass = OptMetaClass 
+      isAbstract = IsAbstract 
+      parents = Parents 
+      defs = Defs
+      'end'
+      { Class(name,metaClass,isAbstract,parents,defs) }.
+      
+    Defs ::= Exp* | '<*' e = Exp '*>' { Drop(e) } | '<*|' p = Pattern '|*>' { DropPattern(p) }.
+      
+    OptMetaClass ::= 'metaclass' Exp | { [| XCore::Class |] }.
+      
+    IsAbstract ::= 'isabstract' { true } | { false }.
+    
+    Parents ::= 
+      'extends' parent = Exp 
+      parents = (',' Exp)* 
+      { Seq{ parent | parents } } 
+      | 
+      { Seq{} }.
+    
+  end
+  

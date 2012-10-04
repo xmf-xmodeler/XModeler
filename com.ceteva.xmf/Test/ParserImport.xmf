@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+context Root
+  @Operation test()
+    parserImport XMap in
+      @SlotValueChanged test2(Object,"name") end
+    end
+  end
+  
+context Root @Operation test2(o,s,n,o) "Hooray".println() end

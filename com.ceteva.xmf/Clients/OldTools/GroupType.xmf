@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class GroupType extends DisplayType, Instantiable, Formatted
+  
+    @Operation new(tool,parent,x,y,width,height,name)
+      let object = ToolObject(self,Group(x,y,width,height))
+      in parent.add(object.element);
+         object.element.new(parent);
+         @For a in attributes do
+           a.new(object,tool,parent,x,y,width,height,name)
+         end;
+         object
+      end
+    end
+    
+  end

@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Diagrams;
+import ClassDiagrams;
+import ClassMapping;
+import MappingDiagrams;
+import MappingMapping;
+
+context MappingMapping
+
+  @Class MappingClient extends ClassMapping::MappingClient
+  
+    @Operation add(package,diagram,total)
+      let mapping = PackageXMappingDiagram(package,diagram,self)
+      in if not total
+         then mapping.setToPartialSyncMode()
+         end;
+         self.addToMappings(mapping);
+         mapping
+      end
+    end
+
+    @Operation addAndLayoutPackage(package,file,name)
+      let diagram = MappingDiagram(name) then
+          mapping = self.add(package,diagram,true)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram")
+             mapping.generateDiagram();
+             diagram.loadLayout(file)
+           end
+         end;
+         mapping
+      end
+    end
+
+    @Operation addPackage(package,name,total)
+      let diagram = MappingDiagram(name) then
+          mapping = self.add(package,diagram,total)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram") 
+             mapping.generateDiagram()
+           end
+         end;
+         mapping
+      end
+    end
+    
+    @Operation handles(type)
+      type = PackageXMappingDiagram
+    end
+  
+  end

@@ -1,0 +1,48 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+ 
+context Root
+@ToolType Sequence 
+  @NodeType Swim
+    @Box Object
+      maxHeight = 30
+      fillColor = "150,150,150"
+      @PaddedText Name(CENTRE)
+        "NAME"
+        pad = 5
+      end
+    end
+    @Box Lane(hasport,CENTRE,VERTICAL,hideTop,hideRight,hideBottom,hideLeft,nofill)
+      minWidth = 10
+      minHeight = 100
+      maxWidth = 10
+      @Line line(5,0,5,50,CENTRE) color = blue end
+    end
+  end
+  @EdgeType Flow Swim -> Swim
+    targetHead = arrow 
+    @Label name(end,10,10) "name" end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Swim         icon = "Tools/State.gif" end
+      @ToolButton Flow  isEdge icon = "Tools/Edge.gif" end
+    end
+  end
+end
+
+context Root
+@ElementManager SequenceManager 
+end
+
+Root::tool := Tool(Sequence,"Sequence Editor",SequenceManager,null);

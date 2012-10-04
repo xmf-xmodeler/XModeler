@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import Clients::BrowserInterface::Displays;
+
+context Displays
+
+  @Class Display isabstract
+  
+    @AbstractOp map(object):Seq(Element)
+    end
+    
+  end

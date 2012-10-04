@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Image extends InterfaceElement
+  
+    @Attribute path : String end
+    
+    @Constructor(path) ! end
+    
+    @Grammar 
+    
+      Image ::= path = Str { Image(path) }.
+      
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.modelBrowsers.icons";
+          contrib = Contribution(class,Seq{path})
+      in registry.addContribution(id,contrib)
+      end
+    end
+    
+  end

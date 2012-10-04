@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Dynamic extends Instr
+  
+    @Doc
+      A machine instruction that looks up the value of a dynamic
+      variable. The offset into the constants array in the currently
+      executing code box is in the instruction word. This indexes a
+      symbol that is used to lookup a value in the current dynamics
+      list starting in the current machine stack frame. This will 
+      lookup the symbol name in all currently imported name spaces 
+      (actually hash tables in the dynamics list). The instruction
+      leaves the value of the dyanamic on the stack. An error will
+      occur of a dynamic with the appropriate name cannot be found.
+    end
+  
+    @Attribute name : Symbol end
+    @Attribute nameOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation assemble(codeBox)
+      self.nameOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation toString():String
+      "<Dynamic " + name.toString() + ">"
+    end
+    
+    @Operation operands():Integer
+      nameOffset
+    end
+    
+  end
+  

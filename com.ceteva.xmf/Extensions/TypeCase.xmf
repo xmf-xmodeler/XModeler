@@ -1,0 +1,66 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class TypeCase extends Sugar
+  
+    @Doc
+       A typecase defines a dispatch table for an element based on
+       its type. The type case value expression is evaluated and each
+       type case arm is tried in turn. A typecase arm consists of a
+       type and a body. If the value is of the specified type then the 
+       arm body is performed and produces the value of the typecase.
+       If no arm matches then there may be an optional default expression
+       which is evaluated and produces the value of the typecase. If no
+       arm matches and no default is specified then an error is signaled.
+       
+       Constructor: TypeCase(value,arms,default)
+         The value is an expression, the arms is a sequence of type case
+         arms. The default is an expression.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      TypeCase ::= '(' value = Exp ')' arms = TypeCaseArm* default = TypeCaseDefault { TypeCase(value,arms,default) }.
+      TypeCaseArm ::= type = Exp 'do' body = Exp 'end' { TypeCaseArm(type,body) }.
+      TypeCaseDefault ::= 'else' Exp | { [| self.error("TypeCase: no type matched and no default specified: " + typeCaseValue.toString()) |] }.
+      
+    end 
+    
+    @Attribute value : Performable end
+    @Attribute arms : Seq(TypeCaseArm) end
+    @Attribute default : Performable end
+    
+    @Constructor(value,arms,default) end
+    
+    @Operation desugar() 
+      [| let typeCaseValue = <value>
+         in <self.desugarArms([| typeCaseValue |],arms)>
+         end
+      |]
+    end
+    
+    @Operation desugarArms(value:Performable,arms:Seq(TypeCaseArm)):Performable
+      if arms->isEmpty
+      then default
+      else 
+        arms->head.desugar(value,self.desugarArms(value,arms->tail))
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@TypeCase(");
+      value.pprint(out,indent);
+      format(out,")~%~V",Seq{indent+2});
+      @For arm in arms do
+        arm.pprint(out,indent+2);
+        if not isLast then format(out,"~%~V",Seq{indent+2}) end
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

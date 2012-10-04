@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Root
+  @Package Observable 
+    @Doc 
+      This package defines elements that are used to set up event
+      generators and event observers. A generator is attached to a
+      single object or a classifier and generates events for the
+      denoted objects. An observer is attached to a number of objects
+      or classifiers and detects events raised by the denoted objects.
+    end
+  end

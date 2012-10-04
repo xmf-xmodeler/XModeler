@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import IO;
+
+context Package
+
+  @Operation writeXML(out:OutputChannel)
+    @Doc
+      Write the receiver in XML format to the supplied 
+      output channel. Name spaces not contained by the
+      receiver are encoded as name space references in 
+      the output.
+    end
+    let xmlout = XMLPackageOutputChannel(out)
+    in xmlout.writePackage(self)
+    end
+  end

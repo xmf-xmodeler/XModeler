@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class ListElement extends Clients::Forms::ListElement
+  
+    @Attribute selectedHandler : Operation (?,!) end
+  
+    @Constructor(text)
+      self.addDaemon()
+    end
+    
+    @Operation addDaemon()
+      @SlotValueChanged multi ListElement::selectedEvent(self,"selected") end
+    end
+    
+    @Operation selectedEvent(element,slot,new,old)
+      if new
+      then selectedHandler(element,text,"")
+      end
+    end
+    
+  end

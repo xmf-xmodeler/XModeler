@@ -1,0 +1,19 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context StateMachines
+
+  @Class State
+    
+    @Attribute name : String (?,!) end
+    @Constructor(name) ! end
+      
+    @Grammar 
+      State ::= n = Name { 
+        [| StateMachines::State(<StrExp(n)>) |] 
+      }. 
+    end
+      
+  end

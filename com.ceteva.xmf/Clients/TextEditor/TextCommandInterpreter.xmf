@@ -1,0 +1,194 @@
+parserImport XOCL;
+
+import Clients;
+
+context TextEditor
+
+  @Class TextCommandInterpreter extends CommandInterpreter
+  
+    @Operation addLineHighlight(editor,line)
+      @SendCommand(self)
+        addLineHighlight(editor.id(),line)
+      end
+    end
+    
+    @Operation addMultilineRule(editor,startRule,endRule,colour)
+      let id = editor.id() in
+        @SendCommand(self)
+          addMultilineRule(id,startRule,endRule,colour)
+        end;
+        id
+      end
+    end
+    
+    @Operation addWordRule(editor,rule,colour)
+      let id = editor.id() in
+        @SendCommand(self)
+          addWordRule(id,rule,colour)
+        end;
+        id
+      end
+    end
+    
+    @Operation delete(element)
+      @SendCommand(self)
+        delete(element.id())
+      end
+    end
+
+    @Operation clearHighlights(editor)
+      @SendCommand(self)
+        clearHighlights(editor.id())
+      end
+    end
+    
+    @Operation getCursorPosition(editor)
+      @CallCommand(self)
+        getCursorPosition(editor.id())
+      end
+    end
+     
+    @Operation getText(editor)
+      @CallCommand(self)
+        getText(editor.id())
+      end
+    end
+    
+    @Operation getTextAt(editor,position,length)
+      @CallCommand(self)
+        getTextAt(editor.id(),position,length)
+      end
+    end
+    
+    @Operation getWelcomePage()
+      self.call("getWelcomePage",Seq{})
+      
+      /* @CallCommand(self)
+        getWelcomePage()
+      end */
+    end    
+    
+    @Operation newBrowser(browser)
+      let browserId = self.allocateId(browser) in
+        @SendCommand(self)
+          // newBrowser(browserId,browser.name(),browser.tooltip(),browser.url())
+          newBrowser(browserId,browser.name(),browser.tooltip(),"")
+        end;
+        browserId
+      end
+    end
+    
+    @Operation newRightClickMenuCommand(parent,menuItem)
+      let menuItemId = self.allocateId(menuItem)
+      in @SendCommand(self)
+           newRightClickMenu(parent.id(),menuItemId,menuItem.name(),menuItem.keybinding())
+         end;
+        menuItemId
+      end
+    end
+     
+    @Operation newOleEditorCommand(editor)
+      let editorId = self.allocateId(editor)
+      in @SendCommand(self)
+           newOleEditor(editorId,editor.application(),editor.file())
+         end;
+         editorId
+      end
+    end
+     
+    @Operation newTextEditorCommand(editor)
+      let editorId = self.allocateId(editor)
+      in @SendCommand(self)
+           newTextEditor(editorId,editor.name(),editor.tooltip(),editor.editable())
+         end;
+         editorId
+      end
+    end
+    
+    @Operation redo(editor)
+      @SendCommand(self)
+        redo(editor.id())
+      end
+    end
+    
+    @Operation saveAs(editor,path)
+      @SendCommand(self)
+        saveAs(editor.id(),path)
+      end
+    end
+    
+    @Operation setCursorPosition(editor,position)
+      @SendCommand(self)
+        setCursorPosition(editor.id(),position)
+      end
+    end
+    
+    @Operation setClean(editor)
+      @SendCommand(self)
+        setClean(editor.id())
+      end
+    end
+    
+    @Operation setFocus(editor)
+      let editorId = editor.id() in
+        if xmf.clientManager().idManager.hasId(editorId)
+        then
+          @SendCommand(self)
+            setFocus(editorId)
+          end
+        end
+      end
+    end
+    
+    @Operation setName(editor)
+      @SendCommand(self)
+        setName(editor.id(),editor.name())
+      end
+    end
+    
+    @Operation setText(editor,text)
+      @SendCommand(self)
+        setText(editor.id(),text)
+      end
+    end
+    
+    @Operation setTextAt(editor,text,position,length)
+      @SendCommand(self)
+        setTextAt(editor.id(),text,position,length)
+      end
+    end
+    
+    @Operation setTooltip(editor,tooltip)
+      @SendCommand(self)
+        setTooltip(editor.id(),tooltip)
+      end
+    end
+        
+    @Operation setUrl(browser,url)
+      let browserId = browser.id() in
+        @SendCommand(self)
+          setUrl(browserId,url)
+        end
+      end
+    end
+     
+    @Operation showLine(editor,line)
+      @SendCommand(self)
+        showLine(editor.id(),line)
+      end
+    end
+
+    @Operation setDirty(editor)
+      @SendCommand(self)
+        setDirty(editor.id())
+      end
+    end
+
+    
+    @Operation undo(editor)
+      @SendCommand(self)
+        undo(editor.id())
+       end
+    end
+   
+  end

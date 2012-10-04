@@ -1,0 +1,183 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Item"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuItem(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Items"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuItems(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Browser"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuBrowser(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Delete"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuDelete(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Editor"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuEditor(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ZoomIn"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuZoomIn(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ZoomOut"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuZoomOut(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ZoomTo"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuZoomTo(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ZoomToFit"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuZoomToFit(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)CopyDiagramToClipboard"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuCopyDiagramToClipboard(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ClipboardCopy"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuClipboardCopy(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ClipboardCut"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuClipboardCut(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ClipboardPaste"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuClipboardPaste(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Hide"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuHide(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Show"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuShow(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+//@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Themes"()
+//  if event.tool().isRegistered(event.parent())
+//  then event.tool().newMenuThemes(event.tool().find(event.parent()),event.value())
+//  end
+//end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)NewTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuNewTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ApplyTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuApplyTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)DeleteTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuDeleteTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)RemoveTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuRemoveTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)EditTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuEditTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)SaveTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuSaveTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)LoadTheme"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuLoadTheme(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Check"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuCheck(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)RenderMode"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newMenuRenderMode(event.tool().find(event.parent()),event.value())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)(Item|Items|Editor|Browser|Delete|ZoomIn|ZoomOut|ZoomTo|ZoomToFit|CopyDiagramToClipboard|ClipboardCopy|ClipboardCut|ClipboardPaste|Hide|Show|Check|RenderMode|NewTheme|ApplyTheme|DeleteTheme|RemoveTheme|EditTheme|SaveTheme|LoadTheme)"()
+  if event.tool().isRegistered(event.value())
+  then event.tool().deleteMenuItem(event.tool().find(event.value()),event.owner())
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)Item_Changed"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let item = event.tool().find(event.value())
+    in item.setName(event.new())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)Items_Changed"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let item = event.tool().find(event.value())
+    in item.setName(event.new())
+    end
+  end
+end;

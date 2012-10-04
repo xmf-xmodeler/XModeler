@@ -1,0 +1,84 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class MetaslotXText extends ElementMap
+  
+    @Attribute object : Object end
+    @Attribute metaAttribute : XCore::Attribute end
+    @Attribute text : MetaslotText end
+    @Attribute daemonPairs : Seq(Seq(Element)) end
+    
+    @Constructor(object,metaAttribute,text) ! 
+      self.checkDaemons()  
+    end
+    
+    @Operation checkDaemons()
+      self.daemonPairs := Seq{};
+      @SlotValueChanged multi once MetaslotXText::slotValueChanged_classDiagram_MetaslotXText(object,metaAttribute.name().toString()) end;
+      self.daemonPairs := daemonPairs->prepend(Seq{object,object.daemons()->last});
+      @SlotValueChanged multi once MetaslotXText::textChanged_classDiagram_MetaslotXText(text.value,"text") end;
+      self.daemonPairs := daemonPairs->prepend(Seq{object,object.daemons()->last});
+      self
+    end
+    
+    @Operation parseText(newText)
+      let
+        type = metaAttribute.type;
+        slotName = metaAttribute.name().toString()
+      in
+        try
+          if type.inheritsFrom(String) then
+            object.set(slotName,newText.toString())
+          elseif type.inheritsFrom(Integer) then
+            object.set(slotName,newText.asInt())
+          elseif type.inheritsFrom(Float) then
+            object.set(slotName,newText.asFloat())
+          elseif type.inheritsFrom(Boolean) then
+            object.set(slotName,newText.asBool())
+          end
+        catch(exception)
+          xmf.warning("Metaslot \"" + slotName + "\" expects a value of type " + type.name().toString() + ".\n"
+                      + exception.message)
+        end;
+        text.setValue(object.get(slotName).toString())
+      end
+    end
+    
+    @Operation removeDaemons()
+      // Called to tidy up when the mapping is no longer valid.
+      @For dp in daemonPairs do
+        dp.at(0).removeDaemon(dp.at(1),self)
+      end;
+      self.daemonPairs := Seq{};
+      self
+    end
+    
+    @Operation slotValueChanged_classDiagram_MetaslotXText(attribute,slot,newValue,oldValue)
+      if text.value.text.toString() <> newValue.toString() then
+        text.setValue(newValue.toString())  
+      end
+    end
+    
+    @Operation textChanged_classDiagram_MetaslotXText(attribute,slot,newText,oldText)
+      if newText.toString() <> oldText.toString() then
+        self.parseText(newText)
+      end
+    end
+
+    @Operation element()
+      Seq{object,metaAttribute}
+    end
+
+    @Operation diagramElement()
+      text
+    end
+
+  end

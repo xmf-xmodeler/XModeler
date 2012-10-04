@@ -1,0 +1,83 @@
+parserImport XOCL;
+
+context ForeignOperation
+  @Operation arity():Integer
+    self.arity
+  end
+
+context ForeignOperation
+  @Operation addDaemon(d):Element
+    self // cannot add a daemon to a ForeignOperation
+  end
+
+context ForeignOperation
+  @Operation addMultiDaemon(d,target)
+    self // cannot add a multidaemon to a ForeignOperation
+  end  
+
+context ForeignOperation
+  @Operation daemons()
+    Seq{} // no daemons on a ForeignOperation
+  end
+
+context ForeignOperation
+  @Operation get(name:String)
+    @Case name.toString() of 
+      "arity"         do self.arity()      end
+      "name"          do self.name()       end
+      "documentation" do noDoc()           end
+      "owner"         do self.owner()      end
+      "type"          do Element           end
+      else self.error("No slot named " + name.toString())
+    end
+  end
+  
+context ForeignOperation
+  @Operation getStructuralFeatureNames():Set(String)
+    Set{"name"}
+  end
+  
+context ForeignOperation
+  @Operation hasSlot(name:String):Boolean
+    ForeignOperation.allAttributes().name->map("toString")->includes(name.toString())
+  end
+  
+context ForeignOperation
+  @Operation invoke(target,args)
+    Kernel_invoke(self,target,args,Seq{})
+  end
+  
+context ForeignOperation
+  @Operation isVarArgs():Boolean
+    false
+  end
+  
+context ForeignOperation
+  @Operation name():String
+    self.name
+  end
+  
+context ForeignOperation
+  @Operation owner():NameSpace
+    Root
+  end
+
+context ForeignOperation
+  @Operation removeDaemon(d,target):Element
+    self // cannot remove a daemon from a ForeignOperation
+  end
+
+context ForeignOperation
+  @Operation set(name:String,value:Element)
+    self
+  end 
+  
+context ForeignOperation
+  @Operation setTarget(target):NameSpace
+    self
+  end
+  
+context ForeignOperation
+  @Operation target():NameSpace
+    self
+  end

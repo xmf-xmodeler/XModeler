@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XRules;
+
+context XRules
+
+  @Package Syntax
+  
+    @Doc
+      This package contains the definition of the XRules syntax
+      classes. Concrete syntax for XRules is parsed into these
+      structures.
+    end
+  
+  end

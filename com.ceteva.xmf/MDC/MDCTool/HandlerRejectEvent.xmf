@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! MDC
+
+  @Class HandlerRejectEvent
+  
+    @Attribute type : String (?,!) end
+
+    @Constructor(type)
+    end
+
+    // Reject events are passed by mapping handlers (such as creation, deletion, reconnection handlers)
+    // and allows the tool to appropriately process the displays appropriately
+    
+  end

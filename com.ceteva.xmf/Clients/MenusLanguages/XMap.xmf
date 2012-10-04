@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import XCore;
+import XMap;
+import Clients::Menus;
+
+context Map
+  @Operation newClause()
+    if domains->isEmpty
+    then
+      xmf.warning("Cannot add a clause to a map with no domains.")
+    elseif range=null
+    then
+      xmf.warning("Cannot add a clause to a map with no range.")
+    else
+      let name = self.newName("Clause") then
+          patterns = domains->collect(d | "null")->separateWith(",") then
+          source = "@Clause "+name+"\n  "+patterns+"\ndo\n  null\nend" then
+          clause = XMap::Clause(name,source)
+      in
+        self.add(clause);
+        clause.init()
+      end
+    end
+  end
+
+context Object
+  @Operation applyMapping_client()
+    let availableMappings = self.getAvailableMappings();
+        stringOp = 
+          @Operation(mapping)
+            mapping.name().toString() + " from " + mapping.owner.toString()
+          end then
+        map = xmf.select("Apply Mapping",
+                         "Select a mapping to apply to " + self.nameString(),
+                         availableMappings,
+                         null,
+                         stringOp)
+    in
+      if map <> null
+      then
+        (map()(self)).edit()
+      end
+    end
+  end
+
+context Object
+  @Operation getAvailableMappings():Seq(Element)
+    let nameSpaces = Seq{Root};
+        mappings = Seq{}
+    in  @While not nameSpaces->isEmpty do
+          let nameSpace = nameSpaces->head in
+            nameSpaces := nameSpaces->tail;
+            @For element inTableValues nameSpace.contents do
+              if element.isKindOf(XCore::NameSpace) and element <> null and element <> nameSpace then
+                nameSpaces := Seq{element | nameSpaces}
+              end;
+              if element.isReallyKindOf(XMap::Map) then
+                if element.domains->exists(d | self.isKindOf(d)) then
+                  mappings := mappings->prepend(element)
+                end
+              end
+            end
+          end
+        end;
+        mappings
+    end
+  end
+
+context Package
+  @Operation newMap()
+    let 
+      name = self.newName("Map") then
+      map = Map(name)
+    in
+      self.add(map)
+    end
+  end

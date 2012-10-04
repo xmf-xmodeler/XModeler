@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest SearchReport
+  SearchReport = @File SearchReport end
+  @File SearchNode end
+  @File SearchNodes end
+  @File SearchResult end
+  @File ReportTree end
+  @File SearchForm end
+  @File Search end
+do Project(SearchReport,dir,self)
+end;

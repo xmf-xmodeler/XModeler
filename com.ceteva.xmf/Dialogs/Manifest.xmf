@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Dialogs
+  @File Dialogs        end
+  @File Choose         end
+  @File Commands       end
+  @File Dialog         end
+  @File Display        end
+  @File Let            end
+  @File Option         end
+  @File Options        end
+  @File Quit           end
+  @File Separator      end
+  @File Show           end
+  @File Show           end
+  @File StandardDialog end
+  @File TextDisplay    end
+  @File Value          end
+  @File YesOrNo        end
+do
+  Project(Dialogs,dir,self)
+end;

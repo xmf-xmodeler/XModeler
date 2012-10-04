@@ -1,0 +1,16 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckContainer isabstract extends TypeCheckReport
+  
+    @Attribute children : Seq(TypeCheckReport) (?) end
+  
+    @Operation ok():Boolean
+      children->forAll(c | c.ok())
+    end
+    
+  end

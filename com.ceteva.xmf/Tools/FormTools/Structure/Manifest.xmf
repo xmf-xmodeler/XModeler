@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Manifest Structure
+  p = @File Structure end
+  @File ElementManager end
+  @File Tool end
+  @File ToolDescriptor end
+do p
+end;

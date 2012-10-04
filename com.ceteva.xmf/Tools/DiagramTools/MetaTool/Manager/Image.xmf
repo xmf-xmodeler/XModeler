@@ -1,0 +1,64 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler "Add_To_NodeType_nodeBox_(x = (.*))ImageType"(x)
+    let image = Image("I")
+    in register(event.value(),image);
+       register(event.value().ref1(Seq{"imageAttribute","name"}),image);
+       register(event.value().ref1(Seq{"file"}),image);
+       if x = ""
+       then find(event.root()).add(image)
+       else find(event.value().owner()).add(image)
+       end
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_imageAttribute_name_Changed"()
+    find(event.value()).setName(event.new())
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_file_Changed"()
+    find(event.value()).setFile(event.new());
+    event.value().owner().ref1(Seq{"imageAttribute","image"}).setImage(event.new())
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_imageAttribute_Justification_ChangedTo_Align"()
+    let imageType = find(event.container().owner())
+    in imageType.setLayout("ALIGN")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_imageAttribute_Justification_ChangedTo_Left"()
+    let imageType = find(event.container().owner())
+    in imageType.setLayout("LEFT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_imageAttribute_Justification_ChangedTo_Right"()
+    let imageType = find(event.container().owner())
+    in imageType.setLayout("RIGHT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)ImageType_imageAttribute_Justification_ChangedTo_Centre"()
+    let imageType = find(event.container().owner())
+    in imageType.setLayout("CENTRE")
+    end
+  end
+  

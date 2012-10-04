@@ -1,0 +1,7 @@
+parserImport Manifests;
+
+@Manifest JavaParser
+  @Ref HOME/Languages/MicroJava end
+  @File JavaScanner end
+  @File Java end
+end;

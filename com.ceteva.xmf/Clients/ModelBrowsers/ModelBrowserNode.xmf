@@ -1,0 +1,699 @@
+parserImport XOCL;
+
+import XMap;
+import Clients;
+import Menus;
+import ExtensionPoints;
+import IO;
+import ModelClipboard;
+import ModelBrowsers;
+
+context ModelBrowsers
+
+  @Class ModelBrowserNode extends DraggableClientElement, DroppableClientElement, RightClickableWithElement, ExtensionPointListener
+
+    @Bind sortRegistryPoint = null end
+    @Bind dummyObject = Dummy() end
+
+    @Attribute text : String (?) end
+    @Attribute toolTipText : String = "" (?) end
+    @Attribute nodes : Seq(ModelBrowserNode) (?) end
+    @Attribute editable : Boolean end
+    @Attribute expanded : Boolean = false end
+    @Attribute selected : Boolean = false end
+    @Attribute exists : Boolean = false end
+    @Attribute dummyNode : ModelBrowserNode end
+    @Attribute sortOp : Operation end 					// used for caching
+    @Attribute sortIndex : Integer end // used for caching
+    @Attribute parentElements : Seq(Element) = null end // used for caching
+    @Attribute index : Integer end
+
+    @Constructor(element)
+      self.setEditable();
+      self.setCutEnabled(true);
+      self.text := element.labelString();
+      self.setSortOp();
+      self.setSortIndex()
+    end
+
+    @Operation acceptDrop(dragSource:DragHandler,mode)
+      let acceptPaste = super(dragSource,mode);
+          clipboard = xmf.clipboard()
+      in
+        if acceptPaste
+        then true
+        else if owner.sortOp = ModelBrowserNode::sortNone andthen
+                dragSource.isKindOf(ModelBrowserNode) andthen
+                dragSource.owner = self.owner
+             then
+               clipboard.setTransactionMode("none");
+               clipboard.clear();
+               self.setIndex(dragSource.index);
+               true
+             end
+        end
+      end
+    end
+
+    @Operation addContents()
+      let children = self.getChildren(element);
+          toolTips = self.getChildrenToolTips(element)
+      in
+        if not children->isEmpty
+        then
+          @Count i from 0 to children->size do
+            let child = children->at(i);
+                toolTip = toolTips->at(i)
+            in
+              if not self.isCyclicChild(child)
+              then
+                let n = ModelBrowserNode(child) in 
+                  self.addNode(n,nodes.size());
+                  n.toolTipText := toolTip;
+                  let grandChildren = self.getChildren(child)
+                  in
+                    if not grandChildren->isEmpty
+                    then
+                      n.addDummyNode()
+                    end
+                  end
+                end
+              end
+            end 
+          end;
+          self.sortNodes()
+        end
+      end;
+      self
+    end
+
+    @Operation addDummyNode()
+      if dummyNode = null
+      then
+        self.dummyNode := ModelBrowserNode(ModelBrowserNode::dummyObject);
+        self.addNode(dummyNode,0)
+      end
+    end
+
+    @Operation addNode(node)
+      let pos = self.calcNodePosition(node)
+      in
+        self.addNode(node,pos)
+      end
+    end
+    
+    @Operation addNode(node,pos)
+      self.nodes := self.nodes.linkAt(node,pos);
+      node.setOwner(self)
+    end
+
+    @Operation allOwners():Seq(ModelBrowserNode)
+      if self.owner().isReallyKindOf(ModelBrowserNode)
+      then 
+        if self.owner().owner() = self.owner()
+        then Seq{self.owner()}
+        else Seq{self.owner() | self.owner().allOwners()}
+        end
+      else Seq{}
+      end
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        if owner.isKindOf(ModelBrowserNode)
+        then
+          globalMenu.add(MenuAction("Cut",target,Seq{},CutCopyHandler::cutToClipboard_transaction));
+          globalMenu.add(MenuAction("Copy",target,Seq{},CutCopyHandler::copyToClipboard_transaction))
+        end;
+        globalMenu.add(MenuAction("Paste",target,Seq{},PasteHandler::pasteFromClipboard).disableMultiSupport());
+        globalMenu
+      end
+    end
+
+    @Operation calcNodePosition(targetNode)
+      let
+        children = self.getChildren(element);
+        nodesExcludingTarget = self.nodes->excluding(targetNode) then
+        index = nodesExcludingTarget.size();
+        found = false
+      in
+        @For node inSeq nodesExcludingTarget do
+          if sortOp.invoke(children,Seq{targetNode,node}) andthen not found then
+            index := nodesExcludingTarget.indexOf(node);
+            found := true
+          end
+        end;
+        targetNode.index := index;
+        index
+      end
+    end
+    
+    @Operation cancelRegistryNotification()
+      let
+        menuId = "com.ceteva.xmf.menus" then
+        menuPoint = xmf.registry().getExtensionPoint(menuId)
+      in
+        menuPoint.cancelNotification(self)
+        //ModelBrowserNode::sortRegistryPoint.cancelNotification(self)
+      end
+    end
+    
+    @Operation changeLabel(text)
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.changeHandler") then
+          con = registryPoint.find(element.of()) then
+          handler = con.getValue(0)
+        in
+          handler(element,text)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation changeLabelGuard(element,newText):Boolean
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.changeGuard") then
+          con = registryPoint.find(element.of()) then
+          guardOp = con.getValue(0)
+        in
+          guardOp(element,newText)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation childNodeFor(element)
+      let returnNode = null in
+        @For n inSeq nodes do
+          if n.element = element then
+            returnNode := n
+          end
+        end;
+        returnNode
+      end
+    end
+    
+    @Operation contributionAdded(extensionPointId,contribution)
+      if extensionPointId = "com.ceteva.xmf.menus" and
+         contribution.contributesTo(element)
+      then
+        self.buildMenu(contribution,element)
+      end
+    end
+    
+    @Operation contributionRemoved(extensionPointId,contribution)
+      self
+    end
+
+    @Operation delete()
+      self.cancelRegistryNotification();
+      self.commandInterpreter().removeModelBrowserNodeCommand(self);
+      self.removeFromOwner();
+      self.dispose()
+    end
+
+    @Operation deselected()
+      self.selected := false
+    end
+
+    @Operation dispose()
+      self.disposeCollection(nodes);
+      self.clearRightClickMenu();
+      self.cancelRegistryNotification();
+      super()
+    end
+
+    @Operation doubleSelected()
+      element.doubleClick();
+      let parentBrowser = self.parentBrowser()
+      in
+        if parentBrowser <> null
+        then parentBrowser.setFocus()
+        end
+      end
+    end
+
+    @Operation drop()
+      let clipboard = xmf.clipboard()
+      in
+        if clipboard.transactionMode() <> "none"
+        then super()
+        end
+      end
+    end
+
+    @Operation expand()
+      if not self.expanded 
+      then
+        self.removeDummyNode();
+        self.addContents();
+        self.newContents();
+        self.expanded := true
+      end;
+      
+      // the following should be refactored into a project node class
+      if element.isReallyKindOf(Projects::Project)
+      then
+        let packageNode = self.childNodeFor(element.package)
+        in
+          if packageNode <> null
+          then
+            packageNode.expand();
+            self.commandInterpreter().expandModelBrowserNodeCommand(packageNode)
+          end
+        end
+      end
+    end
+
+    @Operation expandBranch()
+      if not owner.expanded
+      then
+        owner.expandBranch()
+      end;
+      self.expand()
+    end
+
+    @Operation forceChildSort()
+      // This is a hack! Need to be generalised so that it is not just tied to sortNone. 19/10/06
+      if sortOp = ModelBrowserNode::sortNone
+      then
+        @For node in nodes
+        do
+          node.resetIndex()
+        end
+      end
+    end
+
+    @Operation getChildren(element)
+      xmf.diagramManager().diagramsFor(element)->asSeq + element.getChildren()
+    end
+
+    @Operation getChildrenToolTips(element)
+      element.getChildrenToolTips() + xmf.diagramManager().diagramsFor(element)->asSeq->collect(d | d.name)
+    end
+
+    @Operation getClipboardSource():ClipboardSource
+      let parentElement = if self.owner().isKindOf(ModelBrowserNode)
+                          then self.owner().element()
+                          else null
+                          end
+      in
+        ClipboardSource(self.element(),parentElement,self)
+      end
+    end
+
+    
+    @Operation getClipboardTarget():ClipboardTarget
+      ClipboardTarget(self.element(),self)
+    end
+
+    @Operation getEditableText()
+      let editableText = element.nameString() in
+        self.commandInterpreter().setEditableTextCommand(self,editableText);
+        self
+      end
+    end
+
+    @Operation getIcon()
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.modelBrowsers.icons") then
+          con = registryPoint.find(element.of())
+        in
+          if con <> null then
+            let icon = con.getValue(0) in
+              if icon.isReallyKindOf(String)
+              then icon
+              else icon.invoke(element,Seq{})
+              end
+            end
+          end  
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation isCyclicChild(child)
+      if xmf.preference("AllowCyclicBrowserRefs")
+      then false
+      else
+        if parentElements = null
+        then
+          self.parentElements := Seq{};
+          let allOwners = self.allOwners()
+          in
+            @For node in allOwners do
+              if node.isKindOf(ModelBrowserNode)
+              then
+                self.parentElements := parentElements->prepend(node.element)
+              end
+            end
+          end
+        end;
+        parentElements->includes(child)
+      end
+    end
+
+    @Operation isDeleted() : Boolean
+      if owner=null then
+        true
+      else
+        not self.owner.nodes->includes(self)
+      end
+    end
+
+    @Operation sortAlpha(node1,node2)
+      node1.text.lowerCase() < node2.text.lowerCase()
+    end
+     
+    @Operation sortAlphaType(node1,node2)
+      let n1ElementType = node1.sortIndex;
+          n2ElementType = node2.sortIndex
+      in
+        if n1ElementType < n2ElementType
+        then
+          true
+        elseif n1ElementType > n2ElementType
+        then
+          false
+        else
+          node1.text.lowerCase() < node2.text.lowerCase()
+        end
+      end
+    end
+
+    @Operation sortNone(node1,node2)
+      self.indexOf(node1.element) < self.indexOf(node2.element)
+    end
+    
+    @Operation sortType(node1,node2)
+      self.sortIndex < node.sortIndex
+    end
+
+    @Operation new(parent,index)
+      if index>=0 
+      then self.commandInterpreter().newModelBrowserNodeCommand(parent,self,index)
+      else self.commandInterpreter().newModelBrowserNodeCommand(parent,self)
+      end;
+      
+      self.enableDrag();
+      self.enableDrop();
+
+      if toolTipText <> ""
+      then self.commandInterpreter().setToolTipTextCommand(self,toolTipText)
+      end;
+      
+      self.setRightClickMenu();
+      self
+    end
+
+    @Operation new(parent)
+      let index =
+            if parent.isKindOf(ModelBrowserNode) 	      
+            then parent.nodes.indexOf(self)
+            else 0-1
+            end
+	   in
+	     self.new(parent,index)
+	   end
+    end
+    
+    @Operation newContents()
+      @Count i from 0 to nodes.size() do
+        let n = nodes->at(i)
+        in
+          n.new(self,i);
+          if n.dummyNode <> null
+          then
+            n.dummyNode.new(n,0)
+          else
+            if n.expanded
+            then
+              n.newContents()
+            end
+          end
+        end
+      end
+    end    
+    
+    @Operation renew(parent)
+      let index =
+        if parent.isKindOf(ModelBrowserNode) 	      
+        then parent.nodes.indexOf(self)
+   	  else 0-1
+   	  end
+	  in if index>=0 
+	     then self.commandInterpreter().newModelBrowserNodeCommand(parent,self,index)
+	     else self.commandInterpreter().newModelBrowserNodeCommand(parent,self)
+        end;
+        if toolTipText <> ""
+        then self.commandInterpreter().setToolTipTextCommand(self,toolTipText)
+        end;
+        self.setRightClickMenu();
+        @For node in nodes do
+          node.renew(self)
+        end
+      end
+    end
+
+    @Operation parentBrowser()
+      if owner.isReallyKindOf(ModelBrowser)
+      then owner
+      elseif owner.isReallyKindOf(ModelBrowserNode)
+      then owner.parentBrowser()
+      else null
+      end
+    end
+
+    @Operation remove(element)
+      @TypeCase(element)
+        ModelBrowserNode do
+          //element.owner := null;
+          self.nodes := self.nodes.excluding(element)
+        end
+      else
+        self.error("ModelBrowserNode::remove: Do not recognise element type.")
+      end
+    end
+
+    @Operation removeDummyNode()
+      if dummyNode <> null
+      then
+        dummyNode.delete();
+        self.dummyNode := null
+      end
+    end
+
+    @Operation removeFromOwner()
+      if owner <> null
+      then
+        owner.remove(self)
+      else
+        self.error("ModelBrowserNode::removeFromOwner: Cannot find the owner.")
+      end;
+      self
+    end
+    
+    @Operation resetIndex()
+      if owner.isReallyKindOf(ModelBrowserNode)
+      then
+        let oldIndex = self.index then
+            newIndex = owner.calcNodePosition(self)
+            //newIndex = owner.nodes.indexOf(self)
+        in
+          if newIndex <> oldIndex
+          then
+            self.setIndex(newIndex)
+          end
+        end
+      end
+    end
+   
+    @Operation selected()
+      self.selected := true
+    end
+
+    @Operation setDeselected()
+      self.commandInterpreter().deselectModelBrowserNodeCommand(self)
+    end
+
+    @Operation setEditable()
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.editable") then
+          con = registryPoint.find(element.of())
+        in
+          self.editable := con.getValue(0)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation setIcon(icon:String)
+      self.commandInterpreter().setNodeIconCommand(self,icon)
+    end
+
+    @Operation setIndex(index:Integer)
+      self.index := index;
+      if not owner.isKindOf(ModelBrowserNode)
+      then
+        xmf.errorMessage("Cannot move the position of the root node of a browser.")
+      elseif index >= owner.nodes->size
+      then
+        xmf.errorMessage("Cannot move model browser node, as index is out of range.")
+      else
+        owner.nodes := owner.nodes->excluding(self)->insertAt(self,index);
+        self.commandInterpreter().moveModelBrowserNodeCommand(self,owner,index);
+        self.newContents()
+      end
+    end
+
+    @Operation setSelected()
+      self.setSelected(true)
+    end
+
+    @Operation setSelected(doExpand:Boolean)
+      self.setSelected(doExpand,false)
+    end
+
+    @Operation setSelected(doExpand:Boolean,expansionSuppressionCheck:Boolean)
+      if not (expansionSuppressionCheck andthen xmf.modelBrowserNodeExpansionSuppressed())
+      then
+        if not expanded
+        then
+          self.expandBranch()
+        end;
+        if doExpand then
+          self.expand()
+        end;
+        self.commandInterpreter().selectModelBrowserNodeCommand(self,doExpand)
+      end
+    end
+
+    @Operation setSortIndex()
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.modelBrowsers.nodeSort") then
+          con = registryPoint.find(element.of())
+        in
+          self.sortIndex :=  con.getValue(0)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation setSortOp()
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.modelBrowsers.sortOp") then
+          con = registryPoint.find(element.of())
+        in
+          self.sortOp := con.getValue(0)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation setToolTipText(text : String)
+      self.toolTipText := text;
+      self.commandInterpreter().setToolTipTextCommand(self,text)
+    end
+
+    @Operation sortNodes()
+      
+      // The test is a hack because qsort reorders non sortable elements
+      // Seq{1,2,3}.qsort(@Operation(x,y) false end) => Seq{2,1,3}
+      
+      if sortOp <> ModelBrowserNode::sortNone
+      then
+        self.nodes := nodes->qsort(sortOp)
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        index = Seq{"index",index};
+        icon = Seq{"icon",self.getIcon()};
+        text = Seq{"text",text};
+        toolTipText = Seq{"toolTipText",toolTipText};
+        editable = Seq{"editable",editable};
+        expanded = Seq{"expanded",expanded};
+        selected = Seq{"selected",selected} then
+        attributes = Seq{id,index,icon,text,toolTipText,editable,expanded,selected}
+      in
+        @Command(self) startElement("node",attributes) end;
+        @For node in nodes
+        do
+          node.synchronise()
+        end;
+        @Command(self) endElement("node") end
+      end
+    end
+
+    @Operation textChangedIn(newText)
+      if newText=element.nameString()
+      then
+        self.commandInterpreter().setNodeTextCommand(self,element.labelString())
+      elseif not self.changeLabelGuard(element,newText)
+      then
+        self.textChangedOut(element.labelString())
+      else
+        if element.isKindOf(CompiledOperation)
+        then
+          let 
+            source = element.source() then
+            modifiedSource = source.subst(newText,element.name(),false)
+          in
+            Clients::setSource(element,modifiedSource)
+          end
+        elseif self.element.isKindOf(Clause)
+        then
+          let
+            source = self.element.source then
+            modifiedSource = source.subst(newText,self.element.name(),false)
+          in
+            xmf.clientManager().setRecompilingClause(self.element);
+            clause.setSource(modifiedSource);
+            xmf.clientManager().setRecompilingClause(null)
+          end
+        else
+          self.changeLabel(Symbol(newText.toString()))
+        end;
+        self
+      end
+    end
+
+    @Operation textChangedOut()
+      self.commandInterpreter().setNodeTextCommand(self,text);
+      self
+    end
+
+    @Operation textChangedOut(newText)
+      self.text := newText;
+      self.toolTipText := newText;
+      self.commandInterpreter().setNodeTextCommand(self,newText);
+      self.commandInterpreter().setToolTipTextCommand(self,newText);
+      self.resetIndex();
+      self
+    end
+
+    @Operation toString()
+      self.text
+    end
+
+    @Operation updateText()
+      self.text := element.labelString()
+    end
+
+  end

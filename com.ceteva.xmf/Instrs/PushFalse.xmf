@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+ 
+  @Class PushFalse extends Instr
+  
+    @Doc
+      A machine instruction that pushes 'false' onto the stack.
+    end
+     
+    @Operation toString():String
+      "<PushFalse>"
+    end 
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable 
+
+  @Class ObjScope extends Scope
+ 
+     @Attribute exp : Exp end 
+     
+     @Constructor(exp) ! end
+     
+     @Operation attach(generator)
+       exp.perform().addGenerator(generator)
+     end
+     
+     @Operation observe(observer)
+       exp.perform().addObserver(observer)
+     end
+     
+  end

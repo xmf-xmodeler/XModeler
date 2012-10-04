@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable 
+
+  @Class Creation extends Condition
+ 
+     @Operation perform(env,object,slot,new,old)
+     
+       // The creation conditions always fail because they are fired via the
+       // classes own new listeners. The clauses are retained because they will
+       // show up in editors etc.
+       
+       false
+     end
+     
+  end

@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class Call extends Instr
+  
+    @Attribute name : String end
+    @Attribute arity : Integer end
+    
+    @Constructor(name,arity) ! end
+  
+  end

@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class MenuType
+  
+    @Attribute items : Seq(MenuItem) (+,-) end
+    
+    @Operation addMenuItem()
+    
+      // This operation is provided to support the addition of
+      // menu items via the invoke operation menu in an editor.
+      
+      let action = MenuAction("action",@Operation(object,tool) null end)
+      in self.addToItems(action);
+         action
+      end
+      
+    end
+  
+    @Operation new(object,tool)
+      @For item in items do
+        item.new(object,tool)
+      end
+    end
+    
+  end 

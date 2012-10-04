@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @NodeType EdgeType(hasport)
+    @Box edgeType
+      @Star LabelType end
+      @PaddedText name(CENTRE)
+        "Edge Type Name"
+        pad = 3
+        @Menu
+          @MenuAction "Delete"
+            self.owner().owner().delete()
+          end
+          @MenuAction "New Label"
+            self.owner().addNew("labelType")
+          end
+        end
+      end
+    end
+  end

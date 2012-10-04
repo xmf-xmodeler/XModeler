@@ -1,0 +1,208 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+ @Package Types 
+    @Package TypeRef 
+      @Class TypeRef extends AdaObject
+        @Attribute name : Names::Name end
+        @Constructor(name) ! end
+        @Operation code(indent:Element):Element
+          name.code(indent)
+        end
+      end
+      @Class SubTypeMark extends TypeRef
+      end
+      @Class SubTypeInd extends TypeRef
+        @Attribute constraint : Set(Constraint) end
+        @Operation code(indent:Integer):String
+          name.code(indent) + if constraint->isEmpty
+          then ""
+          else if constraint->isEmpty
+               then ""
+               else " " + constraint->sel.code(indent)
+               end
+          end
+        end
+      end
+    end
+    @Class TypeDef isabstract extends AdaObject
+    end
+    @Class Constraint isabstract extends AdaObject
+    end
+    @Package CompositeTypes 
+      @Class DerivedType extends TypeDef
+        @Attribute new : Boolean end
+        @Attribute abstract : Boolean end
+        @Attribute private : Boolean end
+        @Attribute recordType : Set(CompositeTypes::RecordType) end
+        @Attribute subTypeInd : TypeRef::SubTypeInd end
+        @Operation code(indent:Integer):String
+          Seq{if abstract
+          then "abstract"
+          else ""
+          end,"new",subTypeInd.code(indent),if private or not recordType->isEmpty
+          then "with"
+          else ""
+          end,if private
+          then "private"
+          else ""
+          end,if recordType->isEmpty
+          then ""
+          else recordType.code(indent)
+          end}->select(s |
+            s->size > 0)->separateWith(" ")
+        end
+      end
+      @Class ConstrainedArrayType extends CompositeTypes::ArrayType
+        @Attribute discreteRanges : Seq(Ranges::DiscreteRange) end
+      end
+      @Class RecordType extends TypeDef
+        @Attribute limited : Boolean end
+        @Attribute null : Boolean end
+        //@Attribute pragmas : Set(Units::Pragma) end
+        @Attribute pragmas : Element end
+        @Attribute tagged : String end
+        @Attribute components : Seq(CompDecl) end
+        @Operation code(indent:Integer):String
+          Seq{if tagged = "notTagged"
+          then ""
+          else if tagged = "tagged"
+               then "tagged "
+               else "abstract tagged "
+               end
+          end,if limited
+          then "limited "
+          else ""
+          end}->separateWith(" ") + "record\n\n\n" + " ".repeat(indent + 2) + components->collect(c |
+            c.code(indent) + ";")->separateWith("\n" + " ".repeat(indent + 2)) + "\n\n\n" + " ".repeat(indent) + "end record"
+        end
+      end
+      @Class UnconstrainedArrayType extends ArrayType
+        @Attribute names : Seq(Names::Name) end
+        @Operation code(indent:Integer):String
+          "array (" + names->collect(n |
+            n.code(indent) + " range <>")->separateWith(",") + ") of " + componentSubType.code(indent)
+        end
+      end
+      @Class CompDecl extends AdaObject
+        @Attribute name : String end
+        @Attribute componentSubType : ComponentSubType end
+        @Attribute initializer : Set(Expressions::Expression) end
+        @Operation code(indent:Integer):String
+          name + " : " + componentSubType.code(indent) + if initializer->isEmpty
+          then ""
+          else if not initializer->isEmpty
+               then " := " + initializer->sel.code(indent)
+               else ""
+               end
+          end
+        end
+      end
+      @Class ArrayType isabstract extends TypeDef
+        @Attribute componentSubType : ComponentSubType end
+      end
+      @Class ComponentSubType extends AdaObject
+        @Attribute aliased : Boolean end
+        @Attribute subTypeInd : TypeRef::SubTypeInd end
+        @Operation code(indent:Integer):String
+          subTypeInd.code(indent)
+        end
+      end
+    end
+    @Package PrimitiveTypes 
+      @Class PrivateType extends TypeDef
+        @Attribute tagged : String end
+        @Attribute isLimited : Boolean end
+        @Operation code(indent:Integer):String
+          Seq{if tagged = "notTagged"
+          then ""
+          else if tagged = "tagged"
+               then "tagged"
+               else "abstract tagged"
+               end
+          end,if isLimited
+          then "limited"
+          else ""
+          end,"private\n\n"}->separateWith(" ")
+        end
+      end
+      @Class IntegerType extends TypeDef
+        @Attribute rangeConstraint : Ranges::RangeConstraint end
+        @Operation code(indent:Integer):String
+          rangeConstraint.code(indent)
+        end
+      end
+      @Class RealType extends TypeDef
+        @Attribute range : Set(Ranges::Range) end
+      end
+      @Class EnumerationType extends TypeDef
+        @Attribute ids : Seq(PrimitiveTypes::EnumId) end
+        @Operation code(indent:Integer):String
+          "(" + ids->collect(i |
+            i.name)->separateWith(",") + ")"
+        end
+      end
+      @Class EnumId extends AdaObject
+        @Attribute name : String end
+      end
+      @Class FixedType extends PrimitiveTypes::RealType
+      end
+      @Class FloatType extends PrimitiveTypes::RealType
+      end
+      @Class AccessTypeSubTypeInd extends PrimitiveTypes::AccessType
+        @Attribute constant : Boolean end
+        @Attribute all : Boolean end
+        @Attribute subTypeInd : TypeRef::SubTypeInd end
+        @Operation code(indent:Integer):String
+          "access " + subTypeInd.code(indent)
+        end
+      end
+      @Class AccessType extends TypeDef
+      end
+    end
+    @Package Ranges 
+      @Class Range isabstract extends AdaObject
+        @Operation code(indent:Element):Element
+          lhs.code(indent) + " .. " + rhs.code(indent)
+        end
+      end
+      @Class RangeConstraint isabstract extends Constraint
+      end
+      @Class DiscreteRangeName extends Ranges::DiscreteRange
+        @Attribute name : Names::Name end
+        @Attribute constraint : Set(Ranges::Range) end
+      end
+      @Class DiscreteRangeRange extends Ranges::DiscreteRange
+        @Attribute range : Ranges::Range end
+        @Operation code(indent:Element):Element
+          range.code(indent)
+        end
+      end
+      @Class DiscreteRange isabstract extends AdaObject
+      end
+      @Class SimpleRangeConstraint extends Ranges::RangeConstraint
+        @Attribute range : Ranges::Range end
+        @Operation code(indent:Element):Element
+          "range " + range.code(indent)
+        end
+      end
+      @Class RangeExpr extends Ranges::Range
+        @Attribute lhs : Expressions::Expression end
+        @Attribute rhs : Expressions::Expression end
+      end
+      @Class RangeName extends Ranges::Range
+        @Attribute name : Names::Name end
+        @Operation code(indent:Element):Element
+          name.code(indent) + "'Range"
+        end
+      end
+      @Class RangeNameExpr extends Ranges::Range
+        @Attribute name : Names::Name end
+        @Attribute expr : Expressions::Expression end
+      end
+    end
+  end

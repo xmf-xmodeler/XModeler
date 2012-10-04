@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Clients;
+import Undo;
+
+context Undo
+
+  @Class UndoCommandInterpreter extends CommandInterpreter
+    
+    @Operation enableUndo()
+      @SendCommand(self)
+        enableUndo()
+      end
+    end
+    
+    @Operation disableUndo()
+      @SendCommand(self)
+        disableUndo()
+      end
+    end
+    
+    @Operation enableRedo()
+      @SendCommand(self)
+        enableRedo()
+      end
+    end
+    
+    @Operation disableRedo()
+      @SendCommand(self)
+        disableRedo()
+      end
+    end
+    
+  end

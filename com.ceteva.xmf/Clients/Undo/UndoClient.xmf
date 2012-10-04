@@ -1,0 +1,57 @@
+parserImport XOCL;
+
+import Root::Undo;
+import Clients;
+import IO;
+import Undo;
+
+context Undo 
+
+  @Class UndoClient extends Client, UndoStackListener
+  
+    @Constructor(name)
+      self.setCommandInterpreter(UndoCommandInterpreter());
+      self.setEventHandler(UndoEventHandler());
+      self.registerWithEngine();
+      self
+    end
+  
+    @Constructor()
+      self
+    end
+  
+    @Operation undo()
+      xmf.undoEngine().undo()
+    end
+    
+    @Operation redo()
+      xmf.undoEngine().redo()
+    end
+    
+    @Operation redoStackChanged(redoStack)
+      if redoStack = 0
+      then
+        @Command(self) disableRedo() end
+      else
+        @Command(self) enableRedo() end
+      end
+    end
+    
+    @Operation registerWithEngine()
+      let engine = xmf.undoEngine()
+      in
+        engine.addToStacklisteners(self)
+      end
+    end
+  
+    @Operation undoStackChanged(undoStack)
+      if undoStack = 0
+      then
+        @Command(self) disableUndo() end
+      else
+        @Command(self) enableUndo() end
+      end    
+    end
+    
+  end
+

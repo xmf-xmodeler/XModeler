@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+
+context XOCL
+
+  @Class ColorObjectNode extends Sugar
+  
+    @Grammar extends XCore::Operation.grammar
+    
+      ColorObjectNode ::= display = Str 'using' color = Exp 'when' exp = Exp {
+        ColorObjectNode(display,color,exp)
+      }.
+      
+    end
+    
+    @Attribute display	: String end
+    @Attribute color 	: Exp end
+    @Attribute exp	 	: Exp end
+    
+    @Constructor(display,color,exp)
+    end
+    
+    @Operation desugar():Performable
+      [|
+        @Operation(element,diagramElement)
+          if element.isKindOf(<exp>)
+          then
+            let display = diagramElement.getDisplay(<StrExp(display)>)
+      		in
+        	  if display <> null
+        	  then
+          		display.setThemeFillColor(<color>)
+              end
+        	end
+          end;
+          false
+      	end
+      |]
+    end
+    
+  end

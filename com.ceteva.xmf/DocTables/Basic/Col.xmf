@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Col extends Properties, Entry
+
+    @Attribute entry : Entry (?,!) end
+
+    @Constructor(entry) ! end
+    @Constructor(properties,entry) end
+    
+    @Operation contents()
+      Seq{entry}
+    end
+  
+  end

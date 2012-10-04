@@ -1,0 +1,19 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import OCL;
+
+context XCore::Operation
+  @Grammar extends OCL::OCL.grammar()
+    Operation ::= 
+      name = OpName  
+      '(' args = OpArgs multi = OpMulti ')'
+      type = RetType
+      body = Exp+
+      { Operation(name,args + multi,type).add(body).setIsMultiArgs(not multi->isEmpty) }.
+    OpName ::= name = AName { if name.isKindOf(String) then Symbol(name) else name end } | { Symbol("anonymous") }.
+    OpArgs ::= arg = OpArg args = (',' OpArg)* { Seq{arg | args } } | { Seq{} }.
+    OpArg ::= Pattern | '!' Drop. // Distinguishes between a dropped name and a dropped pattern.
+    OpMulti ::= '.' multi = Pattern { Seq{multi} } | { Seq{} }.
+    RetType ::= ':' TypeExp | { NamedType() }.
+  end

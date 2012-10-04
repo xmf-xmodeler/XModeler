@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Token isabstract
+  
+    @Attribute debug : Boolean = false (?) end
+    
+    @AbstractOp equals(other:Element):Boolean end
+    
+    @AbstractOp timestamp(o:Object,s:Symbol):Integer end
+  
+  end

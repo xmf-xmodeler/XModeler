@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class KinkyEdge extends Edge
+  
+    @Attribute kinks                : Seq(Clients::Diagrams::WayPoint) (?,!,+,-) end
+    
+    @Operation init(args:Seq(Element))
+      super(args);
+      self.addKinks();
+      self
+    end
+    
+    @Operation addKinks()
+      // Just for testing....
+      @Count x from 0 to 4 do
+        let wayPoint = Clients::Diagrams::WayPoint(0,0,0)
+        in self.add(wayPoint);
+           self.addToKinks(wayPoint)
+        end
+      end
+    end
+    
+    @Operation moveKinks()
+      let x1 = self.sourceNode().x;
+          y1 = self.sourceNode().y;
+          x2 = self.targetNode().x;
+          y2 = self.targetNode().y then
+          width = (x2 - x1).abs();
+          height = (y2 - y1).abs();
+          minx = x1.min(x2);
+          miny = y1.min(y2) then
+          midx = minx + (width.div(2));
+          midy = miny + (height.div(2))
+      in kinks->at(0).move(midx,midy-10);
+         kinks->at(1).move(midx-10,midy-5);
+         kinks->at(2).move(midx+10,midy+5);
+         kinks->at(3).move(midx,midy+10)
+      end
+    end
+    
+    @Operation sourceMoved(node,newx,newy,oldx,oldy)
+      self.moveKinks()
+    end
+    
+    @Operation targetMoved(node,newx,newy,oldx,oldy)
+      self.moveKinks()
+    end
+  
+  end

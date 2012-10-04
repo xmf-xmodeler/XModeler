@@ -1,0 +1,117 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Root
+  Kernel =
+    @Manifest XCore
+      XCore      = @File Kernel/Manifest     end
+      Exceptions = @File Exceptions/Manifest end
+      IO         = @File Channels/Manifest   end
+      Comms      = @File Comms/Manifest      end
+      Stacks     = @File Lib/Stacks/Manifest end
+      Graphs     = @File Lib/Graphs/Manifest end
+      Arrays     = @File Lib/Arrays/Manifest end
+      Debug      = @File Debug/Manifest      end
+    do
+      let Kernel = ProjectManager("Kernel",xmf.homeDir(),self);
+          XCore = Project(Root::XCore,xmf.homeDir() + "/Kernel",XCore);
+          Exceptions = Project(Root::Exceptions,xmf.homeDir() + "/Exceptions",Exceptions);
+          Comms = Project(Root::Comms,xmf.homeDir() + "/Comms",Comms);
+          IO = Project(Root::IO,xmf.homeDir() + "/Channels",IO);
+          Stacks = Project(Root::Stacks,xmf.homeDir() + "/Lib/Stacks",Stacks);
+          Graphs = Project(Root::Graphs,xmf.homeDir() + "/Lib/Graphs",Graphs);
+          Arrays = Project(Root::Arrays,xmf.homeDir() + "/Lib/Arrays",Arrays);
+          Debug = Project(Root::Debug,xmf.homeDir() + "/Debug",Debug)
+      in Kernel.add(XCore);
+         Kernel.add(Exceptions);
+         Kernel.add(IO);
+         Kernel.add(Comms);
+         Kernel.add(Stacks);
+         Kernel.add(Graphs);
+         Kernel.add(Arrays);
+         Kernel.add(Debug)
+      end
+    end 
+  Compiler =
+    @Manifest Compiler
+      Instrs       = @File Instrs/Manifest     end
+      Assembler    = @File Assembler/Manifest  end
+      Compiler     = @File Compiler/Manifest   end
+    do let Comp = ProjectManager("Compiler",dir,self);
+           Instrs = Project(Root::Instrs,xmf.homeDir() + "/Instrs",Instrs);
+           Assembler = Project(Root::Assembler,xmf.homeDir() + "/Assembler",Assembler);
+           Compiler = Project(Root::Compiler,xmf.homeDir() + "/Compiler",Compiler)
+       in Comp.add(Instrs);
+          Comp.add(Assembler);
+          Comp.add(Compiler)
+       end
+    end
+  XMF =
+    @Manifest XMF
+      OCL          = @File OCL/Manifest        end
+      Parser       = @File Parser/Manifest     end
+      Extensions   = @File Extensions/Manifest end
+      XMatch       = @File XMatch/Manifest     end
+      TopLevel     = @File TopLevel/Manifest   end
+      Walkers      = @File Walkers/Manifest    end
+      XRules       = @File XRules/Manifest    end
+      XML          = @File XML/Manifest        end
+      XMap         = @File XMap/Manifest       end
+      Manifests    = @File Manifests/Manifest  end
+      Projects     = @File Projects/Manifest   end
+      Associations = @File Associations/Manifest end
+    do
+      let XMF = ProjectManager("XMF",xmf.homeDir(),self);
+          OCL = Project(Root::OCL,xmf.homeDir() + "/OCL",OCL);
+          Parser = Project(Root::Parser,xmf.homeDir() + "/Parser",Parser);
+          Extensions = Project(Root::XOCL,xmf.homeDir() + "/Extensions",Extensions);
+          XMatch = Project(Root::XMatch,xmf.homeDir() + "/XMatch",XMatch);
+          TopLevel = Project(Root::TopLevel,xmf.homeDir() + "/TopLevel",TopLevel);
+          Walkers = Project(Root::Walkers,xmf.homeDir() + "/Walkers",Walkers);
+          // XRules = Project(Root::XRules,xmf.homeDir() + "/XRules",XRules);
+          XML = Project(Root::XML,xmf.homeDir() + "/XML",XML);
+          XMap = Project(Root::XMap,xmf.homeDir() + "/XMap",XMap);
+          Manifests = Project(Root::Manifests,xmf.homeDir() + "/Manifests",Manifests);
+          Projects = Project(Root::Projects,xmf.homeDir() + "/Projects",Projects);
+          Associations = Project(Root::Associations,xmf.homeDir() + "/Associations",Associations)
+      in XMF.add(OCL);
+         XMF.add(Parser);
+         XMF.add(Extensions);
+         XMF.add(XMatch);
+         XMF.add(TopLevel);
+         XMF.add(Walkers);
+         // XMF.add(XRules);
+         XMF.add(XML);
+         XMF.add(XMap);
+         XMF.add(Manifests);
+         XMF.add(Projects);
+         XMF.add(Associations)
+      end
+    end
+  Languages = @Ref Languages       end
+  Mosaic    = @Ref Clients         end
+  XTools =
+    @Manifest XTools
+      Tools     = @Ref Tools end
+      MDC       = @Ref MDC end
+    do let XTools = ProjectManager("XTools",dir,self)
+       in XTools.add(Tools);
+          XTools.add(MDC);
+          XTools
+       end
+    end
+do
+  let Projects = ProjectManagerContainer("Projects",xmf.homeDir(),self) then
+      System = ProjectManagerContainer("System",xmf.homeDir(),self)
+  in Projects.add(System);
+     System.add(Kernel);
+     System.add(Compiler);
+     System.add(XMF);
+     System.add(Languages);
+     System.add(Mosaic);
+     System.add(XTools);
+     Projects
+  end
+end;

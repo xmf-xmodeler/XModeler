@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Range extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity n .. m requires that the attribute
+      is associated with a minimum of n and a maximum of m instances 
+      of the appropriate class.
+    end
+    
+    @Attribute lower : Integer end
+    @Attribute upper : Integer end
+    
+    @Constructor(lower,upper) ! end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      XCore::CollectionMult(true,true,lower,upper)
+    end
+    
+    @Operation typeExp(type)
+      [| Set(<type>) |]
+    end
+    
+  end

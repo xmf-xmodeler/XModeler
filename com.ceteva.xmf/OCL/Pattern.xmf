@@ -1,0 +1,76 @@
+parserImport XOCL;
+
+import OCL;
+import IO;
+
+context OCL
+
+  @Class Pattern isabstract
+  
+    @Doc
+      A pattern can occur in a binding position and is used to conditionally
+      match values and bind variables to component values. A pattern is replaced
+      with a variable, which it can be asked to generate and can be requested
+      to translate itself into pattern matching code.
+    end
+     
+     @Bind varCounter = 0 end
+     
+     @AbstractOp lift() end
+     
+     @AbstractOp matchCode(value:Performable,success:Performable,fail:Performable):Performable 
+       @Doc
+         Produces executable code that checks whether value matches the
+         receiver. The match may cause variables to be bound. If the
+         match succeeds then the success code is performed, otherwise
+         the fail code is performed.
+       end
+     end
+     
+     @AbstractOp needsBacktrack():Boolean
+       @Doc
+         A pattern requires backtracking when it contains an including pattern.
+         Non-backtracking pattern matching is more efficient because operations
+         are not required to maintain the backtrack state during matching.
+       end
+     end
+     
+     @Operation newParam():Parameter
+     
+       @Doc
+         By default a pattern will generate a new paremeter with a new var name.
+         The parameter is used to contain the value that is matched against the
+         pattern.
+       end
+        
+       Varp(self.newVar())
+     end
+     
+     @Operation newVar():String
+       Pattern.putElement("varCounter",Pattern::varCounter + 1);
+       "pvar" + Pattern::varCounter
+     end
+     
+     @Operation pprint():String
+       let out = StringOutputChannel()
+       in self.pprint(out);
+          out.getString()
+       end
+     end
+     
+     @AbstractOp pprint(out) end
+     
+     @Operation toSig()
+       // Returns the (declared) type of the receiver encoded as
+       // a signature suitable for saving in a compiled operation.
+       // The default is specified by NamedType.
+       NamedType().toSig()
+     end
+     
+     @Operation typeExp():Performable
+       // Returns an expression which when evaluated will produce
+       // the type of the receiver. Used when lifting expressions.
+       Path(Var("Root"),Seq{"OCL",self.of().name})
+     end
+     
+   end

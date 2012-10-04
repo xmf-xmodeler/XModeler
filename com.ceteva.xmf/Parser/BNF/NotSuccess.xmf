@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Parser::Machine;
+
+context Parser::BNF
+
+  @Class NotSuccess extends Recognizer
+  
+    @Attribute fail : MachineFail end
+    
+    @Constructor(fail) end
+    
+    @Operation parse(machine)
+      fail.fail(machine);
+      machine.fail()
+    end
+    
+  end

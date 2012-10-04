@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+ @Class Clause extends NamedElement
+ 
+      // A clause is a named rule in a grammar that defines how
+      // to recognise and synthesize a particular syntactic category.
+    
+      @Attribute args : Seq(String) end
+      @Attribute body : Recognizer end    // How to recognize and synthesize.
+      
+      @Constructor(name,body) end
+      @Constructor(name,args,body) end
+      
+      @Operation call(machine)
+        machine.newStack();
+        machine.pushTraceFail(name);
+        machine.pushTraceSuccess(name);
+        if machine.grammar.debug then machine.debug("Trying " + name) end;
+        machine.incIndent();
+        machine.pushCut();
+        body.parse(machine)
+      end
+      
+      @Operation code(outputChannel,indent)
+        format(outputChannel,"~V~S ::= ",Seq{indent,name});
+        body.code(outputChannel);
+        format(outputChannel,".~%")
+      end
+      
+      @Operation code()
+        let soc = IO::StringOutputChannel() in
+          self.code(soc,0);
+          soc.getString()
+        end
+      end
+    
+      @Operation parse(machine)
+        body.parse(machine)
+      end
+      
+      @Operation setOwner(owner:Element)
+        body.setOwner(owner);
+        self.owner := owner
+      end
+      
+      @Operation terminals():Set(String)
+        body.terminals()
+      end
+      
+      @Operation lift() 
+        // Translate the clause into an expression that recreates it.
+        // The body must know about the free variables bound by the clause
+        // in order to transform any pre actions into operations with the
+        // free variables in scope.
+        let nameExp = StrExp(name);
+            argsExp = SetExp("Seq",args->collect(a | StrExp(a)));
+            bodyExp = body.toExp(args->asSet)
+        in [| Root::Parser::BNF::Clause(<nameExp>,<argsExp>,<bodyExp>) |]
+        end
+      end
+      
+      @Operation transform()
+        // Used to resolve PreAction's and introduce
+        // variable bindings for the names bound by the
+        // clause body.
+        self.body := body.transform(Set{},owner)
+      end
+      
+    end

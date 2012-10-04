@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+import EventHandlers;
+import Env;
+
+context EventHandlers
+
+  @Class EventForm extends Form
+  
+    // Event forms can contain EventHandler instances. Each
+    // event handler contains its own operation for handling
+    // its specific event. The handler operation for the event
+    // form just broadcasts the event to the contents.
+    
+    @Operation init(args)
+      self.handler := @Operation(env) self.handleEvent(env) end;
+      super(args)
+    end
+    
+    @Operation bindValues(vEnv,fEnv)
+    
+      // Extend the value env with the values shown on
+      // the form (as defined by fEnv). Each entry will
+      // know how to extend the vEnv where appropriate.
+      
+      let E = self.contents()
+      in @While not E->isEmpty do
+           let entry = E->head
+           in E := E->tail;
+              vEnv := entry.bind(vEnv,fEnv);
+              E := E + entry.contents()
+           end
+         end;
+         vEnv
+      end
+    end
+    
+    @Operation handleEvent(env)
+    
+      // Broadcast an event to the contents.
+      // Assumes that events can be uniquely
+      // identified...
+      
+      let E = self.contents();
+          vEnv = self.bindValues(NullEnv(),env)
+      in @While not E->isEmpty do
+           let entry = E->head
+           in E := E->tail;
+              if entry.isKindOf(EventHandler)
+              then entry.handleEvent(vEnv)
+              end;
+              E := E + entry.contents()
+           end
+         end
+      end
+    end
+
+  end

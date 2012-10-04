@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class ClassifierNode extends Node
+    // Used as a general node type for diagram elements with parents.
+  end

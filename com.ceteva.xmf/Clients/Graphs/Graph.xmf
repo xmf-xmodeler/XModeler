@@ -1,0 +1,230 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+import Diagrams;
+import Graphs;
+
+context Graphs
+
+  @Class Graph extends Diagram
+  
+    @Doc
+      This class allows you to construct and display a graph. Add features to the
+      graph (lines, labels etc) and then showGraph(). If you do not care that the
+      graph records the information it is displaying then use the various drawing
+      operations (such as line(x1,y1,x2,y2)) directly. The width and height of the
+      graph define how big it will be when drawn. The xscale and yscale define the
+      limits of the x and y co-ordinates. Points are scaled appropriately when given
+      relative to the x and y scales. Translate points by dx and dy. The axes are
+      annotated with a scale using divisions defined by xdivMaj/Min and ydivMaj/Min
+      where the Maj and Min refer to the major and minor divisions.
+    end
+  
+    @Attribute lines              : Seq(Line)         (+,-,?,!) end
+    @Attribute labels             : Seq(Label)        (+,-,?,!) end
+    @Attribute canvas             : Canvas = Canvas() (?)       end
+    @Attribute xscale             : Integer           (?,!)     end
+    @Attribute yscale             : Integer           (?,!)     end
+    @Attribute xdivMaj            : Integer = 10      (?,!)     end
+    @Attribute ydivMaj            : Integer = 10      (?,!)     end
+    @Attribute xdivMin            : Integer = 2       (?,!)     end
+    @Attribute ydivMin            : Integer = 2       (?,!)     end
+    @Attribute dx                 : Integer = 30      (?,!)     end
+    @Attribute dy                 : Integer = 30      (?,!)     end
+    @Attribute highlightPoints    : Boolean = true    (?,!)     end 
+    
+    @Constructor(name,width,height,xscale,yscale) !
+      self.init(Seq{name});
+      self.add(canvas)
+    end
+
+    @Operation dispose()
+      self.disposeCollection(lines);
+      self.disposeCollection(labels);
+      super()
+    end
+
+    @Operation drawAxes()
+      self.line(0,0,0,height,Diagrams::Color());
+      self.line(0,0,width,0,Diagrams::Color());
+      self.drawXAxis();
+      self.drawYAxis()
+    end
+    
+    @Operation drawXAxis()
+      let x = 0
+      in @While x < xscale do
+           let major = x.mod(xdivMaj) = 0 then
+               markerLength = if major then 10 else 4 end
+           in self.vtick(x,0,markerLength);
+              if major then 
+                self.xAxisLabel(x.toString(),x)
+              end
+           end;
+           x := x + xdivMin
+         end
+      end
+    end
+    
+    @Operation drawYAxis()
+      let y = 0
+      in @While y < yscale do
+           let major = y.mod(ydivMaj) = 0 then
+               markerLength = if major then 10 else 4 end
+           in self.htick(0,y,markerLength);
+              if major then self.yAxisLabel(y.toString(),y) end
+           end;
+           y := y + ydivMin
+         end
+      end
+    end
+    
+    @Operation drawGraph()
+      canvas.new(self,true);
+      canvas.move(10,10);
+      self.drawAxes();
+      
+      @For line in lines do
+        self.line(line.x,line.y,line.x2,line.y2,line.color());
+        if highlightPoints
+        then 
+          let size = 4
+          in self.point(line.x,line.y);
+             self.point(line.x2,line.y2)
+          end
+        end
+      end;
+      @For label in labels do
+        self.label(label.text,label.x,label.y)
+      end
+    end
+    
+    @Operation point(x,y)
+      let x = self.x(x) - 3;
+          y = self.y(y) - 3;
+          c = Color()
+      in @SendCommand(self.commandInterpreter())
+           newEllipse(canvas.id(),self.newId(),x,y,6,6,true,c.red(),c.green(),c.blue(),c.red(),c.green(),c.blue())
+         end
+      end
+    end
+    
+    @Operation ellipse(x,y,width,height)
+      let x = self.x(x);
+          y = self.y(y);
+          width = ((self.width / xscale) * width).floor();
+          height = ((self.height / yscale) * height).floor();
+          c = Color()
+      in @SendCommand(self.commandInterpreter())
+           newEllipse(canvas.id(),self.newId(),x,y,width,height,true,c.red(),c.green(),c.blue(),c.red(),c.green(),c.blue())
+         end
+      end
+    end
+    
+    @Operation label(text,x,y)
+      let x = self.x(x);
+          y = self.y(y);
+          c = Color()
+      in @SendCommand(self.commandInterpreter())
+           newText(canvas.id(),self.newId(),text,x,y,false,false,false,c.red(),c.green(),c.blue())
+         end
+      end
+    end
+    
+    @Operation line(x1,y1,x2,y2,color)
+      let x1 = self.x(x1);
+          y1 = self.y(y1);
+          x2 = self.x(x2);
+          y2 = self.y(y2)
+      in @SendCommand(self.commandInterpreter())
+           newLine(canvas.id(),self.newId(),x1,y1,x2,y2,color.red(),color.green(),color.blue())
+         end
+      end
+    end
+    
+    @Operation newId():String
+      Kernel_valueToString(self.commandInterpreter().allocateId(null))
+    end
+    
+    @Operation redrawGraph()
+      canvas.delete();
+      self.canvas := Canvas();
+      self.add(self.canvas);
+      self.drawGraph()
+    end
+    
+    @Operation reset()
+      self.setLines(Seq{});
+      self.setLabels(Seq{})
+    end
+    
+    @Operation showGraph()
+      @Find(client,xmf.clientManager().clients)
+        when client.name = "com.ceteva.diagram"
+        do if client.hasDiagram(self)
+           then client.showDiagram(self)
+           else 
+             client.newDiagram(self)
+           end;
+           self.drawGraph();
+           self
+      end
+    end
+    
+    @Operation textWidth(text)
+      text->size * 7
+    end
+    
+    @Operation textHeight(text)
+      12
+    end
+    
+    @Operation htick(x,y,length)
+      let x = self.x(x);
+          y = self.y(y)
+      in @SendCommand(self.commandInterpreter())
+           newLine(canvas.id(),self.newId(),x,y,x-length,y,0-1,0-1,0-1)
+         end
+      end
+    end
+    
+   @Operation vtick(x,y,length)
+      let x = self.x(x);
+          y = self.y(y)
+      in
+         @SendCommand(self.commandInterpreter())  
+           newLine(canvas.id(),self.newId(),x,y,x,y+length,0-1,0-1,0-1)
+         end
+      end
+    end
+    
+    @Operation x(x):Integer
+      ((width/xscale) * x).floor() + self.dx()
+    end
+    
+    @Operation xAxisLabel(text,x)
+      let x = self.x(x);
+          y = height - self.dy();
+          c = Color()
+      in @SendCommand(self.commandInterpreter())
+           newText(canvas.id(),self.newId(),text,x - self.textWidth(text).div(2),y + 10,false,false,false,c.red(),c.green(),c.blue())
+         end
+      end
+    end
+    
+    @Operation y(y):Integer
+      (height - ((height/yscale)*y).floor()) - self.dy()
+    end
+    
+    @Operation yAxisLabel(text,y)
+      let x = self.dx();
+          y = self.y(y);
+          c = Color()
+      in @SendCommand(self.commandInterpreter())
+           newText(canvas.id(),self.newId(),text,x - (self.textWidth(text) + 12),y - self.textHeight(text).div(2),false,false,false,c.red(),c.green(),c.blue())
+         end
+      end
+    end
+    
+  end

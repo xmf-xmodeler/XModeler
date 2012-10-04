@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class MappingCreator
+  
+    @Bind registryPoint = null end
+  
+    @Operation createMapping(e,n)
+      try
+        if MappingCreator::registryPoint = null
+        then
+          MappingCreator::registryPoint := xmf.registry().getExtensionPoint("com.ceteva.xmf.modelBrowsers.mappings")
+        end;
+        let con = MappingCreator::registryPoint.find(e.of(),self)
+        in
+          if con <> null then
+            let mappingClass = con.getValue(0) in
+              mappingClass(e,n,self)
+            end
+          end  
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+  end

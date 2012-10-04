@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Shape extends Clients::Diagrams::Shape, Display
+  
+    @Operation resize(width,height)
+    
+      // Resize by translating all the points down to the 
+      // minimum size...
+      
+      if self.width <> 0 and self.height <> 0
+      then
+        let scalex = width/self.width;
+            scaley = height/self.height;
+            points = self.points()
+        in super(width,height);
+           self.resetShape();
+           @For point in points do
+             self.addPoint(Point((point.x * scalex).floor(),(point.y * scaley).floor()))
+           end;
+           self.redrawShape() 
+        end
+      else super(width,height)
+      end
+      
+    end
+    
+  end
+  

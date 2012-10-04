@@ -1,0 +1,147 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types; 
+import DisplayTypes;
+import Displays;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Link"()
+  let tool = event.tool() then
+      rootElementType = tool.find(event.parent()) then
+      nodes = rootElementType.allNodes() then
+      C = nodes->collect(node | node.type().classifier())
+  in if C->isEmpty
+     then
+       xmf.message("No linkable node types"); 
+       event.value().delete()
+     else 
+       let source = xmf.select("Source","Select source of link",C,null,null)
+       in if source <> null
+          then 
+            if source.isKindOf(Class)
+            then
+              let A = source.allAttributes()->asSeq->select(a | C->includes(a.underlyingType()))
+              in if A->isEmpty
+                 then 
+                   xmf.message("No attributes with matching node types.");
+                   event.value().delete()
+                 else 
+                   let a = xmf.select("Attribute","Select attribute for target type",A,null,null)
+                   in if a <> null
+                      then 
+                        let target = @Find(n,nodes) when n.type().classifier() = a.underlyingType() end;
+                            source = @Find(n,nodes) when n.type().classifier() = source end then
+                            edgeType = EdgeType(source.type().nodeType(),target.type().nodeType()) then
+                            map = Attribute_x_Edge(a,edgeType,source,target);
+                            menu = edgeType.menu();
+                            menuNode = event.value().ref1(Seq{"Menu"})
+                        in edgeType.setName(map.toString());
+                           event.tool().register(menu,menuNode);
+                           event.tool().register(menuNode,menu);
+                           event.value().setTextIn(map.toString());
+                           rootElementType.addToEdges(map);
+                           rootElementType.displayType().add(edgeType);
+                           event.tool().register(event.value(),map);
+                           event.tool().register(map,event.value())
+                        end
+                      else event.value().delete()
+                      end
+                   end
+                 end
+              end
+            else 
+              xmf.message("Please choose a class not a classifier.");
+              event.value().delete()
+            end
+          else event.value().delete()
+          end
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Link"()
+  if event.tool().isRegistered(event.value())
+  then
+    let attEdge = event.tool().find(event.value()) then
+        edgeType = attEdge.edgeType();
+        rootElementType = event.tool().find(event.owner())
+    in rootElementType.deleteFromEdges(attEdge);
+       rootElementType.displayType().remove(edgeType);
+       event.tool().deregister(event.value());
+       event.tool().deregister(attEdge)
+    end
+  end
+end;
+
+// Labels and their listeners can occur on link or association types. The handlers
+// match events from either...
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_Label"()
+  if event.tool().isRegistered(event.parent())
+  then
+    let attEdge = event.tool().find(event.parent()) then
+        edgeType = attEdge.edgeType();
+        labelType = Label(event.tool().newName("Label")) then
+        labelMap = Label_x_Label(labelType)
+    in attEdge.addToLabels(labelMap);
+       edgeType.add(labelType);
+       labelType.setText(labelType.name().toString());
+       event.value().setTextIn(labelType.name().toString());
+       event.tool().register(event.value(),labelMap);
+       event.tool().register(labelMap,event.value())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)_Label_Changed"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let labelMap = event.tool().find(event.value())
+    in labelMap.label().setText(event.new())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)_Label"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let attEdge = event.tool().find(event.owner()) then
+        edgeType = attEdge.edgeType();
+        labelMap = event.tool().find(event.value()) then
+        labelType = labelMap.label()
+    in edgeType.deleteFromLabels(labelType);
+       attEdge.deleteFromLabels(labelMap);
+       event.tool().deregister(labelMap);
+       event.tool().deregister(event.value())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Label_Listener"()
+  if event.tool().isRegistered(event.parent())
+  then
+    let labelMap = event.tool().find(event.parent());
+        listener = Label_x_Label::newListener()
+    in labelMap.addToListeners(listener);
+       event.tool().register(event.value(),listener);
+       event.tool().register(listener,event.value())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Label_Listener"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let labelMap = event.tool().find(event.owner());
+        listener = event.tool().find(event.value())
+    in labelMap.deleteFromListeners(listener);
+       event.tool().deregister(listener);
+       event.tool().deregister(event.value())
+    end
+  end
+end;

@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport XMap;
+
+context X
+  @Operation edit(value)
+    let tool = super()
+    in @WithoutEvents(tool)
+         X::Browser::mapValue(value,tool.form().ref1(Seq{"Tree"}),Table(10),3)
+       end
+    end
+  end

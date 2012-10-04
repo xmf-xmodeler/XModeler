@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormTextField extends FormElement, TextComponent
+    
+    @Constructor(x,y,width,height,text,isEditable) end
+    
+    @Constructor(id,x,y,width,height,text,isEditable) end
+    
+    @Operation doubleSelected()
+      self
+    end
+     
+    @Operation new(parent)
+      self.commandInterpreter().newTextFieldCommand(parent,self);
+      self.commandInterpreter().setText(self,self.text);
+      self
+    end
+
+    @Operation renew(parent)
+      self.commandInterpreter().newTextFieldCommand(parent,self);
+      self.commandInterpreter().setText(self,self.text);
+      self
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        text = Seq{"text",text};
+        editable = Seq{"editable",isEditable} then
+        attributes = Seq{id,x,y,width,height,text,editable}
+      in
+        @Command(self) startElement("textfield",attributes) end;
+        @Command(self) endElement("textfield") end
+      end
+    end
+
+  end

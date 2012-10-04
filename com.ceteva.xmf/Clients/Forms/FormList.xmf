@@ -1,0 +1,97 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormList extends FormElement, DroppableClientElement
+  
+    @Attribute contents : Seq(ListElement) end
+    
+    @Constructor(x,y,width,height)
+    end
+    
+    @Constructor(id,x,y,width,height) ! end
+
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the list is created and if the
+      // contents are ever refreshed.
+
+      self
+    end
+
+    @Operation addItem(item:ListElement)
+      self.contents := self.contents + Seq{item};
+      item.setOwner(self)
+    end
+    
+    @Operation clearContents()
+      self.contents := Seq{}
+    end 
+    
+    @Operation deselectAll()
+      @For element in contents do
+        element.setSelected(false)
+      end
+    end
+
+    @Operation dispose()
+      self.disposeCollection(contents);
+      super()
+    end
+
+    @Operation new(parent)
+      self.commandInterpreter().newListCommand(parent,self);
+      self.addContents();
+      self.newContents();
+      self
+    end   
+    
+    @Operation newContents()
+      @For content in contents do
+        content.new(self)
+      end
+    end    
+
+    @Operation removeItem(item:ListElement)
+      self.contents := self.contents.excluding(item);
+      item.setOwner(null)
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newListCommand(parent,self);
+      @For content in contents do
+        content.renew(self)
+      end
+    end
+
+    @Operation renewContents()
+      self.commandInterpreter().clear(self);
+      self.newContents()
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height} then
+        attributes = Seq{id,x,y,width,height}
+      in
+        @Command(self) startElement("list",attributes) end;
+        @For content in contents
+        do
+          content.synchronise()
+        end;
+        @Command(self) endElement("list") end
+      end
+    end
+
+  end

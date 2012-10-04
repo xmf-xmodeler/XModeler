@@ -1,0 +1,116 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+// *** MENUS ***
+
+@Menu "View Text" on IO::File
+  IO::File::editText
+end;
+
+@Menu "Compile File" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfFile::compileFile
+end;
+
+@Menu "Compile File" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfFile::compileFile
+end;
+
+@Menu "Load Binary" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfFile::loadBinary
+end;
+
+@Menu "Load Source" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfFile::loadSource
+end;
+
+@Menu "Search" on Clients::XmfFileTree::XmfFile
+  Clients::XmfFileTree::XmfFile::search
+end;
+
+@Menu "Move" on Clients::XmfFileTree::XmfFile
+  Clients::XmfFileTree::XmfFile::moveFile
+end;
+
+@Menu "Manifest":"Load":"Binaries" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfManifest::loadBinaries
+end;
+
+@Menu "Manifest":"Load":"Sources" on Clients::XmfFileTree::XmfFile notUndoable
+  Clients::XmfFileTree::XmfManifest::loadSources
+end;
+
+@Menu "Manifest":"Build" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::buildManifest
+end;
+
+@Menu "Manifest":"Compile, Build and Load" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::compileBuildLoadManifest
+end;
+
+@Menu "Manifest":"Delete Binaries" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::deleteBinary
+end;
+
+@Menu "Manifest":"Touch":"Sources" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::touch
+end;
+
+@Menu "Manifest":"Browse":"Contents" on Clients::XmfFileTree::XmfManifest
+  Clients::XmfFileTree::XmfManifest::fullBrowse
+end;
+
+@Menu "Manifest":"Refresh" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::refresh
+end;
+
+@Menu "Manifest":"Touch":"Binaries" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::touch
+end;
+
+@Menu "Manifest":"Xip" on Clients::XmfFileTree::XmfManifest notUndoable
+  Clients::XmfFileTree::XmfManifest::xip
+end;
+
+@Menu "Add Element":"Directory" on IO::Directory notUndoable
+  IO::Directory::newDirectory
+end;
+
+@Menu "Search" on IO::Directory notUndoable
+  IO::Directory::search
+end;
+
+@Menu "Add Element":"XMF File" on IO::Directory notUndoable
+  IO::Directory::newXmfFile
+end;
+
+let 
+  templateDir = IO::Directory(xmf.homeDir() + "/Templates",Seq{".*xmf"}) then
+  files = templateDir.getContents()
+in 
+  @For file in files 
+  do
+    if file.hasSuffix(".xmf")
+    then
+      let name = file.subString(0,file.size() - 4)
+      in
+        @Menu "Add Element":"Template":name on IO::Directory notUndoable
+          IO::Directory::newTemplateFile $ file
+        end
+      end
+    end
+  end
+end;
+
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(Clients::XmfFileTree::XmfFile,Seq{"IO::File"}));
+  registry.addContribution(id,Contribution(Clients::XmfFileTree::XmfManifest,Seq{"IO::File"}));
+  registry.addContribution(id,Contribution(Clients::XmfFileTree::JavaFile,Seq{"IO::File"}));
+  self
+end;

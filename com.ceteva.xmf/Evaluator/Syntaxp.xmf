@@ -1,0 +1,14 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Syntaxp in Eval(aSyntaxp,arg,seen)
+  if seen
+  then aSyntaxp
+  else
+    let exp = self.dispatch(aSyntaxp.exp,arg)
+    in aSyntaxp
+    end
+  end
+end;

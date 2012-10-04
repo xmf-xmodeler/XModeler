@@ -1,0 +1,80 @@
+parserImport XOCL;
+
+import XSync;
+import OCL;
+import Env;
+import Syntax;
+
+context Syntax
+
+  @Class ObjectPattern extends Pattern
+  
+    @Attribute negated : Boolean          (?) end
+    @Attribute name    : String           (?) end
+    @Attribute path    : Seq(String)      (?) end
+    @Attribute slots   : Seq(SlotPattern) (?) end
+    
+    @Constructor(negated,name,path,slots) ! end
+    
+    @Operation code(net:Performable):Performable
+      let pathExp = Path::toPath(path); //SetExp("Seq",path->collect(n | StrExp(n)));
+          slotExp = SetExp("Set",slots.name->collect(s | StrExp(s)))
+      in [| let alpha = Alpha(<pathExp>,<slotExp>) 
+            in <net>.add(alpha);
+               alpha
+            end
+         |]
+      end
+    end 
+    
+    @Operation constraints(boundVars:Set(String)):Set(Constraint)
+      if boundVars->includes(name)
+      then 
+        slots->asSet->collect(s | 
+          s.constraints(boundVars))
+            ->flatten
+            ->including(Equivalence(Self(),Var(name)))
+      else 
+        slots->asSet->collect(s | 
+          s.constraints(boundVars))
+          ->flatten
+      end
+    end
+    
+    @Operation createNode():Node
+      Alpha(self)
+    end
+    
+    @Operation source():String
+      let s = if negated then "~ " else "" end
+      in if name <> "" then s := s + name + " = " end;
+         s := s + path->separateWith("::");
+         s := s + "[";
+         @For slot in slots do
+           s := s + slot.source();
+           if not isLast then s := s + ", " end
+         end;
+         s + "]"
+      end
+    end
+    
+    @Operation varEnv(boundVars:Set(String),varEnv:Env):Env
+      @For s in slots do
+        varEnv := s.varEnv(boundVars,varEnv)
+      end;
+      if name = ""
+      then 
+        varEnv
+      else
+        varEnv.bind(name,Self())
+      end
+    end
+    
+    @Operation vars():Set(String)
+      if name = ""
+      then slots->asSet->collect(s | s.vars())->flatten
+      else slots->asSet->collect(s | s.vars())->flatten->including(name)
+      end
+    end
+    
+  end

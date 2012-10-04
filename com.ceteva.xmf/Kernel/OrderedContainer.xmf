@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class OrderedContainer extends Container
+    @Doc
+      A container that wraps a collection of ordered elements.
+    end
+    @Attribute contents : Seq(Element) end
+    
+    @Operation add(element:Element):Container
+      self.addToEnd(element)
+    end
+    
+    @Operation addContentDaemon(actionSource,daemon:Operation):Container
+      let d = 
+        @Operation contentDaemon(slot,new,old)
+          if slot.toString() = "contents"
+          then daemon.invoke(actionSource,Seq{new,old})
+          end
+        end
+      in
+        self.addDaemon(d);
+        d
+      end
+    end
+  
+    @Operation addToEnd(element:Element):Container
+      self.contents := contents + Seq{element}
+    end
+  
+    @Operation addToStart(element:Element):Container
+      self.contents := Seq{element | contents}
+    end
+  
+    @Operation contents():Collection(Element) 
+      contents
+    end
+    
+    @Operation contentDaemons():Seq(Operation)
+      self.daemons()->select(d | d.name().toString() = "contentDaemon")
+    end
+  
+    @Operation remove(element:Element):Container
+      if element.isKindOf(Contained)
+      then
+        element.removeFromOwner()
+      end;
+      self.contents := contents->excluding(element);
+      self
+    end
+    
+    @Operation removeContentDaemon(daemon:Operation):Container
+      self.removeDaemon(daemon)
+    end
+    
+  end
+  

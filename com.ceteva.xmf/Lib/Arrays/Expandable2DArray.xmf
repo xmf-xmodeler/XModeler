@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Arrays;
+
+context Arrays
+
+  @Class Expandable2DArray extends Simple2DArray
+  
+    @Doc
+      A two dimensional array to which records (rows) can be added or deleted.
+    end
+
+    @Operation addRow(row:Integer)
+      if row > rows
+      then
+        throw ArrayIndexOutOfBounds(self,row,rows)
+      else
+        self.addRowDefinitely(row)
+      end
+    end
+    
+    @Operation addRowDefinitely(row:Integer)
+      let record = Vector(cols)
+      in
+        self.records := records->asSeq->insertAt(record,row)->asVector;
+        self.rows := rows+1
+      end
+    end
+
+    @Operation deleteRow(row:Integer)
+      if row >= rows
+      then
+        throw ArrayIndexOutOfBounds(self,row,rows)
+      else
+        self.deleteRowDefinitely(row)
+      end
+    end
+    
+    @Operation deleteRowDefinitely(row:Integer)
+      let record = self.getRow(row)
+      in
+        self.records := records->asSeq->excluding(record)->asVector;
+        self.rows := rows-1
+      end
+    end
+
+  end
+      

@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:34 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Col extends Root::HTML::HTMLElement
+
+    @Attribute width : Root::XCore::Integer (?,!) end
+    @Attribute valign : Root::XCore::Integer (?,!) end
+    @Attribute span : Root::XCore::Integer (?,!) end
+    @Attribute charOff : Root::XCore::Integer (?,!) end
+    @Attribute char : Root::XCore::String (?,!) end
+    @Attribute align : Root::XCore::String (?,!) end
+
+    @Constructor(align,char,charOff,span,valign,width,contents) ! end
+
+  end

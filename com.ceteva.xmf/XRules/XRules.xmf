@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+context ! Root
+
+// Package deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+// Note that the ! above means that the definitions in this
+// file may contain forward references. Any namespace defined
+// using ! must be initialised (either directly or via its 
+// containing name space) when loaded. The initialisation
+// will occur automatically if you build and load the deployed
+// model using the deployed manifest.
+
+@Package XRules 
+
+  @Operation unify(pattern,value,env)
+  
+    // Unifies the pattern with the value in the context of the
+    // supplied variable binding environment. It is important that
+    // the pattern and value are distinguished because the pattern
+    // may be an instance of a super-class of that of the value.
+    
+    Kernel_unify(Var,pattern,value,env)
+    
+  end
+  
+  @Operation deref(v,vars)
+    let binds = vars->assoc(v)
+    in @While binds <> null do
+         v := binds->head->tail;
+         binds := vars->assoc(v)
+       end;
+       v
+    end
+  end
+
+end

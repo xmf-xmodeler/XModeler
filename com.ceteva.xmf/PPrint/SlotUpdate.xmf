@@ -1,0 +1,20 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler SlotUpdate in PPrint(aSlotUpdate,out,seen)
+  self.mark(
+    @Operation()
+      self.dispatch(aSlotUpdate.target,out);
+      format(out,".");
+      if aSlotUpdate.name.isKindOf(Drop)
+      then self.dispatch(aSlotUpdate.name,out)
+      else format(out,"~S",Seq{aSlotUpdate.name})
+      end;
+      format(out," := ");
+      self.indent(
+        @Operation()
+          self.dispatch(aSlotUpdate.value,out)
+        end)
+    end)
+end;

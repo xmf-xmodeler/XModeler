@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+context XOCL
+
+  @Class Def isabstract extends Performable
+  
+    @Doc
+      A definition is a named performable syntactic element. The class
+      Def is abstract and requires that all sub-classes have a name.
+    end
+     
+     @Attribute name : String end
+     
+   end 

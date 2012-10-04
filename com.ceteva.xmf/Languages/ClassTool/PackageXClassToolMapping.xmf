@@ -1,0 +1,143 @@
+parserImport XOCL;
+
+import Languages;
+import ClassTool;
+import IO;
+import XML;
+import Generator;
+
+context ClassTool
+
+@Package PackageXClassToolMapping
+
+  @Map PackageXTool(Package)->Tool
+    @Clause ClassXTool
+      p = Package [name = N, classes = C] do
+        Tool(N,Set{SAVE,LOAD}->union(R),M)
+          where 
+          //M = C->collect(c | let m = ClassXManager()(c) 
+          //  in not c.isAbstract and m end);
+                M = (C->including(p))->collect(c | ClassXManager()(c));
+                SAVE = PackageXSaveOp()(p);
+                LOAD = PackageXLoadOp()(p);
+                R = p.operations->collect(o | PackageXReflectOp()(o))
+    end
+  end
+  
+  @Map ClassXManager(Class)->Manager
+    @Clause ClassXManager
+      c = Class [name = N] do
+        Manager(N,Set{NEW,DELETE},IM)
+          where NEW = ClassXNewOp()(c);
+                DELETE = ClassXDeleteOp()(c);
+                IM = ClassXInstanceManager()(c)
+    end
+  end
+  
+  @Map ClassXInstanceManager(Class)->InstanceManager
+    @Clause ClassXClassManger
+      c = Class do
+        InstanceManager(Set{CHECK,DELETE}->union(R))
+          where CHECK = ClassXConstraintOp()(c);
+                DELETE = ClassXDeleteInsOp()(c);
+                R = c.operations->collect(o | ClassXReflectOp()(o))
+    end
+  end
+  
+  @Map ClassXNewOp(Class)->NewOperation
+    @Clause ClassXNewOp
+      c = Class [name = N] do
+        NewOperation(N)
+    end
+  end
+  
+  @Map ClassXLoadOp(Class)->LoadClassOperation
+    @Clause ClassXLoadOp
+      c = Class [name = N] do
+        LoadClassOperation(N)
+    end
+  end
+  
+  @Map ClassXDeleteOp(Class)->DeleteClassOperation
+    @Clause ClassXDeleteOp
+      c = Class [name = N] do
+        DeleteClassOperation(N)
+    end
+  end
+  
+  @Map ClassXConstraintOp(Class)->CheckConstraints
+    @Clause ClassXConstraintOp
+      c = Class [name = N] do
+        ReflectInstanceOperation("checkConstraints","checkConstraints")
+    end
+  end
+  
+  @Map ClassXSaveOp(Class)->SaveInstanceOperation
+    @Clause ClassXSaveOp
+      c = Class [name = N] do
+        SaveInstanceOperation(N)
+    end
+  end
+  
+  @Map ClassXDeleteInsOp(Class)->DeleteInstanceOperation
+    @Clause ClassXDeleteInsOp
+      c = Class [name = N] do
+        DeleteInstanceOperation(N)
+    end
+  end
+  
+  @Map ClassXReflectOp(Operation)->ReflectInstanceOperation
+    @Clause ClassXReflectOp
+      o = Operation [name = N] do
+        ReflectInstanceOperation(N,N)
+    end
+  end
+  
+  @Map PackageXSaveOp(Package)->SaveOperation
+    @Clause ClassXSaveOp
+      p = Package [name = N] do
+        SaveOperation(N)
+    end
+  end
+  
+  @Map PackageXLoadOp(Package)->LoadOperation
+    @Clause ClassXLoadOp
+      p = Package [name = N] do
+        LoadOperation(N)
+    end
+  end
+  
+  @Map PackageXCheckAllOp(Package)->CheckAllOperation
+    @Clause ClassXCheckAllOp
+      p = Package [name = N] do
+        CheckAllOperation(N)
+    end
+  end
+  
+  @Map PackageXReflectOp(Operation)->ReflectOperation
+    @Clause PackageXReflectOp
+      o = Operation [name = N] do
+        ReflectOperation(N,N)
+    end
+  end
+  
+  @Operation writeXML(dir,file,data)
+    let out = FileOutputChannel(dir + "/" + file + ".xml")
+    in //self.XMLHeader(out);
+      data.toXML(IdTable()).pprint(out,0);
+      out.close();
+      let inp = FileInputChannel(dir + "/" + file + ".xml")
+      in
+        let xml = inp.asString() in
+          inp.close();
+          xml
+        end
+      end
+    end
+  end
+  
+  @Operation XMLHeader(out)
+    format(out,"<?xml version='1.0' standalone='yes'?>")
+  end
+  
+end

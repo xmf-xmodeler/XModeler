@@ -1,0 +1,45 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler New_NodeType()
+    let node = NodeType("T")
+    in register(event.node(),node);
+       event.tool().element().add(node)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler NodeType_nodeBox_nameBox_name_Changed()
+    find(event.root()).setName(event.new())
+  end
+
+context ToolBuilderManager
+  @EventHandler NodeType_nodeBox_nameBox_Container_ChangedTo_Vertical()
+    let nodeType = find(event.root())
+    in nodeType.setContentLayout("VERTICAL")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler NodeType_nodeBox_nameBox_Container_ChangedTo_Horizontal()
+    let nodeType = find(event.root())
+    in nodeType.setContentLayout("HORIZONTAL")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler NodeType_nodeBox_nameBox_Container_ChangedTo_Overlay()
+    let nodeType = find(event.root())
+    in nodeType.setContentLayout("OVERLAY")
+    end
+  end

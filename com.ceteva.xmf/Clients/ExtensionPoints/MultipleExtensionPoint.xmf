@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class MultipleExtensionPoint extends ExtensionPoint
+  
+    @Doc
+      A multiple extension point is used to store contributions, when a
+      type is given to the point - then all contributions are found which
+      match the type and any parents of the type.  The contributions are
+      subsequently evaluated and a set of values returned.
+    end
+    
+    @Operation findNew(elementType)
+      let 
+        types = elementType.allParents()->asSeq->prepend(elementType) then
+        values = Seq{}
+      in
+        @For type in types do
+          let cons = self.contributions->select(c | c.contributesTo(type))
+          in
+            @For contribution in cons do
+              values := values->prepend(contribution)
+            end  
+          end
+        end;
+        values
+      end
+    end
+    
+    // the default is to evaluate the extension in the context of the element
+    // and append the result to the return stack, this can be over-ridden by
+    // subtypes
+    
+    /* @Operation evaluate(contribution,element)
+      contribution.evaluate(element)
+    end */
+    
+  end

@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class TextType extends DisplayType 
+  
+    @Attribute text : String = "<undefined>" (!) end
+    
+    @Constructor(text) 
+      self.addToOperations(
+        @Operation setText(text)
+          self.element.setText(text)
+        end)
+    end
+    
+    @Operation new(tool,parent,x,y,width,height,name)
+      let text = Text(text,x,y,true) then
+          object = ToolObject(self,text);
+          this = self then
+          daemon = 
+            @Operation textChanged(slot,new,old)
+              if slot.toString() = "text"
+              then tool.raise("Changed(" + name + ")",object,new,old)
+              end
+            end
+      in parent.add(text);
+         text.addPersistentDaemon(daemon);
+         text.new(parent);
+         menuType.new(object,tool);
+         object
+      end
+    end
+  end

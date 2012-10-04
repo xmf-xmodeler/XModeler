@@ -1,0 +1,83 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser;
+import BNF;
+
+Root::g1 :=
+  @Grammar
+    Test ::= 'a' { Object() }.
+  end;
+  
+Root::g2 :=
+  @Grammar extends g1
+    X ::= Test.
+  end;
+  
+context Root
+  @Operation test1()
+    g1.debug := true;
+    let e =  Engine()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/Parser/Engine/Data.xmf")
+         let result = e.parse(null,g1,Seq{Call("Test")},Tokenizer(fin),Seq{Root})
+         in if e.parseError()
+            then e.expected()
+            else result
+            end
+         end
+       end
+    end
+  end
+
+context Root
+  @Operation testFor()
+    XOCL::For.grammar.compile();
+    let e = Engine()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/Parser/Engine/Data.xmf")
+         let result = e.parse(null,XOCL::For.grammar,Seq{Call("For")},Tokenizer(fin),Seq{Root})
+         in if e.parseError()
+            then e.expected()
+            else result
+            end
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation testTokens()
+    @WithOpenFile(fin <- xmf.homeDir() + "/Parser/Engine/Data.xmf")
+      let t = Tokenizer(fin); n = 0
+      in @Repeat
+           t.nextToken();
+           //t.token.println();
+           n := n + 1
+          until t.type = 1
+         end;
+         n
+      end
+    end
+  end
+
+context Root
+  @Operation otest(file)
+    //O.debug := true;
+    let e =  Engine()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/Parser/Engine/" + file + ".xmf")
+         try
+           let t = Time() then
+               result = e.parse(null,O,Seq{Call("CompilationUnit")},Tokenizer(fin),Seq{XCore,Root})
+           in (Time() - t).pprint().println();
+              result
+           end
+         catch(x)
+           @TypeCase(x)
+             Parser::ParseError do
+               x.pprint().edit()
+             end
+             else throw x
+           end
+         end
+       end
+    end
+  end

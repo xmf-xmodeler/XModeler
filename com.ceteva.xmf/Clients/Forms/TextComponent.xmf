@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class TextComponent 
+  
+    @Attribute text       : String  (?,!) end
+    @Attribute isEditable : Boolean (?,!) end
+
+    @Operation getEditableText()
+      self.commandInterpreter().setEditableTextCommand(self,text)
+    end
+    
+    @Operation resetText()
+      self.commandInterpreter().setText(self,text)
+    end
+    
+    @Operation setText(text:String)
+      self.text := text;
+      self.commandInterpreter().setText(self,text)
+    end
+    
+    @Operation setTextIn(newText:String)
+      self.setText(newText);
+      self.commandInterpreter().setText(self,newText)
+    end
+    
+  end

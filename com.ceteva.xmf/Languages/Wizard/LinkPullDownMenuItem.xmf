@@ -1,0 +1,20 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class LinkPullDownMenuItem
+  
+    @Attribute refPullDownMenuItem : String end
+    
+    @Constructor(refPullDownMenuItem) end
+    
+    @ToXML(lnk_Pull_Down_Menu_Item)[
+      ref_PullDown_Menu_Item = refPullDownMenuItem
+      ] 
+    end
+  
+  end

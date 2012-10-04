@@ -1,0 +1,64 @@
+parserImport XOCL;
+parserImport XMap;
+
+import XMap;
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class XMapClauseXForm extends ObjectXForm
+
+    @Operation daemons_ownerClauseAdded(elementOwner,slot,clause)
+      if xmf.clientManager().recompilingClause = element then
+        self.setElement(clause);
+        form.resetClause(clause);
+        self.checkDaemons();
+        self
+      end
+    end
+
+    @Operation daemons_ownerClauseRemoved(elementOwner,slot,clause)
+      if clause = element andthen not xmf.clientManager().recompilingClause = element then
+        form.closeCommand()
+      end
+    end
+
+    @Operation daemons_ownerChanged(e,slot,newOwner,oldOwner)
+      if newOwner.isKindOf(Null)
+          andthen not xmf.clientManager().saving
+          andthen not xmf.clientManager().recompilingClause = element then
+        oldOwner.removeDaemonsWithTarget(self,true);
+        form.closeCommand()
+      end
+    end
+
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ObjectXForm::daemons_selfNameChanged(element,"name") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofNameChanged(element.of(),"name") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofAttributesChanged(element.of(),"attributes") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofParentsChanged(element.of(),"parents") end;
+      @SlotValueChanged multi once XMapClauseXForm::daemons_ownerChanged(element,"owner") end;
+      let elementOwner = element.owner() in
+        if elementOwner <> null then
+          @SlotValueChanged multi once   ObjectXForm::daemons_ownerNameChanged(elementOwner,"name") end;
+          @SlotValueChanged multi once + XMapClauseXForm::daemons_ownerClauseAdded(elementOwner,"clauses") end
+          //@SlotValueChanged multi once - XMapClauseXForm::daemons_ownerClauseRemoved(elementOwner,"clauses") end
+        end
+      end;
+      self
+    end
+
+    @Operation removeDaemons()
+      self.removeClosingDaemon();
+      element.removeDaemonsWithTarget(self,true);
+      element.of().removeDaemonsWithTarget(self,true);
+      if element.owner() <> null then
+        element.owner().removeDaemonsWithTarget(self,true)
+      end;
+      self
+    end
+
+  end

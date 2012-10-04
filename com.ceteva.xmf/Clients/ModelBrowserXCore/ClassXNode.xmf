@@ -1,0 +1,19 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class ClassXNode extends ContainerXNode
+
+    @Operation updateChildNodes(slot,newValue,oldValue)
+      if slot.toString() = "constructors"
+      then self.contentsChanged(newValue,oldValue)
+      end
+    end
+
+  end

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+context ! Root::Airports
+
+  // Class deployed by Andy on Wed May 18 16:05:01 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Flight 
+
+    @Attribute date : Root::XCore::String (?,!) end
+    @Attribute passengers : Set(Root::Airports::Passenger) (?,!,+,-) end
+    @Attribute route : Root::Airports::Route (?,!) end
+
+    @Constructor(date,passengers,route) ! end
+
+  end

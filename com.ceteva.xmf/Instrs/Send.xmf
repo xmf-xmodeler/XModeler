@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class Send extends Instr
+ 
+    @Doc
+      This machine instruction sen-ds a message to a target. The message
+      has a name and some arguments. The target is at the top of the stack
+      above the arguments. The instruction word contains the arity and the
+      offset of the message in the current constants array. The message
+      name must be a symbol. The instruction is performed after a new stack
+      frame has been opened and the arguments and target have been pushed. 
+      The instruction then enters the stack frame after finding the operation
+      appropriate to the target. If no operation is defined then an error is
+      signaled.
+    end
+ 
+    @Attribute arity : Integer end
+    @Attribute message : Symbol end
+    @Attribute messageOffset : Integer end
+    
+    @Constructor(message,arity) end
+    
+    @Operation toString():String
+      "<Send " + arity + "," + message.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.messageOffset := codeBox.constOffset(message);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(messageOffset.byte(2),arity,messageOffset.byte(1))
+    end
+    
+  end
+  

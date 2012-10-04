@@ -1,0 +1,35 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class DropDown extends Layout
+  
+    @Attribute id          : String end
+    @Attribute value       : String end
+    @Attribute isReadOnly  : Boolean end
+    @Attribute tooltip     : String end
+    @Attribute givesReport : Boolean end
+    @Attribute options     : Seq(DropDownOption) end
+    
+    @Constructor(id,value,isReadOnly,tooltip,givesReport,x,y,width,height,options) end
+    
+    @ToXML(DROPDOWN)[Id=id,Value=value,Is_Readonly = isReadOnly,Tooltip=tooltip,Gives_Report = givesReport,X_Position = x,Y_Position = y,X_Size = width,Y_Size = height]
+      options*
+    end 
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else 
+        @Find(option,options)
+          when option.id = id
+          else null
+        end
+      end
+    end
+   
+  end

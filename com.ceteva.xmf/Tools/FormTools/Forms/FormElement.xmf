@@ -1,0 +1,130 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+import Clients::Menus;
+
+context Forms
+
+  @Class FormElement isabstract extends RightClickable
+  
+    @Attribute type : Types::FormElement (!,?) end
+    
+    @AbstractOp actualHeight():Integer
+      // Returns the actual height needed to represent the
+      // receiver.
+    end
+    
+    @AbstractOp actualWidth():Integer
+      // Returns the actual width needed to represent the
+      // receiver.
+    end
+    
+    @Operation layout():String
+      // Returns the layout for the receiver.
+      type.layout()
+    end
+    
+    @Operation layout(x,y)
+      // Performs layout at the given position and in the
+      // dimensions that the receiver defines.
+      self.layout(x,y,self.layoutWidth() - self.padWidth(),self.layoutHeight() - self.padHeight())
+    end
+    
+    @Operation layout(x,y,width,height)
+      // Performs layout at the given position and using the
+      // given dimensions.
+      self.move(x,y);
+      self.setSize(width,height)
+    end
+    
+    @Operation maxHeight():Integer
+      // Returns the max height allowed.
+      type.maxHeight()
+    end
+    
+    @Operation maxWidth():Integer
+      // Returns the max width allowed.
+      type.maxWidth()
+    end
+    
+    @Operation minHeight():Integer
+      // returns the min height allowed.
+      type.minHeight()
+    end
+    
+    @Operation minWidth():Integer
+      // Returns the min width allowed.
+      type.minWidth()
+    end
+    
+    @Operation new(parent)
+      super(parent);
+      self.setRightClickMenu()
+    end
+    
+    @Operation layoutHeight():Integer
+      // Returns the height taken up by the receiver.
+      (self.minHeight()).max(self.actualHeight() + self.padHeight()).min(self.maxHeight())
+    end
+    
+    @Operation layoutWidth():Integer
+      // Returns the width taken up by the receiver.
+      (self.minWidth()).max(self.actualWidth() + self.padWidth()).min(self.maxWidth())
+    end
+    
+    @Operation padHeight():Integer
+      // Returns the padding used for height.
+      self.padTop() + self.padBottom()
+    end
+    
+    @Operation padBottom():Integer
+      type.padBottom()
+    end
+    
+    @Operation padLeft():Integer
+      type.padLeft()
+    end
+    
+    @Operation padRight():Integer
+      type.padRight()
+    end
+    
+    @Operation padTop():Integer
+      type.padTop()
+    end
+    
+    @Operation padWidth():Integer
+      // Returns the padding used for the width.
+      self.padLeft() + self.padRight()
+    end
+    
+    @Operation ref(path:Seq(String)):Seq(FormElement)
+    
+      // The path is a sequence of names that are
+      // used to navigate through the components
+      // of the receiver. The result is a sequence
+      // since more than one element in a container
+      // may have the same name due to *.
+      
+      if path->isEmpty
+      then Seq{self}
+      else self.error("Cannot navigate " + path->separateWith("::") + " from " + self.toString())
+      end
+    end
+    
+    @Operation ref1(path:Seq(String)):FormElement
+    
+      // Expect a single element at the location given by the path.
+      // If no element exists then return null.
+      
+      let elements = self.ref(path)
+      in if elements->isEmpty
+         then null
+         else elements->head
+         end
+      end
+    end
+    
+  end

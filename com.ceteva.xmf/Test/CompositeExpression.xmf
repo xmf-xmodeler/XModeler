@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a CompositeExpression within the context of the namespace Frames
+context Frames
+
+	// the class CompositeExpression provides the root class for the Frame Command Language
+	// this is the point at which we can begin to introduce support for the manipulation
+	// of Frame objects
+	@Class CompositeExpression isabstract extends FrameExpression
+		@Attribute expr : Seq(FrameExpression) end
+		
+		// query operation
+		@Operation isCompositeExpression():Boolean
+			true
+		end
+
+		// add (apend) the FrameExpression (f) to the sequence of expressions
+		@Operation add(f:FrameExpression)
+			self.expr := self.expr + Seq{f}
+		end
+		
+		// return the string representation of the object
+		@Operation asStringSequence():Seq(String)
+			self.expr->iterate(item s=Seq{} | s + item.asStringSequence())
+		end
+		
+    end
+

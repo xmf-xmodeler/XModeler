@@ -1,0 +1,106 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormComboBox extends FormElement
+  
+    @Attribute contents : Seq(String) end
+    @Attribute selected : String end // refactor this to be position rather than the text
+    
+    @Constructor(x,y,width,height)
+      self.selected := null
+    end
+    
+    @Constructor(id,x,y,width,height) !
+      self.selected := null
+    end
+    
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the combobox is created and if the
+      // contents are ever refreshed.
+
+      self
+    end
+    
+    @Operation addItem(item:String)
+      self.contents := self.contents + Seq{item}
+    end
+    
+    @Operation clear()
+      self.contents := Seq{};
+      self.commandInterpreter().clear(self)
+    end
+
+    @Operation getCurrentPosition()
+      contents.indexOf(selected.toString())
+    end
+
+    @Operation new(parent)
+      self.commandInterpreter().newComboBoxCommand(parent,self);
+      self.newContents();
+      self.setSelected();
+      self
+    end   
+        
+    @Operation newContents()
+      @For content in contents do
+        self.commandInterpreter().addComboBoxItem(self,content)
+      end
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newComboBoxCommand(parent,self);
+      self.newContents();
+      self.setSelected();
+      self
+    end
+
+    @Operation selectItemAt(pos:Integer)
+      self.setSelected(contents.at(pos))
+      //self.commandInterpreter().setComboBoxSelection(self,pos)
+    end
+
+    @Operation setSelected()
+      if selected <> ""
+      then self.commandInterpreter().setComboBoxSelection(self,self.getCurrentPosition())     
+      end
+    end
+
+    @Operation setSelected(text)
+      self.selected := text;
+      self.setSelected()
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        selected = Seq{"selected",self.getCurrentPosition()} then
+        attributes = Seq{id,x,y,width,height,selected}
+      in
+        @Command(self) startElement("combobox",attributes) end;
+        @For content in contents
+        do
+          let 
+            value = Seq{"value",content} then
+            attributes = Seq{value}
+          in
+            @Command(self) startElement("value",attributes) end;
+            @Command(self) endElement("value") end
+          end
+        end;
+        @Command(self) endElement("combobox") end
+      end
+    end
+
+  end

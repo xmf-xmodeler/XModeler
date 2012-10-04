@@ -1,0 +1,81 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package Models
+     
+       @Class Model metaclass BrowsedClass
+       
+         @Attribute snapshots : Seq(Snapshots::Snapshot) (?,+,-,^) end
+         @Attribute filmstrips : Seq(Filmstrips::Filmstrip) (+,-,^) end
+         @Attribute packages : Seq(Types::Package) (+,-,^) end
+         
+         @Constructor() ! end
+         
+         @Interface
+           @Child snapshots end
+           @Child filmstrips end
+           @Child packages end
+           @Image "XCore/Package" end
+           @MenuRoot MyProjects::Models::Model end
+           @Menu New::Snapshot newSnapshot end
+           @Menu New::Filmstrip newFilmstrip end
+           @Menu New::Package newPackage end
+         end
+         
+         UniqueConstraint("AllSnapshotsHaveUniqueNames","snapshots","name")
+         
+         UniqueConstraint("AllFilmstripsHaveUniqueNames","filmstrips","name")
+         
+         UniqueConstraint("AllClassModelsHaveUniqueNames","packages","name")
+         
+         @Constraint ValidObjects
+           self.objectsWithoutClasses()->isEmpty
+         fail " the following object types are not defined: " +
+           self.objectsWithoutClasses()->asSet->map("type")->asSeq->separateWith(" and ")
+         end
+         
+         @Operation associationNames()
+           packages->iterate(package N = Set{} | 
+             N + package.model().associationNames())
+         end
+         
+         @Operation classNames()
+           packages->iterate(package N = Set{} | 
+             N + package.model().classNames())
+         end
+         
+         @Operation getClass(name)
+           @Find(p,packages)
+             when p.getClass(name) <> null
+             do p.getClass(name)
+             else null
+           end
+         end
+         
+         @Operation newSnapshot()
+           self.addToSnapshots(Snapshots::Snapshot(xmf.getString("Snapshot name","Name","<NAME>")))
+         end
+         
+         @Operation newFilmstrip()
+           self.addToFilmstrips(Filmstrips::Filmstrip(xmf.getString("Filmstrip name","Name","<NAME>")))
+         end
+         
+         @Operation newPackage()
+           self.addToPackages(Types::Package(xmf.getString("Package Name","Name","P" + packages->size)))
+         end
+         
+         @Operation objectsWithoutClasses():Set(Snapshots::Object)
+           snapshots->iterate(snapshot O = Set{} | 
+             O + snapshot.model().objects()->asSet->select(object |
+               not packages->exists(package | package.model().classes()
+                     ->exists(class | class.name() = object.type()))))
+         end
+         
+       end
+    end
+    

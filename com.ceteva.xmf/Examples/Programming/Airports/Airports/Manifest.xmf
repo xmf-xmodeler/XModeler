@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Andy on Wed May 18 16:05:01 BST 2005
+
+@Manifest Airports
+  p = @File Airports end
+  @File Passenger end
+  @File Flight end
+  @File Route end
+  @File Airline end
+  @File Airport end
+do p
+end;

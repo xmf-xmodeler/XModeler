@@ -1,0 +1,20 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context CallCommand
+
+  @Grammar extends O
+    
+      CallCommand ::= '(' commandInterpreter = Exp ')'
+        name = Name '(' args = CommandArgs ')' 'end' { 
+          CallCommand(commandInterpreter,name,args) 
+      }.
+      
+      CommandArgs ::= arg = Exp args = (',' Exp)* { Seq{ arg | args } } | { Seq{} }.
+      
+    end
+    
+    

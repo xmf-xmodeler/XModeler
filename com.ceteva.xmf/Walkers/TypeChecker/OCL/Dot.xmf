@@ -1,0 +1,25 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler Dot in TypeChecker(exp,env,encountered)
+  let type = self.dispatch(exp.target,env)
+  in if type.type().isKindOf(XCore::Class)
+     then 
+       @Find(att,type.type().allAttributes())
+         when att.name().toString() = exp.name
+         do TypeCheckExp(exp,att.type,Seq{type})
+         else 
+           let message =
+                 "Slot reference fails because the object is of type " + 
+                 type.type().toString() + " which does not define an attribute named " +
+                 exp.name
+           in TypeCheckFails(message,TypeCheckExp(exp,Element,Seq{type}))
+           end
+       end
+     else TypeCheckFails("slot reference for non-object",TypeCheckExp(exp,Element,Seq{type}))
+     end
+  end    
+end;

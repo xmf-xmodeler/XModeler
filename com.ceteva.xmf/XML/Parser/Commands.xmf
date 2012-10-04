@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XML::Parser;
+
+context XML::Parser
+
+  @Class Commands extends Pattern
+  
+    @Attribute commands : Seq(Command) (?) end
+    
+    @Constructor(commands) ! end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"{ ");
+      @For command in commands do
+        command.pprint(out,indent);
+        if not isLast then format(out,", ") end
+      end;
+      format(out," }")
+    end
+    
+  end

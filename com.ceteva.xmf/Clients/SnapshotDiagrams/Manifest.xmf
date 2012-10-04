@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest SnapshotDiagrams
+  SnapshotDiagrams = @File SnapshotDiagrams end
+  @File NameBox end
+  @File NoteNode end
+  @File SlotValue end
+  @File StringSlotValue end
+  @File SlotText end
+  @File StringSlotText end
+  @File SlotBox end
+  @File ObjectNode end
+  @File SlotLabel end
+  @File SlotEdge end
+  @File DependencyLabel end
+  @File DependencyEdge end
+  @File SetEdge end
+  @File SnapshotDiagram end
+  @File SnapshotThemeAPI end
+  @File ColorObjectNode end
+do Project(SnapshotDiagrams,dir,self)
+end;

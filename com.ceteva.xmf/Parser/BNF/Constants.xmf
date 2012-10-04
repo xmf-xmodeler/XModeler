@@ -1,0 +1,7 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import XCore;
+
+//context Parser::BNF
+//  @Bind Char = Char() end

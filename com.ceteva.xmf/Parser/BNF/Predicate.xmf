@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Predicate extends Recognizer
+  
+    @Doc
+      A predicate is an arbitrary bool exp that
+      can be invoked during a parse. The operation
+      is supplied with the current state of the parse bindings.
+      The predicate must return true or false that is used
+      to determine whether the current parse proceeds or fails
+      to the most recent backtrack point.
+    end
+    
+    @Attribute predicate : Element end
+    @Attribute source : String end
+    
+    @Constructor(predicate,source) end
+    
+    @Constructor(predicate) 
+      self.source := ""
+    end
+    
+    @Operation code(outputChannel)
+      format(outputChannel,"{ ~S }",Seq{source})
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+   @Operation parse(machine)
+      if not predicate(machine.env())
+      then machine.fail()
+      end
+    end
+    
+    @Operation setOwner(owner)
+      predicate.owner := owner
+    end
+    
+    @Operation toExp(FV:Set(String))
+      self.error("Cannot transform a predicate into an expression")
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end
+    

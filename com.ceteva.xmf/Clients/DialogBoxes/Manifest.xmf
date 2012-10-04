@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+ 
+@Manifest DialogBoxes
+  DialogBoxes = @File DialogBoxes end
+  @File DialogCommandInterpreter end
+  @File DialogEventHandler end
+  @File BusyDialog end
+  @File ColorDialog end
+  @File FontDialog end
+  @File MessageDialog end
+  @File WarningDialog end
+  @File ErrorDialog end
+  @File QuestionDialog end
+  @File ConfirmDialog end
+  @File MultioptionDialog end
+  @File FileDialog end
+  @File DirectoryDialog end
+  @File SelectionDialog end
+  @File ProgressDialog end
+  @File DialogBoxClient end
+  @File InputDialog end
+  @File OrderingDialog end
+  @File OrderingDialog2 end
+  @File TextAreaDialog end
+  @File TreeDialog end
+do Project(DialogBoxes,dir,self)
+end;

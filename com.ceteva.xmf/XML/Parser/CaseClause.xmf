@@ -1,0 +1,53 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class CaseClause extends Syntax
+  
+    @Attribute guard   : Guard (?) end
+    @Attribute pattern : Pattern (?) end
+    
+    @Constructor(guard,pattern) end
+    
+    @Operation BNF():Pattern
+      CaseClause(guard,pattern.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation NNF(handler:Operation)
+      let name = "C" + Grammar::clauseCounter
+      in Grammar::clauseCounter := Grammar::clauseCounter + 1;
+         pattern.NNF(
+         @Operation(pattern,newClauses)
+           let clause = Clause(name,Seq{pattern})
+           in handler(CaseClause(guard,Call(name)),newClauses->including(clause))
+           end
+         end)
+      end
+    end
+    
+    @Operation ONF():Pattern
+      CaseClause(guard,pattern.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      guard.pprint(out,indent);
+      format(out," do~%~V",Seq{indent+2});
+      pattern.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation terminals():Set(String)
+      pattern.terminals()
+    end
+    
+  end

@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class Multiplicity extends Label
+  
+    @Constructor() ! 
+      self.init(Seq{"","end",5,5,false})
+    end
+    
+    @Constructor(text) ! 
+      self.init(Seq{text,"end",5,5,false})
+    end
+
+    @Constructor(text,attachedTo) ! 
+      self.init(Seq{text,attachedTo,5,5,false})
+    end
+    
+    @Constructor(attachedTo,relx,rely)
+      self.init(Seq{"",attachedTo,relx,rely,false})
+    end
+    
+    @Operation multiplicity()
+      text
+    end
+    
+    @Operation setMultiplicity(mult)
+      self.textChanged(mult)
+    end
+    
+  end

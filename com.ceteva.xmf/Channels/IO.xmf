@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Root
+ 
+  @Package IO
+  
+    @Doc
+      The IO package provides classes and operations that support
+      input and output. XMF uses input and output channels that
+      can be used as the sources and sinks of characters. The channel
+      stdout is used to write to the standard output. The operation
+      'format' is provided to control formatted output.
+    end
+     
+  end

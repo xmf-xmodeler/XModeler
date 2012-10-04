@@ -1,0 +1,240 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Beta extends Node
+  
+    @Attribute isNAND   : Boolean (?) end
+    @Attribute left     : Node (?,!) end
+    @Attribute right    : Node (?,!) end
+    @Attribute leftMem  : Memory = Memory() (?) end
+    @Attribute rightMem : Memory = Memory() (?) end
+    @Attribute next     : Node (?,!) end
+    @Attribute preds    : Set(Predicate)    (?,+,-) end
+    
+    @Constructor(isNAND) ! end
+    
+    @Operation add(e:Element):Node
+      self.add(e,null)
+    end
+    
+    @Operation add(e:Element,source:Node):Node
+      @TypeCase(e)
+        Token do
+          self.addToken(e,source)
+        end
+        Node do
+          e.setOwner(self.owner());
+          self.next := e
+        end
+        Predicate do
+          self.addToPreds(e)
+        end
+      end
+    end
+    
+    @Operation addToken(token:Token,source:Node):Node
+      if source = left
+      then self.addTokenFromLeft(token)
+      else self.addTokenFromRight(token)
+      end
+    end
+    
+    @Operation addTokenFromLeft(token:Token):Node
+      leftMem.add(token);
+      if isNAND
+      then self.addTokenFromLeftNAND(token)
+      else self.addTokenFromLeftAND(token)
+      end
+    end
+    
+    @Operation addTokenFromLeftAND(token:Token):Node
+      @For t in rightMem.tokens() do
+        if preds->forAll(pred | pred.satisfied(CompositeToken(token,t)))
+        then 
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(LEFT,AND,+) ~S passes all equivalence tests for ~S. ]~%",Seq{token,t})
+          end;
+          next.add(CompositeToken(token,t),self)
+        else
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(LEFT,AND,+) ~S fails some equivalence tests for ~S. ]~%",Seq{token,t})
+          end
+        end
+      end;
+      self
+    end
+    
+    @Operation addTokenFromLeftNAND(token:Token):Node
+      if rightMem.tokens()->forAll(t | 
+           preds->forAll(pred | 
+             not pred.satisfied(CompositeToken(token,t))))
+      then 
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(LEFT,NAND,+) ~S fails all equivalence tests. ]~%",Seq{token})
+        end;
+        next.add(CompositeToken(token,DummyToken()),self);
+        self
+      else
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(LEFT,NAND,+) ~S passes some equivalence tests. ]~%",Seq{token})
+        end;
+        self
+      end
+    end
+    
+    @Operation addTokenFromRight(token:Token):Node
+      rightMem.add(token);
+      if not isNAND
+      then self.addTokenFromRightAND(token)
+      else self.addTokenFromRightNAND(token)
+      end
+    end
+    
+    @Operation addTokenFromRightAND(token:Token):Node
+      @For t in leftMem.tokens() do
+        if preds->forAll(pred | pred.satisfied(CompositeToken(t,token)))
+        then 
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(RIGHT,AND,+) ~S passes all equivalence tests for ~S. ]~%",Seq{token,t})
+          end;
+          next.add(CompositeToken(t,token),self)
+        else
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(RIGHT,AND,+) ~S fails some equivalence tests for ~S. ]~%",Seq{token,t})
+          end
+        end
+      end;
+      self
+    end
+    
+    @Operation addTokenFromRightNAND(token:Token):Node
+      if leftMem.tokens()->forAll(t | 
+           preds->forAll(pred | 
+             not pred.satisfied(CompositeToken(t,token))))
+      then 
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(RIGHT,NAND,+) ~S fails all equivalence tests. ]~%",Seq{token})
+        end;
+        self
+      else
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(RIGHT,NAND,+) ~S passes some equivalence tests. ]~%",Seq{token})
+        end;
+        @For t in leftMem.tokens() do
+          if preds->exists(pred | pred.satisfied(CompositeToken(t,token)))
+          then next.remove(CompositeToken(t,DummyToken()),self)
+          end
+        end;
+        self
+      end
+    end
+    
+    @Operation clear()
+      leftMem.clear();
+      rightMem.clear();
+      next.clear()
+    end
+    
+    @Operation remove(e:Element,source:Node):Node
+      @TypeCase(e)
+        Predicate do
+          self.deleteFromPreds(e)
+        end
+        Token do
+          self.removeToken(e,source)
+        end
+      end
+    end
+    
+    @Operation removeToken(token:Token,source:Node):Node
+      if source = left
+      then self.removeTokenFromLeft(token)
+      else self.removeTokenFromRight(token)
+      end
+    end
+    
+    @Operation removeTokenFromLeft(token:Token):Node
+      leftMem.remove(token);
+      if isNAND
+      then self.removeTokenFromLeftNAND(token)
+      else self.removeTokenFromLeftAND(token)
+      end
+    end
+    
+    @Operation removeTokenFromLeftAND(token:Token):Node
+      @For t in rightMem.tokens() do
+        if preds->forAll(pred | pred.satisfied(CompositeToken(token,t)))
+        then 
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(LEFT,AND,-) ~S passes all equivalence tests for ~S. ]~%",Seq{token,t})
+          end;
+          next.remove(CompositeToken(token,t),self)
+        else
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(LEFT,AND,-) ~S fails some equivalence tests for ~S. ]~%",Seq{token,t})
+          end
+        end
+      end;
+      self
+    end
+    
+    @Operation removeTokenFromLeftNAND(token:Token):Node
+      if rightMem.tokens()->forAll(t | 
+           preds->forAll(pred | 
+             not pred.satisfied(CompositeToken(token,t))))
+      then 
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(LEFT,NAND,-) ~S fails all equivalence tests. ]~%",Seq{token})
+        end;
+        next.remove(CompositeToken(DummyToken(),token),self)
+      else
+        if token.debug()
+        then 
+          format(stdout,"[ BETA(LEFT,NAND,+) ~S passes some equivalence tests. ]~%",Seq{token})
+        end
+      end
+    end
+    
+    @Operation removeTokenFromRight(token:Token):Node
+      rightMem.remove(token);
+      if not isNAND
+      then self.removeTokenFromRightAND(token)
+      end
+    end
+    
+    @Operation removeTokenFromRightAND(token:Token):Node
+      @For t in leftMem.tokens() do
+        if preds->forAll(pred | pred.satisfied(CompositeToken(t,token)))
+        then 
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(RIGHT,AND,-) ~S passes all equivalence tests for ~S. ]~%",Seq{token,t})
+          end;
+          next.remove(CompositeToken(t,token),self)
+        else
+          if token.debug()
+          then 
+            format(stdout,"[ BETA(RIGHT,AND,-) ~S fails some equivalence tests for ~S. ]~%",Seq{token,t})
+          end
+        end
+      end;
+      self
+    end
+    
+  end
+    

@@ -1,0 +1,99 @@
+parserImport XOCL;
+
+import IO;
+import DocTables;
+import Basic;
+import Forms;
+import Clients;
+import Enterprise;
+
+context Forms
+
+  @Class ExternalDisplayEngine extends BrowserDisplayEngine, SessionEventHandler
+  
+    @Attribute client		: Client end
+    @Attribute sessionId 	: String end
+    @Attribute formHandlers : Seq(Operation) end
+    @Attribute pageHandlers : Table = XCore::Table(10) end
+    
+    @Constructor(sessionId)
+      self.client := xmf.clientManager().findClientByName("com.ceteva.xmf.enterprise");
+      client.registerHandler(sessionId,self)
+    end
+    
+    @Operation addFormHandler(handler)
+      self.formHandlers := formHandlers->including(handler)
+    end
+    
+    @Operation addPageHandler(id,select)
+      pageHandlers.put(id,select)
+    end
+    
+    @Operation dispatchFormEvent(env)
+      @For handler in formHandlers
+      do
+        handler(env)
+      end
+    end
+  
+    @Operation display(page:Page)
+      self.resetHandlers();
+      let out = StringOutputChannel()
+      in
+        page.html(out);
+        page.addHandlers(self);
+        client.writeHTML(sessionId,out.getString())
+      end
+    end
+    
+    @Operation parse(bstring)
+      let bstrings = bstring.splitBy("&",0,0);
+          bindings = Env::NullEnv()
+      in @For bstring in bstrings do
+           let equal = bstring.indexOf("=") then
+               identity = bstring.subString(0,equal);
+               value = bstring.subString(equal + 1,bstring.size())
+           in bindings := bindings.bind(identity,value)
+           end
+         end;
+         bindings
+      end
+    end
+    
+    @Operation processFormData(url)
+      let 
+        qmark = url.indexOf("?") then
+        bstring = url.subString(qmark + 1,url.size())
+      in
+        self.dispatchFormEvent(self.parse(bstring))
+      end
+    end 
+    
+    @Operation requestXMF_URL(url)
+      let id = url.splitBy("/",0,0).last().subst("",".html",true)
+      in 
+        if pageHandlers.hasKey(id)
+        then 
+          let handler = pageHandlers.get(id)
+          in handler()
+          end
+        end
+      end
+    end
+    
+    @Operation resetHandlers()
+      self.formHandlers := Seq{};
+      self.pageHandlers := XCore::Table(10)
+    end
+    
+    @Operation urlRequest(request):Boolean
+      if request.hasSuffix(".html")
+      then 
+        self.requestXMF_URL(request)
+      else
+        self.processFormData(request)
+      end;
+      true
+    end
+  
+  end

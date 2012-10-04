@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class SingleMult extends Multiplicity
+
+    @Doc
+      This captures the multiplicity for any attribute with a non-collection type. There are
+      effectively only two variants of single multiplicity: optional and mandatory. These could
+      be defined later as static bindings for the class so that the same objects can be used
+      throughout the system for optimisation.
+    end
+
+    @Attribute isMandatory : Boolean (?,!) end // This captures the two variants of single multiplicity:
+                                               // optional and mandatory.
+
+    @Constructor(isMandatory) end
+
+    @Operation check(value):Boolean
+      if isMandatory
+      then value <> null
+      else true
+      end
+    end
+
+    @Operation multString():String
+      if isMandatory then "!" else "" end
+    end
+
+  end
+

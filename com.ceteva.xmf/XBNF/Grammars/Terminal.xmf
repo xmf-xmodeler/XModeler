@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Terminal extends Recognizer
+  
+    @Attribute terminal : String end
+    
+    @Constructor(terminal) ! end
+    
+    @Operation first(grammar)
+      Set{terminal}
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"'~S'",Seq{terminal})
+    end
+    
+    @Operation nullable(grammar)
+      false
+    end
+    
+    @Operation terminals():Set(String)
+      Set{terminal}
+    end
+    
+  end

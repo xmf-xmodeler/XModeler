@@ -1,0 +1,22 @@
+<Object id ='0' path='Root::Clients::Diagrams::DiagramLayout::Layout'><Slot name='nodes'><List id='1'><Object id ='2' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:6;Server' x='I:35;' y='I:110;'></Object>
+<Object id ='3' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:101;' height='I:44;' layoutId='S:7;Element' x='I:36;' y='I:13;'></Object>
+<Object id ='4' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:44;' layoutId='S:13;OutputChannel' x='I:300;' y='I:106;'></Object>
+<Object id ='5' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:44;' layoutId='S:12;InputChannel' x='I:37;' y='I:234;'></Object>
+<Object id ='6' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:6;Client' x='I:301;' y='I:239;'></Object>
+</List></Slot><Slot name='edges'><List id='7'><Object id ='8' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Server' targetId='S:7;Element' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:6;server' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='9'><Object id ='10' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='11' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:6;server' relx='I:11;' rely='I:9;'></Object>
+</List></Slot></Object>
+<Object id ='12' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Server' targetId='S:13;OutputChannel' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:6;output' hidden='B:0'><Slot name='waypoints'><List id='13'><Object id ='14' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:218;' y='I:128;'></Object>
+</List></Slot><Slot name='labels'><List id='15'><Object id ='16' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='17' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:6;output' relx='N:36;' rely='I:9;'></Object>
+</List></Slot></Object>
+<Object id ='18' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Server' targetId='S:12;InputChannel' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:5;input' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='19'><Object id ='20' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='21' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:5;input' relx='I:11;' rely='N:14;'></Object>
+</List></Slot></Object>
+<Object id ='22' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Client' targetId='S:13;OutputChannel' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:6;output' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='23'><Object id ='24' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='25' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:6;output' relx='I:9;' rely='I:7;'></Object>
+</List></Slot></Object>
+<Object id ='26' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Client' targetId='S:12;InputChannel' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:5;input' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='27'><Object id ='28' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='29' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:5;input' relx='I:10;' rely='I:7;'></Object>
+</List></Slot></Object>
+</List></Slot></Object>

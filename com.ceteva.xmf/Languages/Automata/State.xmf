@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import Automata;
+import Parser::BNF;
+
+context Automata
+
+  @Class State extends NamedElement
+  
+    @Attribute action : Operation end
+    
+    @Constructor(name,action) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      State ::= name = Name action = Exp { import OCL in [| import Languages::Automata in State(<StrExp(name)>,@Operation() <action> end) end |] end }.
+     
+    end
+    
+    @Operation activate(element)
+      action.invoke(element,Seq{})
+    end
+    
+    @Operation setName(name)
+      @For transition in owner.transitions do
+        transition.nameChanged(name,self.name)
+      end;
+      super(name)
+    end
+    
+  end 

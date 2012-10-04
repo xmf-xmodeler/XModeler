@@ -1,0 +1,25 @@
+-message :com.ceteva.mosaic:wait
+-message :com.ceteva.menus:wait
+-message :com.ceteva.dialogs:wait
+-message :com.ceteva.forms:wait
+-message :com.ceteva.modelBrowser:wait
+-message :com.ceteva.undo:wait 
+-message :com.ceteva.diagram:wait
+-message :com.ceteva.text:wait
+-message :com.ceteva.oleBridge:wait
+
+-internal com.ceteva.console.ConsoleClient:com.ceteva.console
+-debug
+//-port 1234
+-heapSize 15000
+-freeHeap 100
+//-arg stdout:CONSOLE
+//-arg stdout:/Users/Sebastian/Developer/XMF/Projekte/output.txt
+-arg version:2.0
+-arg license:license.lic
+//-image /Users/Sebastian/Developer/XMF/xmodeler.2.0.macosx.cocoa.x86/plugins/com.ceteva.xmf_2.0.0/Images/mosaic.img
+//-image c:/test.img
+-pref FormHistoryLimit:10
+-pref EnableMeta:true
+-pref ExpandableProjectBrowser:true
+-pref AllowCyclicBrowserRefs:false

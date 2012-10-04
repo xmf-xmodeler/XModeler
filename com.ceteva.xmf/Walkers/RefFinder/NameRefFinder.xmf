@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Walkers;
+import Stacks;
+  
+context Walkers
+
+  @Class NameRefFinder extends RefFinder
+  
+    @Doc
+      This is a ref finder that looks for any element that matches the name.
+    end
+
+    @Operation match(element)
+      if element.isKindOf(NamedElement)
+      then
+        element.name().toString() = search.name().toString()
+      else false
+      end
+    end
+
+  end

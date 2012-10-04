@@ -1,0 +1,121 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class BrowserTreeMapping extends Contained, MappingCreator, Commandable
+  
+    @Attribute element          : Container (?) end
+    @Attribute tree             : ModelBrowser (?) end
+    @Attribute rootElementMap   : ElementXNode end
+
+    @Constructor(element,tree,owner)
+      self.init(Seq{element,tree})
+    end
+    
+    @Constructor(element,tree)
+      self.setHotLoad(true);
+      tree.setOwner(self)
+    end
+
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else
+        xmf.findClient(ModelBrowserClient).commandInterpreter
+      end
+    end
+    
+    @Operation hasCommandInterpreter()
+      self.commandInterpreter() <> null
+    end
+    
+    @Operation debug(debug)
+      owner.debug(debug)
+    end
+
+    @Operation setRootElementMap()
+      let mapping = self.createMapping(element,tree.rootNode) in
+        self.rootElementMap := mapping;
+        mapping.setOwner(self);
+        mapping.addMappings();
+        mapping.checkDaemons()
+      end
+    end
+
+    @Operation addClosingDaemon()
+      @SlotValueChanged multi once BrowserTreeMapping::daemons_treeClosed(tree,"isOpen") end      
+    end
+
+    @Operation addMappings()
+      self.addClosingDaemon();
+      self.setRootElementMap();
+      self.checkDaemons()
+    end
+
+    @Operation daemons_treeClosed(display,slot,newIsOpen,oldIsOpen)
+      if not newIsOpen then
+        owner.remove(self)
+      end
+    end
+
+    @Operation daemons_nameChanged(e,slot,newName,oldName)
+      self.commandInterpreter().setModelBrowserTextCommand(self.tree,newName.toString())
+    end
+
+    @Operation daemons_ownerChanged(e,slot,newOwner,oldOwner)
+      if newOwner=null andthen not xmf.clientManager().saving andthen oldOwner<>null
+      then
+        oldOwner.removeDaemonsWithTarget(self,true);
+        tree.closeCommand()
+      end
+    end
+
+    @Operation checkDaemons()
+      if element.isReallyKindOf(Object)
+      then
+        if element.hasSlot("name") then
+          @SlotValueChanged multi once BrowserTreeMapping::daemons_nameChanged(element,"name") end
+        end;
+        if element.hasSlot("owner") then
+          @SlotValueChanged multi once BrowserTreeMapping::daemons_ownerChanged(element,"owner") end
+        end
+      end
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      tree.dispose();
+      self.owner := null;
+      self.tree := null
+    end
+
+    @Operation removeClosingDaemon()
+      tree.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation removeDaemons()
+      self.removeClosingDaemon();
+      if element.isKindOf(Object)
+      then element.removeDaemonsWithTarget(self,true)
+      end;
+      rootElementMap.removeDaemons()
+    end
+    
+    @Operation renew()
+      tree.renew()
+    end
+    
+    @Operation save(tree,fileName)
+      owner.save(self,fileName)
+    end
+
+    @Operation hotLoaded() 
+      self.checkDaemons()
+    end
+
+  end

@@ -1,0 +1,124 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class PackageXNode extends DiagramsMapping::ElementXNode, RightClickableProxy
+  
+    @Attribute package : XCore::Package end
+    @Attribute node    : PackageNode (?) end
+    
+    @Constructor(package,node,owner)
+      self.init(Seq{package,node})
+    end
+    
+    @Constructor(package,node) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{package.of(),node.of()})
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = package.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  PackageXNode::proxyElementTarget);
+        globalMenu.add(MenuAction("Delete from Diagram Only",RightClickableProxy::proxyTarget,Seq{},DiagramsMapping::ElementXNode::deleteNodeFromDiagram));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).package
+    end
+
+    @Operation checkDaemons()
+      super();
+      self.checkNodeDaemons();
+      self.checkPackageDaemons()
+    end
+    
+    @Operation nameChangedDaemon(obj,slot,newName,oldName)
+      if package.name.toString() <> newName
+      then 
+        package.setName(newName)
+      end
+    end
+    
+    @Operation checkNodeDaemons()
+      @SlotValueChanged multi once PackageXNode::nameChangedDaemon(node.name,"text") end
+    end
+    
+    @Operation nameChanged_classDiagramDaemon(package,slot,newName,oldName)
+      if node.name() <> newName.toString()
+      then node.setName(newName.toString())
+      end
+    end
+    
+    @Operation parentAdded_classDiagramDaemon(package,slot,parent)
+      if parent <> XCore::Object
+      then
+        owner.dropIfNecessary(parent)
+      end;
+      owner.parentAdded(package,parent)
+    end
+    
+    @Operation parentRemoved_classDiagramDaemon(package,slot,parent)
+      owner.parentRemoved(package,parent)
+    end
+    
+    @Operation attributeAdded_classDiagramDaemon(package,slot,attribute)
+      if not attribute.underlyingType().isKindOf(DataType)
+      then owner.attributeAdded(attribute)
+      end
+    end
+    
+    @Operation attributeRemoved_classDiagramDaemon(package,slot,attribute)
+      if not attribute.underlyingType().isKindOf(DataType)
+      then owner.attributeRemoved(attribute)
+      end
+    end
+    
+    @Operation checkPackageDaemons()
+      @SlotValueChanged multi once   PackageXNode::nameChanged_classDiagramDaemon(package,"name")            end;
+      @SlotValueChanged multi once + PackageXNode::parentAdded_classDiagramDaemon(package,"parents")         end;
+      @SlotValueChanged multi once - PackageXNode::parentRemoved_classDiagramDaemon(package,"parents")       end;
+      @SlotValueChanged multi once + PackageXNode::attributeAdded_classDiagramDaemon(package,"attributes")   end;
+      @SlotValueChanged multi once - PackageXNode::attributeRemoved_classDiagramDaemon(package,"attributes") end
+    end
+    
+    @Operation editMenuOperation()
+      self.package.edit()
+    end
+    
+    @Operation hotLoaded() 
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{package.of(),node.of()},false)
+    end
+    
+    @Operation removeDaemons()
+    
+      // Called when the mapping is longer valid.
+      
+      super();
+      package.removeDaemonsWithTarget(self,true);
+      node.removeDaemonsWithTarget(self,true);
+      node.name.removeDaemonsWithTarget(self,true)
+      
+    end
+    
+    @Operation element()
+      package
+    end
+    
+  end

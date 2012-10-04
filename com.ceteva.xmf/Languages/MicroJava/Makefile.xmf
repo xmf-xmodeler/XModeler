@@ -1,0 +1,17 @@
+import Compiler;
+
+compileFile("Languages/MicroJava/Boot",true,true);
+compileFile("Languages/MicroJava/Expressions/Makefile",true,true);
+compileFile("Languages/MicroJava/J2EE/Makefile",true,true);
+compileFile("Languages/MicroJava/Java",true,true);
+compileFile("Languages/MicroJava/Mappings/Makefile",true,true);
+compileFile("Languages/MicroJava/Manifest",true,true);
+compileFile("Languages/MicroJava/MicroJava",true,true);
+compileFile("Languages/MicroJava/Statements/Makefile",true,true);
+compileFile("Languages/MicroJava/Structure/Makefile",true,true);
+"Languages/MicroJava/Expressions/Makefile.o".loadBin(false);
+// "Languages/MicroJava/J2EE/Makefile.o".loadBin(false);
+// "Languages/MicroJava/Mappings/Makefile.o".loadBin(false);
+"Languages/MicroJava/Structure/Makefile.o".loadBin(false);
+"Languages/MicroJava/Statements/Makefile.o".loadBin(false);
+compileFile("Languages/MicroJava/RegistryContributions",true,true);

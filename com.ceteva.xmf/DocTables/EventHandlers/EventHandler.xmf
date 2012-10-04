@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context EventHandlers
+
+  @Class EventHandler isabstract
+  
+    @Bind labelCounter = 0 end
+
+    @Attribute handler : Operation (?,!) end
+
+    @Operation generateLabel()
+    
+      // Used to generate a unique label for
+      // a form.
+      
+      EventHandler::labelCounter := EventHandler::labelCounter + 1;
+      "L" + EventHandler::labelCounter
+    end 
+    
+    @AbstractOp handleEvent(env)
+    
+      // Determines whether the event info in env applies
+      // to the receiver and then invokes receiver specific
+      // machinery to extract the appropriate information.
+       
+    end
+
+  end

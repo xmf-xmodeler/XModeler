@@ -1,0 +1,96 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Exceptions;
+import OCL;
+import XOCL;
+
+context Root
+  @Operation test()
+    hello
+  end
+ 
+context Root
+  @Operation test1(grammar,file,trace:Boolean)
+      let fin = IO::FileInputChannel(file) then
+          tokens = XBNF::Tokens::Tokenizer(fin,trace); 
+          time = Time() then  
+          value = grammar.parse("TopLevelExp",Seq{},tokens,false)
+      in (Time() - time).pprint(stdout);
+          format(stdout,"~%line = ~S char = ~S~%",Seq{tokens.lineCount,tokens.charCount});
+          value
+      end 
+    end  
+    
+context Root
+  @Operation test2(grammar,file,trace:Boolean)
+      let fin = IO::FileInputChannel(file) then
+          tokens = XBNF::Tokens::Tokenizer(fin,trace); 
+          time = Time() then  
+          value = grammar.parse("start",Seq{},tokens,true)
+      in (Time() - time).pprint(stdout);
+          format(stdout,"~%line = ~S char = ~S~%",Seq{tokens.lineCount,tokens.charCount});
+          value 
+      end 
+    end
+ /*  
+Root::h :=  
+   @XBNF::Grammars::Grammar 
+    start ::= (n = Prog ';' {n})*.
+    Prog ::= Statement | Exp.
+    Statement ::= If | While. 
+    If ::= 'if' Exp 'then' Exp 'else' Exp 'end'.
+    While ::= 'while' Exp 'do' Statement 'end'.
+    Exp ::= x = Add ('*' y = Exp { x * y } | '/' y = Exp { x / y } | { x }).
+    Add ::= x = Atom ('+' y = Add { x + y } | '-' y = Add { x - y } | { x }).
+    Atom ::= Int | '(' x = Exp ')' { x }.
+  end;   
+*/ 
+
+context Root
+  @Operation save(file)
+    if saveMachineState(file) <> true
+    then
+      let input = Kernel_clientInputChannel("com.ceteva.console");
+          output = Kernel_clientOutputChannel("com.ceteva.console");
+          grammar = xmf.topLevel().grammar
+       in Root::stdin.setChannel(input);
+          Root::stdout.setChannel(output);
+          Kernel_rebindStdin(input);
+          Kernel_rebindStdout(output);
+          @For client in xmf.getAllClients() do
+            client.renew()
+          end;
+          xmf.topLevel().loop()
+       end
+    end
+  end
+  
+context Root
+  @Operation test()
+    let b = Buffer(10,true)
+    in @Count x from 1 to 10000 do
+         @Count i from 0 to 100 do
+           b.add("0"->at(0) + (i.mod(10)))
+         end
+         ;b.setSize(0)
+       end
+       ;b
+    end
+  end
+  
+context Root
+  @Operation ref(b,i) Kernel_arrayRef(b,i) end
+  
+context Root
+  @Map M(Class,Class)->String
+    @Clause C1
+      XCore::Class[name=n1],
+      XCore::Class[name=n2] 
+    do n1 + n2
+    end
+  end
+  
+context Root
+  @Operation test(S->including(x)->including(y) when format(stdout,"~S = ~S~%",Seq{x,y}); x = y) 100 end
+  

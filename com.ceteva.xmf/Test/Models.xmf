@@ -1,0 +1,105 @@
+parserImport XOCL;
+parserImport XML::Parser;
+
+import XML::Parser;
+
+context Root
+
+  @Grammar Model
+  
+    // A grammar that reads an XML representation of a model.
+    // Each model element is alloctaed a unique identifier
+    // to allow multiple occurrences of the element to be
+    // resolved via references.
+    
+    Model ::= 
+      // A model is just an outermost package...
+      <Model id name = name> 
+        elements = Element*
+      </Model> id := {
+        elements->iterate(e p = Package(name) | p.add(e))
+    }.
+   
+    Package ::= 
+      // A package occurs as a nested element...
+      <Package id name = name> 
+        elements = Element* 
+      </Package> id := {
+        elements->iterate(e p = Package(name) | p.add(e))
+    }.
+    
+    // A model element is a package or a class. Class references
+    // are used to allow elements to occur more than once in a
+    // model...
+   
+    Element ::= Package | Type.
+    Type ::= Class | ClassRef.
+    
+    Class ::= 
+      // A class is a sequence of parents and features...
+      <Class id name isAbstract> 
+        parents = Type*
+        features = Feature*
+      </Class> id := { 
+        features->iterate(f c = 
+          Class[
+            name = name, 
+            parents = parents->asSet, 
+            isAbstract = isAbstract = "true"
+          ] | c.add(f))
+    }.
+    
+    // Features are attributes and operations... 
+      
+    Feature ::= Attribute | Operation.
+  
+    Attribute ::= 
+      // An attribute encodes its multiplicity as aan XML
+      // attribute the value of which is decoded using a
+      // case statement...
+      <Attribute id name multiplicity> 
+        type = Type
+      </Attribute> {
+        @Case multiplicity of
+          "1" do 
+            XCore::Attribute(name,type) 
+          end
+          "*" do 
+            XCore::Attribute(name,Set(type)) 
+          end
+          "ordered" do 
+            XCore::Attribute(name,Seq(type)) 
+          end
+        end
+    }.
+    
+    // A class reference synthesizes an XML reference that will
+    // be resolved at the end of the parse. Note you should be
+    // careful to use suitable initializers when creating instances
+    // of classes that might contain references...
+    
+    ClassRef ::= <ClassRef id/> {
+      XML::Parser::Ref(id)
+    }.
+    
+    // We assume that operations are simply encoded in the XML
+    // model file as their name...
+    
+    Operation ::= 
+      <Operation id = xmi.id name = name> 
+      </Operation> {
+        @Operation() self end.setName(name)
+    }.
+    
+end
+
+context Root
+  @Operation test()
+    let g = Model.compile()
+    in @WithOpenFile(fin <- "c:/model.xml")
+         let xin = ParserChannel(fin,g)
+         in xin.parse("Model")
+         end
+       end
+    end
+  end

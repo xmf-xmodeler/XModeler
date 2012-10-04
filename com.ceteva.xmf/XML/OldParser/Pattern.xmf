@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Pattern isabstract extends Sugar
+  
+    @Doc
+      A pattern is an XML element parser. The pattern recognises a supplied
+      element and synthesises an XMF value. A pattern may bind names to
+      values extracted from the element. When a pattern successfully matches
+      an element it produces a value.
+    end
+    
+    @AbstractOp parse(grammar,env,elements,succ,fail,indent,refTable)
+    end
+    
+  end

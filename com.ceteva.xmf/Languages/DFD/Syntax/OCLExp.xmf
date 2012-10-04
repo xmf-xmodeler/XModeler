@@ -1,0 +1,35 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class OCLExp extends ProcessBody
+
+    // An OCL expression can be turned into an action by wrapping it:
+    // @OCLExp <OCL> end
+
+    @Attribute exp : Performable end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      OCLExp ::= exp = Exp
+      {
+        Languages::DFD::Syntax::OCLExp(exp)
+      }.
+    
+    end
+    
+    @Constructor(exp) end
+
+    @Operation eval(env)
+      exp.eval(self,env)
+    end
+      
+    @Operation code(indent:Integer):String
+      "@OCLExp " + exp.code(indent) + " end"
+    end
+  end

@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler IterExp in Eval(aIterExp,arg,seen)
+  self.desugar(aIterExp,arg)
+end;

@@ -1,0 +1,175 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+ @Package Decls 
+    @Class Decl extends DeclItem
+    end
+    @Class DeclItem isabstract extends AdaObject
+    end
+    @Class GenericDecl isabstract extends Decl,Units::Unit
+      @Attribute genericFormals : Seq(GenericFormal) end
+    end
+    @Class ObjectDecl isabstract extends Decl
+      @Attribute qualifier : String end
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class NumberDecl extends Decl
+    end
+    @Class TypeDecl extends Decl
+      @Attribute name : String end
+      @Attribute typeCompletion : Set(Types::TypeDef) end
+      @Attribute discrimPart : Set(DiscrimPart) end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        "type " + name + if discrimPart->isEmpty
+        then ""
+        else discrimPart->sel.code(indent)
+        end + if typeCompletion->isEmpty
+        then ""
+        else " is " + typeCompletion->sel.code(indent)
+        end
+      end
+    end
+    @Class SubtypeDecl extends Decl
+      @Attribute isName : Names::Name end
+      @Attribute name : String end
+      @Attribute constraint : Set(Types::Constraint) end
+      @Constructor(name) ! end
+      @Operation code(indent:Element):Element
+        "subtype " + name + " is " + isName.code(indent) + if constraint->isEmpty
+        then ""
+        else " " + constraint->sel.code(indent)
+        end
+      end
+    end
+    @Class SubprogramDecl extends Decl
+    end
+    @Class SubprogramRenameDecl extends RenameDecl
+      @Attribute subprogramDecl : SubprogramDecl end
+      @Operation code(indent:Integer):String
+        subprogramDecl.code(indent) + " renames " + name.code(indent)
+      end
+    end
+    @Class PackageRenameDecl extends RenameDecl
+      @Attribute packageName : String end
+      @Constructor(packageName) ! end
+      
+    end
+    @Class ExceptionDecl extends Decl
+      @Attribute name : String end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        name + " : exception"
+      end
+    end
+    @Class RenameDecl isabstract extends Decl
+      @Attribute name : Names::Name end
+      @Constructor(name) ! end
+    end
+    @Class ExceptionRenameDecl extends RenameDecl
+      @Attribute exceptionName : Names::Name end
+      @Operation code(indent:Integer):String
+        name.code(indent) + " : exception renames " + exceptionName.code(indent)
+      end
+    end
+    @Class PackageDecl isabstract extends Units::Unit
+    end
+    @Class GenericDeclSubprogram extends GenericDecl
+      //@Attribute subprogramSpec : Specs::SubprogramSpec end
+      @Attribute subprogramSpec : Element end
+      @Operation code(indent:Integer):String
+        "generic\n" + " ".repeat(indent + 2) + genericFormals->collect(f |
+          f.code(indent))->separateWith("\n" + " ".repeat(indent + 2)) + "\n" + " ".repeat(indent) + subprogramSpec.code(indent)
+      end
+    end
+    @Class GenericDeclPackageSpec extends GenericDecl
+      //@Attribute packageSpec : Specs::PackageSpec end
+      @Attribute packageSpec : Element end
+      @Operation code(indent:Integer):String
+        "generic\n" + " ".repeat(indent + 2) + genericFormals->collect(f |
+          f.code(indent))->separateWith("\n" + " ".repeat(indent + 2)) + "\n" + " ".repeat(indent) + packageSpec.code(indent)
+      end
+    end
+    @Class DeclItemPragma extends DeclItem
+      @Attribute pragma : Units::Pragma end
+      @Operation code(indent:Integer):String
+        pragma.code(indent)
+      end
+    end
+    @Class ObjectDeclSubType extends ObjectDecl
+      @Attribute subTypeInd : Types::TypeRef::SubTypeInd end
+      @Attribute initializer : Set(Expressions::Expression) end
+      @Operation code(indent:Integer):String
+        name + ":" + qualifier + " " + subTypeInd.code(indent) + if initializer->isEmpty
+        then ""
+        else " := " + initializer->sel.code(indent + 2)
+        end
+      end
+    end
+    @Class GenericFormal extends AdaObject
+    end
+    @Class DiscrimBox extends DiscrimPart
+      @Operation code(indent:Integer):String
+        "(<>)"
+      end
+    end
+    @Class DiscrimName extends Object
+      @Attribute name : String end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        name
+      end
+    end
+    @Class DiscrimPart isabstract extends Object
+    end
+    @Class DiscrimSpec extends Object
+      @Attribute isAccess : Boolean end
+      @Attribute names : Seq(DiscrimName) end
+      @Attribute mark : Names::Name end
+      @Attribute initializer : Set(Expressions::Expression) end
+      @Constructor(mark) ! end
+      @Operation code(indent:Integer):String
+        names->collect(name |
+          name.code(indent))->separateWith(",") + " : " + if isAccess
+        then "access"
+        else ""
+        end + " " + mark.code(indent) + " " + if initializer->isEmpty
+        then ""
+        else " := " + initializer->sel.code(indent)
+        end
+      end
+    end
+    @Class DiscrimSpecs extends DiscrimPart
+      @Attribute discrimSpecs : Seq(DiscrimSpec) end
+      @Operation code(indent:Integer):String
+        "(" + discrimSpecs->collect(s |
+          s.code(indent))->separateWith(";") + ")"
+      end
+    end
+    @Class BodyStubDecl isabstract extends Decl
+    end
+    @Class BodyStubTaskDecl extends BodyStubDecl
+      @Constructor(name) ! end
+      @Attribute name : String end
+    end
+    @Class BodyStubPackageDecl extends BodyStubDecl
+      @Attribute name : String end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        "package body " + name + " is separate"
+      end
+    end
+    @Class BodyStubSubProgDecl extends BodyStubDecl
+      //@Attribute subProg : Specs::SubprogramSpec end
+      @Attribute subProg : Element end
+    end
+    @Class BodyStubSubBodyDecl extends BodyStubDecl
+      @Constructor(name) ! end
+      @Attribute name : String end
+    end
+ end

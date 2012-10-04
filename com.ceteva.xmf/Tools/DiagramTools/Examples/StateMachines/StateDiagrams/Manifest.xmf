@@ -1,0 +1,14 @@
+parserImport Manifests;
+
+@Manifest StateDiagrams
+  @File ToolDescriptor end
+  @File ToolType end
+  @File ElementManager end
+  @File NewState end
+  @File StateNameChanged end
+  @File NewTransition end
+  @File TransitionNameChanged end
+  @File TransitionActionChanged end
+  @File TransitionGuardChanged end
+  @File ShowDiagram end
+end;

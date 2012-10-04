@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Instantiate extends OCL::OCL
+  
+    @Doc
+      An instantiation expression of the form C[x=M,y=N,...] creates an
+      instance of C and sets the values of the slots named x, y, ... to 
+      the values of the expressions N, M, ...
+    end
+    
+    @Attribute class : Performable end
+    @Attribute args : Seq(KeyArg) end
+    
+    @Constructor(class,args) ! end
+    
+    @Operation pprint(out,indent)
+      class.pprint(out,indent);
+      format(out,"[");
+      @For arg in args do
+        arg.pprint(out,indent + 2);
+        if not isLast then format(out,",") end
+      end;
+      format(out,"]")
+    end
+    
+  end

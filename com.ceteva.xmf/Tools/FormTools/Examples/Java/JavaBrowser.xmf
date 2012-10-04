@@ -1,0 +1,160 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Languages::MicroJava;
+
+context Root 
+  @Package JavaBrowser
+    @ToolType Browser(HORIZONTAL)
+      @Tree JavaTree
+        minWidth = 200
+        minHeight = 500
+        @TreeNode Package "Package"
+          icon = "Java/Package.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).edit() end
+            @MenuAction Delete self.delete(); tool.refreshSource() end
+          end
+          @TreeNode Interface "Interface"
+            icon = "Java/Interface.gif"
+            @Menu
+              @MenuAction Edit tool.find(self).edit() end
+              @MenuAction Delete self.delete(); tool.refreshSource() end
+            end
+            @TreeNode Field "Field"
+              icon = "Java/Field.gif"
+              @Menu
+                @MenuAction Edit tool.find(self).edit() end
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+              end
+            end
+            @TreeNode Method "Method"
+              icon = "Java/Method.gif"
+              @Menu
+                @MenuAction Edit tool.find(self).edit() end
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+              end
+            end
+            @Menu
+              @MenuItems New
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+                @MenuAction Field self.newNode("Field") end
+                @MenuAction Method self.newNode("Method") end
+              end
+            end
+          end
+          @TreeNode Class "Class"
+            icon = "Java/Class.gif"
+            @Menu
+              @MenuAction Delete self.delete(); tool.refreshSource() end
+              @MenuAction Edit tool.find(self).edit() end
+            end
+            @TreeNode Import "java.lang.*"
+              icon = "Java/Import.gif"
+              @Menu
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+                @MenuAction Edit tool.find(self).edit() end
+              end
+            end
+            @TreeNode Constructor "Constructor"
+              icon = "Java/Constructor.gif"
+              @Menu
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+                @MenuAction Edit tool.find(self).edit() end
+              end
+            end
+            @TreeNode Field "Field"
+              icon = "Java/Field.gif"
+              @Menu
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+                @MenuAction Edit tool.find(self).edit() end
+              end
+            end
+            @TreeNode Method "Method"
+              icon = "Java/Method.gif"
+              @Menu
+                @MenuAction Delete self.delete(); tool.refreshSource() end
+                @MenuAction Edit tool.find(self).edit() end
+              end
+            end
+            @Menu
+              @MenuAction Delete self.delete(); tool.refreshSource() end
+              @MenuAction Edit tool.find(self).edit() end
+              @MenuItems New
+                @MenuAction Constructor self.newNode("Constructor") end
+                @MenuAction Import self.newNode("Import") end
+                @MenuAction Field self.newNode("Field") end
+                @MenuAction Method self.newNode("Method") end
+              end
+            end
+          end
+          @Menu
+            @MenuAction Delete self.delete(); tool.refreshSource() end
+            @MenuAction Edit tool.find(self).edit() end
+            @MenuItems New
+              @MenuAction Class self.newNode("Class")
+              end
+              @MenuAction Interface self.newNode("Interface")
+              end
+            end
+          end
+        end
+      end
+      @TextBox Source(readonly) ""
+        padLeft = 30
+        minWidth = 500
+        minHeight = 500
+      end
+    end
+  end
+  
+context JavaBrowser
+  @ToolType Editor extends JavaBrowser::Browser
+    @Tree JavaTree
+      @TreeNode Package "Package"
+        @Menu
+          @MenuItems Refactor
+            @MenuItems Add
+              @MenuAction Accessors
+                null
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+context JavaBrowser
+  @Class JavaBrowserTool extends Tools::FormTools::Structure::Tool
+    @Operation refreshSource()
+      self.form().ref1(Seq{"Source"}).setTextIn(self.element().pprint())
+    end
+  end
+  
+context JavaBrowser
+  @ElementManager JavaEventManager
+    @EventHandler Delete_Browser_JavaTree_Package_Class()
+      find(event.value()).delete();
+      event.tool().refreshSource()
+    end
+    @EventHandler New_Browser_JavaTree_Package_Class()
+      let class = Structure::Class("C",false,Seq{},Seq{"Object"},Seq{}) then
+          unit = Structure::CompilationUnit(Seq{},class);
+          package = find(event.value().owner())
+      in register(class,event.value());
+         register(event.value(),class);
+         package.add(unit);
+         event.tool().refreshSource()
+      end
+    end
+    @EventHandler Browser_JavaTree_Package_Class_Changed()
+      let class = find(event.value())
+      in class.name := event.new();
+         event.tool().refreshSource()
+      end
+    end
+  end
+  

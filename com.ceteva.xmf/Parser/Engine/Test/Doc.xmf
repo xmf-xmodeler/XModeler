@@ -1,0 +1,31 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Doc
+
+  @Grammar 
+    
+    Doc ::= cs = Char* 'end' { 
+      
+      Doc(cs->asString)  
+      
+   }.
+      
+  end 
+
+context XCore::Doc
+
+  @Grammar 
+    
+    Doc ::= cs = Char* 'end' { 
+      
+      Doc(cs->asString)  
+      
+   }.
+      
+  end 
+    
+   

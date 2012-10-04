@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Env;
+import Walkers;
+
+context XCore::Class
+
+  @Operation typeCheck()
+    let env = self.allAttributes()->iterate(a e = NullEnv() | e.bind(a.name().toString(),a.type)) then
+        opChecks = operations->asSeq->collect(op | op.typeCheck(self,env));
+        conChecks = constraints->asSeq->collect(c | c.typeCheck(self,env))
+    in TypeCheckClass(self,opChecks + conChecks)
+    end
+  end
+          

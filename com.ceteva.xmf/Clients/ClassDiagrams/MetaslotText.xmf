@@ -1,0 +1,80 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class MetaslotText extends Group
+  
+    @Attribute name : MetaslotName end
+    @Attribute value : MetaslotValue end
+    @Attribute type : Element end
+    
+    @Constructor(name,value,type,x,y) !
+    
+      // Expects to be supplied with name:String and value:String.
+      
+      self.name := MetaslotName(name+" =",x+5,y);
+      if type.inheritsFrom(String)
+      then
+        self.value := StringMetaslotValue(value,x+50,y)
+      else
+        self.value := MetaslotValue(value,x+50,y)
+      end;
+      
+      // A group should not have any Display attributes set.
+      
+      self.x := 0;
+      self.y := 0
+    end
+  
+    @Operation addDisplays()
+      self.add(name);
+      self.add(value)
+    end
+
+    @Operation moveDown()
+      @Count i from 1 to 16 do
+        name.move(name.x,name.y-1);
+        value.move(value.x,value.y-1)
+      end
+    end
+    
+    @Operation name():String
+      name.text
+    end
+
+    @Operation value():String
+      value.text
+    end
+
+    @Operation resized(display)
+    
+      // If the name has resized then the value
+      // may need to move along accordingly.
+      
+      if value.x() < (name.x() + name.width()) or
+         value.x() > (name.x() + name.width() + self.separator())
+      then 
+        value.move(name.x() + name.width() + self.separator(),value.y());
+        owner.resized(self)
+      end
+    end
+    
+    @Operation setName(name)
+      self.name.setText(name)
+    end
+
+    @Operation setValue(value)
+      self.value.setText(value)
+    end
+
+    @Operation separator()
+      // Between the name and the value...
+      8
+    end
+   
+  end

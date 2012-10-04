@@ -1,0 +1,16 @@
+import OCL;
+import Exceptions;
+
+context Dot
+  @Operation eval(target,env,imports)
+    let o = self.target.eval(target,env,imports)
+    in if o.isKindOf(Object) 
+       then 
+         if o.hasSlot(name.asSymbol())
+         then o.get(name.asSymbol())
+         else o.slotMissing(name.asSymbol())
+         end
+       else o.dot(name.asSymbol())
+       end
+    end
+  end

@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class LocalTail extends Instr
+  
+    @Doc
+      This machine instruction references a local variable location
+      in the current stack frame. It expects a sequence and replaces
+      the sequence at the head of the stack with the tail of the sequence.
+    end
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) ! end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+    @Operation toString():String
+      "<LocalTail " + name + "," + offset + ">"
+    end
+    
+  end
+  

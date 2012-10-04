@@ -1,0 +1,150 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import Displays;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_RootElementType"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().nestedRootElementType(event.tool().find(event.parent()),event.value())
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_Box"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Box_x_Box(Box(event.tool().newName("Box")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)_(Box|EmptyBox|InvisibleBox|Ellipse|Shape|Image|SideBars|TopBars|Text|RootElementType|Ref)"()
+  if event.tool().isRegistered(event.value())
+  then 
+    if event.tool().deleteDisplay(event.tool().find(event.value()),event.tool().find(event.owner()))
+    then 
+      event.tool().deregister(event.tool().find(event.value()));
+      event.tool().deregister(event.value())
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_EmptyBox"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Box_x_Box(EmptyBox(event.tool().newName("EmptyBox")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_InvisibleBox"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Box_x_Box(InvisibleBox(event.tool().newName("InvisibleBox")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_SideBars"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Box_x_Box(SideBars(event.tool().newName("SideBars")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_TopBars"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Box_x_Box(TopBars(event.tool().newName("TopBars")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Ellipse"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Display_x_Display(Ellipse(event.tool().newName("Ellipse")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Shape"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let tool = event.tool();
+        shapeNode = event.value();
+        shapeType = shapeType(event.tool()) then
+        map = Display_x_Display(shapeType)
+    in event.value().setTextIn(shapeType.name().toString());
+       tool.registerNewDisplay(tool.find(event.parent()),event.value(),map);
+       @WithoutEvents(tool)
+         @For point in shapeType.points() do
+           let pointNode = shapeNode.newNode("Points:Point")
+           in pointNode.setTextIn("(" + point.x() + "," + point.y() + ")");
+              tool.register(point,pointNode);
+              tool.register(pointNode,point)
+           end
+         end
+       end
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Image"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Display_x_Display(Image(event.tool().newName("Image")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Text"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let map = Display_x_Display(Text(event.tool().newName("Text")))
+    in event.tool().registerNewDisplay(event.tool().find(event.parent()),event.value(),map)
+    end
+  end
+end;
+ 
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)Text_Changed"()
+  if event.tool().isRegistered(event.value())
+  then event.tool().textChanged(event.tool().find(event.value()),event.new(),event.old())
+  end
+end; 
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Ref"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newRef(event.tool().find(event.parent()),event.value())
+  end
+end;
+ 
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)(Attribute|Box|InvisibleBox|EmptyBox|Ellipse|Shape|Image|SideBars|TopBars|Text|Ref)_Moved"()
+  if event.tool().isRegistered(event.value())
+  then
+    let node = event.value() then
+        map = event.tool().find(node);
+        parentNode = node.owner() then
+        parentMap = event.tool().find(parentNode)
+    in // Reduce the index by 1 because all elements
+       // that have a movable display node have a menu
+       // node at position 0.
+       parentMap.moved(map,event.new()-1,event.old()-1)
+    end
+  end
+end; 
+

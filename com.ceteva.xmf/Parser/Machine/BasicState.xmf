@@ -1,0 +1,227 @@
+parserImport XOCL;
+
+import IO;
+import Parser::BNF;
+import Env;
+
+context Parser::Machine
+
+  @Class BasicState isabstract
+    
+    @Doc
+      A basic state defines the essential information contained in a 
+      machine state. It is abstract.
+      
+      Constructor: BasicState(grammar,inputChannel)
+        Creates an initial machine state that uses grammar to parse the
+        characters from the input stream.
+    end
+      
+      @Attribute owner : Element end             // Used to resolve 'self' in grammar rules.
+      @Attribute grammar : Grammar end           // The grammar being parsed.
+      @Attribute tokens : Element end            // A generator for lazy sequences of tokens.
+      @Attribute inputChannel : InputChannel end // The original input channel.
+      @Attribute tokenChannel : Element end      // The original token channel.
+      @Attribute successes : Seq(Recognizer) end // A sequence used as a stack of continuations.
+      @Attribute fail  : Fail end                // The most recently saved choice point.
+      @Attribute stack : Seq(Element) end        // Values synthesized during a parse.
+      @Attribute cut : Seq(Fail) end             // Used to set 'fails' if '!' is performed.
+      @Attribute consumedChars : Integer end     // Consumed chars from current parse.
+      @Attribute indent : Integer end            // Used for debug output.
+      @Attribute locals : Env end                // Used to name local values during the parse.
+      @Attribute globals : Env end               // Used to name global values during the parse.
+      @Attribute imports : Seq(NameSpace) end    // The namespaces imported for '@'.
+      @Attribute token : Seq(Element) end        // The current token being processed.
+      
+      @Operation at()
+        // The top of the stack should contain a sequence of strings that name
+        // the classifier that defines a grammar we want to branch out to.
+        // We must return the current values of owner and grammar when the parse
+        // wrt the new grammar succeeds.
+        let classifier = self.atClassifier()
+        in self.pushEndAt();
+           self.startAt(classifier)
+        end
+      end
+      
+      @Operation atClassifier()
+        // The top of the stack should be a sequence of names that leads
+        // to a classifier with respect to the currently imported name spaces.
+        let names = self.popStack()
+        in if names.isKindOf(SeqOfElement)
+           then 
+             let rootName = names->at(0);
+                 elementNames = names->tail
+             in let nameSpaces = imports->select(nameSpace | nameSpace.hasElement(rootName))
+                in if nameSpaces->isEmpty
+                   then self.error("Cannot find " + rootName + " perhaps you need to import it.")
+                   else elementNames->iterate(name nameSpace = nameSpaces->head.getElement(rootName) |
+                     let value = nameSpace.getElement(name)
+                     in if value = null
+                        then self.error("At: " + nameSpace.toString() + "::" + name + " does not exist.")
+                        else value
+                        end
+                     end)
+                   end
+                 end
+              end
+           else self.error("At: expecting a sequence of names, got " + names.toString())
+           end
+         end
+       end
+      
+      @Operation atNameSpace()
+        // The top of the stack should be a sequence of names that leads to
+        // a name space. Throw an error if this is not the case.
+        let names = self.popStack()
+        in if names.isKindOf(SeqOfElement)
+           then 
+             let rootName = names->at(0);
+                 elementNames = names->tail
+             in elementNames->iterate(name nameSpace = Kernel_getVar(rootName) | 
+                  if nameSpace.hasElement(name)
+                  then nameSpace.getElement(name)
+                  else self.error("At: " + nameSpace.toString() + "::" + name + " does not exist.")
+                  end)
+             end
+           else self.error("At: expecting a sequence of names, got " + names.toString())
+           end
+        end
+      end
+      
+      @Operation char() 
+        // When this operation is called, the token channel is translated into a
+        // *** temporary *** character stream. This is done by looking at the raw
+        // text for the next token and translating it into a sequence of characters.
+        // The token channel reverts from the following token.
+        // If we have reached EOF then fail. Otherwise the character is consumed and 
+        // pushed onto the stack.
+        let charChannel = self.tokenChannelToCharChannel() then
+            tokens = charChannel() 
+        in if tokens = Seq{}
+           then 
+             self.debug("Char fails EOF.");
+             machine.fail()
+           else
+             let token = tokens->head;
+                 tokens = tokens->tail
+             in self.debug("Char succeeds: " + Seq{token->at(1)}->asString);
+                self.pushStack(token->at(1));
+                self.tokens := tokens
+             end
+           end
+        end
+      end
+      
+      @Operation importNameSpace(nameSpace)
+        self.imports := Seq{nameSpace | imports}
+      end
+      
+      @Operation importAt()
+        // An operation called during a parse to add a name space to the head of the imports stack.
+        // The name spaces on the imports stack are used as the basis for classifier lookup to
+        // defrerence the path occurring after a '@'.
+        let nameSpace = self.atNameSpace()
+        in self.imports := Seq{nameSpace | imports}
+        end
+      end
+      
+      @Operation init(args):Element
+        self.grammar := args->at(0);
+        self.inputChannel := args->at(1);
+        // Machine level support is used mostly. Allow
+        // higher level input channels too.
+        if self.inputChannel.hasSlot("channel")
+        then self.tokens := self.tokens(args->at(1))
+        else self.tokens := self.tokenStream()
+        end;
+        self.locals := NullEnv();
+        self.globals := NullEnv();
+        self.imports := Seq{XCore,Root}
+      end
+      
+      @Operation tokens(inputChannel)
+        let tokens = Kernel_mkBasicTokenChannel(inputChannel.channel)
+        in self.tokenChannel := tokens;
+           self.resetTokens()
+        end
+      end
+      
+      @Operation rawTextToCharChannel(chars,tokens)
+        @Operation()
+          if chars->isEmpty
+          then tokens()
+          else 
+            let token = Seq{1,chars->head,0,0,0,""}
+            in Seq{token | self.rawTextToCharChannel(chars->tail,tokens)}
+            end
+          end
+        end
+      end
+      
+      @Operation resetInputChannel(inputChannel)
+        self.inputChannel := inputChannel;
+        //self.tokens(inputChannel)
+        self.resetTokens()
+      end
+      
+      @Operation resetTokens()
+        // Reset if a machine level input channel...
+        if tokenChannel.of() = Element
+        then Kernel_resetToInitialState(tokenChannel)
+        end;
+        self.tokens := self.tokenStream()
+      end
+  
+      @Operation tokenStream()
+      
+        // Has two modes of operation. Firstly with a
+        // legacy machine leval token input channel and
+        // secondly with an object that handles a nextToken
+        // operation.
+        
+        let pair = null
+        in @Operation()
+              if pair = null
+              then 
+                let token = 
+                  if tokenChannel.of() = Element
+                  then Kernel_nextToken(tokenChannel)
+                  else inputChannel.nextToken()
+                  end
+                in if token = null
+                   then 
+                     pair := Seq{};
+                     pair
+                   else
+                     pair := Seq{token | self.tokenStream()};
+                     pair
+                   end
+                end
+              else pair
+              end
+            end
+        end
+      end 
+      
+      @Operation tokenChannelToCharChannel()
+        let tokens = tokens()
+        in if tokens = Seq{}
+           then machine.fail()
+           else
+             let token = tokens->head then
+                 tokenType = token->at(0);
+                 charType = 1
+             in if tokenType = charType
+                then self.tokens
+                else 
+                  let rawText = token->at(5)
+                  in self.rawTextToCharChannel(rawText->asSeq,tokens->tail)
+                  end
+                end
+             end
+           end
+        end
+      end
+      
+    end

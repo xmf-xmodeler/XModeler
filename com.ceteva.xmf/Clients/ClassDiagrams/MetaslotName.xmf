@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class MetaslotName extends Text
+  
+    @Constructor(text,x,y)
+      self.init(Seq{text,x,y,false})
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete",target,Seq{},MetaslotName::deleteMenuCommand));
+        globalMenu
+      end
+    end
+
+    @Operation deleteMenuCommand()
+      self.owner.delete()
+    end
+    
+  end

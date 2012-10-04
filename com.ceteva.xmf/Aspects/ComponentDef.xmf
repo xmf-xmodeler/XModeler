@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XOCL;
+
+context Aspects
+
+  @Class ComponentDef isabstract extends Sugar
+  
+    @Doc
+      ComponentDef is the abstract superclass of all aspect component 
+      definitions.
+    end
+  
+  end

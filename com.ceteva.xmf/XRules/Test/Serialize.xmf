@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport XRules;
+    
+context Root::Test
+  @Rule SerializePackages(Seq{},Seq{}) end
+    
+context Root::Test
+  @Rule SerializePackages(Seq{P | Ps},Seq{T | Terms})
+    SerializePackage(P,T)
+    SerializePackages(Ps,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializePackage(Package[name=n;packages=P;classes=C],Seq{"Package",n,Terms}) 
+    SerializeClassesAndPackages(P,C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(Seq{},C,Terms) 
+    SerializeClasses(C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(P,Seq{},Terms)
+    SerializePackages(P,Terms)
+  end
+  
+context Root::Test
+  @Rule SerializeClassesAndPackages(P,Seq{C | Cs},Seq{T | Terms})
+    SerializeClass(C,T)
+    SerializeClassesAndPackages(P,Cs,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(Seq{P | Ps},C,Seq{T | Terms})
+    SerializePackage(P,T)
+    SerializeClassesAndPackages(Ps,C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClasses(Seq{},Seq{}) end
+    
+context Root::Test
+  @Rule SerializeClasses(Seq{C | Cs},Seq{T | Terms})
+    SerializeClass(C,T)
+    SerializeClasses(Cs,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClass(Class[name=n],Seq{"Class",n}) end

@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class EndAt extends Recognizer
+  
+    @Attribute owner : Classifier end
+    @Attribute grammar : Element end
+    
+    @Constructor(owner,grammar) end
+    
+    @Operation parse(machine)
+      machine.owner := owner;
+      machine.grammar := grammar
+    end
+    
+  end

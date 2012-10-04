@@ -1,0 +1,6 @@
+import XDiagMaps;
+
+context Package
+  @Operation deployXDiagram()
+    XDiagMap(self).deploy()
+  end

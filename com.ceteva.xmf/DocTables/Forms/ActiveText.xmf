@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class ActiveText extends Text
+  
+    // Produces selectable text that redirects to an HTML
+    // page when clicked. The id is used as the name of the html
+    // file (virtual or concrete). The select variable may be
+    // a page or an operation that produces a page.
+
+    @Attribute id : String (?,!) end
+    @Attribute select : Page (?,!) end
+
+    @Constructor(text,id,select) end
+    
+    @Operation contents()
+      select.contents()
+    end
+
+  end

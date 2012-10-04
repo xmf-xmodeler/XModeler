@@ -1,0 +1,21 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Parentheses in Eval(aParentheses,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aParentheses.exp,
+       @Operation(next,result,call,return)
+         self.eval(aParentheses.exp,env,target,imports,next,result,call,return,
+           @Operation(value)
+             result(aParentheses,value,cont)
+           end)
+       end)
+  end
+end;

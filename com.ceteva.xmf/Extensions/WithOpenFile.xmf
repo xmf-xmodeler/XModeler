@@ -1,0 +1,69 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context XOCL
+
+  @Class WithOpenFile extends Sugar
+  
+    @Doc
+      Used to bind a name to an input or output file channel such that the
+      closing of the channel is guaranteed even in the event of an exception
+      being raised.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       WithOpenFile ::= '(' channel = Name mode = Mode file = Exp ')' body = Exp {
+       
+         WithOpenFile(channel,mode,file,body)
+         
+       }.
+       
+       Mode ::= '->' { "->" } | '<-' { "<-" }.
+       
+    end
+    
+    @Attribute channel : String      end
+    @Attribute mode    : String      end
+    @Attribute file    : Performable end
+    @Attribute body    : Performable end
+    
+    @Constructor(channel,mode,file,body) end
+    
+    @Operation desugar():Peformable
+      [| import IO
+         in let <channel> = <self.openChannel()>
+            in try
+                 let result = <body>
+                 in <OCL::Var(channel)>.close();
+                    result
+                 end
+               catch(exception)
+                 <OCL::Var(channel)>.close();
+                 throw exception
+               end
+            end
+         end |] 
+     end
+     
+     @Operation openChannel():Performable
+       if mode = "<-"
+       then [| FileInputChannel(<file>) |]
+       else [| FileOutputChannel(<file>) |]
+       end
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@WithOpenFile(~S ~S ",Seq{channel,mode});
+       file.pprint(out,indent);
+       format(out,")~%~V",Seq{indent+2});
+       body.pprint(out,indent+2);
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+   end
+               
+    
+    

@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context DialogBoxes
+
+  @Class FontDialog extends ContainedClientElement
+  
+    @Attribute default : String (?) end
+    
+    @Constructor(default)
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newFontDialog(self)
+    end
+  
+  end

@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class RenderToString extends RenderText 
+  
+    @Operation code(value:String)
+      value + ".toString()"
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText)
+      let A = if class.isKindOf(Class) then class.allAttributes() else Set{} end
+      in @For attribute in A do
+           let fileName = formats("~S_Object_~S_Changed",Seq{class.name(),attribute.name()})
+           in @WithOpenFile(out -> dir + "/" + fileName + ".xmf")
+                writeToolHeader(out);
+                writeHandlerComment(out);
+                format(out,"@Observer ~S::~S::Manager(~S) ~S !~%",Seq{root.path(),toolDescriptorType,class.path(),attribute.name()});
+                format(out,"  let label = find(object)~%");
+                format(out,"  in label.setText(~S)~%",Seq{renderText.code("object")});
+                format(out,"  end~%");
+                format(out,"end;~%");
+                manifest.add("ElementManager/" + fileName)
+             end
+           end
+         end
+       end
+    end
+
+  end

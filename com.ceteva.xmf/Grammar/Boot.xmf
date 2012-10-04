@@ -1,0 +1,24 @@
+
+
+
+
+("Grammar/Grammar.o").loadBin(true);
+
+// If you ever need to generate the XOCL and XBNF grammars FROM SCRATCH
+// then uncomment the following lines. In virtually all cases you should 
+// be able to build the system from existing binaries of XBNFGrammar and
+// XOCLGrammar. The only case where this might fail is if you lose the
+// appropriate XMF images and the binary files become corrupt. In this
+// unlikely event, you should bootstrap the grammars as below.
+
+// ("Grammar/XOCL.o").loadBin(true);
+// ("Grammar/XBNF.o").loadBin(true);
+// ("Grammar/XOCLBootstrap.o").loadBin(true);
+
+("Grammar/XOCLGrammar.o").loadBin(true);
+("Grammar/XBNFGrammar.o").loadBin(true);
+("Grammar/Operation.o").loadBin(true);
+
+  
+
+  

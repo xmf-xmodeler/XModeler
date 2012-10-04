@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import OCL;
+
+@Handler XOCL::Class in AST(aClass,arg,seen)
+  let metaclass = self.dispatch(aClass.metaClass,arg);
+      parents = aClass.parents->collect(parent | self.dispatch(parent,arg));
+      defs = aClass.defs->collect(def | self.dispatch(def,arg))
+  in ASTNode(aClass,Seq{metaclass} + parents + defs)
+  end
+end;

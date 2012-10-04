@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class ThemableMap extends ElementMap
+  
+    @Attribute theme : String = "" 	end // the theme currently applied to this mapping
+        
+    @Operation applyTheme()
+      if theme <> ""
+      then
+        let 
+          registry = xmf.registry() then
+          themePoint = registry.getExtensionPoint("com.ceteva.xmf.themes") then
+          th = themePoint.find(theme);
+          refresh = false
+        in
+          if th <> null
+          then
+            @For v in th.values
+            do
+              refresh := v.invoke(self.owner,Seq{self.element(),self.diagramElement()}) or refresh
+            end
+          end;
+          refresh
+        end
+      else
+        false
+      end
+    end
+    
+    @Operation applyNewTheme(theme)
+      self.theme := theme;
+      self.applyTheme()
+    end
+
+    // sub classes should ensure that when the state of the element being mapped
+    // changes that the following operation is called
+    
+    @AbstractOp elementChanged()
+    end
+
+    @Operation removeTheme()
+      self.theme := "";
+      self.diagramElement().removeTheme()
+    end
+  
+  end

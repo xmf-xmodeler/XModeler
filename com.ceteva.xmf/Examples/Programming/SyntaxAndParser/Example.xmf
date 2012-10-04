@@ -1,0 +1,10 @@
+parserImport EntityModels;
+
+import EntityModels;
+
+Root::p :=
+  @EntityModel Customers 
+    entity Customer
+      rel Owns -> Account
+    entity Account
+  end;

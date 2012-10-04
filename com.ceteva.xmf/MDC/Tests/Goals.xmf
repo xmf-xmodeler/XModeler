@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import XOCL;
+
+context Root
+
+  @Package Goals
+  
+    @Class Named extends XOCL::Syntax
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    
+    @Enum DomainType(Fact,Assumption) end
+    
+    @Class GoalModel extends Named
+      @Attribute goals : Set(Goal) end
+    end 
+    
+    @Class Goal extends GoalRefiningProperty, Named
+      @Attribute alternatives : Set(GoalRefinement) (?,!,+,-) end
+      @Attribute observes     : Set(DomainElement) (?,!,+,-) end
+      @Attribute controls     : Set(DomainElement) (?,!,+,-) end
+      @Attribute formalSpec   : Exp = Exp([| true |]) (?,!) end
+      @Attribute description  : String (?,!) end
+      @Attribute model        : GoalModel = GoalModel() end
+    end
+    
+    @Class GoalRefinement extends XOCL::Syntax
+      @Attribute refinementElements : Set(GoalRefiningProperty) (?,!,+,-) end
+      @Attribute description : String (?,!) end
+    end
+    
+    @Class DomainProperty extends GoalRefiningProperty
+      @Attribute formalSpec   : Exp (?,!) end
+      @Attribute type         : Goals::DomainType (?,!) end
+      @Attribute description  : String (?,!) end
+      @Constructor(type) ! end
+    end
+  
+    @Class DomainElement extends Named
+      @Attribute class : String end
+      @Constructor(name,class) ! end
+    end
+    
+    @Class GoalRefiningProperty extends XOCL::Syntax end
+    
+  end

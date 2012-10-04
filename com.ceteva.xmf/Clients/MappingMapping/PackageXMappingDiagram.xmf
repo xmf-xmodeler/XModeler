@@ -1,0 +1,770 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+import MappingMapping;
+import MappingDiagrams;
+import Menus;
+//import XSync;
+//import Network;
+
+context MappingMapping
+
+  @Class PackageXMappingDiagram extends PackageXClassDiagram
+  
+    @Attribute mappingMaps : Seq(MapXNode)          (+,-) end
+    @Attribute syncMaps    : Seq(Element)           (+,-) end // Legacy
+    @Attribute domainMaps  : Seq(DomainXDomainEdge) (+,-) end
+    @Attribute rangeMaps   : Seq(RangeXRangeEdge)   (+,-) end
+    @Attribute scopeMaps   : Seq(Element)           (+,-) end // Legacy
+
+    @Operation abstractClassMaps()
+      classMaps + packageMaps + mappingMaps
+    end
+
+    @Operation add(element)
+      @TypeCase(element)
+        XMap::Map do 
+          self.mapAdded(element) 
+        end
+        MapXNode do
+          self.addMapMap(element) 
+        end
+        DomainXDomainEdge do
+          self.addDomainMap(element)
+        end
+        RangeXRangeEdge do
+          self.addRangeMap(element)
+        end
+        /*
+        Synchronizer do
+          self.syncAdded(element)
+        end
+        SyncXNode do
+          self.addSyncMap(element)
+        end
+        ScopeXScopeEdge do
+          self.addScopeMap(element)
+        end
+        */
+        else super(element)
+      end
+    end
+    
+    @Operation addDropped(element)
+      @TypeCase(element)
+        XMap::Map do 
+          self.mapDropped(element);
+          self.generateEdges()
+        end
+        else super(element)
+      end
+    end
+    
+    @Operation addMap(mapping)
+      let mapNode = MapNode(mapping.name.toString(),package,0,0)
+      in 
+        @WithoutRendering(self.diagram)
+          self.add(MapXNode(mapping,mapNode,self));
+          diagram.add(mapNode);
+          mapNode.new(diagram)
+        end
+        //@Find(map,mappingMaps) when
+        //  map.map = mapping do
+        //  @For domain in mapping.domains do
+        //    self.domainAdded(map.map,domain,map.node)
+        //  end;
+        //  if mapping.range <> null then
+        //    self.rangeChanged(map.map,mapping.range,map.node)
+        //  end
+        //end
+      end
+    end
+
+    @Operation nodeMaps()
+      self.classMaps +
+      self.packageMaps +
+      self.elementMaps +
+      self.mappingMaps +
+      self.docMaps
+      //+ self.syncMaps
+    end
+
+    @Operation domainAdded(mapping,target,mapNode)
+      if not domainMaps->exists(dm | dm.map = mapping and dm.target = target)
+      then
+        let targetMap = self.findTargetMap(target)
+        in  //if targetMap = null
+            //then
+            //  self.add(target);
+            //  targetMap := self.findTargetMap(target)
+            //end;
+            if targetMap <> null
+            then
+              let edge = diagram.makeDomain(mapNode,targetMap.node) then
+                  domainMap = DomainXDomainEdge(mapping,target,edge,self)
+              in  self.add(domainMap);
+                  diagram.addEdge(edge)
+              end
+            end
+        end 
+      end     
+    end
+
+    @Operation findTargetMap(target)
+      @Find(map,self.nodeMaps())
+        when map.element() = target
+          do map
+          else null
+      end
+    end
+
+    @Operation addMapMap(mapMap)
+      self.addToMappingMaps(mapMap);
+      mapMap.setOwner(self)
+    end
+    
+    @Operation addDomainMap(domainMap)
+      self.addToDomainMaps(domainMap);
+      domainMap.setOwner(self)
+    end
+    
+    @Operation addRangeMap(rangeMap)
+      self.addToRangeMaps(rangeMap);
+      rangeMap.setOwner(self)
+    end
+    
+    /*
+    
+    @Operation addSyncMap(syncMap)
+      self.addToSyncMaps(syncMap);
+      syncMap.setOwner(self)
+    end
+    
+    @Operation addScopeMap(scopeMap)
+      self.addToScopeMaps(scopeMap);
+      scopeMap.setOwner(self)
+    end
+    
+    @Operation addScope(sync:Synchronizer,type:Classifier,node:SyncXSyncNode)
+      // sync has changed so add the edge...
+      if not scopeMaps->exists(map | map.type = type)
+      then
+        if not classMaps->exists(classMap | classMap.class = type) then
+          self.add(type)
+        end;
+        @Find(map,classMaps)
+          when map.class = type 
+        do let edge = ScopeEdge(node.ports->asSeq->head,map.node.ports->asSeq->head)
+           in self.add(ScopeXScopeEdge(sync,type,edge,self));
+              diagram.addEdge(edge);
+              edge.new(diagram)
+           end
+        end
+      end
+    end
+    
+    */
+    
+    @Operation mapNodeAddedDaemon(diagram,slot,mapNode)
+      self.mapNodeAdded(mapNode)
+    end
+    
+    @Operation mapNodeRemovedDaemon(diagram,slot,mapNode)
+      self.mapNodeRemoved(mapNode)
+    end
+    
+    @Operation mapEdgeAddedDaemon(diagram,slot,mapEdge)
+      self.mapEdgeAdded(mapEdge)
+    end
+    
+    @Operation mapEdgeRemovedDaemon(diagram,slot,mapEdge)
+      self.mapEdgeRemoved(mapEdge)
+    end
+    
+    /*
+    
+    @Operation syncNodeAddedDaemon(diagram,slot,syncNode)
+      self.syncNodeAdded(syncNode)
+    end
+    
+    @Operation syncNodeRemovedDaemon(diagram,slot,syncNode)
+      self.syncNodeRemoved(syncNode)
+    end
+    
+    @Operation scopeEdgeAddedDaemon(diagram,slot,scopeEdge)
+      self.scopeEdgeAdded(scopeEdge)
+    end
+    
+    @Operation scopeEdgeRemovedDaemon(diagram,slot,scopeEdge)
+      self.scopeEdgeRemoved(scopeEdge)
+    end
+    
+    */
+    
+    @Operation checkDiagramDaemons()
+      @SlotValueChanged multi once + PackageXMappingDiagram::mapNodeAddedDaemon(diagram,"mapNodes")       end;
+      //@SlotValueChanged multi once - PackageXMappingDiagram::mapNodeRemovedDaemon(diagram,"mapNodes")     end;
+      @SlotValueChanged multi once + PackageXMappingDiagram::mapEdgeAddedDaemon(diagram,"mapEdges")       end;
+      @SlotValueChanged multi once - PackageXMappingDiagram::mapEdgeRemovedDaemon(diagram,"mapEdges")     end;
+      //@SlotValueChanged multi once + PackageXMappingDiagram::syncNodeAddedDaemon(diagram,"syncNodes")     end;
+      //@SlotValueChanged multi once - PackageXMappingDiagram::syncNodeRemovedDaemon(diagram,"syncNodes")   end;
+      //@SlotValueChanged multi once + PackageXMappingDiagram::scopeEdgeAddedDaemon(diagram,"scopeEdges")   end;
+      //@SlotValueChanged multi once - PackageXMappingDiagram::scopeEdgeRemovedDaemon(diagram,"scopeEdges") end;
+      super()
+    end
+    
+    @Operation classAdded_mappingDiagramDaemon(package,slot,class)
+      if class.isKindOf(XMap::Map) andthen not self.eventFiltered("map added")
+      then
+        self.classAdded(class);
+        self.generateEdges()
+      end
+    end
+    
+    @Operation classRemoved_mappingDiagramDaemon(package,slot,class)
+      if class.isReallyKindOf(XMap::Map)
+      then self.mapRemoved(class)
+      end
+    end
+    
+    @Operation checkPackageDaemons()
+      @SlotValueChanged multi once + PackageXMappingDiagram::classAdded_mappingDiagramDaemon(package,"classes")   end;
+      @SlotValueChanged multi once - PackageXMappingDiagram::classRemoved_mappingDiagramDaemon(package,"classes") end;
+      super()
+    end
+    
+    @Operation classAdded(class)
+      if class.isKindOf(XMap::Map) then
+        self.mapAdded(class)
+      else
+        super(class)
+      end
+    end
+    
+    @Operation mapAdded(mapping)
+      if not mappingMaps->exists(m | m.map = mapping)
+      then
+        self.addMap(mapping)
+      end
+    end
+    
+    @Operation mapDropped(mapping)
+      self.addMap(mapping)
+    end
+
+    @Operation mapNodeAdded(mapNode)
+      if not mappingMaps->exists(map | map.node = mapNode)
+      then
+        let name = self.newMapName() in
+          let map = XMap::Map(name) in
+            mapNode.setName(name);
+            self.add(MapXNode(map,mapNode,self));
+            package.add(map)
+          end
+        end
+      end
+    end
+    
+    @Operation mapNodeRemoved(mapNode)
+      @Find(map,mappingMaps)
+        when map.node = mapNode
+        do self.remove(map);
+           package.remove(map.map)
+      end
+    end
+    
+    @Operation mapEdgeAdded(mapEdge)
+      if mapEdge.isKindOf(DomainEdge) then
+        self.domainEdgeAdded(mapEdge)
+      end;
+      if mapEdge.isKindOf(RangeEdge) then
+        self.rangeEdgeAdded(mapEdge)
+      end
+    end
+    
+    @Operation domainEdgeExists(sourceMap,targetElement)
+      @Find(map,domainMaps)
+      when map.map = sourceMap and map.target = targetElement
+      do true
+      else false
+      end
+    end
+    
+    @Operation domainEdgeAdded(mapEdge)
+      if not domainMaps->exists(map | map.edge = mapEdge) then
+        @Find(sourceMap,mappingMaps)
+          when sourceMap.node.ports()->includes(mapEdge.source)
+          do
+            let sourceMapMap = sourceMap.map
+            in
+              @Find(target,self.nodeMaps())
+                when target.node.ports()->includes(mapEdge.target)
+                do let targetElement = target.element()
+                   in  
+                      if not self.domainEdgeExists(sourceMapMap,targetElement)
+                      then
+                        self.add(DomainXDomainEdge(sourceMapMap,targetElement,mapEdge,self));
+                        sourceMapMap.domains := sourceMapMap.domains->including(targetElement)
+                      else
+                        mapEdge.delete()
+                      end
+                   end
+              end
+            end
+        end
+      end
+    end    
+
+    @Operation rangeEdgeAdded(mapEdge)
+      if not rangeMaps->exists(map | map.edge = mapEdge) then
+        @Find(sourceMap,mappingMaps)
+          when sourceMap.node.ports()->includes(mapEdge.source)
+          do    
+            let sourceMapMap = sourceMap.map
+            in
+              @Find(target,self.nodeMaps())
+                when target.node.ports()->includes(mapEdge.target)
+                do let targetElement = target.element()
+                   in
+                     if not self.rangeEdgeExists(sourceMapMap,targetElement)
+                     then
+                       self.add(RangeXRangeEdge(sourceMapMap,targetElement,mapEdge,self));
+                       sourceMapMap.range := targetElement
+                     else
+                       mapEdge.delete()
+                     end
+                   end
+              end
+            end 
+        end
+      end
+    end
+
+    @Operation mapEdgeRemoved(mapEdge)
+      if mapEdge.isKindOf(DomainEdge) then
+        @Find(map,domainMaps)
+          when map.edge = mapEdge
+          do self.remove(map);
+             let mapping = map.map in
+               mapping.domains := mapping.domains.excluding(map.target)
+             end
+        end
+      end;
+      if mapEdge.isKindOf(RangeEdge) then
+        @Find(map,rangeMaps)
+          when map.edge = mapEdge
+          do self.remove(map);
+             let mapping = map.map in
+               mapping.range := null
+             end
+        end
+      end
+    end
+    
+    @Operation mapRemoved(mapToRemove)
+      @Find(map,mappingMaps)
+        when map.map = mapToRemove
+        do self.remove(map);
+           map.node.delete()
+      end
+    end
+    
+    @Operation newMapName():String
+      let i = 0 in
+        let maps = package.classes->select(m | m.isKindOf(XMap::Map)) in
+          @While maps->exists(m | m.name.toString() = ("Map" + i.toString())) do
+            i := i + 1
+           end;
+           "Map" + i.toString()
+        end
+      end
+    end
+    
+    @Operation rangeEdgeExists(sourceMap,targetElement)
+      @Find(map,rangeMaps)
+      when map.map = sourceMap and map.target = targetElement
+      do true
+      else false
+      end
+    end    
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        XMap::Map do 
+          self.mapRemoved(element)   
+        end
+        MapXNode do 
+          self.removeMapMap(element);
+          element.removeDaemons()
+        end
+        DomainXDomainEdge do 
+          self.removeDomainMap(element);
+          element.removeDaemons()
+        end
+        RangeXRangeEdge do 
+          self.removeRangeMap(element);
+          element.removeDaemons()
+        end
+        /*
+        ScopeXScopeEdge do
+          self.removeScopeMap(element);
+          element.removeDaemons()
+        end
+        SyncXNode do
+          self.removeSyncMap(element);
+          element.removeDaemons()
+        end
+        */
+        else super(element)
+      end
+    end
+    
+    @Operation domainRemoved(mapping,target)
+      @Find(domainMap,domainMaps)
+        when domainMap.map = mapping and domainMap.target = target 
+        do
+          self.remove(domainMap);
+          domainMap.edge.delete()
+      end
+    end
+
+    @Operation rangeChanged(mapping,target,mapNode)
+      // remove old range edge
+      @Find(rangeMap,rangeMaps)
+        when rangeMap.map = mapping do
+          if rangeMap.target <> target
+          then
+            self.remove(rangeMap);
+            rangeMap.edge.delete()
+          end
+      end;
+      
+      // add new range edge if appropriate
+      if target <> null andthen
+         not rangeMaps->exists(map | map.map = mapping and map.target = target) 
+      then
+        let targetMap = self.findTargetMap(target)
+        in  //if targetMap = null
+            //then
+            //  self.add(target);
+            //  targetMap := self.findTargetMap(target)
+            //end;
+            if targetMap <> null
+            then
+              let edge = diagram.makeRange(mapNode,targetMap.node) then
+                  rangeMap = RangeXRangeEdge(mapping,target,edge,self)
+              in  self.add(rangeMap);
+                  diagram.addEdge(edge)
+              end
+            end
+        end
+      end
+    end
+    
+    @Operation removeMapMap(mapMap)
+      self.deleteFromMappingMaps(mapMap)
+    end
+    
+    @Operation removeDomainMap(domainMap)
+      self.deleteFromDomainMaps(domainMap)
+    end
+    
+    @Operation removeRangeMap(rangeMap)
+      self.deleteFromRangeMaps(rangeMap)
+    end
+    
+    /*
+    
+    @Operation removeScopeMap(scopeMap)
+      self.deleteFromScopeMaps(scopeMap)
+    end
+    
+    @Operation removeSyncMap(syncMap)
+      self.deleteFromSyncMaps(syncMap)
+    end
+    
+    @Operation scopeAdded(sync,type)
+      @Find(syncMap,syncMaps)
+        when syncMap.sync = sync
+      do if not scopeMaps->exists(map | map.sync = sync and map.type = type)
+         then 
+           if not classMaps->exists(classMap | classMap.class = type) then
+             self.add(type)
+           end;
+           @Find(classMap,classMaps)
+             when classMap.class = type
+           do let sourcePort = syncMap.node.ports->asSeq->head;
+                  targetPort = classMap.node.ports->asSeq->head then
+                  edge = ScopeEdge(sourcePort,targetPort) then
+                  map = ScopeXScopeEdge(sync,type,edge,self)
+              in self.add(map);
+                 diagram.addEdge(edge);
+                 edge.new(diagram)
+              end
+           end
+         end
+      end
+    end  
+    
+    @Operation scopeEdgeAdded(scopeEdge)
+      if not scopeMaps->exists(map | map.edge = scopeEdge) 
+      then
+        @Find(sourceMap,syncMaps)
+          when sourceMap.node.ports()->includes(scopeEdge.source)
+        do @Find(targetClass,classMaps)
+             when targetClass.node.ports()->includes(scopeEdge.target) 
+           do self.add(ScopeXScopeEdge(sourceMap.sync,targetClass.class,scopeEdge,self));
+              let newListener = @Operation(o) sourceMap.sync.add(o) end
+              in newListener.newListenerFor(targetClass.class);
+                 sourceMap.sync.addToScopedTypes(ScopedType(targetClass.class,Seq{},newListener))
+              end
+           end 
+        end
+      end
+    end
+    
+    @Operation scopeEdgeRemoved(scopeEdge)
+      @Find(map,scopeMaps)
+        when map.edge = scopeEdge
+        do self.remove(map);
+           map.sync.deleteFromScopedTypes(map.type)
+      end
+    end
+    
+    @Operation scopeRemoved(sync,type)
+      @Find(map,scopeMaps)
+        when map.type = type
+        do self.remove(map);
+           map.sync.deleteFromScopedTypes(map.type)
+      end
+    end
+    
+    @Operation syncAdded(sync)
+      if not syncMaps->exists(m | m.sync = sync)
+      then
+        let syncNode = SyncNode(sync.name.toString(),package,0,0)
+        in
+          @WithoutRendering(self.diagram)
+            self.add(SyncXNode(sync,syncNode,self));
+            diagram.add(syncNode);
+            syncNode.new(diagram)
+          end
+        end
+      end
+    end
+    
+    @Operation syncNodeAdded(syncNode)
+      if not syncMaps->exists(map | map.node = syncNode)
+      then
+        let name = package.newName("Sync") then
+            sync = Synchronizer(Symbol(name),true)
+        in
+          @WithoutRendering(self.diagram)
+            self.add(SyncXNode(sync,syncNode,self));
+            syncNode.setName(name);
+            package.add(sync)
+          end
+        end
+      end
+    end
+    
+    @Operation syncNodeRemoved(syncNode)
+      @Find(map,syncMaps)
+        when map.node = syncNode
+      do self.remove(map);
+         package.remove(map.sync)
+      end
+    end
+    
+    */
+
+    @Operation domainSourceChanged(domainMap,newSourceNode)
+      let oldSource = domainMap.map;
+          target = domainMap.target
+      in  
+          @Find(map,mappingMaps)
+            when map.node = newSourceNode
+            do
+              let newSource = map.map
+              in
+                if not self.domainEdgeExists(newSource,domainMap.target)
+                then
+                  domainMap.map := newSource;
+                  oldSource.domains := oldSource.domains.excluding(target);
+                  newSource.domains := newSource.domains->prepend(target)
+                else 
+                  domainMap.edge.delete()
+                end
+              end
+            else
+              domainMap.edge.delete()
+          end
+      end
+    end
+    
+    @Operation domainTargetChanged(domainMap,newTargetNode)
+      let source = domainMap.map;
+          oldTarget = domainMap.target
+      in  @Find(map,self.nodeMaps())
+            when map.node = newTargetNode
+            do let newTarget = map.element()
+               in  
+                 if not self.domainEdgeExists(domainMap.map,newTarget)
+                 then
+                   domainMap.target := newTarget;
+                   source.domains := source.domains.excluding(oldTarget);
+                   source.domains := source.domains->prepend(newTarget)
+                 else
+                   domainMap.edge.delete()
+                 end
+               end
+          end
+      end
+    end
+
+    @Operation rangeSourceChanged(rangeMap,newSourceNode)
+      let oldSource = rangeMap.map;
+          target = rangeMap.target
+      in  
+          @Find(map,mappingMaps)
+            when map.node = newSourceNode
+            do
+              let newSource = map.map
+              in
+                if not self.rangeEdgeExists(newSource,rangeMap.target)
+                then
+                  rangeMap.map := newSource;
+                  oldSource.range := null;
+                  newSource.range := target
+                else
+                  rangeMap.edge.delete()
+                end
+              end
+            else
+              rangeMap.edge.delete()
+          end
+      end
+    end
+    
+    @Operation rangeTargetChanged(rangeMap,newTargetNode)
+      let source = rangeMap.map;
+          oldTarget = rangeMap.target
+      in  @Find(map,self.nodeMaps())
+            when map.node = newTargetNode
+            do let newTarget = map.element()
+               in
+                 if not self.rangeEdgeExists(rangeMap.map,newTarget)
+                 then
+                   rangeMap.target := newTarget;
+                   source.range := newTarget
+                 else
+                   rangeMap.edge.delete()
+                 end
+               end
+          end
+      end
+    end
+
+    @Operation inheritanceEdgeAdded(inheritanceEdge)
+      super(inheritanceEdge);
+      self.inheritanceEdgeAdded(inheritanceEdge,mappingMaps,MapXInheritanceEdge)
+    end
+
+    @Operation inheritanceSourceChanged(inheritanceMap,newNode)
+      super(inheritanceMap,newNode);
+      self.inheritanceSourceChanged(inheritanceMap,newNode,mappingMaps)
+    end
+
+    @Operation inheritanceTargetChanged(inheritanceMap,newNode)
+      super(inheritanceMap,newNode);
+      self.inheritanceTargetChanged(inheritanceMap,newNode,mappingMaps)
+    end
+
+    @Operation parentAdded(child,parent)
+      @TypeCase(child)
+        XMap::Map do
+          self.parentAdded(child,parent,mappingMaps,MapXInheritanceEdge)
+        end
+        XCore::Package do
+          self.parentAdded(child,parent,packageMaps,PackageXInheritanceEdge)
+        end
+        XCore::Class do
+          self.parentAdded(child,parent,classMaps,ClassXInheritanceEdge)
+        end
+      end
+    end
+
+    @Operation removeDaemons()
+      self.removeDaemonCollection(mappingMaps);
+      //self.removeDaemonCollection(syncMaps);
+      self.removeDaemonCollection(domainMaps);
+      self.removeDaemonCollection(rangeMaps);
+      //self.removeDaemonCollection(scopeMaps);
+      super()
+    end
+
+    @Operation subMaps()
+      super() +
+      self.mappingMaps +
+      self.syncMaps +
+      self.domainMaps +
+      self.rangeMaps +
+      self.scopeMaps
+    end
+
+    @Operation setToPartialSyncMode()
+      super();
+      self.addEventFilter("map added",ElementXDiagram::defaultEventFilterHandler)
+    end
+
+    @Operation setToTotalSyncMode()
+      super();
+      self.removeEventFilter("map added")
+    end
+
+    @Operation missingPackageContents()
+      let diagramMappings = mappingMaps->collect(m | m.map)->asSet
+      in
+        super() - diagramMappings
+      end
+    end
+
+    @Operation generateNodes()
+      super();
+      if self.total()
+      then
+        @For class in package.classes do
+          if class.isKindOf(XMap::Map)
+          then
+            @For domain in class.domains do
+              self.add(domain)
+            end;
+            if class.range <> null then
+              self.add(class.range)
+            end
+          end
+        end
+      end
+    end
+
+    @Operation generateEdges()
+      super();
+      @For mapxnode in mappingMaps do
+        let xmapmap = mapxnode.map in
+          @For domain in xmapmap.domains do
+            self.domainAdded(xmapmap,domain,mapxnode.node)
+          end;
+          if xmapmap.range <> null
+          then
+            self.rangeChanged(xmapmap,xmapmap.range,mapxnode.node)
+          end
+        end
+      end
+    end
+
+  end 

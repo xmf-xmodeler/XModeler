@@ -1,0 +1,130 @@
+parserImport XOCL;
+
+context Object
+  @Operation addGenerator(generator)
+    @Doc
+      Adds an event generator to the receiver.
+    end
+    let daemon = self.observerDaemon()
+    in if self.hasGeneratorNamed(generator.name)
+       then self.removeGenerator(self.generatorNamed(generator.name))
+       end;
+       daemon.setProperty("generators",self.generators()->including(generator));
+       self
+    end
+  end
+  
+context Object
+  @Operation addObserver(observer)
+    @Doc
+      Adds an event observer to the receiver.
+    end
+    let daemon = self.observerDaemon()
+    in if self.hasObserverNamed(observer.name)
+       then self.removeObserver(self.observerNamed(observer.name))
+       end;
+       daemon.setProperty("observers",self.observers()->including(observer));
+       self
+    end
+  end
+ 
+context Object 
+  @Operation generators()
+    @Doc
+      Returns the sequence of event generators for the object.
+    end
+    let daemon = self.observerDaemon()
+    in daemon.property("generators")
+    end
+  end
+  
+context Object 
+  @Operation generatorNamed(name)
+    @Doc
+      Returns the generator with the given name or null.
+    end
+    @Find(generator,self.generators())
+       when generator.name.toString() = name.toString()
+       else null
+    end
+  end
+  
+context Object
+  @Operation hasGeneratorNamed(name)
+    self.generatorNamed(name) <> null
+  end
+  
+context Object
+  @Operation hasObserverNamed(name)
+    self.observerNamed(name) <> null
+  end
+  
+context Object
+  @Operation observerDaemon()
+    @Doc
+      Returns the observer daemon for the receiver. The daemon is created if
+      necessary. The "generators" property of the daemon is a sequence of
+      event generators. The "observers" property of the daemon is a sequence
+      of event observers for the object.
+    end
+    if self.hasDaemonNamed("observerDaemon")
+    then self.daemonNamed("observerDaemon")
+    else
+      @Letrec daemon = 
+        @Operation observerDaemon(slot,new,old)
+          let generators = daemon.property("generators")
+          in @For g in generators do
+               g.generateEvents(daemon,self,slot,new,old)
+             end
+          end
+        end
+      in self.addDaemon(daemon);
+         daemon.setProperty("generators",Seq{});
+         daemon.setProperty("observers",Seq{})
+      end
+    end
+  end
+  
+context Object 
+  @Operation observers()
+    @Doc
+      Returns the sequence of event observers for the object.
+    end
+    let daemon = self.observerDaemon()
+    in daemon.property("observers")
+    end
+  end
+  
+context Object 
+  @Operation observerNamed(name)
+    @Doc
+      Returns the observer with the given name or null.
+    end
+    @Find(observer,self.observers())
+      when observer.name.toString() = name.toString()
+      else null
+    end
+  end
+  
+context Object
+  @Operation removeGenerator(generator)
+    @Doc
+      Remove an event generator from the receiver.
+    end
+    let daemon = self.observerDaemon()
+    in daemon.setProperty("generators",self.generators()->excluding(generator));
+       self
+    end
+  end
+  
+context Object
+  @Operation removeObserver(observer)
+    @Doc
+      Removes an event observer from the receiver.
+    end
+    let daemon = self.observerDaemon()
+    in daemon.setProperty("observers",self.observers()->excluding(observer));
+       self
+    end
+  end
+         

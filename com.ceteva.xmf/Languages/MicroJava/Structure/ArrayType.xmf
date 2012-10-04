@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+
+context Structure
+
+  @Class ArrayType extends Type
+  
+    @Attribute type : Type end
+    
+    @Constructor(type) ! end
+    
+    @Operation pprint(out)
+      type.pprint(out);
+      format(out,"[]")
+    end
+    
+  end

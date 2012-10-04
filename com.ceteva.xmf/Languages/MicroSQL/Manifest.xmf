@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MicroSQL
+  MicroSQL = @File MicroSQL end
+  @File Column end
+  @File Constraint end
+  @File Table end
+  @File SQLExpression end
+  @File Select end
+do Project(MicroSQL,dir,self)
+end;

@@ -1,0 +1,113 @@
+parserImport XOCL;
+
+import Stacks;
+
+context Stacks
+
+  @Class Queue
+  
+    @Doc
+      A standard FIFO stack. The queue grows to accommodate
+      elements as they are added.
+    end
+  
+    @Attribute elements : Vector = Vector(100) end
+    @Attribute first : Integer end 
+    @Attribute last  : Integer end
+    
+    @Operation asSeq()
+      let s = Seq{};
+          i = last
+      in @While i <> first do
+           s := Seq{elements.ref(i - 1) | s};
+           i := i - 1
+         end;
+         s
+      end
+    end
+    
+    @Operation expand()
+      let newElements = Vector(elements.size() * 2);
+          index = 0
+      in @While not self.isEmpty() do
+           newElements.put(index,self.pop());
+           index := index + 1
+         end;
+         self.elements := newElements;
+         self.first := 0;
+         self.last := index
+      end
+    end
+    
+    @Operation empty()
+      self.first := 0;
+      self.last := 0
+    end
+    
+    @Operation indexOf(e)
+      let i = 0;
+          found = false
+      in @While i < elements.size() and not found do
+            if elements.ref(i) = e 
+            then found := true
+            else i := i + 1 
+            end
+         end;
+         if found
+         then i
+         else (0-1)
+         end
+      end
+    end
+    
+    @Operation isEmpty():Boolean
+      first = last
+    end
+    
+    @Operation isFull():Boolean
+      elements.size() = last
+    end
+    
+    @Operation pop()
+      if self.isEmpty()
+      then throw StackUnderflow(self)
+      else 
+        self.first := first + 1;
+        elements.ref(first - 1)
+      end
+    end
+    
+    @Operation push(e)
+      if self.isFull() 
+      then self.expand()
+      end;
+      elements.put(last,e);
+      self.last := last + 1;
+      self
+    end
+    
+    @Operation ref(index)
+      elements.ref(index)
+    end
+    
+    @Operation put(index,e)
+      elements.put(index,e)
+    end
+    
+    @Operation size():Integer
+      elements.size()
+    end
+    
+    @Operation top()
+      if self.isEmpty()
+      then throw StackUnderflow(self)
+      else elements.ref(first)
+      end
+    end
+    
+    @Operation topIndex():Integer
+      first
+    end
+    
+  end
+      

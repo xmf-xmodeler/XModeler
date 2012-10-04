@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Star extends Pattern
+  
+    @Doc
+      Succeeds when 0 or more occurrences of the pattern occur in
+      the supplied element. The result is a sequence of values
+      produced by each successfully parsed occurrence.
+    end
+    
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Star(<pattern.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      pattern.parse(grammar,env,elements,
+        @Operation(env,result,elements,fail,refTable)
+          self.parse(grammar,env,elements,
+            @Operation(env,results,elements,fail,refTable)
+              succ(env,Seq{result | results},elements,fail,refTable)
+            end,
+            fail,
+            indent,
+            refTable)
+        end,
+        @Operation()
+          succ(env,Seq{},elements,fail,refTable)
+        end,
+        indent,
+        refTable)
+    end
+    
+  end

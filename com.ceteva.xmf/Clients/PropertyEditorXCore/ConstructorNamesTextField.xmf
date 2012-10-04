@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import Clients;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class ConstructorNamesTextField extends SingletonTextField
+  
+    @Attribute seq : Seq(Element) end
+
+    @Operation setTextIn(text:String)
+      text := text.stripWhiteSpace();
+      if not text.hasPrefix("Seq{") or not text.hasSuffix("}") then
+        self.reportParseError("'" + text + "' is not a valid sequence.")
+      else
+        try
+          let modString = 
+              if text = "Seq{}"
+              then text
+              else
+                text.subst( "{Symbol(\"" , "{" , true )
+                    .subst( "\").toString(),Symbol(\"" , "," , true )
+                    .subst( "\").toString()}" , "}" , true )
+              end then
+            seqAS = OCL::OCL.grammar.parseString(modString,"SeqExp",Seq{XOCL}) then
+            seqASfun = Compiler::compileToFun("",seqAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true)
+          in
+            self.seq := seqASfun();
+            if self.validateSequence()
+            then
+              contex.set("names",seq)
+              
+              /* let command = Object_setSlotValueCommand(contex,"names",seq)
+              in
+                engine.executeCommand(command)
+              end */
+            end
+          end
+        catch(exception)
+          self.reportParseError("Cannot parse '" + text + "'.")
+        end
+      end
+    end
+
+    @Operation reportParseError(message:String)
+      let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient);
+          postMessage = "\n\nThe 'names' slot of a constructor requires a sequence "
+                      + "of strings, each of which matches the name of an available slot."
+      in
+        dialog.newErrorDialog(message + postMessage);
+        self.commandInterpreter().setText(self,contex.names.labelString())
+      end
+    end
+    
+    @Operation validateSequence():Boolean
+      let newSeq = Seq{};
+          isValid = true
+      in
+        @For name in seq do
+          if isValid
+          then
+            name := name.stripWhiteSpace();
+            if name = ""
+            then
+              isValid := false;
+              self.reportParseError("The empty string is not a valid constructor name.")
+            elseif contex.owner <> null andthen
+                   not contex.owner.allAttributes()->exists(att | att.name.toString() = name.toString())
+            
+            then
+              isValid := false;
+              self.reportParseError("There is no structural feature with the name '" + name + "'.")
+            else
+              newSeq := newSeq + Seq{name}
+            end
+          end
+        end;
+        self.seq := newSeq;
+        isValid
+      end
+    end
+
+  end

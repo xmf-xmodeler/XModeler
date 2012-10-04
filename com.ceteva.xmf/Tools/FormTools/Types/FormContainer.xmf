@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class FormContainer extends FormElement
+
+  @Attribute elements      : Seq(FormElement)    (+,-,?,!) end
+  @Attribute contentLayout : String = "VERTICAL" (?,!)    end
+  
+  @Operation add(element)
+    @TypeCase(element)
+      FormElement do
+        element.setOwner(self);
+        self.addToElements(element)
+      end
+      else super(element)
+    end
+  end
+  
+  @Operation filterContentLayout(atts:Seq(String)):String
+    
+    // Attributes of container types may state the layout for the container.
+      
+    if atts->includes("HORIZONTAL")
+    then "HORIZONTAL"
+    elseif atts->includes("OVERLAY")
+    then "OVERLAY"
+    else "VERTICAL"
+    end
+  end
+  
+  @Operation merge(inherited)
+  
+    // To merge a container of form elements, add in the new elements
+    // and merge the elements with the same name. Also merge the menus
+    // of the two elements.
+    
+    super(inherited);
+    @For inheritedElement in inherited.elements() do
+      @Find(localElement,self.elements())
+        when localElement.name().toString() = inheritedElement.name().toString()
+        do localElement.merge(inheritedElement)
+        else self.add(inheritedElement)
+      end
+    end
+  end
+ 
+  @Operation newName(stem:String):String
+    let index = 0
+    in @While elements->exists(e | e.name().toString() = stem + index.toString()) do
+         index := index + 1
+       end;
+       stem + index.toString()
+    end
+  end
+  
+end

@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+import MDC;
+import Types;
+
+context ! Types
+
+  @Class AbstractMappingType isabstract extends XToolsRefNamedElement
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      T->linkAt(self,0)
+    end
+    
+  end

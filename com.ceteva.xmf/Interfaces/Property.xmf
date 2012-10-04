@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import OCL;
+import Interfaces;
+
+context Interfaces
+
+  @Class Property 
+  
+    @Attribute name  : String end
+    @Attribute value : Performable end
+  
+    @Constructor(name) ! end
+    
+    @Constructor(name,value) end
+    
+    @Operation setPropertyExp(interfaceExp:Performable):Performable
+      if value = null
+      then [| <interfaceExp>.setProperty(<StrExp(name)>,null) |]
+      else [| <interfaceExp>.setProperty(<StrExp(name)>,<value>) |]
+      end
+    end
+    
+  end

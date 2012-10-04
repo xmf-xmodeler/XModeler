@@ -1,0 +1,565 @@
+parserImport XOCL;
+
+import XML::Parser;
+import IO;
+
+// This file defines XMF code that deploys XML technology to Java.
+// We can deploy XMF packages as Java packages, XMF XML grammars
+// as Java parser engine data and deploy XMF packages as factories
+// that construct elements in response to events.
+
+// Generates Java code that initialises the parsing engine....
+
+context Grammar
+  @Operation toJavaFile()
+    // Get the directory and package name...
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then
+         let pname = xmf.getString("Package Name","Enter the package name","")
+         in if pname <> null
+            then 
+              let gname = xmf.getString("Class Name","Enter name of Java class file",name)
+              in if gname <> null
+                 then
+                   self.toJavaFile(pname,dir,gname);
+                   xmf.message("Grammar deployed as Java in " + dir);
+                   true
+                 else false
+                 end
+              end
+            else false
+            end
+         end
+       else false
+       end
+    end
+  end
+
+context Grammar
+  @Operation toJavaFile(pname:String,root:String)
+    self.toJavaFile(pname,root,name)
+  end
+  
+context Grammar
+  @Operation toJavaFile(pname:String,root:String,gname:String)
+    let path = root + "/" + gname + ".java"
+    in if if path.fileExists()
+          then xmf.question("Overwrite " + path + "?")
+          else true
+          end
+       then 
+         @WithOpenFile(fout -> path)
+           self.toJava(pname,gname,fout)
+         end
+       end
+    end
+  end
+
+context Grammar
+  @Operation toJava(pname:String,gname:String,out:OutputChannel)
+    format(out,"package ~S;~%~%",Seq{pname});
+    format(out,"import Grammar.*;~%~%");
+    format(out,"public class ~S {~%~%",Seq{gname});
+    format(out,"  static Grammar g = new Grammar();~%");
+    format(out,"  static Clause c;~%");
+    format(out,"  static java.util.Vector entry;~%");
+    format(out,"  static java.util.Hashtable PPT;~%");
+    format(out,"  static Any any;~%");
+    format(out,"  static AttRef attRef;~%");
+    format(out,"  static java.util.Vector attributes;~%");
+    format(out,"  static BindAtt bindAtt;~%");
+    format(out,"  static BindVar bindVar;~%");
+    format(out,"  static BoolAnd boolAnd;~%");
+    format(out,"  static BoolOr boolOr;~%");
+    format(out,"  static BoolNot boolNot;~%");
+    format(out,"  static Call call;~%");
+    format(out,"  static Case kase;~%");
+    format(out,"  static java.util.Vector caseClauses;~%");
+    format(out,"  static CaseClause caseClause;~%");
+    format(out,"  static Commands commands;~%");
+    format(out,"  static java.util.Vector kommands;~%");
+    format(out,"  static CommandVar commandVar;~%");
+    format(out,"  static CommandConst commandConst;~%");
+    format(out,"  static Const konst;~%");
+    format(out,"  static Cons cons;~%");
+    format(out,"  static Element element;~%");
+    format(out,"  static Empty empty;~%");
+    format(out,"  static Equals equals;~%");
+    format(out,"  static Event event;~%");
+    format(out,"  static java.util.Vector eventArgs;~%");
+    format(out,"  static Nil nil;~%");
+    format(out,"  static Text text;~%");
+    format(out,"  static UpdateVar updateVar;~%");
+    format(out,"  static VarRef varRef;~%");
+    format(out,"  static java.util.Vector names = new java.util.Vector();~%");
+    format(out,"  static java.util.Stack stack = new java.util.Stack();~%");
+    format(out,"  static java.util.Vector clauses = new java.util.Vector();~%~%");
+    format(out,"  public static Grammar grammar() {~%");
+    format(out,"    g.setClauses(clauses);~%");
+    @For clause in clauses do
+      format(out,"    ~S();~%",Seq{clause.name})
+    end;
+    format(out,"    return g;~%");
+    format(out,"  }~%");
+    @For clause in clauses do
+      clause.toJava(out)
+    end;
+    format(out,"}~%")
+  end
+  
+context Clause
+  @Operation toJava(out:OutputChannel)
+    format(out,"  public static void ~S()  {~%",Seq{self.name});
+    format(out,"    c = new Clause();~%");
+    format(out,"    c.setName(\"~S\");~%",Seq{name});
+    format(out,"    clauses.add(c);~%");
+    format(out,"    PPT = new java.util.Hashtable();~%");
+    format(out,"    c.setPPT(PPT);~%");
+    @For key inTableKeys PPT do
+      format(out,"    entry = new java.util.Vector();~%");
+      format(out,"    PPT.put(\"~S\",entry);~%",Seq{key});
+      @For patterns in PPT.get(key) do
+        @For pattern in patterns do
+          pattern.toJava(out);
+          format(out,"    entry.addElement(stack.pop());~%")
+        end
+      end
+    end;
+    format(out,"  }~%~%")
+  end
+  
+context Action
+  @Operation toJava(out:OutputChannel)
+    self.error("Cannot deploy an action to Java - use commands.")
+  end
+  
+context Any
+  @Operation toJava(out:OutputChannel)
+    format(out,"    any = new Any();~%");
+    format(out,"    stack.push(any);~%")
+  end
+  
+context AttRef
+  @Operation toJava(out:OutputChannel)
+    format(out,"    attRef = new AttRef();~%");
+    format(out,"    attRef.setName(\"~S\");~%",Seq{name});
+    format(out,"    stack.push(attRef);~%")
+  end
+  
+context BindAtt
+  @Operation toJava(out:OutputChannel)
+    format(out,"    bindAtt = new BindAtt();~%");
+    format(out,"    bindAtt.setVar(\"~S\");~%",Seq{var});
+    format(out,"    bindAtt.setAtt(\"~S\");~%",Seq{att});
+    if value <> null
+    then format(out,"    bindAtt.setValue(\"~S\");~%",Seq{value.exp.value})
+    end;
+    format(out,"    stack.push(bindAtt);~%")
+  end
+  
+context BindVar
+  @Operation toJava(out:OutputChannel)
+    format(out,"    bindVar = new BindVar();~%");
+    format(out,"    names = new java.util.Vector();~%");
+    @For name in names do
+      format(out,"    names.addElement(\"~S\");~%",Seq{name})
+    end;  
+    format(out,"    bindVar.setNames(names);~%");
+    format(out,"    stack.push(bindVar);~%")
+  end
+  
+context BoolAnd
+  @Operation toJava(out:OutputChannel)
+    format(out,"    boolAnd = new BoolAnd();~%");
+    left.toJava(out);
+    format(out,"    boolAnd.setLeft((GuardExp)stack.pop());~%");
+    right.toJava(out);
+    format(out,"    boolAnd.setRight((GuardExp)stack.pop());~%");
+    format(out,"    stack.push(boolAnd);~%")
+  end
+  
+context BoolOr
+  @Operation toJava(out:OutputChannel)
+    format(out,"    boolOr = new BoolOr();~%");
+    left.toJava(out);
+    format(out,"    boolOr.setLeft((GuardExp)stack.pop());~%");
+    right.toJava(out);
+    format(out,"    boolOr.setRight((GuardExp)stack.pop());~%");
+    format(out,"    stack.push(boolOr);~%")
+  end
+
+context BoolNot
+  @Operation toJava(out:OutputChannel)
+    format(out,"    boolNot = new BoolNot();~%");
+    guard.toJava(out);
+    format(out,"    boolNot.setGuard((GuardExp)stack.pop());~%");
+    format(out,"    stack.push(boolNot);~%")
+  end
+  
+context Case
+  @Operation toJava(out:OutputChannel)
+    format(out,"    kase = new Case();~%");
+    format(out,"    caseClauses = new java.util.Vector();~%");
+    @For clause in clauses do
+      clause.toJava(out);
+      format(out,"    caseClauses.addElement(stack.pop());~%")
+    end;
+    format(out,"    kase.setClauses(caseClauses);~%");
+    otherwise.toJava(out);
+    format(out,"    kase.setOtherwise((Pattern)stack.pop());~%");
+    format(out,"    stack.push(kase);~%")
+  end
+  
+context CaseClause
+  @Operation toJava(out:OutputChannel)
+    format(out,"    caseClause = new CaseClause();~%");
+    guard.toJava(out);
+    format(out,"    caseClause.setGuard((Guard)stack.pop());~%");
+    pattern.toJava(out);
+    format(out,"    caseClause.setPattern((Pattern)stack.pop());~%");
+    format(out,"    stack.push(caseClause);~%")
+  end
+
+context Call
+  @Operation toJava(out:OutputChannel)
+    format(out,"    call = new Call();~%");
+    format(out,"    call.setName(\"~S\");~%",Seq{name});
+    format(out,"    stack.push(call);~%")
+  end
+  
+context Commands
+  @Operation toJava(out:OutputChannel)
+    format(out,"    commands = new Commands();~%");
+    format(out,"    kommands = new java.util.Vector();~%");
+    @For command in commands do
+      command.toJava(out);
+      format(out,"    kommands.addElement(stack.pop());~%")
+    end;
+    format(out,"    commands.setCommands(kommands);~%");
+    format(out,"    stack.push(commands);~%")
+  end
+  
+context CommandVar
+  @Operation toJava(out:OutputChannel)
+    format(out,"    commandVar = new CommandVar();~%");
+    format(out,"    commandVar.setName(\"~S\");~%",Seq{name});
+    format(out,"    stack.push(commandVar);~%")
+  end
+  
+context CommandConst
+  @Operation toJava(out:OutputChannel)
+    format(out,"    commandConst = new CommandConst();~%");
+    format(out,"    commandConst.setValue(\"~S\");~%",Seq{value});
+    format(out,"    stack.push(commandConst);~%")
+  end
+  
+context Cons
+  @Operation toJava(out:OutputChannel)
+    format(out,"    cons = new Cons();~%");
+    head.toJava(out);
+    format(out,"    cons.setHead((Command)stack.pop());~%");
+    tail.toJava(out);
+    format(out,"    cons.setTail((Command)stack.pop());~%");
+    format(out,"    stack.push(cons);~%")
+  end
+  
+context Const
+  @Operation toJava(out:OutputChannel)
+    format(out,"    konst = new Const();~%");
+    format(out,"    konst.setValue(\"~S\");~%",Seq{value});
+    format(out,"    stack.push(konst);~%")
+  end
+  
+context Element
+  @Operation toJava(out:OutputChannel)
+    format(out,"    element = new Element();~%");
+    format(out,"    element.setTag(\"~S\");~%",Seq{tag});
+    format(out,"    attributes = new java.util.Vector();~%");
+    @For a in attributes do
+      a.toJava(out);
+      format(out,"    attributes.addElement(stack.pop());~%")
+    end;
+    format(out,"    element.setAttributes(attributes);~%");
+    children.toJava(out);
+    format(out,"    element.setChildren((Case)stack.pop());~%");
+    format(out,"    stack.push(element);~%")
+  end
+  
+context Empty
+  @Operation toJava(out:OutputChannel)
+    format(out,"    empty = new Empty();~%");
+    format(out,"    stack.push(empty);~%")
+  end
+  
+context Equals
+  @Operation toJava(out:OutputChannel)
+    format(out,"    equals = new Equals();~%");
+    left.toJava(out);
+    format(out,"    equals.setLeft((GuardExp)stack.pop());~%");
+    right.toJava(out);
+    format(out,"    equals.setRight((GuardExp)stack.pop());~%");
+    format(out,"    stack.push(equals);~%")
+  end
+  
+context Event
+  @Operation toJava(out:OutputChannel)
+    format(out,"    event = new Event();~%");
+    format(out,"    event.setName(\"~S\");~%",Seq{name});
+    format(out,"    eventArgs = new java.util.Vector();~%");
+    @For arg in args do
+      arg.toJava(out);
+      format(out,"    eventArgs.addElement(stack.pop());~%")
+    end;
+    format(out,"    event.setArgs(eventArgs);~%");
+    format(out,"    event.setResult(~S);~%",Seq{result});
+    format(out,"    stack.push(event);~%")
+  end
+  
+context Nil
+  @Operation toJava(out:OutputChannel)
+    format(out,"    stack.push(new Nil());~%")
+  end
+  
+context Strip
+  @Operation toJava(out:OutputChannel)
+    format(out,"    stack.push(new Strip(\"~S\",~S));~%",Seq{tag,isLast})
+  end
+  
+context Tag
+  @Operation toJava(out:OutputChannel)
+    format(out,"    stack.push(new Tag(\"~S\"));~%",Seq{tag})
+  end
+  
+context UpdateVar
+  @Operation toJava(out:OutputChannel)
+    format(out,"    updateVar = new UpdateVar();~%");
+    format(out,"    updateVar.setName(\"~S\");~%",Seq{name});
+    format(out,"    stack.push(updateVar);~%")
+  end
+  
+context VarRef
+  @Operation toJava(out:OutputChannel)
+    format(out,"    varRef = new VarRef();~%");
+    format(out,"    varRef.setName(\"~S\");~%",Seq{name});
+    format(out,"    stack.push(varRef);~%")
+  end
+  
+context Package
+  @Operation deployXMLGrammar()
+    // Ask for the directory, package and grammar names...
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then 
+         let pname = xmf.getString("Package Name","Name of Java package","")
+         in if pname <> ""
+            then
+              let gname = xmf.getString("Grammar Name","Name of Grammar",name)
+              in if gname <> ""
+                 then
+                   let grammar = self.toXMLGrammar().compile()
+                   in grammar.toJavaFile(pname,dir,gname);
+                      xmf.message("Package " + name + " deployed as XML grammar to " + dir);
+                      true
+                   end
+                 else false
+                 end
+              end
+            else false
+            end
+          end
+       else false
+       end
+     end
+   end
+
+context Package
+  @Operation toXMLGrammar()
+    Grammar(name,Seq{},classes->asSeq->collect(class | 
+      class.toXMLClause()))
+  end
+  
+context Class
+  @Operation toXMLClause()
+    let attributes = self.allAttributes()->asSeq->sortNamedElements then
+        simpleAttributes = attributes->select(a | a.underlyingType().isKindOf(DataType)) then
+        A = simpleAttributes->collect(a | BindAtt(a.name()))->asSeq;
+        children = Case(Seq{},self.matchXMLComplexAttributes(attributes)) then
+        element = Element("Object",A->including(BindAtt("id")),children) then
+        commands = Seq{Event("new" + name,attributes->collect(a | CommandVar(a.name().toString())),true)} then
+        main = And(element,Update("id",Commands(commands)));
+        classesInContext = owner.allContentsOf(Class) then
+        subTypes = classesInContext->select(c | c.inheritsFrom(self))->excluding(self) then
+        calls = subTypes->collect(c | Call(c.name().toString()))->asSeq
+    in Clause(name,calls->including(main))
+    end
+  end
+  
+context Class
+  @Operation matchXMLComplexAttributes(attributes:Seq(Attribute))
+    let complexAttributes = attributes->select(a | not a.underlyingType().isKindOf(DataType))->asSeq 
+    in complexAttributes->iterate(a p = Empty() |
+         let type = a.underlyingType();
+             ref = Element("Ref",Seq{BindAtt("id")},Case(Seq{},Commands(Seq{Event("Ref",Seq{CommandVar("id")},true)})));
+             Null = Element("Null",Seq{},Case(Seq{},Commands(Seq{Event("Null",Seq{},true)}))) then
+             disjunction = Or(Call(type.name().toString()),Or(Null,ref)) then
+             bind = Bind(Seq{a.name()},
+               @CaseObj a.type of
+                 Seq[ ] do
+                   Element("List",Seq{},Case(Seq{},Star(disjunction)))
+                 end
+                 Set[ ] do
+                   Element("Set",Seq{},Case(Seq{},Star(disjunction)))
+                 end
+                 else disjunction
+               end)
+          in And(p,Element("Slot",Seq{},Case(Seq{},bind)))
+          end)
+    end
+  end
+  
+context Package
+  @Operation deployXMLFactory()
+    // Ask for the directory, and package names...
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then 
+         let pname = xmf.getString("Package Name","Name of Java package","")
+         in if pname <> ""
+            then
+              let cname = xmf.getString("Factory Name","Name of Java factory class",name)
+              in if cname <> ""
+                 then 
+                   self.deployXMLFactory(dir,pname,cname);
+                   xmf.message("Package " + name + " deployed as a Java factory in " + dir);
+                   true
+                 else false
+                 end
+              end
+            else false
+            end
+          end
+       else false
+       end
+     end
+   end
+   
+context Package 
+   @Operation deployXMLFactory(dir:String,pname:String,cname:String)
+     @WithOpenFile(fout -> dir + "/" + cname + ".java")
+       self.writeXMLFactory(fout,pname,cname)
+     end
+   end
+   
+context Package
+  @Operation writeXMLFactory(out:OutputChannel,pname:String,cname:String)
+     format(out,"package ~S;~%~%",Seq{pname});
+     format(out,"import Engine.*;~%~%");
+     format(out,"public class ~S extends EventManager {~%~%",Seq{cname});
+     @For class in classes do
+       class.writeXMLFactoryMethod(out);
+       format(out,"~%")
+     end;
+     format(out,"~%}~%")
+   end
+        
+context Class
+  @Operation writeXMLFactoryMethod(out:OutputChannel)
+    format(out,"  public ~S new~S",Seq{name,name});
+    self.writeXMLFactoryMethodArgs(out);
+    self.writeXMLFactoryMethodBody(out)
+  end
+  
+context Class
+  @Operation writeXMLFactoryMethodArgs(out:OutputChannel)
+    format(out,"(");
+    @For attribute in self.allAttributes()->asSeq->sortNamedElements do
+      if attribute.type.isKindOf(Seq) or
+         attribute.type.isKindOf(Set)
+      then format(out,"~S ~S",Seq{attribute.type.javaTypeName(owner),attribute.name()})
+      elseif attribute.type.isKindOf(DataType)
+      then format(out,"String ~S",Seq{attribute.name()})
+      else format(out,"Object ~S",Seq{attribute.name()})
+      end;
+      if not isLast then format(out,",") end
+    end;
+    format(out,")")
+  end
+  
+context Class
+  @Operation writeXMLFactoryMethodBody(out:OutputChannel)
+    format(out," {~%");
+    format(out,"    ~S new~S = new ~S();~%",Seq{name,name,name});
+    self.writeXMLFactoryMethodBodyUpdates(out);
+    format(out,"    return new~S;~%",Seq{name});
+    format(out,"  }~%")
+  end
+  
+context Class 
+  @Operation writeXMLFactoryMethodBodyUpdates(out:OutputChannel)
+    @For attribute in self.allAttributes() do
+      @CaseObj attribute.type of
+        Seq[ ] do
+          self.writeXMLFactoryMethodBodyUpdateCollection(out,attribute)
+        end
+        Set[ ] do
+          self.writeXMLFactoryMethodBodyUpdateCollection(out,attribute)
+        end
+        else
+          if attribute.type.isKindOf(DataType)
+          then self.writeXMLFactoryMethodBodyUpdateDataTypeSlot(out,attribute)
+          else self.writeXMLFactoryMethodBodyUpdatePossibleRef(out,attribute)
+          end
+      end
+    end
+  end
+        
+context Class
+  @Operation writeXMLFactoryMethodBodyUpdateCollection(out:OutputChannel,attribute:Attribute)
+    format(out,"    for(int i = 0; i < ~S.size(); i++) {~%",Seq{attribute.name()});
+    format(out,"      Object temp = ~S.elementAt(i);~%",Seq{attribute.name()});
+    format(out,"      if(temp instanceof Ref) {~%");
+    format(out,"        Ref ref = (Ref)temp;~%");
+    format(out,"        elementPending(~S,i,ref);~%",Seq{attribute.name()});
+    format(out,"      }~%");
+    format(out,"    }~%");
+    format(out,"    new~S.set~S(~S);~%",Seq{name,attribute.name().upperCaseInitialLetter(),attribute.name()})
+  end
+  
+context Class
+  @Operation writeXMLFactoryMethodBodyUpdateDataTypeSlot(out:OutputChannel,attribute:Attribute)
+    @Case attribute.type of
+      [Integer] do
+        format(out,"    new~S.set~S(Integer.parseInt(~S.substring(2)));~%",Seq{
+          name,attribute.name().upperCaseInitialLetter(),
+          attribute.name()})
+      end
+      [Boolean] do
+        format(out,"    new~S.set~S(Boolean.parseBoolean(~S.substring(2)));~%",Seq{
+          name,attribute.name().upperCaseInitialLetter(),
+          attribute.name()})
+      end
+      [String] do
+        format(out,"    new~S.set~S(~S.substring(2));~%",Seq{
+          name,attribute.name().upperCaseInitialLetter(),
+          attribute.name()})
+      end
+      else 
+        format(out,"    new~S.set~S(~S);~%",Seq{
+          name,attribute.name().upperCaseInitialLetter(),
+          attribute.name()})
+    end
+  end
+  
+context Class
+  @Operation writeXMLFactoryMethodBodyUpdatePossibleRef(out:OutputChannel,attribute:Attribute)
+    format(out,"    if(~S instanceof Ref) {~%",Seq{attribute.name()});
+    format(out,"      Ref ref = (Ref)~S;~%",Seq{attribute.name()});
+    format(out,"      pendingSlot(new~S,\"~S\",ref);~%",Seq{name,attribute.name()});
+    format(out,"    } else new~S.set~S((~S)~S);~%",Seq{
+      name,
+      attribute.name().upperCaseInitialLetter(),
+      attribute.type.name(),
+      attribute.name()})
+  end
+          

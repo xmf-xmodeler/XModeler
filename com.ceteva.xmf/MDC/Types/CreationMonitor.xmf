@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! Types
+
+  @Class CreationMonitor
+  
+    @Attribute class   : Class     (?,!) end
+    @Attribute handler : Operation (?,!) end
+    
+    @Constructor(class,handler) end
+    
+    @Operation fire(tool,object)
+      handler(tool,object)
+    end
+    
+  end

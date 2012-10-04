@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest EclipseBridge
+  @File EclipseBridge end
+  @File EclipseBridgeCommandInterpreter end
+  @File EclipseBridgeClient end
+do Project(EclipseBridge,dir,self)
+end;

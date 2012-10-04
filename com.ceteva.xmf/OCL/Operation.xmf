@@ -1,0 +1,118 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Operation extends OCL::OCL 
+  
+    @Doc
+      An operation is a parameterized performable expression. An operation has a name,
+      some parameters, a return type, a performable body and a documentation string. The
+      class OCL::Operation defines the abstract syntax of an operation. When an instance
+      of OCL::Operation is performed it is translated into an instance of XCore::Operation
+      (typically either a CompiledOperation or an InterpretedOperation). Typically you
+      will not create an instance of OCL::Operation directly, rather you will use the
+      concrete syntax @Operation ... en-d.
+       
+      Constructor: Operation(name,parameters,type,body)
+        The name should be a string. The name 'anonymous' is used when we dont care
+        what the name of the operation is. The parameters are supplied as a sequence of
+        instances of XCore::Parameter. The type is an expression that will return a classifier
+        when it is performed. The body is a performable expression.
+    end
+  
+    @Attribute name          : String                 end
+    @Attribute parameters    : Seq(Pattern)           end
+    @Attribute isMultiArgs   : Boolean (!)            end
+    @Attribute type          : TypeExp                end
+    @Attribute performable   : Performable            end
+    @Attribute documentation : Performable            end
+    @Attribute imports       : Seq(Seq(String)) (!,?) end
+    
+    @Constructor(name,parameters,type) end
+    
+    @Constructor(name,parameters,type,performable) end
+    
+    @Constructor(name,parameters,type,performable,documentation) end
+    
+    @Constructor(name,parameters,type,performable,documentation,isMultiArgs) end
+    
+    @Constructor(name,parameters,type,performable,documentation,isMultiArgs,imports) ! end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        XOCL::AbstractDoc do 
+          self.documentation := element 
+        end
+        Performable do
+          self.performable := element
+        end
+        Seq(Element) do
+          @For e in element do
+            self.add(e)
+          end;
+          self
+        end
+      end
+    end
+    
+    @Operation arity():Integer
+      parameters->size
+    end
+    
+    @Operation doc():Performable
+      if documentation = null
+      then [| null |]
+      else documentation 
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      let index = 0
+      in format(out,"@Operation ~S(",Seq{name});
+         @For p in parameters do
+           p.pprint(out);
+           index := index + 1;
+           if index < parameters->size then format(out,",") end
+         end;
+         format(out,"):");
+         type.pprint(out,0);
+         format(out,"~%~V",Seq{indent + 2});
+         if documentation <> null and documentation.isKindOf(Doc)
+         then
+           documentation.pprint(out,indent);
+           format(out,"~%~V",Seq{indent})
+         end;
+         performable.pprint(out,indent + 2);
+         format(out,"~%~Vend",Seq{indent})
+      end
+    end
+    
+    @Operation paramList():Seq(Parameter)
+      parameters->collect(p | p.newParam())
+    end
+    
+    @Operation toSig()
+      // Returns the signature of the receiver in the 
+      // following format:
+      //
+      // Seq{ARG,ARG,...,TYPE}
+      //
+      // where each arg is of the form:
+      // 
+      // Seq{NAME,TYPE}
+      //
+      // A TYPE is in the form returned by TypeExp::toSig.
+      
+      let names = parameters->map("newVar");
+          types = parameters->map("toSig") then
+          psig = names->collect(n | Seq{n,types->at(names->indexOf(n))});
+          rsig = if type.isKindOf(TypeExp) then type.toSig() else NamedType().toSig() end
+      in psig + Seq{rsig}
+      end
+    end
+      
+    
+  end
+ 

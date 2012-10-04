@@ -1,0 +1,224 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class FormContainer isabstract extends FormElement
+  
+    @Attribute orHandlers   : Table = Table(10) end
+    
+    @Attribute starHandlers : Table = Table(10) end
+  
+    @Operation actualHeight():Integer
+      @Case self.contentLayout() of
+        "VERTICAL" do
+          self.contents()->iterate(e h = 0 | h + e.actualHeight())
+        end
+        "HORIZONTAL" do
+          self.contents()->iterate(e h = 0 | h.max(e.actualHeight()))
+        end
+      end
+    end
+      
+    @Operation actualWidth():Integer
+      @Case self.contentLayout() of
+        "VERTICAL" do
+          self.contents()->iterate(e h = 0 | h.max(e.actualWidth()))
+        end
+        "HORIZONTAL" do
+          self.contents()->iterate(e h = 0 | h + e.actualWidth())
+        end
+      end
+    end
+    
+    @Operation addNew(name:String)
+      if starHandlers.hasKey(name)
+      then (starHandlers.get(name))(self)
+      else self.error("Unknown type for new element: " + name)
+      end
+    end
+    
+    @Operation changeTo(orName:String,type:String)
+    
+      // Changes the element currently being an instance of a disjunct from orName
+      // to be an instance of type. The current instance os removed and the new 
+      // display instance takes its place.
+      
+      if orHandlers.hasKey(orName)
+      then (orHandlers.get(orName))(type)
+      else self.error("Cannot find or type named " + orName + " in " + orHandlers.keys()->asSeq->separateWith(","))
+      end
+    end
+  
+    @AbstractOp contents()
+    end
+    
+    @Operation contentLayout()
+      type.contentLayout()
+    end
+    
+    @Operation defStarHandler(name:String,handler:Operation)
+      starHandlers.put(name,handler)
+    end
+    
+    @Operation horizontalLayout(x,y,width,height)
+      let p = Point(x,y)
+      in @For element in self.contents() do
+           @Case element.layout() of
+             "TOP" do
+               element.layout(p.x + element.padLeft(),p.y + element.padTop());
+               p.x := p.x + element.layoutWidth()
+             end
+             "BOTTOM" do
+               element.layout(p.x + element.padLeft(),self.layoutHeight() - element.layoutHeight());
+               p.x := p.x + element.layoutWidth()
+             end
+             "ALIGN" do
+               if isLast 
+               then 
+                 element.layout(p.x + element.padLeft(),p.y + element.padTop(),width - (p.x + element.padLeft()),self.layoutHeight() - element.padHeight());
+                 p.x := width
+               else 
+                 element.layout(p.x + element.padLeft(),p.y + element.padTop(),element.layoutWidth() - element.padWidth(),self.layoutHeight() - element.padHeight());
+                 p.x := p.x + element.layoutWidth()
+               end
+             end
+            "CENTRE" do
+               element.layout(p.x + element.padLeft(),p.y + (self.layoutHeight() - element.layoutHeight()).div(2));
+               p.x := p.x + element.layoutWidth()
+             end
+             else 
+               element.layout(p.x + element.padLeft(),p.y + element.padTop());
+               p.x := p.x + element.layoutWidth()
+           end
+        end
+      end
+    end
+  
+    @Operation layout(x,y,width,height)
+      super(x,y,width,height);
+      @Case self.contentLayout() of
+        "VERTICAL" do
+          self.verticalLayout(x,y,width,height)
+        end
+        "HORIZONTAL" do
+          self.horizontalLayout(x,y,width,height)
+        end
+      end
+    end
+  
+    @Operation layoutHeight():Integer
+      @Case self.type().contentLayout() of
+        "HORIZONTAL" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutHeight())) + self.padTop() + self.padBottom()).max(self.minHeight()).max(self.actualHeight()).min(self.maxHeight())
+        end
+        "VERTICAL" do
+          (self.contents()->iterate(d h = 0 |
+            h + d.layoutHeight()) + self.padTop() + self.padBottom()).max(self.minHeight()).max(self.actualHeight()).min(self.maxHeight())
+        end
+      end
+    end
+      
+    @Operation layoutWidth():Integer
+      @Case self.type().contentLayout() of
+        "HORIZONTAL" do
+          (self.contents()->iterate(d h = 0 |
+            h + d.layoutWidth()) + self.padLeft() + self.padRight()).max(self.minWidth()).max(self.actualWidth()).min(self.maxWidth())
+        end
+        "VERTICAL" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutWidth())) + self.padLeft() + self.padRight()).max(self.minWidth()).max(self.actualWidth()).min(self.maxWidth())
+        end
+      end
+    end
+    
+    @Operation ref(path:Seq(String)):Seq(FormElement)
+    
+      // The path is a sequence of names that are
+      // used to navigate through the components
+      // of the receiver. The result is a sequence
+      // since more than one element in a container
+      // may have the same name due to *.
+      
+      if path->isEmpty
+      then Seq{self}
+      else
+        let namedElements = self.contents()->select(e | e.type().name().toString() = path->head)
+        in namedElements->collect(e | e.ref(path->tail))->flatten
+        end
+      end
+    end
+    
+    @Operation remainingWidth(element)
+      let elements = self.contents()
+      in @While not elements->head = element do
+           elements := elements->tail
+         end;
+         elements->iterate(e w = 0 | w + e.layoutWidth())
+      end
+    end
+    
+    @Operation setOrHandler(orType,parent,path,tool,element)
+      
+      // An or handler is used to support switching between disjoint types
+      // using changeTo.
+      
+      orHandlers.put(orType.name().toString(),
+        @Operation(name)
+          if orType.hasTypeNamed(name)
+          then 
+            element.delete();
+            let newType = orType.typeNamed(name) then
+                newElement = newType.new(parent,path,tool)
+            in newElement.new(parent);
+               //self.orderContents();
+               //root.layout();
+               self.setOrHandler(orType,parent,path,tool,newElement);
+               tool.layout();
+               "RAISE EVENT".println(); //tool.raise(FormEvents::ChangeTo(path,orType.name().toString(),parent,name,newElement,element))
+               newElement
+            end
+          else self.error("There is no type called " + name + " in " + orType.toString())
+          end
+        end)
+     end
+    
+    @Operation verticalLayout(x,y,width,height)
+      let p = Point(x,y)
+      in @For element in self.contents() do
+           @Case element.layout() of
+             "LEFT" do
+               element.layout(p.x + element.padLeft(),p.y + element.padTop());
+               p.y := p.y + element.layoutHeight()
+             end
+             "RIGHT" do
+               element.layout(self.layoutWidth() - element.layoutWidth(),p.y + element.padTop());
+               p.y := p.y + element.layoutHeight()
+             end
+             "ALIGN" do
+               if isLast
+               then
+                 element.layout(p.x + element.padLeft(),p.y + element.padTop(),self.layoutWidth() - element.padWidth(),height - (p.y + element.padHeight()));
+                 p.y := height
+               else 
+                 element.layout(p.x + element.padLeft(),p.y + element.padTop(),self.layoutWidth() - element.padWidth(),element.layoutHeight() - element.padHeight());
+                 p.y := p.y + element.layoutHeight()
+               end
+             end
+             "CENTRE" do
+               element.layout(p.x + (self.layoutWidth() - element.layoutWidth()).div(2),p.y + element.padTop());
+               p.y := p.y + element.layoutHeight()
+             end
+             else 
+               element.layout(p.x + element.padLeft(),p.y + element.padTop());
+               p.y := p.y + element.layoutHeight()
+           end
+        end
+      end
+    end
+  
+  end

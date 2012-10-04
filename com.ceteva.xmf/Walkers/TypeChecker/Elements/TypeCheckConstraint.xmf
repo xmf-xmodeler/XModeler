@@ -1,0 +1,35 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckConstraint extends TypeCheckReport
+  
+    @Attribute constraint  : XCore::Constraint (?) end
+    @Attribute bodyCheck   : TypeCheckExp (?) end
+    @Attribute successCheck : TypeCheckExp (?) end
+    @Attribute failCheck : TypeCheckExp (?) end
+    
+    @Constructor(constraint,bodyCheck,successCheck,failCheck) end
+    
+    @Constructor(constraint) ! end
+    
+    @Operation children():Seq(TypeCheckReport)
+      Seq{bodyCheck,successCheck,failCheck}
+    end
+
+    @Operation element()
+      self.constraint
+    end
+
+    @Operation label():String
+      "Type check " + constraint.name().toString()
+    end
+    
+    @Operation ok():Boolean
+      bodyCheck.ok() and successCheck.ok() and failCheck.ok()
+    end
+    
+  end

@@ -1,0 +1,139 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import XMap;
+import Parser::BNF;
+import Exceptions;
+
+context XMap
+
+  @Class SyncContainers extends Sugar
+  
+    @Doc
+       Two containers are synchronized using this construct. A container is an object
+       with a slot whose value is a collection. Containers are synchronized with respect
+       to a particular slot. A container may be synchronized (for containership) more than 
+       once; each time the slot may be the same or may be different. The body of this
+       construct is a collection of daemon definitions. Special patterns of daemons
+       for containership synchronization are provided: AddLeft; DeleteLeft; AddRight;
+       DeleteRight. In each case daemons are defined that fire when elements are
+       added or deleted to the left or right container with respect to the defined slot.
+       The daemon bodies can be any expression and scoping rules apply except that 'self'
+       is interpreted in a daemon body as the object that has changed. The value of 'self'
+       currently in scope at the point of definition is referred to in each daemon as 'outerSelf'.
+       In each daemon the name of the slots being synchronized are bound to the values
+       after they have been updated.
+       
+       Constructor: SyncContainers(leftContainer,leftAttribute,rightContainer,rightAttribute,actions)
+         Left and right containers are expressions, attributes are strings and actions are performable
+         elements of type SynContainerAction.
+     end
+     
+     
+     // @SyncContainers(company,employees,company,management)
+     //  
+     //    // A company has employees some of which are bosses.
+     //    // Ensure that these are synchronized when one or other
+     //    // change. Note, in this example the containers are
+     //    // the same - they need not be.
+     //    
+     //    @AddLeft(newEmployee)
+     //    
+     //      // If we get a new employee then update the management 
+     //      // if necessary.
+     //      
+     //      if newEmployee.isABoss() and not management->includes(newEmployee)
+     //      then company.addManager(newEmployee)
+     //      end
+     //    end
+     //    
+     //    @DeleteLeft(employee)
+     //    
+     //      // When an employee leaves they must be removed from
+     //      // management if necessary.
+     //      
+     //      if employee.isABoss() and management->includes(employee)
+     //      then company.deleteManager(employee)
+     //      end
+     //    end
+     //    
+     //    @AddRight(boss)
+     //    
+     //      // A new boss must be recorded as an employee.
+     //      
+     //      if not employees->includes(boss)
+     //      then company.addEmployee(boss)
+     //      end
+     //    end
+     //  
+     //    @DeleteRight(boss)
+     //    
+     //     // A disgraced boss must be removed from the company
+     //      // completely.
+     //      
+     //      if employees->includes(boss)
+     //      then company.deleteEmployee(boss)
+     //      end
+     //    end
+     //  end
+     
+    @Attribute leftContainer : Performable end
+    @Attribute leftAttribute : String end
+    @Attribute rightContainer : Performable end
+    @Attribute rightAttribute : String end
+    @Attribute actions : Seq(Performable) end
+    
+    @Constructor(leftContainer,leftAttribute,rightContainer,rightAttribute,actions) end
+    
+    @Grammar extends OCL::OCL.grammar import AddLeft
+    
+      SyncContainers ::= '(' lc = Exp ',' la = Name ',' rc = Exp ',' ra = Name ')' actions = Exp* 
+        { SyncContainers(lc,la,rc,ra,actions) }.
+        
+    end
+    
+    @Operation desugar():Performable
+      if actions->forAll(a | a.isKindOf(SyncContainerAction))
+      then self.desugarActions()
+      else throw TypeError(actions,Seq(SyncContainerAction))
+      end
+    end
+    
+    @Operation desugarActions():Performable
+      let leftActions = actions->select(a | a.isKindOf(AddLeft) or a.isKindOf(DeleteLeft));
+          rightActions = actions->select(a | a.isKindOf(AddRight) or a.isKindOf(DeleteRight))
+      in @For a in leftActions do a.setName(leftAttribute) end;
+         @For a in rightActions do a.setName(rightAttribute) end;
+         let leftDaemons = leftActions->collect(a | a.desugar());
+             rightDaemons = rightActions->collect(a | a.desugar())
+         in [| let leftContainer = <leftContainer>;
+                   rightContainer = <rightContainer>;
+                   outerSelf = self
+               in let <leftAttribute> = leftContainer.<leftAttribute>;
+                      <rightAttribute> = rightContainer.<rightAttribute>
+                  in try
+                       leftContainer.<leftAttribute> := <Var(leftAttribute)>.of().default;
+                       rightContainer.<rightAttribute> := <Var(rightAttribute)>.of().default;
+                       <leftDaemons->iterate(d code = [| 0 |] | [| <code>; leftContainer.addDaemon(<d>) |])>;
+                       <rightDaemons->iterate(d code = [| 0 |] | [| <code>; rightContainer.addDaemon(<d>) |])>;
+                       @For c in <Var(leftAttribute)> do
+                         leftContainer.<leftAttribute> := leftContainer.<leftAttribute>->prepend(c)
+                       end;
+                       @For c in <Var(rightAttribute)> do
+                         rightContainer.<rightAttribute> := rightContainer.<rightAttribute>->prepend(c)
+                       end
+                     catch(exception)
+                       leftContainer.<leftAttribute> := <Var(leftAttribute)>;
+                       rightContainer.<rightAttribute> := <Var(rightAttribute)>;
+                       throw exception
+                     end
+                  end
+               end
+            |]
+         end
+      end 
+    end
+    
+  end    

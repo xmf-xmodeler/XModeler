@@ -1,0 +1,8 @@
+parserImport Manifests;
+
+@Manifest Airports
+  p = @File Airports end
+  @File AirportsCons end do
+  p.edit()
+end;
+

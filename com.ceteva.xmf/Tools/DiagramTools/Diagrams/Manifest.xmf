@@ -1,0 +1,30 @@
+parserImport Manifests;
+
+@Manifest Structure
+
+  Diagrams = 
+    @File Diagrams       end
+    @File Container      end
+    @File Selectable     end
+    @File Clickable      end
+    @File Movable        end
+    @File Resizable      end
+    @File Node           end
+    @File Edge           end
+    @File KinkyEdge      end
+    @File Display        end
+    @File Label          end
+    @File MultilineLabel end
+    @File Box            end
+    @File Text           end
+    @File MultilineText  end
+    @File Exp            end
+    @File LabelExp       end
+    @File Image          end
+    @File Ellipse        end
+    @File Line           end
+    @File Shape          end
+    @File Diagram        end
+  
+do Diagrams
+end;

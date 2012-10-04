@@ -1,0 +1,97 @@
+parserImport XOCL;
+
+import Undo;
+
+context Undo
+
+  @Class UndoEngine
+  
+    @Attribute enabled			  : Boolean = false end
+    @Attribute stacklisteners     : Seq(UndoStackListener) (+,-) end
+    @Attribute executionlisteners : Seq(UndoExecutionListener) (+,-) end
+    
+    @Constructor()
+      Kernel_setUndoSize(10)
+    end
+  
+    @Operation endUndoContext()
+      if enabled
+      then
+        Kernel_endUndoContext();
+        self.undoStackChanged()
+      end
+    end
+    
+    @Operation redo()
+      Kernel_execRedo();
+      self.redoExecuted();
+      self.redoStackChanged();
+      self.undoStackChanged()
+    end
+    
+    @Operation redoExecuted()
+      @For listener in executionlisteners
+      do
+        listener.redoExecuted()
+      end
+    end
+    
+    @Operation redoStackChanged()
+      let stackSize = Kernel_redoStackSize()
+      in
+        @For listener in stacklisteners
+        do
+          listener.redoStackChanged(stackSize)
+        end
+      end
+    end
+    
+    // Resets the undo/redo stack, usually happens when an action occurs that cannot be undone
+    // but which may conflict with actions on the undo/redo stack if they were to be executed
+    
+    @Operation reset()
+      Kernel_resetUndo();
+      let
+        undoStackSize = Kernel_undoStackSize();
+        redoStackSize = Kernel_redoStackSize()
+      in
+        @For listener in stacklisteners
+        do
+          listener.undoStackChanged(undoStackSize);
+          listener.redoStackChanged(redoStackSize)
+        end
+      end
+    end
+    
+    @Operation startUndoContext()
+      if enabled
+      then
+        Kernel_startUndoContext()
+      end
+    end
+    
+    @Operation undo()
+      Kernel_execUndo();
+      self.undoExecuted();
+      self.undoStackChanged();
+      self.redoStackChanged()
+    end
+    
+    @Operation undoExecuted()
+      @For listener in executionlisteners
+      do
+        listener.undoExecuted()
+      end
+    end
+    
+    @Operation undoStackChanged()
+      let stackSize = Kernel_undoStackSize()
+      in
+        @For listener in stacklisteners
+        do
+          listener.undoStackChanged(stackSize)
+        end
+      end
+    end
+  
+  end  

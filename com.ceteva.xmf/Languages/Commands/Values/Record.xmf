@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Values;
+
+context Values
+
+  @Class Record extends Value
+  
+    @Attribute type : Type end
+    @Attribute fields : Seq(Element) end
+    
+    @Constructor(type,fields) ! end
+  
+  end

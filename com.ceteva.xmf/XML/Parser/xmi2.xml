@@ -1,0 +1,263 @@
+<?xml version = '1.0' encoding = 'Cp1252' ?>
+<XMI xmi.version = '1.1' xmlns:UML = '//org.omg/UML/1.3'>
+ <XMI.header>
+  <XMI.documentation>
+   <XMI.exporter>
+    	TogetherSoft
+   </XMI.exporter>
+   <XMI.exporterVersion>
+    	6.0
+   </XMI.exporterVersion>
+  </XMI.documentation>
+  <XMI.metamodel xmi.name = 'UML' xmi.version = '1.3'/>
+ </XMI.header>
+ <XMI.content>
+  <UML:Model xmi.id = 'S.1' name = 'Project' visibility = 'public'>
+   <UML:Namespace.ownedElement>
+    <!--From Class Customer to Class Service-->
+    <UML:Association xmi.id = 'G.0'
+          name = 'subscribes' visibility = 'package' isSpecification = 'false'
+          isAbstract = 'false'>
+     <UML:Association.connection>
+      <UML:AssociationEnd xmi.id = 'G.2' visibility = 'public' isSpecification = 'false'
+            isNavigable = 'false' aggregation = 'none'
+            targetScope = 'instance' changeability = 'changeable'>
+       <UML:AssociationEnd.multiplicity>
+        <UML:Multiplicity/>
+       </UML:AssociationEnd.multiplicity>
+       <UML:AssociationEnd.type>
+        <Foundation.Core.Classifier xmi.idref = 'S.7'/>
+       </UML:AssociationEnd.type>
+      </UML:AssociationEnd>
+      <UML:AssociationEnd xmi.id = 'G.3' visibility = 'public' isSpecification = 'false'
+            isNavigable = 'false' aggregation = 'none'
+            targetScope = 'instance' changeability = 'changeable'>
+       <UML:AssociationEnd.multiplicity>
+        <UML:Multiplicity/>
+       </UML:AssociationEnd.multiplicity>
+       <UML:AssociationEnd.type>
+        <Foundation.Core.Classifier xmi.idref = 'S.8'/>
+       </UML:AssociationEnd.type>
+      </UML:AssociationEnd>
+     </UML:Association.connection>
+    </UML:Association>
+    <!--From Class Product to Class Service-->
+    <UML:Association xmi.id = 'G.1'
+          name = 'consists-of' visibility = 'package' isSpecification = 'false'
+          isAbstract = 'false'>
+     <UML:Association.connection>
+      <UML:AssociationEnd xmi.id = 'G.4' visibility = 'public' isSpecification = 'false'
+            isNavigable = 'false' aggregation = 'none'
+            targetScope = 'instance' changeability = 'changeable'>
+       <UML:AssociationEnd.multiplicity>
+        <UML:Multiplicity/>
+       </UML:AssociationEnd.multiplicity>
+       <UML:AssociationEnd.type>
+        <Foundation.Core.Classifier xmi.idref = 'S.10'/>
+       </UML:AssociationEnd.type>
+      </UML:AssociationEnd>
+      <UML:AssociationEnd xmi.id = 'G.5' visibility = 'public' isSpecification = 'false'
+            isNavigable = 'false' aggregation = 'none'
+            targetScope = 'instance' changeability = 'changeable'>
+       <UML:AssociationEnd.multiplicity>
+        <UML:Multiplicity/>
+       </UML:AssociationEnd.multiplicity>
+       <UML:AssociationEnd.type>
+        <Foundation.Core.Classifier xmi.idref = 'S.8'/>
+       </UML:AssociationEnd.type>
+      </UML:AssociationEnd>
+     </UML:Association.connection>
+    </UML:Association>
+    <UML:Class xmi.id = 'S.7'
+          name = 'Customer' visibility = 'public' isSpecification = 'false'
+          isAbstract = 'false' isActive = 'false'>
+     <UML:Classifier.feature>
+      <UML:Attribute xmi.id = 'S.12'
+            name = 'Town' visibility = 'public' isSpecification = 'false'
+            changeability = 'changeable' ownerScope = 'instance'>
+       <UML:StructuralFeature.multiplicity>
+        <UML:Multiplicity>
+         <UML:Multiplicity.range>
+          <UML:MultiplicityRange lower = '1' upper = '1'/>
+         </UML:Multiplicity.range>
+        </UML:Multiplicity>
+       </UML:StructuralFeature.multiplicity>
+       <UML:StructuralFeature.type>
+        <Foundation.Core.Classifier xmi.idref = 'G.6'/>
+       </UML:StructuralFeature.type>
+      </UML:Attribute>
+      <UML:Attribute xmi.id = 'S.13'
+            name = 'Name' visibility = 'public' isSpecification = 'false'
+            changeability = 'changeable' ownerScope = 'instance'>
+       <UML:StructuralFeature.multiplicity>
+        <UML:Multiplicity>
+         <UML:Multiplicity.range>
+          <UML:MultiplicityRange lower = '1' upper = '1'/>
+         </UML:Multiplicity.range>
+        </UML:Multiplicity>
+       </UML:StructuralFeature.multiplicity>
+       <UML:StructuralFeature.type>
+        <Foundation.Core.Classifier xmi.idref = 'G.6'/>
+       </UML:StructuralFeature.type>
+      </UML:Attribute>
+      <UML:Operation xmi.id = 'S.14'
+            name = 'GenerateBill' visibility = 'public'
+            isSpecification = 'false'
+            isAbstract = 'false' ownerScope = 'instance'>
+       <UML:BehavioralFeature.parameter>
+        <UML:Parameter xmi.id = 'XX.12' name = 'quarter' isSpecification = 'false' kind = 'inout'>
+         <UML:Parameter.type>
+          <Foundation.Core.Classifier xmi.idref = 'G.7'/>
+         </UML:Parameter.type>
+        </UML:Parameter>
+        <UML:Parameter xmi.id = 'XX.13' name = 'GenerateBill.Return' isSpecification = 'false' kind = 'return'>
+         <UML:Parameter.type>
+          <Foundation.Core.Classifier xmi.idref = 'G.6'/>
+         </UML:Parameter.type>
+        </UML:Parameter>
+       </UML:BehavioralFeature.parameter>
+      </UML:Operation>
+     </UML:Classifier.feature>
+    </UML:Class>
+    <UML:Class xmi.id = 'S.8'
+          name = 'Service' visibility = 'public' isSpecification = 'false'
+          isAbstract = 'false' isActive = 'false'>
+    </UML:Class>
+    <UML:Class xmi.id = 'S.9'
+          name = 'VPN_service' visibility = 'public' isSpecification = 'false'
+          isAbstract = 'false' isActive = 'false'>
+     <UML:Namespace.ownedElement>
+      <UML:Generalization xmi.id = 'G.8'
+            name = '' visibility = 'public' isSpecification = 'false'
+            discriminator = ''>
+       <UML:Generalization.child>
+        <Foundation.Core.GeneralizableElement xmi.idref = 'S.9'/>
+       </UML:Generalization.child>
+       <UML:Generalization.parent>
+        <Foundation.Core.GeneralizableElement xmi.idref = 'S.8'/>
+       </UML:Generalization.parent>
+      </UML:Generalization>
+     </UML:Namespace.ownedElement>
+    </UML:Class>
+    <UML:Class xmi.id = 'S.10'
+          name = 'Product' visibility = 'public' isSpecification = 'false'
+          isAbstract = 'false' isActive = 'false'>
+     <UML:Classifier.feature>
+      <UML:Operation xmi.id = 'S.15'
+            name = 'addService' visibility = 'public'
+            isSpecification = 'false'
+            isAbstract = 'false' ownerScope = 'instance'>
+       <UML:BehavioralFeature.parameter>
+        <UML:Parameter xmi.id = 'XX.14' name = 'serviceName' isSpecification = 'false' kind = 'inout'>
+         <UML:Parameter.type>
+          <Foundation.Core.Classifier xmi.idref = 'G.6'/>
+         </UML:Parameter.type>
+        </UML:Parameter>
+       </UML:BehavioralFeature.parameter>
+      </UML:Operation>
+     </UML:Classifier.feature>
+    </UML:Class>
+    <UML:Class xmi.id = 'S.11'
+          name = 'IPClear' visibility = 'public' isSpecification = 'false'
+          isAbstract = 'false' isActive = 'false'>
+     <UML:Namespace.ownedElement>
+      <UML:Generalization xmi.id = 'G.9'
+            name = '' visibility = 'public' isSpecification = 'false'
+            discriminator = ''>
+       <UML:Generalization.child>
+        <Foundation.Core.GeneralizableElement xmi.idref = 'S.11'/>
+       </UML:Generalization.child>
+       <UML:Generalization.parent>
+        <Foundation.Core.GeneralizableElement xmi.idref = 'S.10'/>
+       </UML:Generalization.parent>
+      </UML:Generalization>
+     </UML:Namespace.ownedElement>
+    </UML:Class>
+    <UML:DataType xmi.id = 'G.6'
+          name = 'String' visibility = 'public' isSpecification = 'false'/>
+    <UML:DataType xmi.id = 'G.7'
+          name = 'int' visibility = 'public' isSpecification = 'false'/>
+   </UML:Namespace.ownedElement>
+  </UML:Model>
+  <UML:TaggedValue xmi.id = 'XX.11'
+        tag = 'mod__returnType' value = 'String'>
+   <UML:TaggedValue.modelElement>
+    <Foundation.Core.ModelElement xmi.idref = 'S.14'/>
+   </UML:TaggedValue.modelElement>
+  </UML:TaggedValue>
+  <UML:Diagram xmi.id = 'S.6'
+        name = 'Main' toolName = 'Rational Rose 98' diagramType = 'ClassDiagram' style = 'Doc:null'>
+   <UML:Diagram.owner>
+    <Foundation.Core.ModelElement xmi.idref = 'S.1'/>
+   </UML:Diagram.owner>
+   <UML:Diagram.element>
+    <UML:DiagramElement xmi.id = 'XX.0'
+          geometry = '420,300,420,420,' style = 'FillColor.Blue= 255,FillColor.Green= 255,FillColor.Red= 255,FillColor.Transparent=1,Font.Blue= 0,Font.Green= 0,Font.Red= 0,Font.FaceName=Arial,Font.Size= 10,Font.Bold=0,Font.Italic=0,Font.Strikethrough=0,Font.Underline=0,LineColor.Blue= 0,LineColor.Green= 0,LineColor.Red= 0,LineColor.Transparent=1,'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'S.7'/>    <!--Class Customer-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.1'
+          geometry = '1203,183,429,204,' style = 'FillColor.Blue= 255,FillColor.Green= 255,FillColor.Red= 255,FillColor.Transparent=1,Font.Blue= 0,Font.Green= 0,Font.Red= 0,Font.FaceName=Arial,Font.Size= 10,Font.Bold=0,Font.Italic=0,Font.Strikethrough=0,Font.Underline=0,LineColor.Blue= 0,LineColor.Green= 0,LineColor.Red= 0,LineColor.Transparent=1,'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'S.8'/>    <!--Class Service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.2'
+          geometry = '1434,618,351,159,' style = 'FillColor.Blue= 255,FillColor.Green= 255,FillColor.Red= 255,FillColor.Transparent=1,Font.Blue= 0,Font.Green= 0,Font.Red= 0,Font.FaceName=Arial,Font.Size= 10,Font.Bold=0,Font.Italic=0,Font.Strikethrough=0,Font.Underline=0,LineColor.Blue= 0,LineColor.Green= 0,LineColor.Red= 0,LineColor.Transparent=1,'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'S.9'/>    <!--Class VPN_service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.3'
+          geometry = '828,609,279,201,' style = 'FillColor.Blue= 255,FillColor.Green= 255,FillColor.Red= 255,FillColor.Transparent=1,Font.Blue= 0,Font.Green= 0,Font.Red= 0,Font.FaceName=Arial,Font.Size= 10,Font.Bold=0,Font.Italic=0,Font.Strikethrough=0,Font.Underline=0,LineColor.Blue= 0,LineColor.Green= 0,LineColor.Red= 0,LineColor.Transparent=1,'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'S.10'/>    <!--Class Product-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.4'
+          geometry = '600,939,243,141,' style = 'FillColor.Blue= 255,FillColor.Green= 255,FillColor.Red= 255,FillColor.Transparent=1,Font.Blue= 0,Font.Green= 0,Font.Red= 0,Font.FaceName=Arial,Font.Size= 10,Font.Bold=0,Font.Italic=0,Font.Strikethrough=0,Font.Underline=0,LineColor.Blue= 0,LineColor.Green= 0,LineColor.Red= 0,LineColor.Transparent=1,'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'S.11'/>    <!--Class IPClear-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.5'
+          geometry = '1125,273,990,183,' style = 'Association'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.0'/>    <!--AssociatesLink link: Customer -> Service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.6'
+          geometry = '420,300,420,420,' style = 'Role'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.2'/>    <!--Class Customer-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.7'
+          geometry = '1203,183,429,204,' style = 'Role'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.3'/>    <!--Class Service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.8'
+          geometry = '1410,651,1164,285,' style = 'Association'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.1'/>    <!--AssociatesLink link: Product -> Service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.9'
+          geometry = '828,609,279,201,' style = 'Role'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.4'/>    <!--Class Product-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+    <UML:DiagramElement xmi.id = 'XX.10'
+          geometry = '1203,183,429,204,' style = 'Role'>
+     <UML:PresentationElement.subject>
+      <Foundation.Core.ModelElement xmi.idref = 'G.5'/>    <!--Class Service-->
+     </UML:PresentationElement.subject>
+    </UML:DiagramElement>
+   </UML:Diagram.element>
+  </UML:Diagram>
+ </XMI.content>
+</XMI>

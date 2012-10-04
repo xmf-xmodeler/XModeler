@@ -1,0 +1,81 @@
+parserImport XOCL;
+
+import Clients;
+import XmfFileTree;
+import TextEditor;
+import DocTables;
+import Forms;
+import Env;
+
+context Forms
+
+  @Class InternalBrowser extends HTMLViewer
+  
+    @Attribute formHandlers : Seq(Operation) end
+    @Attribute pageHandlers : Table = Table(10) end
+    
+    @Operation addFormHandler(handler)
+      self.formHandlers := formHandlers->including(handler)
+    end
+    
+    @Operation addPageHandler(id,select)
+      pageHandlers.put(id,select)
+    end
+    
+    @Operation dispatchFormEvent(env)
+      @For handler in formHandlers
+      do
+        handler(env)
+      end
+    end
+    
+    @Operation parse(bstring)
+      let bstrings = bstring.splitBy("&",0,0);
+          bindings = NullEnv()
+      in @For bstring in bstrings do
+           let equal = bstring.indexOf("=") then
+               identity = bstring.subString(0,equal);
+               value = bstring.subString(equal + 1,bstring.size())
+           in bindings := bindings.bind(identity,value)
+           end
+         end;
+         bindings
+      end
+    end
+    
+    @Operation processFormData(url)
+      let 
+        qmark = url.indexOf("?") then
+        bstring = url.subString(qmark + 1,url.size())
+      in
+        self.dispatchFormEvent(self.parse(bstring))
+      end
+    end
+    
+    @Operation requestURL(url)
+      if url.hasSuffix(".html")
+      then self.requestXMF_URL(url)
+      elseif url.indexOf("?") <> 0-1
+      then self.processFormData(url)
+      else super(url)
+      end
+    end
+    
+    @Operation requestXMF_URL(url)
+      // let id = url.subString(5,url->size - 5) 
+      let id = url.splitBy("/",0,0).last().subst("",".html",true)
+      in if pageHandlers.hasKey(id)
+         then 
+           let handler = pageHandlers.get(id)
+           in handler()
+           end
+         end
+      end
+    end  
+    
+    @Operation resetHandlers()
+      self.formHandlers := Seq{};
+      self.pageHandlers := Table(10)
+    end
+  
+  end

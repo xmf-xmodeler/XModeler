@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class NoSlot extends Exception
+  
+    @Doc
+      This exception is raised when a slot reference is performed on an
+      object which does not define a slot of that name.
+    end
+     
+    @Attribute object : Object end
+    @Attribute name : String end
+    
+    @Constructor(object,name) !
+       self.setBacktrace();
+       self.message := 
+         object.toString() + 
+         "." + name + " is illegal (try: " +
+         object.getStructuralFeatureNames()->asSeq->separateWith(",") + ")"
+    end
+    
+  end
+      
+    

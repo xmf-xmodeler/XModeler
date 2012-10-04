@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest DFD
+  DFD = @File DFD end
+  @File Syntax/Boot end
+do
+  Project(DFD,dir,self)
+end;

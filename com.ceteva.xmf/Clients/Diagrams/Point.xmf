@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Clients;
+
+context Diagrams
+
+  @Class Point 
+  
+    @Attribute x : Integer (?,!) end
+    @Attribute y : Integer (?,!) end
+    
+    @Constructor(x,y) ! end
+    
+  end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XCore;
+import Clients;
+import Menus;
+
+context Enum
+  @Operation addName_client()
+    let message = "Add a new string to add as a choice to the enumeration." then
+        name = xmf.getString("Add Enumeration Choice",message,"")
+    in
+      if name <> null
+      then
+        self.addName(name)
+      end
+    end
+  end

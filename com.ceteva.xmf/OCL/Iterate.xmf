@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Iterate extends OCL::OCL
+  
+     @Doc
+       An iteration expression is used to accumulate a value while
+       processing each individual element from a collection in turn.
+       Iteration expressions capture the common pattern that occurs where 
+       we wish to incrementally build a value up, for example adding all
+       the elements of a set. An iteration expression is the basis for all
+       expressions such as 'collect', and 'forAll'. Iteration expressions
+       are part of OCl and are slightly limited in the sense that there
+       can only be one collection and one accumulation value. In general,
+       XMF provides recursive operations to deal with more complex cases.
+     
+       Constructor: Iterate(coll,name,acc,value,body)
+         Constructs an iterate expression from a collection valued expression,
+         two strings naming the element variable and the accumulation variable,
+         an initial value expression and a body expression.
+    end
+  
+    @Attribute collection : OCL::OCL end
+    @Attribute name : String end
+    @Attribute accumulator : String end
+    @Attribute value : OCL::OCL end
+    @Attribute body : OCL::OCL end
+    
+    @Constructor(collection,name,accumulator,value,body) ! end
+    
+    @Operation pprint(out,indent)
+      let ppCollection = collection.pprint(indent);
+          ppValue = value.pprint(indent);
+          ppBody = body.pprint(indent)
+      in format(out,"~S->iterate(~S ~S = ~S |~%~V~S)",Seq{
+        ppCollection,
+        if name.isKindOf(Drop) then name.pprint() else name end,
+        if accumulator.isKindOf(Drop) then accumulator.pprint() else accumulator end,
+        ppValue,
+        indent + 2,
+        ppBody})
+      end 
+    end
+        
+    
+  end

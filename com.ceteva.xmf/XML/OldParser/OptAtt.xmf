@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class OptAtt extends Attribute
+  
+    @Doc
+      An optional attribute.
+    end
+    
+    @Attribute pattern : Attribute end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::OptAtt(<pattern.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      OrAtt(pattern,EmptyAtt()).parse(grammar,env,element,succ,fail,indent)
+    end
+    
+  end

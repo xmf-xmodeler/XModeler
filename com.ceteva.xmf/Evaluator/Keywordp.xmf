@@ -1,0 +1,16 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Keywordp in Eval(aKeywordp,arg,seen)
+  if seen
+  then aKeywordp
+  else
+    let keys = aKeywordp.keys->collect(x | self.dispatch(x,arg));
+        names = aKeywordp.names->collect(x | self.dispatch(x,arg));
+        class = self.dispatch(aKeywordp.class,arg)
+    in aKeywordp
+    end
+  end
+end;

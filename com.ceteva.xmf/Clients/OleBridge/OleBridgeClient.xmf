@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import OleBridge;
+
+context OleBridge
+
+  @Class OleBridgeClient extends Client
+  
+    @Attribute debug  : Boolean = false end
+    @Attribute input  : TokenInputChannel end
+    @Attribute output : OutputChannel end
+  
+    @Constructor(name,input,output)
+      self.setCommandInterpreter(OleBridgeCommandInterpreter(output))
+    end
+    
+    /* @Operation newTopLevel(target)
+      let tl = OleTopLevel(target)
+      in
+        tl.setOwner(self);
+        tl.new()
+      end
+    end */
+    
+  end

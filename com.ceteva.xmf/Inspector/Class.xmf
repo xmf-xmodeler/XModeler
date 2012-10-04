@@ -1,0 +1,144 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import Env;
+import TopLevel;
+import Dialogs;
+
+context AllAspects::Inspect
+
+  @Class XCore::Class
+  
+    @Operation inspectDialog(level)
+      @Dialog
+        @Dialog showElements(elements,names)
+          if names->isEmpty 
+          then @Skip end
+          else 
+            @Commands
+              @Show names->sel @Find (element,elements) when element.name = names->sel end end
+              showElements(elements,names->excluding(names->sel))
+            end
+          end
+        end
+        @Commands
+          @Separator end
+          @Show "Inspect[" + level + "]" self end
+          @Separator end
+          showElements(self.attributes,self.attributes->asSeq.name->sortNames)
+          showElements(self.operations,self.operations->asSeq.name->sortNames)
+          showElements(self.parents,self.parents->asSeq.name->sortNames)
+          @Separator end
+          @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Refresh") self.inspectDialog(level) end
+            @Option("Change Name")
+              @Let name = @Value Symbol end
+               in self.setName(name);
+                  self.inspectDialog(level)
+              end
+            end
+            @Option("New instance")
+              @Commands
+                self.new().inspectDialog(level + 1)
+                self.inspectDialog(level)
+              end
+            end
+            @Option("Add parent")
+              @Let name = @Value Symbol end 
+               in if owner.hasElement(name)
+                  then 
+                    self.addParent(owner.getElement(name));
+                    self.inspectDialog(level)
+                  else self.inspectDialog(level)
+                  end
+               end
+            end
+            @Option("Remove parent")
+              @Let name = @Value Symbol end
+               in if owner.hasElement(name)
+                  then 
+                    self.removeParent(owner.getElement(name));
+                    self.inspectDialog(level)
+                  else self.inspectDialog(level)
+                  end
+               end
+            end
+            @Option("Add an attribute")
+              @Let name = @Value Symbol end
+               in if not self.hasAttribute(name)
+                  then 
+                    @Options
+                      @Option("Simple type")
+                        @Options
+                          @Option("Integer")
+                            self.add(XCore::Attribute(name,Integer));
+                            self.inspectDialog(level)
+                          end
+                          @Option("String")
+                            self.add(XCore::Attribute(name,String));
+                            self.inspectDialog(level)
+                          end
+                          @Option("Float")
+                            self.add(XCore::Attribute(name,Float));
+                            self.inspectDialog(level)
+                          end
+                          @Option("Boolean")
+                            self.add(XCore::Attribute(name,Boolean));
+                            self.inspectDialog(level)
+                          end
+                        end
+                      end 
+                      @Option("Class Type")
+                        @Let type = @Value Symbol end
+                         in if owner.hasElement(type)
+                            then 
+                              self.add(XCore::Attribute(name,owner.getElement(type)));
+                              self.inspectDialog(level)
+                            else self.inspectDialog(level)
+                            end
+                        end
+                      end
+                    end
+                  else self.inspectDialog(level)
+                  end
+               end
+            end 
+            @Option("Remove an attribute")
+              @Let name = @Value Symbol end
+               in if self.hasAttribute(name)
+                  then 
+                    self.remove(self.getAttribute(name));
+                    self.inspectDialog(level)
+                  else self.inspectDialog(level)
+                  end
+              end
+            end          
+            @Option("Inspect an attribute")
+              @Let name = @Value Symbol end
+               in if self.hasAttribute(name)
+                  then 
+                    @Commands
+                      self.getAttribute(name).inspectDialog(level + 1)
+                      self.inspectDialog(level)
+                    end
+                  else 
+                    @Commands
+                      @Show "No attribute named " name end
+                      self.inspectDialog(level)
+                    end
+                  end
+              end
+            end
+          end
+        end
+       end
+     end
+   end

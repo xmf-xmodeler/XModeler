@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Layout;
+
+context Layout
+
+  @Class Formatted isabstract
+  
+    @Doc
+      An instance of this class is a type definition for a container of 
+      display elements. In an instanc of the type, the display elements 
+      are formatted using a layout manager. The layout manager can use
+      the value of the enumerated type layout to control how the contained
+      elements are displayed. The value of layout should be one of:
+      VERTICAL for layout along the y-axis; HORIZONTAL for layout along
+      the x-axis; OVERLAY for elements on top of each other.
+    end 
+  
+    @Attribute contentLayout  : String        = "VERTICAL" (?,!)        end
+    @Attribute manager        : LayoutManager = StandardLayoutManager() end
+     
+    @Operation layout(container,x,y,width,height)
+    
+      // A formatted type can be asked to layout an instance of itself.
+      // The default behaviour is to hand over layout control to the
+      // layout manager.
+      
+     self.manager.layout(self,container,x,y,width,height)
+      
+    end
+     
+   end
+    

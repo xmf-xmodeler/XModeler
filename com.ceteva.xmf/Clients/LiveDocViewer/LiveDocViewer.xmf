@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package LiveDocViewer
+  
+    @Doc
+       This package defines a tool for viewing HTML for models which
+       is generated dynamically
+    end
+     
+  end

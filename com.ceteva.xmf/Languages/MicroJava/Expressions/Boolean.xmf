@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class Boolean extends JExp
+  
+    @Attribute value : Boolean (?) end
+    
+    @Constructor(value) ! end
+    
+    @Operation pprint(out)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

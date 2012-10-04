@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.icons";
+  step =
+    @Operation()
+      if self.isComplete
+      then "Processes/StepComplete"
+    	else "Processes/StepActive"
+		end 
+    end
+in
+  registry.addContribution(id,Contribution(Languages::Processes::Process,Seq{"Processes/Process"}));
+  registry.addContribution(id,Contribution(Languages::Processes::ProcessStep,Seq{step}));
+  self
+end;
+
+
+// *** NODE SORTING ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution(Languages::Processes::Process,Seq{3250}));
+  registry.addContribution(id,Contribution(Languages::Processes::ProcessStep,Seq{3260}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Activate Step Sequence" on Root::Languages::Processes::Process
+  Root::Languages::Processes::Process::activate
+end;
+
+@Menu "Reset Step Sequence" on Root::Languages::Processes::Process
+  Root::Languages::Processes::Process::resetSteps
+end;
+
+@Menu "Activate" on Root::Languages::Processes::Process
+  oot::Languages::Processes::Process::resetSteps
+end;

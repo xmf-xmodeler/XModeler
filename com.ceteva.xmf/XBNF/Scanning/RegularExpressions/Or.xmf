@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import XBNF::Scanning;
+import RegularExpressions;
+import Graphs;
+
+context ! XBNF::Scanning::RegularExpressions
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Or extends XBNF::Scanning::RegularExpressions::BinRE
+  
+    @Operation toTadpole()
+      left.toTadpole().mergeOr(right.toTadpole())
+    end
+
+  end

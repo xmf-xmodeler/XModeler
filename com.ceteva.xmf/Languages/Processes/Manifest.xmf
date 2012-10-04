@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Processes
+  Processes = @File Processes end
+  @File ProcessStep end
+  @File Process end
+do Project(Languages::Processes,dir,self)
+end;

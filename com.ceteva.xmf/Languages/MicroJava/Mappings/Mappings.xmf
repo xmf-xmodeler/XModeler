@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+
+context MicroJava
+
+  @Package Mappings
+  
+    @Bind nameCount = 0 end
+    
+    @Operation newName()
+      Mappings::nameCount := nameCount + 1;
+      "var" + nameCount.toString()
+    end
+  
+  end

@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+context Specs
+
+// Class deployed by Tony Clark on Sun Jan 16 12:08:41 GMT 2005
+
+@Class Specification extends Operation
+
+  @Attribute body : Operation end
+  @Attribute post : Operation end
+  @Attribute pre : Operation end
+  
+  @Grammar extends OCL::OCL.grammar
+  
+    Specification ::= 
+      name = SpecName 
+      '(' args = SpecArgs ')'
+      type = SpecType
+      pre = Pre
+      body = Body
+      post = Post
+      { let preExp = OCL::Operation(name,args,type,pre);
+            bodyExp = OCL::Operation(name,args,type,body);
+            postExp = OCL::Operation(name,postArgs + args,post)
+        in [| (((Specification(<name.asSymbol().lift()>)
+                .pre := <preExp.lift()>)
+                .body := <bodyExp.lift()>)
+                .post := <postExp.lift()>) |] 
+        end
+      }.
+    SpecName ::= name = Name { name } | { "anonymous" }.
+    SpecArgs ::= arg = Pattern args = (',' Pattern)* { Seq{arg | args } } | { Seq{} }.
+    SpecType ::= ':' TypeExp | { NamedType() }.
+    Pre ::= 'pre' exp = Exp 'end' { exp }.
+    Body ::= 'body' exp = Exp 'send' { exp } | { [| null |] }.
+    Post ::= 'post' exp = Exp 'end' { exp } | { [| null |] }.
+    
+  end
+  
+end

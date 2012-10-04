@@ -1,0 +1,124 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE GenericGuiSchema SYSTEM "Wizard.dtd">
+<GenericGuiSchema xmlns="GenericGUISchema.xsd">
+<GUI Id="Gui_1" GUI_Name="Example GUI" Icon_Filepath="ww_icon.ico">
+    <FORM Id="Form_1" Name="Fred">
+      <TABLE Id="Table_1" Name="Table 1" Is_Readonly="false" X_Position="0" Y_Position="50" X_Size="600" Y_Size="300">
+        <TABLE_COLUMN Id="Column_1" Name="Column 1 of table 1" Width="100" Is_Readonly="false" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 1.1" Value="hi 1.1" />
+          <TABLE_COLUMN_CELL Id="Cell 1.2" Value="hi 2.2" />
+          <TABLE_COLUMN_CELL Id="Cell 1.3" Value="hi 3.3" />
+        </TABLE_COLUMN>        
+        <TABLE_COLUMN Id="Column_2" Name="Column 2 of table 1" Width="150" Is_Readonly="true" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 2.1" Value="hi 1.1" />
+          <TABLE_COLUMN_CELL Id="Cell 2.2" Value="hi 2.2" />
+          <TABLE_COLUMN_CELL Id="Cell 2.3" Value="hi 3.3" />
+        </TABLE_COLUMN> 
+        <TABLE_COLUMN Id="Column_3" Name="Column 3 of table 1" Width="110" Is_Readonly="false" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 3.1" Value="3.1" />
+          <TABLE_COLUMN_CELL Id="Cell 3.2" Value="3.2" />
+          <TABLE_COLUMN_CELL Id="Cell 3.3" Value="3.3" />
+          <TABLE_DROPDOWN_OPTION Id="3.o1" Display_Member="3.1" Value_Member="3.1" />
+          <TABLE_DROPDOWN_OPTION Id="3.o2" Display_Member="3.2" Value_Member="3.2" />
+          <TABLE_DROPDOWN_OPTION Id="3.o3" Display_Member="3.3" Value_Member="3.3" />
+        </TABLE_COLUMN> 
+      </TABLE>
+      <TABLE Id="Table_2" Name="Table 2" Is_Readonly="false" X_Position="650" Y_Position="50" X_Size="600" Y_Size="300">
+        <TABLE_COLUMN Id="Column_2.1" Name="Column 1 of table 2" Width="100" Is_Readonly="false" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 2.1.1" Value="hi 2.1.1" />
+          <TABLE_COLUMN_CELL Id="Cell 2.1.2" Value="hi 2.2.2" />
+          <TABLE_COLUMN_CELL Id="Cell 2.1.3" Value="hi 2.3.3" />
+        </TABLE_COLUMN>        
+        <TABLE_COLUMN Id="Column_2.2" Name="Column 2 of table 2" Width="150" Is_Readonly="true" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 2.2.1" Value="hi 2.1.1" />
+          <TABLE_COLUMN_CELL Id="Cell 2.2.2" Value="hi 2.2.2" />
+          <TABLE_COLUMN_CELL Id="Cell 2.2.3" Value="hi 2.3.3" />
+        </TABLE_COLUMN> 
+        <TABLE_COLUMN Id="Column_2.3" Name="Column 3 of table 2" Width="110" Is_Readonly="false" Gives_Report="true">
+          <TABLE_COLUMN_CELL Id="Cell 2.3.1" Value="2.3.1" />
+          <TABLE_COLUMN_CELL Id="Cell 2.3.2" Value="2.3.2" />
+          <TABLE_COLUMN_CELL Id="Cell 2.3.3" Value="2.3.3" />
+          <TABLE_DROPDOWN_OPTION Id="2.3.o1" Display_Member="2.3.1" Value_Member="2.3.1" />
+          <TABLE_DROPDOWN_OPTION Id="2.3.o2" Display_Member="2.3.2" Value_Member="2.3.2" />
+          <TABLE_DROPDOWN_OPTION Id="2.3.o3" Display_Member="2.3.3" Value_Member="2.3.3" />
+        </TABLE_COLUMN> 
+      </TABLE>
+      <TEXTBOX Id="Textbox_1" STYLE="TEXT_FIELD" Is_Readonly="false" Tooltip="Textbox 1 Tooltip" X_Position="100" Y_Position="200" X_Size="50" Y_Size="20" Gives_Report="false" Value="hi" />
+      <TEXTBOX Id="Textbox_2" STYLE="TEXT_FIELD" Is_Readonly="true" Tooltip="Textbox 2 Tooltip" X_Position="100" Y_Position="400" X_Size="75" Y_Size="40" Gives_Report="true" Value="hello" />
+      <TEXTBOX Id="Textbox_3" STYLE="RICH_TEXT_AREA" Is_Readonly="false" Tooltip="Textbox 3 Tooltip" X_Position="200" Y_Position="200" X_Size="100" Y_Size="100" Gives_Report="true" Value="woohoo" />
+      <DROPDOWN Id="Dropdown_1" Is_Readonly="false" Tooltip="Dropdown box 1" X_Position="400" Y_Position="600" X_Size="100" Y_Size="20" Gives_Report="true" Value="Option 1.1">
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_1" Display_Member="Option 1.1" Value_Member="Option 1.1" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_2" Display_Member="Option 1.2" Value_Member="Option 1.2" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_3" Display_Member="Option 1.3" Value_Member="Option 1.3" />
+      </DROPDOWN>
+      <DROPDOWN Id="Dropdown_2" Is_Readonly="true" Tooltip="Dropdown box 2" X_Position="510" Y_Position="600" X_Size="100" Y_Size="20" Gives_Report="true" Value="Option 2.2">
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_2_1" Display_Member="Option 2.1" Value_Member="Option 2.1" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_2_2" Display_Member="Option 2.2" Value_Member="Option 2.2" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_2_3" Display_Member="Option 2.3" Value_Member="Option 2.3" /> 
+      </DROPDOWN>    
+      <DROPDOWN Id="Dropdown_3" Is_Readonly="false" Tooltip="Dropdown box 3" X_Position="620" Y_Position="600" X_Size="100" Y_Size="20" Gives_Report="false" Value="Option 3.3">
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_3_1" Display_Member="Option 3.1" Value_Member="Option 3.1" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_3_2" Display_Member="Option 3.2" Value_Member="Option 3.2" />
+        <DROPDOWN_OPTION Id="DROPDOWN_OPTION_3_3" Display_Member="Option 3.3" Value_Member="Option 3.3" />
+      </DROPDOWN>   
+      <CHECKBOX Id="CHECKBOX_1" Text="C1" Is_Readonly="false" Tooltip="Checkbox 1" X_Position="100" Y_Position="30" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <CHECKBOX Id="CHECKBOX_2" Text="C2" Is_Readonly="false" Tooltip="Checkbox 2" X_Position="100" Y_Position="50" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <CHECKBOX Id="CHECKBOX_3" Text="C3" Is_Readonly="false" Tooltip="Checkbox 3" X_Position="100" Y_Position="70" X_Size="50" Y_Size="20" Gives_Report="true" Value="true"/>
+      <CHECKBOX Id="CHECKBOX_4" Text="C4" Is_Readonly="false" Tooltip="Checkbox 4" X_Position="100" Y_Position="90" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <CHECKBOX Id="CHECKBOX_5" Text="C5" Is_Readonly="false" Tooltip="Checkbox 5" X_Position="100" Y_Position="110" X_Size="50" Y_Size="20" Gives_Report="true" Value="true"/>
+      <RADIO_BUTTON Id="RADIO_BUTTON_1" Text="R1" Is_Readonly="false" Tooltip="Radio button 1" X_Position="30" Y_Position="30" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <RADIO_BUTTON Id="RADIO_BUTTON_2" Text="R2" Is_Readonly="false" Tooltip="Radio button 2" X_Position="30" Y_Position="50" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <RADIO_BUTTON Id="RADIO_BUTTON_3" Text="R3" Is_Readonly="false" Tooltip="Radio button 3" X_Position="30" Y_Position="70" X_Size="50" Y_Size="20" Gives_Report="true" Value="true"/>
+      <RADIO_BUTTON Id="RADIO_BUTTON_4" Text="R4" Is_Readonly="false" Tooltip="Radio button 4" X_Position="30" Y_Position="90" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <RADIO_BUTTON Id="RADIO_BUTTON_5" Text="R5" Is_Readonly="false" Tooltip="Radio button 5" X_Position="30" Y_Position="110" X_Size="50" Y_Size="20" Gives_Report="true" Value="false"/>
+      <BUTTON Id="Button_1" Text="Button" Icon_Filepath="bigiconb.bmp" Icon_Alignment="MIDDLE_LEFT" Is_Readonly="true" Tooltip="button 1 tooltip" X_Position="200" Y_Position="100" X_Size="130" Y_Size="50" Gives_Report="true" />
+      <LABEL Id="Label_1" Text="Demonstation of a label" Icon_Filepath="bigicona.bmp" Icon_Alignment="BOTTOM_LEFT" X_Position="100" Y_Position="600" X_Size="200" Y_Size="40" />
+    </FORM>
+    <TREE Id="Tree_1">
+      <TREE_NODE Id="TREE_NODE_1" Text="Root Node" Icon_Filepath="bigicona.bmp" Is_Expanded="true" Gives_Report="true"/>
+      <TREE_NODE Id="TREE_NODE_2" Text="John" ref_TREE_NODE="TREE_NODE_1" Icon_Filepath="bigiconb.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_3" Text="Fred" ref_TREE_NODE="TREE_NODE_1" Icon_Filepath="bigiconb.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_4" Text="Billy" ref_TREE_NODE="TREE_NODE_2" Icon_Filepath="bigicona.bmp" Is_Expanded="false" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_5" Text="Bob" ref_TREE_NODE="TREE_NODE_2" Icon_Filepath="bigicona.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_6" Text="Jim" ref_TREE_NODE="TREE_NODE_2" Icon_Filepath="bigiconc.bmp" Is_Expanded="false" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_7" Text="Dan" ref_TREE_NODE="TREE_NODE_5" Icon_Filepath="bigicona.bmp" Is_Expanded="false" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_8" Text="Rob" ref_TREE_NODE="TREE_NODE_5" Icon_Filepath="bigiconc.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_9" Text="Pete" ref_TREE_NODE="TREE_NODE_8" Icon_Filepath="bigicona.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_10" Text="Mark" ref_TREE_NODE="TREE_NODE_2" Icon_Filepath="bigiconc.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_11" Text="Andy" ref_TREE_NODE="TREE_NODE_3" Icon_Filepath="bigiconb.bmp" Is_Expanded="true" Gives_Report="true" />
+      <TREE_NODE Id="TREE_NODE_12" Text="Conan the Barbarian" ref_TREE_NODE="TREE_NODE_4" Icon_Filepath="bigiconb.bmp" Is_Expanded="false" Gives_Report="true" />    
+  </TREE>
+    <PULLDOWN_MENU Id="Pulldown_Menu_1">
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_1" Text="_File" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_2" Text="_Edit" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_3" Text="_View" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_4" Text="_Tools" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_5" Text="_Help" Is_Readonly="false" Gives_Report="true" />  
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_6" Text="_New" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_1" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_7" Text="_Open" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_1" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_8" Text="_Save" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_1" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_9" Text="Cu_t" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_2" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_10" Text="_Copy" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_2" Is_Readonly="true" Gives_Report="true" />  
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_11" Text="_Paste" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_2" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_12" Text="_Minimize" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_3" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_13" Text="_Resize" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_3" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_14" Text="_Generate XML" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_4" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_16" Text="_Help" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_5" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_17" Text="_About" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_5" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_18" Text="_Print" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_1" Is_Readonly="false" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_19" Text="_Print Preview" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_18" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_20" Text="_Whole Model" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_18" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_ITEM Id="Pulldown_Menu_Item_21" Text="_Current Form" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_18" Is_Readonly="true" Gives_Report="true" />
+      <PULLDOWN_MENU_DIVIDER Id="Pulldown_Menu_Divider_1" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_18" />	     
+      <PULLDOWN_MENU_DIVIDER Id="Pulldown_Menu_Divider_2" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_7" />	     
+      <PULLDOWN_MENU_DIVIDER Id="Pulldown_Menu_Divider_3" ref_PULLDOWN_MENU_ITEM="Pulldown_Menu_Item_20" />	     
+ </PULLDOWN_MENU>
+    <TOOLBAR Id="Toolbar_1">
+      <TOOLBAR_ITEM Id="Toolbar_Item_1" Is_Readonly="true" Icon_Filepath="new.bmp" Tooltip="Tooltip 1" Gives_Report="true" />
+      <TOOLBAR_ITEM Id="Toolbar_Item_2" Is_Readonly="true" Icon_Filepath="open.bmp" Tooltip="Tooltip 2" Gives_Report="true" />
+      <TOOLBAR_ITEM Id="Toolbar_Item_3" Is_Readonly="false" Icon_Filepath="save.bmp" Tooltip="Tooltip 3" Gives_Report="true" />
+      <TOOLBAR_ITEM Id="Toolbar_Item_4" Is_Readonly="false" Icon_Filepath="print.bmp" Tooltip="Tooltip 4" Gives_Report="true" />
+      <TOOLBAR_DIVIDER Id="Toolbar_Divider_1" ref_TOOLBAR_ITEM="Toolbar_Item_4" />
+    </TOOLBAR>
+  </GUI>
+</GenericGuiSchema>

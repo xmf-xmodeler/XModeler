@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Self extends Instr
+  
+    @Doc
+      References the current value of self. This is held in the current
+      stack frame. The value is pushed onto the stack.
+    end
+     
+    @Operation toString():String
+      "<Self>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  

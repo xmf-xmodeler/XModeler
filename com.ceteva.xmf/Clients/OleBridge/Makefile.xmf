@@ -1,0 +1,13 @@
+import Compiler;
+
+compileFile("Clients/OleBridge/Boot",true,true);
+compileFile("Clients/OleBridge/Manifest",true,true);
+compileFile("Clients/OleBridge/OleBridge",true,true);
+compileFile("Clients/OleBridge/OleBridgeClient",true,true);
+compileFile("Clients/OleBridge/OleBridgeCommandInterpreter",true,true);
+compileFile("Clients/OleBridge/OleObject",true,true);
+compileFile("Clients/OleBridge/OleTopLevel",true,true);
+compileFile("Clients/OleBridge/MicrosoftWord/Makefile",true,true);
+compileFile("Clients/OleBridge/MicrosoftExcel/Makefile",true,true);
+"Clients/OleBridge/MicrosoftWord/Makefile.o".loadBin(false);
+"Clients/OleBridge/MicrosoftExcel/Makefile.o".loadBin(false);

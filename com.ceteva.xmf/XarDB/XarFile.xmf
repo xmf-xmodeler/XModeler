@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class XarFile extends OrderedContainer
+  
+    @Attribute file : String end
+    @Constructor(file) ! end
+    
+    @Operation add(element)
+      element.setOwner(self);
+      super(element)
+    end
+    
+    @Operation browse()
+      let mappingClient = xmf.findClient(Clients::ModelBrowserXCore::MappingClient) in
+        if mappingClient <> null
+        then mappingClient.showModelBrowser(self)
+        else format(stdout,"Model browser client not available.~%")
+        end
+      end
+    end
+    
+    @Operation find(type,index)
+      contents->at(0).find(type,index)
+    end
+    
+  end

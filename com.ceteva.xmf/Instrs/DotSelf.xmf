@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class DotSelf extends Instr
+  
+    @Doc
+      A machine instruction that performs object navigation
+      where the target is SELF.
+    end
+  
+    @Attribute name : String end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      constOffset
+    end
+    
+    @Operation toString():String
+      "<DotSelf " + name.toString() + ">"
+    end
+    
+  end

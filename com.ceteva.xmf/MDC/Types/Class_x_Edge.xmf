@@ -1,0 +1,302 @@
+parserImport XOCL;
+
+import Tools::DiagramTools::Types;
+import MDC;
+import Types;
+
+context ! Types
+
+  @Class Class_x_Edge extends Element_x_Edge
+
+    @Attribute targetNode : Free_x_Node            (?,!)     end
+    @Attribute sourceNode : Free_x_Node            (?,!)     end
+    @Attribute targetAtt  : Seq(Attribute)                   end
+    @Attribute sourceAtt  : Seq(Attribute)                   end
+    @Attribute attributes : Seq(Attribute_x_Label) (?,!,+,-) end
+    @Attribute attribute  : Attribute              (?,!)     end
+    @Attribute creationHandler : Operation = Class_x_Edge::mkCreationHandler() (?,!) end
+    @Attribute deletionHandler : Operation = Class_x_Edge::mkDeletionHandler() (?,!) end
+    @Attribute sourceReconnectHandler : Operation = Class_x_Edge::mkSourceReconnectHandler() (?,!) end
+    @Attribute targetReconnectHandler : Operation = Class_x_Edge::mkTargetReconnectHandler() (?,!) end
+    
+    @Constructor(attribute,sourceAtt,targetAtt,sourceNode,targetNode,edgeType)
+    end
+    
+    @Operation addClassEdge(tool,value)
+    
+      // The element has changed and we need to add an edge
+      // to the diagram...
+      
+      if value <> null
+      then
+        let targetElement = self.findTargetEnd(value).get(self.targetAtt().name());
+            sourceElement = self.findSourceEnd(value).get(self.sourceAtt().name()) then
+            targetValue = tool.findElementValue(targetElement);
+            sourceValue = tool.findElementValue(sourceElement)
+        in if targetValue <> null and sourceValue <> null
+           then
+             let sourceNode = sourceValue.display();
+                 targetNode = targetValue.display() then
+                 sourcePort = sourceNode.port();
+                 targetPort = targetNode.port() then
+                 edge = edgeType.new(sourcePort,targetPort,tool) then
+                 assoc = MDC::Values::Association(edge,self,sourceValue,targetValue,value)
+             in tool.addToAssocs(assoc);
+                assoc.populate(tool)
+             end
+           end
+        end
+      end
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For a in self.attributes do
+          T := a.allMappingTypes(T)
+        end
+      end;
+      T
+    end
+    
+    @Operation attributeFor(label)
+    
+      // Return the map associated with the type of the
+      // supplied label or null...
+      
+      @Find(map,attributes)
+        when map.label() = label.type()
+        do map
+        else null
+      end
+    end
+
+    @Operation mkCreationHandler()
+      @Operation[closure="MDC::Types::Class_x_Edge::mkCreationHandler"](self_,tool,parentElement,object,sourceElement,targetElement)
+        let name = self_.attribute().name()
+        in
+          self_.setEnds(object,sourceElement,targetElement);
+          if self_.attribute().hasAtomicType()
+          then MDC::MDCSetSlot(parentElement,name,object)
+          else MDC::MDCExtendSlot(parentElement,name,object)
+          end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation deleteClassEdge(tool,object)
+    
+      // Called when the element has changed and the object
+      // has been removed...
+      
+      @Find(assoc,tool.assocs())
+        when assoc.object() = object
+        do tool.deleteFromAssocs(assoc);
+           assoc.edge().delete()
+      end
+    end
+    
+    @Operation edgeRemoved(tool,object)
+    
+      // Called when the edge has been deleted.
+
+      let handler = self.deletionHandler()
+      in
+        // Legacy check...
+        if handler = null
+        then self.setDeletionHandler(Class_x_Edge::mkDeletionHandler());
+             handler := self.deletionHandler()
+        end;
+        
+        handler(self,tool,object)
+      end
+    end
+
+    @Operation mkDeletionHandler()
+      @Operation[closure="MDC::Types::Class_x_Edge::mkDeletionHandler"](self_,tool,object)
+        let attribute = self_.attribute() then
+            name = attribute.name();
+            element = tool.element().element()
+        in if attribute.hasAtomicType()
+           then MDC::MDCSetSlot(element,name,null) //element.set(name,null)
+           else MDC::MDCReduceSlot(element,name,object) 
+           end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation findEnd(object,A:Seq(Attribute))
+    
+      // Calulates the object at the end of the path 
+      // supplied as a sequence of attributes. Will
+      // fill in the instances of the attributes if
+      // they are not currently set (i.e. are null)
+      
+      if A->isEmpty
+      then object
+      else
+        let a = A->head then
+            e = object.get(a.name())
+        in if e = null
+           then 
+             let class = a.type then
+                 element = class()
+             in MDCSetSlot(object,a.name(),element);
+                self.findEnd(element,A->tail)
+             end
+           else self.findEnd(e,A->tail)
+           end
+        end
+      end
+    end
+    
+    @Operation findSourceEnd(object)
+      if sourceAtt.isKindOf(Attribute)
+      then object
+      else self.findEnd(object,sourceAtt->butLast)
+      end
+    end
+    
+    @Operation findTargetEnd(object)
+      if targetAtt.isKindOf(Attribute)
+      then object
+      else self.findEnd(object,targetAtt->butLast)
+      end
+    end
+    
+    @Operation handleAssociationStateChange(tool,new,old)
+    
+      // Some edges may need changing...
+      
+      if attribute.hasAtomicType()
+      then 
+        self.addClassEdge(tool,new);
+        self.deleteClassEdge(tool,old)
+      else 
+        let added = new - old;
+            deleted = old - new
+        in @For v in added do
+             self.addClassEdge(tool,v)
+           end;
+           @For v in deleted do
+             self.deleteClassEdge(tool,v)
+           end
+        end
+      end
+    end
+    
+    @Operation reachable(object)
+      if object.hasStructuralFeature(attribute.name().toString())
+      then
+        if not attribute.hasAtomicType()
+        then object.get(attribute.name())->asSet
+        else Set{object.get(attribute.name())}
+        end
+      else Set{}
+      end
+    end
+    
+    @Operation setEnds(object,sourceElement,targetElement)
+    
+      // Called when the state of 'object' needs to change
+      // in accordance with the class edge definition...
+      
+      self.setSource(self.findSourceEnd(object),sourceElement);
+      self.setTarget(self.findTargetEnd(object),targetElement)
+    end
+    
+    @Operation setSource(object,element)
+      let name = self.sourceName()
+      in if self.sourceAtt().hasAtomicType()
+         then MDCSetSlot(object,name,element)
+         else MDCExtendSlot(object,name,element) 
+         end
+      end
+    end
+         
+    @Operation setTarget(object,element)
+      let name = self.targetName()
+      in if self.targetAtt().hasAtomicType()
+         then MDCSetSlot(object,name,element)
+         else MDCExtendSlot(object,name,element) 
+         end
+      end
+    end
+    
+    @Operation sourceAtt()
+      if sourceAtt.isKindOf(Attribute)
+      then sourceAtt
+      else sourceAtt->last
+      end
+    end
+    
+    @Operation sourceName()
+      self.sourceAtt().name()
+    end
+
+    @Operation sourceReconnected(tool,object,newElement,oldElement)
+    
+      // Called when the edge has changed and the object must be
+      // modified.
+      
+      let handler = self.sourceReconnectHandler()
+      in
+        handler(self,tool,object,newElement,oldElement)
+      end
+    end
+
+    @Operation mkSourceReconnectHandler()
+      @Operation[closure="MDC::Types::Class_x_Edge::mkSourceReconnectHandler"](self_,tool,object,newElement,oldElement)
+        let object = self_.findSourceEnd(object);
+            name = self_.sourceName()
+        in if self_.sourceAtt().hasAtomicType()
+           then MDC::MDCSetSlot(object,name,newElement) 
+           else MDC::MDCReplaceSlot(object,name,newElement,oldElement)
+           end
+        end
+      end.setOwner(null)
+    end
+    
+    @Operation targetAtt()
+      if targetAtt.isKindOf(Attribute)
+      then targetAtt
+      else targetAtt->last
+      end
+    end
+    
+    @Operation targetName()
+      self.targetAtt().name()
+    end
+
+    @Operation targetReconnected(tool,object,newElement,oldElement)
+    
+      // Called when the edge has changed and the object must be
+      // modified.
+      
+      let handler = self.targetReconnectHandler()
+      in
+        handler(self,tool,object,newElement,oldElement)
+      end
+    end
+
+    @Operation mkTargetReconnectHandler()
+      @Operation[closure="MDC::Types::Class_x_Edge::mkTargetReconnectHandler"](self_,tool,object,newElement,oldElement)
+        let object = self_.findTargetEnd(object);
+            name = self_.targetName()
+        in if self_.targetAtt().hasAtomicType()
+           then MDC::MDCSetSlot(object,name,newElement) 
+           else MDC::MDCReplaceSlot(object,name,newElement,oldElement)
+           end
+        end
+      end.setOwner(null)
+    end
+    
+    @Operation toString()
+      "[" + attribute.name() + ":" + attribute.underlyingType().name() + "] " +
+        self.sourceAtt().name() + ":" + sourceNode.type().classifier().name() + 
+          " <--> " +
+        self.targetAtt().name() + ":" + targetNode.type().classifier().name()
+    end
+
+  end

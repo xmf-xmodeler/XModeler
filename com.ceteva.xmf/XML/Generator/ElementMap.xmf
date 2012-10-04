@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import XOCL;
+import XML;
+
+context Generator
+
+  @Class ElementMap isabstract extends Sugar
+  
+    @Attribute mapName : String end
+    
+    @AbstractOp mappedName() end
+    
+    @Operation setMapName(name)
+      self.mapName := name;
+      self
+    end
+  
+  end

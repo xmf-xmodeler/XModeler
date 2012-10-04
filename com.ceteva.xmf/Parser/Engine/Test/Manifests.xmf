@@ -1,0 +1,115 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Manifests;
+import LoadTime;
+import XOCL;
+
+context File
+
+  @Grammar extends O
+    
+      File ::= guard = ActionGuard loadTime = LoadTime path = MPath loadAction = LoadAction 'end' {
+      
+        File(path,guard,loadTime,loadAction)
+        
+      }.
+      
+      ActionGuard ::= '[' e = Exp ']' { Exp(e) } | { Exp([| true |]) }.
+    
+      LoadAction ::= 'do' e = Exp { Exp(e) } | { null }.
+      
+      OptBuilds ::= '{' n = Name ns = (',' Name)* '}' { ns->asSet->including(n) } | { Set{} }.
+      
+      MPath ::=  n = MPathEntry ns = ('/' MPathEntry)*  { Seq{n|ns}->separateWith("/") } | Str.
+      
+      MPathEntry ::= Name.
+      
+      LoadTime ::= '^' LoadDirective | { RunTime }.
+      
+      LoadDirective ::= 
+      
+        'CompileTime' { CompileTime } |
+        
+        'RunTime' { RunTime } |
+        
+        'Both' { Both } |
+        
+        'None' { None }.
+       
+    end
+    
+context Ref
+
+  @Grammar extends O
+    
+      Ref ::=  guard = ActionGuard loadTime = LoadTime path = MPath manifest = OptManifest 'end' {
+      
+        Ref(guard,path,loadTime,manifest)
+        
+      }.
+      
+      OptBuilds ::= '{' n = Name ns = (',' Name)* '}' { ns->asSet->including(n) } | { Set{} }.
+      
+      MPath ::=  n = MPathEntry ns = ('/' MPathEntry)*  { Seq{n|ns}->separateWith("/") } | Str.
+      
+      MPathEntry ::= Name.
+      
+      OptManifest ::= '[' name = Name ']' { name } | { "Manifest" }.
+      
+      ActionGuard ::= '[' e = Exp ']' { Exp(e) } | { Exp([| true |]) }.
+    
+      LoadAction ::= 'do' e = Exp { Exp(e) } | { null }.
+      
+      LoadTime ::= '^' LoadDirective | { RunTime }.
+      
+      LoadDirective ::= 
+      
+        'CompileTime' { CompileTime } |
+        
+        'RunTime' { RunTime } |
+        
+        'Both' { Both }.
+      
+    end
+  
+
+context Manifest
+    
+    @Grammar extends O import Manifests,XOCL 
+    
+      Manifest ::= name = OptName path = OptPath guard = ActionGuard bindings = MBind* loadAction = LoadAction 'end' {
+        
+        Manifest(name,path,bindings,guard,loadAction)
+        
+      }.
+      
+      File ::= guard = ActionGuard path = MPath loadAction = LoadAction 'end' {
+      
+       File(path,guard,loadAction)
+        
+      }.
+      
+      ActionGuard ::= '[' e = Exp ']' { Exp(e) } | { Exp([| true |]) }.
+    
+      LoadAction ::= 'do' e = Exp { Exp(e) } | { null }.OptName ::= Name | { "Anon" }.
+      
+      OptPath ::= '[' MPath ']' | { "" }.
+      
+      OptBuilds ::= '{' n = Name ns = (',' Name)* '}' { ns->asSet->including(n) } | { Set{} }.
+      
+      MPath ::=  n = MPathEntry ns = ('/' MPathEntry)*  { Seq{n|ns}->separateWith("/") } | Str.
+      
+      MPathEntry ::= Name.
+      
+      Ref ::=  guard = ActionGuard path = MPath manifest = OptManifest 'end' {
+      
+        Ref(guard,path,manifest)
+        
+      }.
+      
+      OptManifest ::= '[' name = Name ']' { name } | { "Manifest" }.
+      
+      MBind ::= n = Name '=' e = Exp:ManifestEntry { ManifestBinding(n,e) } | e = Exp:ManifestEntry { ManifestBinding("",e) }.
+      
+    end

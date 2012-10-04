@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Vector in PPrint(aVector,arg,seen)
+  if seen
+  then aVector
+  else
+ aVector
+  end
+end;

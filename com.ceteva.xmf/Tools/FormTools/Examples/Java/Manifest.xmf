@@ -1,0 +1,10 @@
+parserImport Manifests;
+
+@Manifest JavaBrowser
+                @Ref [ not Languages.hasElement("MicroJava") ] HOME/Languages/MicroJava end
+  JavaBrowser = @File JavaBrowser end
+                @File Browse      end
+                @File Mapping     end
+do JavaBrowser
+end;
+  

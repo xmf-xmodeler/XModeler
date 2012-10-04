@@ -1,0 +1,20 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import IO;
+import Tools;
+import Basic;
+import Menus;
+import DiagramTools;
+import Types;
+import DisplayTypes;
+
+context DisplayTypes
+
+  @Class AbstractDisplayType isabstract extends XToolsRefNamedElement
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T->linkAt(self,0)
+    end
+
+  end

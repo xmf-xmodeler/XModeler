@@ -1,0 +1,264 @@
+parserImport XOCL;
+
+context Root
+
+  @Package StateMachines
+  
+    @Class System
+      
+      @Attribute classes : Set(Class) end
+      @Attribute objects : Set(Object) end
+      
+      @Operation addClass(class:Class)
+        self.classes := classes->including(class)
+      end
+      
+      @Operation addObject(object:Object)
+        self.objects := objects->including(object) 
+      end
+      
+      @Operation getClass(name:String):Class
+        classes->select(c | c.name = name)->sel
+      end
+      
+      @Operation new(className:String)
+        let o = self.getClass(className).new()
+        in self.addObject(o);
+           o
+        end
+      end
+      
+      @Operation run1()
+        @For o in objects do
+          o.run1()
+        end
+      end
+            
+      @Operation toString():String
+        "<System " + objects->asSeq->collect(o | o.toString())->separateWith(",") + ">"
+      end
+         
+    end
+      
+    @Class Class
+      
+      @Attribute name : String end
+      @Attribute fields : Set(String) end
+      @Attribute stateMachine : StateMachine end
+        
+      @Operation init(args)
+        self.name := args->at(0);
+        self.fields := args->at(1);
+        self.stateMachine := args->at(2)
+      end
+      
+      @Operation new()
+        Object(self)
+      end
+      
+      @Operation transitionFor(state:String):Transition
+        stateMachine.transitionFor(state)
+      end
+        
+    end
+    
+    @Class Object
+    
+      @Attribute slots : Set(Slot) end
+      @Attribute state : String end
+      @Attribute of : Class end
+      @Attribute messages : Seq(String) end
+            
+      @Operation run1()
+        if not messages->isEmpty
+        then 
+          let message = messages->head
+          in self.messages := messages->tail;
+             self.handleMessage(message)
+          end
+        else self
+        end
+      end
+      
+      @Operation handleMessage(message:String)
+        let transition = self.nextTransition()
+        in if transition.guardSatisfied(self)
+           then 
+             transition.performAction(self);
+             self.state := transition.target
+           else self
+           end
+        end
+      end
+      
+      @Operation init(args)
+        self.of := args->at(0);
+        self.initSlots();
+        self.initState()
+      end
+      
+      @Operation initSlots()
+        self.slots := of.fields->collect(f | Slot(f,null))
+      end
+      
+      @Operation initState()
+        self.state := of.stateMachine.startingState
+      end
+      
+      @Operation nextTransition()
+        self.of.transitionFor(state)
+      end
+      
+      @Operation ref(name:String)
+        slots->select(s | s.name = name)->sel.value
+      end
+      
+      @Operation sendMessage(message:String)
+        self.messages := messages + Seq{message} 
+      end
+       
+      @Operation toString():String
+        "<Object " + slots->collect(s | s.name + "=" + s.value)->asSeq->separateWith(",") + " (" + state + "," + messages->separateWith(",") + ")>"
+      end
+      
+    end
+    
+    @Class Slot
+    
+      @Attribute name : String end
+      @Attribute value : Element end
+      
+      @Operation init(args)
+        self.name := args->at(0);
+        self.value := args->at(1)
+      end
+      
+    end
+      
+    @Class StateMachine
+      
+      @Attribute states : Set(String) end
+      @Attribute transitions : Set(Transition) end
+      @Attribute startingState : String end
+        
+      @Operation init(args)
+        self.states := args->at(0);
+        self.transitions := args->at(1);
+        self.startingState := args->at(2)
+      end
+      
+      @Operation transitionFor(state:String):Transition
+        transitions->select(t | t.source = state)->sel
+      end
+        
+    end
+    
+    @Class Transition
+    
+      @Attribute source : String end
+      @Attribute target : String end
+      @Attribute guard : Expression end
+      @Attribute action : Action end
+      
+      @Operation guardSatisfied(o:Object):Boolean
+        guard.eval(o)
+      end
+      
+      @Operation init(args)
+        self.source := args->at(0);
+        self.target := args->at(1);
+        self.guard := args->at(2);
+        self.action := args->at(3)
+      end
+      
+      @Operation performAction(o:Object)
+        action.perform(o)
+      end
+      
+    end
+    
+    @Class Expression isabstract 
+    
+      @Operation eval(o:Object)
+        self.error("I don't know how to evaluate " + self.toString())
+      end
+      
+    end
+    
+    @Class Const extends Expression
+    
+      @Attribute value : Element end
+      
+      @Operation init(args)
+        self.value := args->at(0)
+      end
+      
+      @Operation eval(o:Object)
+        value
+      end
+      
+    end
+    
+    @Class Self extends Expression
+      
+      @Operation eval(o:Object)
+        o
+      end
+      
+    end
+    
+    @Class Var extends Expression
+    
+      @Attribute name : String end
+      
+      @Operation eval(o:Object)
+        o.ref(name)
+      end
+      
+      @Operation init(args)
+        self.name := args->at(0)
+      end
+      
+    end
+    
+    @Class Action isabstract
+    
+      @Operation perform(o:Object)
+        self.error("I don't know how to perform " + self.toString())
+      end
+      
+    end
+    
+    @Class Send extends Action
+    
+      @Attribute target : Expression end
+      @Attribute message : String end
+      
+      @Operation init(args)
+        self.target := args->at(0);
+        self.message := args->at(1)
+      end
+    
+      @Operation perform(o:Object)
+        target.eval(o).sendMessage(message)
+      end
+      
+    end
+      
+    @Operation test()
+      let
+        A = Class("A",Set{"a"},StateMachine(Set{"start"},Set{Transition("start","end",Const(true),Send(Self(),"n"))},"start"));
+        S = System()
+      in S.addClass(A);
+         let a = S.new("A")
+         in a.sendMessage("m");
+            S.toString().println();
+            S.run1();
+            S.toString()
+         end
+      end
+    end
+    
+  end
+  
+  StateMachines::test();

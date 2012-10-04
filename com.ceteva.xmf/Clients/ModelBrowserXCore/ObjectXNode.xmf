@@ -1,0 +1,237 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class ObjectXNode extends ElementXNode
+
+    @Operation addSelfNameDaemon()
+      if element.isKindOf(NamedElement)
+      then
+        let elementOwner = element.owner
+        in
+          if self.owner.isKindOf(ElementXNode)
+             andthen elementOwner <> null
+             andthen elementOwner.isKindOf(Container)
+             andthen elementOwner.contents.hasValue(element)
+          then self
+          else
+            @SlotValueChanged multi once ObjectXNode::daemons_nameChanged(element,"name") end
+          end
+        end
+      end
+    end
+
+    @Operation addTypeNameDaemon(e)
+      if e.isKindOf(NamedElement)
+      then
+        @SlotValueChanged multi once ObjectXNode::daemons_nameChanged(e,"name") end
+      end
+    end
+
+    @Operation addClassDaemons()
+      let class = element.of()
+      in
+        if class.owner <> XCore
+        then
+          @SlotValueChanged multi once   ObjectXNode::daemons_nameChanged(class,"name") end
+          //@SlotValueChanged multi once + ObjectXNode::daemons_attributeAdded(class,"attributes") end;
+          //@SlotValueChanged multi once - ObjectXNode::daemons_attributeRemoved(class,"attributes") end
+        end
+      end
+    end
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once ObjectXNode::daemons_stateChanged(element,"*") end;
+      //self.addSelfNameDaemon();
+      self.addClassDaemons();
+      if element.slotAffectsLabel("type")
+      then
+        @SlotValueChanged multi once ObjectXNode::daemons_typeChanged(element,"type") end;
+        self.addTypeNameDaemon(element.type)
+      end;
+      self
+    end
+
+    @Operation toSeq(element)
+      if element = null
+      then Seq{}
+      elseif element.isKindOf(SeqOfElement) or element.isKindOf(SetOfElement)
+      then element->asSeq
+      else Seq{element}
+      end
+    end
+
+    @Operation checkSlotNameChange(value,slotName:String)
+      value.isReallyKindOf(Attribute) andthen
+        value.name().toString() = slotName.toString()
+    end
+
+    @Operation childNodeShouldBeAddedFor(e:Element,toolTipText:String):Boolean
+      element.getChildren()->includes(e) andthen
+        if e.isReallyKindOf(Object)
+        then not elementMaps->exists(mapping | mapping.element = e) andthen
+             not node.isCyclicChild(e)
+        else not elementMaps->exists(mapping | mapping.element = e andthen
+                                               mapping.node.toolTipText = toolTipText)
+        end
+    end
+
+
+    @Operation childNodeShouldBeRemovedFor(e:Element,n:ModelBrowserNode,toolTipText:String):Boolean
+      if e.isReallyKindOf(Object)
+      then not element.getChildren()->includes(e)
+      else n.toolTipText = toolTipText
+      end
+    end
+
+    @Operation daemons_nameChanged(e,slot,newName,oldName)
+      self.updateOwnNodeText(slot,newName,oldName)
+    end
+
+    @Operation daemons_stateChanged(e,slot,newValue,oldValue)
+    
+      // This update node label text...
+      self.updateOwnNodeText(slot,newValue,oldValue);
+
+      // This updates child nodes...
+      self.updateChildNodes(slot,newValue,oldValue)
+
+    end
+
+    @Operation daemons_typeChanged(e,slot,newType,oldType)
+      self.node.textChangedOut(self.element.labelString());
+      oldType.removeDaemonsWithTarget(self,true);
+      self.addTypeNameDaemon(element.type)
+    end
+
+    @Operation daemons_attributeAdded(class,slot,attribute)
+      // to be implemented
+      self
+    end
+
+    @Operation daemons_attributeRemoved(class,slot,attribute)
+      // to be implemented
+      self
+    end
+
+    @Operation elementAdded(slot,e)
+    
+      // Handle own node expansion...
+      self.node.expand();
+      if not xmf.modelBrowserNodeExpansionSuppressed()
+      then self.forceNodeExpansion()
+      end;
+      
+      // Handle child node creation...
+      let toolTipText = "'" + slot + "' slot"
+      in
+        if self.childNodeShouldBeAddedFor(e,toolTipText)
+        then
+          let n = self.createNode(e)
+          in
+            n.setToolTipText(toolTipText);
+            self.updateNodeText(n);
+            n.textChangedOut()
+          end
+        else
+          let foundNode = self.findModelBrowserNode(e)
+          in
+            if foundNode <> null
+            then foundNode.setSelected(true,true)
+            end
+          end
+        end
+      end;
+      self
+    end
+    
+    @Operation elementsChanged()
+      node.forceChildSort()
+    end
+
+    @Operation elementRemoved(slot,e)
+      let toolTipText = "'" + slot + "' slot"
+      in
+        @Find(mapping,elementMaps)
+          when mapping.element = e andthen self.childNodeShouldBeRemovedFor(e,mapping.node,toolTipText)
+          do
+            self.removeElementMap(mapping);
+            mapping.node.delete()
+        end
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.removeDaemonsWithTarget(self,true);
+      element.of().removeDaemonsWithTarget(self,true);
+      if element.slotAffectsLabel("type")
+      then
+        element.type.removeDaemonsWithTarget(self,true)
+      end
+    end
+    
+    @Operation updateChildNodes(slot,newValue,oldValue)
+      // Override this in subclasses...
+      //if not element.isKindOf(CompiledOperation) andthen not element.isKindOf(ForeignOperation)
+      //then
+      
+      let
+        newValueSeq = self.toSeq(newValue);
+        oldValueSeq = self.toSeq(oldValue) then
+        added = newValueSeq - oldValueSeq;
+        removed = oldValueSeq - newValueSeq
+      in
+        if not self.checkSlotNameChange(oldValue,slot)
+        then
+          @For value in added do
+            self.elementAdded(slot,value)
+          end;
+          @For value in removed do
+            self.elementRemoved(slot,value)
+          end;
+          if added.isEmpty() and removed.isEmpty()
+          then
+            self.elementsChanged()
+          end
+        end
+      end
+      //end
+    end
+
+    @Operation updateNodeText(n : Node)
+      let nodeElement = n.element
+      in
+        if nodeElement.of().isKindOf(DataType)
+        then
+          let slot = n.toolTipText.subst("","'",false).subst("","' slot",false);
+              elementString =
+                if nodeElement.isKindOf(String)
+                then "\"" + nodeElement.labelString() + "\""
+                else nodeElement.labelString()
+                end
+          in
+            n.text := slot + " = " + elementString
+          end
+        end
+      end
+    end
+
+    @Operation updateOwnNodeText(slot,newValue,oldValue)
+      // Override this in subclasses...
+      node.textChangedOut(self.element.labelString());
+      if owner.isReallyKindOf(ElementXNode)
+      then
+        owner.updateNodeText(node);
+        node.textChangedOut()
+      end
+    end
+
+  end

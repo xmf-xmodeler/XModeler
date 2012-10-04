@@ -1,0 +1,57 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+
+import XML;
+import IO;
+
+context Root
+
+@Grammar BP
+
+  BASE ::= <BASE> ps = Property* bp = SystemBP ds = Driver* cs = Constant* </BASE>
+    { Seq{ps->asSet,bp,ds->asSet,cs->asSet} }.
+  
+  Property ::= <PROPERTIES/>.
+  
+  SystemBP ::= 
+    <SYSTEM_BP c = Category v = Version> 
+      ta = TargetArch 
+      lns = LogicalNetwork* 
+      tcs = TransferConnection*
+      tas = TCAssignment*
+      sys = SystemDefinition
+      ds = Driver*
+    </SYSTEM_BP>  {
+    
+      Seq{c,v,ta,lns->asSet,tcs->asSet,tas->asSet,sys,ds->asSet}
+    
+  }.
+  
+  TargetArch ::= <TARGET_ARCHITECTURE n = Name/> { Seq{n} }.
+  
+  SystemDefinition ::= <SYSTEM_DEFINITION/>.
+  
+  Driver ::= <DRIVER/>.
+  
+  Constant ::= <CONSTANT/>.
+  
+  LogicalNetwork ::= <LOGICAL_NETWORK/>.
+  
+  TransferConnection ::= <TRANSFER_CONNECTION/>.
+  
+  TCAssignment ::= <TC_ASSIGNMENT/>.
+  
+  
+end
+
+//BP.debug := true;
+
+context Root
+  @Operation bp()
+    let i = XMLInputChannel(FileInputChannel("C:/Vehicle.xml"))
+    in BP.parse(Seq{i.read().stripWhiteSpace().root},"BASE")
+    end
+  end

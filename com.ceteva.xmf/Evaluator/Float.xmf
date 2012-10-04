@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Float in Eval(aFloat,arg,seen)
+  null
+end;

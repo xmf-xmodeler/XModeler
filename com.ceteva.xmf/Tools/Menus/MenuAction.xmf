@@ -1,0 +1,79 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+
+context Menus
+
+  @Class MenuAction extends MenuItem
+  
+    @Attribute action : Operation (?,!) end
+    
+    @Constructor(name,action) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      MenuAction ::= name = MenuActionName action = Exp {
+      
+        [| Tools::Menus::MenuAction(<OCL::StrExp(name)>,@Operation(tool,action,path) <action> end) |]
+        
+      }. 
+      
+      MenuActionName ::= Name | Str.
+      
+    end
+
+    @Operation registerNodePath(menuActionHandler:Operation,path:String)
+    
+      // This operation (to be called statically) registers a browser node type against an operation used as
+      // a handler for a menu action...
+      
+      let menuActionTable = xmf.toolManager().menuActionTable()
+      in
+        menuActionTable.put(menuActionHandler,path)
+      end
+    end
+
+    @Operation getNodePath(menuActionHandler,defaultPath:String)
+    
+      // This operation (to be called statically) returns the path to the browser node type...
+      
+      let menuActionTable = xmf.toolManager().menuActionTable()
+      in
+        if menuActionTable.hasKey(menuActionHandler)
+        then menuActionTable.get(menuActionHandler)
+        else defaultPath
+        end
+      end
+    end
+    
+    @Operation merge(inherited)
+    
+      // This means that the two items have the same name. The local item
+      // overrides the inherited item.
+      self
+    end
+    
+    @Operation new(this,tool,path)
+    
+      // Create a menu action and return it. The supplied arguments are used for
+      // the value of self and the tool argument in the action.
+      
+      let action = Clients::Menus::MenuAction(name,Clients::Menus::RightClickable::selfTarget,Seq{},action)
+      in action.setArgs(Seq{tool,action,path});
+         action
+      end
+      
+    end
+    
+    @Operation setToolDescriptorMenu(path:Seq(String))
+    
+      // Add a menu action to the Tools drop down menu. The supplied path
+      // indicates where the item should be added.
+      
+      xmf.addDropDownMenuItem(path + Seq{name},@Operation() action(null,null,null) end)
+      
+    end
+    
+  end

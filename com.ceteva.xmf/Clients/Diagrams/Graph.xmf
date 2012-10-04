@@ -1,0 +1,473 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramLayout;
+
+context Diagrams
+
+  @Class Graph
+  
+    @Attribute nodes : Seq(Node) (?) end
+    @Attribute edges : Seq(Edge) (?) end
+    
+    @Constructor() end
+    
+    @Constructor(nodes,edges) end
+    
+    @Operation addEdge(edge:Edge)
+      self.edges := edges->prepend(edge)
+    end
+    
+    @Operation addNode(node:Node)
+      self.nodes := nodes->prepend(node)
+    end
+    
+    @Operation applyLayout(layout:XML::Element)
+    
+      // Applies layout information to the elements of the graph.
+      // Each layout element contains an id that was generated from
+      // the graph. These ids should be unique and should still exist
+      // in the graph - however it is not an error if they do not.
+      // Data may have been added or deleted. Ids can change from
+      // one graph element to another. Layout will try to do the best
+      // it can with the information. If the information is very stale
+      // then the layout may look a little odd.
+      
+      @For data in layout.children do
+        if data.tag = "Node"
+        then self.layoutNode(data)
+        else self.layoutEdge(data)
+        end
+      end
+      
+    end
+    
+    @Operation containsEdge(edge)
+      edges->includes(edge)
+    end
+    
+    @Operation containsNode(node)
+      nodes->includes(node)
+    end
+    
+    @Operation deepContains(n:Node)
+      @Find(node,nodes)
+        when node = n
+        do true
+        else
+          @Find(node,nodes)
+            when node.deepContains(n)
+            do true
+            else false
+          end
+      end
+    end
+    
+    @Operation delete()
+      @For edge in edges
+      do
+        edge.delete()
+      end;
+      @For node in nodes
+      do
+        node.delete()
+      end
+    end
+    
+    @Operation deselectAll()
+      @For node in nodes do
+        node.setSelected(false)
+      end;
+      @For edge in edges do
+        edge.setSelected(false)
+      end
+    end
+
+    @Operation dispose()
+      @For node in nodes do
+        node.dispose()
+      end;
+      @For edge in edges do
+        edge.dispose()
+      end
+    end
+    
+    @Operation disposeId(disposeChildren)
+      @For node in nodes do
+        node.disposeId(disposeChildren)
+      end;
+      @For edge in edges do
+        edge.disposeId(disposeChildren)
+      end
+    end
+
+    @Operation edgesConnectedTo(node)
+      let connectedEdges = Set{}
+      in
+        @For edge in edges do
+          if node.ports->includes(edge.source) or
+             node.ports->includes(edge.target)
+          then connectedEdges := connectedEdges->including(edge)
+          end
+        end;
+        connectedEdges
+      end
+    end
+
+    @Operation findElement(id:Element)
+      let e = self.findNodeElement(id)
+      in if e = null
+         then self.findEdgeElement(id)
+         else e
+         end
+      end
+    end
+    
+    @Operation findEdgeElement(id)
+      @Find(edge,edges)
+        when edge.findElement(id) <> null
+        do edge.findElement(id)
+        else null
+      end
+    end
+    
+    @Operation findNodeElement(id)
+      @Find(node,nodes)
+        when node.findElement(id) <> null
+        do node.findElement(id)
+        else null
+      end
+    end  
+    
+	@Operation layout()
+      if nodes->forAll(n | n.x = 0 and n.y = 0)
+      then self.circulate(150,150,nodes->size * 15,nodes->size * 15)
+      end;
+      @Busy("Performing Layout")
+        let moved = true;
+            nodeTable = Table(10);
+            origPos = Table(10);
+            count = 0; 
+            v = Vector(4);
+            N = nodes->asSeq;
+            E = edges->asSeq
+        in @For node inSeq N do
+             nodeTable.put(node,Point(0,0));
+             origPos.put(node,Point(node.x,node.y))
+           end;
+           @While moved and count < 300 do
+             moved := false;
+             count := count + 1;
+             @For node inSeq N do
+               let p = nodeTable.get(node)
+               in p.x := node.x;
+                  p.y := node.y
+               end
+             end;
+             @For n1 inSeq N do
+               @For n2 inSeq N do
+                 if n1 <> n2
+                 then 
+                   let p1 = Kernel_tableGet(nodeTable,n1);
+                       p2 = Kernel_tableGet(nodeTable,n2)
+                   in if Kernel_graphLayout(p1.x,p1.y,p2.x,p2.y,v,150,false)
+                      then p1.x := p1.x + v.ref(0);
+                           p1.y := p1.y + v.ref(1);
+                           p2.x := p2.x + v.ref(2);
+                           p2.y := p2.y + v.ref(3)
+                      end
+                   end
+                 end
+                end
+              end;
+              @For edge inSeq E do
+                let n1 = edge.sourceNode();
+                    n2 = edge.targetNode()
+                in if n1 <> n2
+                   then 
+                     let p1 = Kernel_tableGet(nodeTable,n1);
+                         p2 = Kernel_tableGet(nodeTable,n2)
+                     in if Kernel_graphLayout(p1.x,p1.y,p2.x,p2.y,v,400,true)
+                        then 
+                          p1.x := p1.x - v.ref(0);
+                          p1.y := p1.y - v.ref(1);
+                          p2.x := p2.x - v.ref(2);
+                          p2.y := p2.y - v.ref(3)
+                        end
+                     end
+                   end
+                end
+              end;
+              @For node inTableKeys nodeTable do
+                let p = Kernel_tableGet(nodeTable,node) then
+                    x = p.x.abs();
+                    y = p.y.abs()
+                in if not (x = node.x and y = node.y)
+                   then
+                     moved := true;
+                     node.x := x;
+                     node.y := y
+                   end
+                end
+              end
+            end;
+            @For node inTableKeys nodeTable do
+              let 
+                op = Kernel_tableGet(origPos,node) then
+                deltax = node.x - op.x;
+                deltay = node.y - op.y
+              in
+                node.move(node.x,node.y);
+                @For port in node.ports()
+                do
+                  @For edge in edges
+      			  do
+        			if edge.source = port and edge.target = port
+        			then
+          			  edge.applyDelta(Point(deltax,deltay))
+        			end
+      			  end
+                end
+              end
+            end      
+        end
+      end
+    end
+    
+    @Operation layoutData():Layout
+      Layout(self.layoutNodeData(),
+             self.layoutEdgeData())
+    end
+    
+    @Operation layoutEdge(layout:XML::Element)
+      
+      // Attempts to index the correct edge and to arrange the
+      // various features according to the layout.
+      
+      let id = layout.getAtt("id");
+          sourceId = layout.getAtt("sourceId");
+          targetId = layout.getAtt("targetId");
+          hidden = layout.getAtt("hidden").asBool()
+      in @Find(edge,edges)
+           when id = edge.layoutId() and
+                edge.sourceNode().layoutId() = sourceId and
+                edge.targetNode().layoutId() = targetId
+           do edge.applyLayout(layout);
+              if hidden
+              then edge.hide()
+              else edge.showAnyway()
+              end
+         end
+      end
+    end
+    
+    @Operation layoutNode(layout:XML::Element)
+    
+      // Attempts to find a node with the appropriate layout id and
+      // moves it to the saved position.
+      
+      let id = layout.getAtt("id");
+          x = layout.getAtt("x").asFloat().floor();
+          y = layout.getAtt("y").asFloat().floor();
+          width = layout.getAtt("width").asInt();
+          height = layout.getAtt("height").asInt();
+          hidden = layout.getAtt("hidden").asBool()
+      in @Find(node,nodes)
+           when node.layoutId() = id
+           do node.move(x,y);
+              node.resize(width,height);
+              if hidden
+              then node.hide()
+              else node.show()
+              end
+         end
+      end
+      
+    end
+    
+    @Operation layoutEdgeData():Seq(XML::Element)
+      let edgeData = Seq{}
+      in @For edge in edges do
+           edgeData := Seq{edge.layoutData() | edgeData}
+         end;
+         edgeData
+      end
+    end
+    
+    @Operation layoutNodeData():Seq(XML::Element)
+      let nodeData = Seq{}
+      in @For node in nodes do
+           nodeData := Seq{node.layoutData() | nodeData}
+         end;
+         nodeData
+      end
+    end
+    
+    @Operation layoutMove(n1,n2,G,checkDist,nodeModifier)
+      let dx1 = (n1.x - n2.x);
+          dx2 = (n2.x - n1.x);
+          dy1 = n1.y - n2.y;
+          dy2 = n2.y - n1.y then
+          x1r = dx1 / (dx1.abs() + dy1.abs());
+          x2r = dx2 / (dx2.abs() + dy2.abs());
+          y1r = dy1 / (dx1.abs() + dy1.abs());
+          y2r = dy2 / (dx2.abs() + dy2.abs());
+          dist = ((dx1 * dx1) + (dy1 * dy1)).sqrt() then
+          mod = dist * dist * G then
+          modn1x = if x1r < 0 then (x1r/mod).floor() else (x1r/mod).floor() + 1 end;
+          modn1y = if y1r < 0 then (y1r/mod).floor() else (y1r/mod).floor() + 1 end;
+          modn2x = if x2r < 0 then (x2r/mod).floor() else (x2r/mod).floor() + 1 end;
+          modn2y = if y2r < 0 then (y2r/mod).floor() else (y2r/mod).floor() + 1 end
+       in if checkDist(dist)
+          then 
+            n1.x := nodeModifier(n1.x,modn1x);
+            n1.y := nodeModifier(n1.y,modn1y);
+            n2.x := nodeModifier(n2.x,modn2x);
+            n2.y := nodeModifier(n2.y,modn2y)
+          end
+       end
+    end            
+    
+    @Operation new(parent)
+      self.new(parent,true)
+    end
+        
+    @Operation new(diagram,setMenu)
+      @For node in nodes do
+        node.new(diagram,setMenu)
+      end;
+      @For edge in edges do
+        edge.new(diagram,setMenu)
+      end;
+      self
+    end
+    
+    @Operation circulate(width,height,dx,dy)
+    
+      // Causes the nodes to be laid out randomly in a circle.
+      // Does this in a thread to permit any incoming messages
+      // to be handled. If not then the incoming messages are
+      // queued up and consume resources.
+      
+      let 
+        nodes = self.nodes;
+        edges = self.edges
+      in @Fork
+           let interval = 360/nodes->size;
+               angle = 0.0;
+               length = (width/2).min(height/2)
+           in @Count i from 0 to 10 do
+                let angle = 0.0 + i
+                in @For node in nodes do
+                     let 
+                       x = ((length * angle.cos()) + width / 2).floor() + dx then
+                       y = ((length * angle.sin()) + height / 2).floor() + dy then
+                       deltax = x - node.x;
+                       deltay = y - node.y
+                     in 
+                       node.move(x,y);
+                       @For port in node.ports()
+                       do
+                         @For edge in edges
+      					 do
+        				   if edge.source = port and edge.target = port
+        				   then
+          					 edge.applyDelta(Point(deltax,deltay))
+        				   end
+      					 end
+                       end;
+                       self.yield()
+                     end;
+                     angle := angle + interval
+                   end
+                end
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation preferenceChange()
+      @For node in nodes
+      do
+        node.preferenceChange()
+      end
+    end
+    
+    @Operation removeEdge(edge)
+      self.edges := edges.excluding(edge)
+    end
+    
+    @Operation removeNode(node)
+      self.nodes := nodes.excluding(node);
+      @For edge in edges do
+        if node.ports->includes(edge.source) or
+           node.ports->includes(edge.target)
+        then edge.delete()
+        end
+      end
+    end
+        
+    @Operation renew(diagram)
+    
+      // the protectProxyTable transaction is needed otherwise
+      // as we do not want the elements to be removed from the
+      // proxy table during a renew. This is not a tidy solution
+      // and should be refactored later. Paul 12/07/05
+      
+      xmf.menuManager().protectProxyTable(true);
+      self.disposeId(true);
+      xmf.menuManager().protectProxyTable(false);
+      @For node in nodes do
+        node.renew(diagram)
+      end;
+      @For edge in edges do
+        edge.renew(diagram)
+      end;
+      self
+    end
+    
+    @Operation selected()
+    
+      // Returns a sequence of elements that are currently selectd.
+      
+      let selected = Seq{}
+      in @For node in nodes do
+           if node.selected()
+           then selected := Seq{node | selected}
+           end
+         end;
+         @For edge in edges do
+           if edge.selected()
+           then selected := Seq{edge | selected}
+           end
+         end;
+         selected
+      end
+    end
+    
+    @Operation sourceNode(edge)
+      @Find (node,nodes)
+        when node.ports->includes(edge.source)
+      end
+    end
+    
+    @Operation synchronise()
+      @For node in nodes
+      do
+        node.synchronise()
+      end;
+      @For edge in edges
+      do
+        edge.synchronise()
+      end
+    end
+    
+    @Operation targetNode(edge)
+      @Find (node,nodes)
+        when node.ports->includes(edge.target)
+      end
+    end
+    
+  end

@@ -1,0 +1,95 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Send in Eval(aSend,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     args = aSend.args;
+     evalArgs =
+       @Operation(args,element,argValues)
+         if args->isEmpty
+         then send(element,argValues)
+         else
+           next(args->head,
+             @Operation(next,result,call,return)
+               self.eval(args->head,env,target,imports,next,result,call,return,
+                 @Operation(value)
+                   evalArgs(args->tail,element,argValues + Seq{value})
+                 end)
+             end)
+         end
+       end;
+     send =
+       @Operation(target,args)
+         let class = target.of() then
+             O = class.allOperations();
+             found = false
+         in @While not O->isEmpty and not found do
+              let op = O->head
+              in if op.name().toString() = aSend.message and
+                    op.arity() = args->size
+                 then found := true
+                 else O := O->tail
+                 end
+              end
+            end;
+            if found
+            then 
+              if O->head.isKindOf(InterpretedOperation)
+              then sendInterpreted(O,target,args)
+              else 
+                let value = O->head.invoke(target,args,O)
+                in result(aSend,value,cont)
+                end
+              end
+            else self.error("Cannot send message " + aSend.message + " to " + target.toString())
+            end
+         end
+       end;
+     sendInterpreted =
+       @Operation(O,element,args)
+         let op = O->head
+         in if op.parameters->size = args->size and not op.isVarArgs
+            then 
+              let bodyEnv = op.bindParams(op.parameters,args,element,op.dynamicEnv(),imports)
+              in call(aSend.message,op.body,
+                   @Operation() 
+                     self.env := bodyEnv;
+                     next(op.body,
+                       @Operation(next,result,call,return)
+                         self.eval(op.body,bodyEnv,element,op.imports,next,result,call,return,
+                           @Operation cont(value)
+                             self.env := env;
+                             self.target := target;
+                             self.imports := imports;
+                             return(@Operation return() result(aSend,value,cont) end)
+                           end)
+                       end)
+                   end)
+              end
+            elseif op.isVarArgs and args->size >= op.parameters->size - 1
+            then 
+              let value = op.body.eval(target,op.bindParams(op.parameters,args->take(op.arity() - 1) + Seq{args->drop(op.arity() - 1)},target,op.dynamicEnv(),imports),imports)
+              in result(aApply,value,@Operation() cont(value) end)
+              end
+            else throw ArityMismatch(self,args)
+            end
+          end
+       end
+  in next(aSend.target,
+       @Operation(nextOp,resultOp,call,return)
+         self.eval(aSend.target,env,target,imports,nextOp,resultOp,call,return,
+           @Operation(target)
+             evalArgs(args,target,Seq{})
+           end)
+       end)
+  end
+end;

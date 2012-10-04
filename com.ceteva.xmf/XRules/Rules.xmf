@@ -1,0 +1,142 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Env;
+import XRules;
+import Stacks;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Rules extends XOCL::Syntax, NamedElement
+  
+    @Attribute rules     : Set(Rule)                                          (+,-,?) end
+    @Attribute imports   : Seq(Seq(String)) = Seq{Seq{"Root"},Seq{"XCore"}}   (+,-,!) end
+    @Attribute debug     : Boolean                                            (?,!)   end
+    @Attribute cache     : Table = Table(10)                                          end
+    @Attribute builtins  : Table = Table(10)                                          end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Rules ::= n = Name is = Imports es = Exp* {
+      
+        es->iterate(e r = Rules(n).addImports(is) | r.add(e))
+        
+      }.
+      
+      Imports ::= 'import' p = RulePath ps = (',' RulePath)* { Seq{p | ps} } | { Seq{} }.
+      
+      RulePath ::= n = Name ns = ('::' Name)* { Seq{n | ns} }.
+      
+    end
+
+    @Operation add(element)
+      @TypeCase(element)
+        Rule do
+          @Find(rule,rules)
+            when rule.name = element.name
+            do @For ruleDef in element.ruleDefs() do
+                 rule.add(ruleDef)
+               end
+            else self.addToRules(element)
+          end;
+          self.cacheRuleDefs();
+          self
+        end
+        Builtin do
+          builtins.put(element.name(),element)
+        end
+      end
+    end
+
+    @Operation addImports(is)
+      self.imports := is + imports
+    end
+
+    @Operation cacheRuleDefs()
+      @For rule in rules do
+        @For ruleDef in rule.ruleDefs() do
+           let table = self.getRuleTable(rule.name())
+           in table.put(ruleDef.arity(),ruleDef)
+           end
+        end
+      end
+    end
+    
+    @Operation call(name:String,values:Seq(Element),indent:Integer,env:Env,succ:Operation,fail:Operation,exception:Operation)
+      if Kernel_tableHasKey(builtins,name)
+      then builtins.get(name).call(self,values,indent,env,succ,fail,exception)
+      else
+        let ruleDef = self.findRuleDef(name,values->size)
+        in if ruleDef = null
+           then self.error("No rule named " + name)
+           else self.callClauses(name,ruleDef.clauses(),values,indent,env,succ,fail,fail,exception)
+           end
+        end
+      end
+    end
+    
+    @Operation callClauses(name:String,clauses:Seq(Clause),values,indent,env,succ,fail,cut,exception)
+      if clauses->isEmpty
+      then 
+        if debug
+        then format(stdout,"~VFail~%",Seq{indent})
+        end;
+        fail()
+      elseif clauses->tail->isEmpty
+      then clauses->head.call(name,self,values,indent+2,env,succ,fail,cut,exception)
+      else 
+        clauses->head.call(name,self,values,indent+2,env,succ,
+          @Operation()
+            self.callClauses(name,clauses->tail,values,indent,env,succ,fail,cut,exception)
+          end,
+          cut,exception)
+      end
+    end      
+    
+    @Operation findRuleDef(name:String,arity:Integer):RuleDef
+      if Kernel_tableHasKey(cache,name)
+      then Kernel_tableGet(Kernel_tableGet(cache,name),arity)
+      else self.error("No rule named " + name)
+      end
+    end
+    
+    @Operation getRuleTable(name:String):Table
+      if cache.hasKey(name)
+      then cache.get(name)
+      else 
+        cache.put(name,Table(10));
+        cache.get(name)
+      end
+    end
+    
+    @Operation imports():Seq(NameSpace)
+      imports->collect(path |
+        path->ref(Seq{Root}))
+    end
+    
+    @Operation performs(actions,vars,indent,env,succ,fail,cut,exception)
+  
+      // A utility operation that allows a number of actions to
+      // be performed in sequence.
+    
+      if actions->isEmpty
+      then succ(env,fail)
+      else
+        actions->head.perform(self,vars,indent,env,
+          @Operation(env,fail)
+            self.performs(actions->tail,vars,indent,env,succ,fail,cut,exception)
+          end,
+          fail,cut,exception)
+      end
+    end
+
+  end

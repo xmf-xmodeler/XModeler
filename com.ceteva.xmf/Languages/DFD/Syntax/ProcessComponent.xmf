@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class ProcessComponent isabstract 
+
+    // A process component is an element that lives in a process.
+    // Different component types add themselves to a process in 
+    // different ways.
+
+    @Operation addTo(p:Process)
+      self.error("I don't know how to add myself to a process")
+    end
+      
+    @Operation removeFrom(p:Process)
+      self.error("I don't know how to remove myself from a process")
+    end
+      
+  end

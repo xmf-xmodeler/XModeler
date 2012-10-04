@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@ElementManager RootElementType::Editor::Manager
+end;
+

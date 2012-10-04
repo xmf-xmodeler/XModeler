@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Stacks;
+import OCL;
+import Walkers;
+  
+context Walkers
+
+  @Class TypeChecker metaclass Dispatcher 
+  
+    @Attribute debug    : Boolean end
+    @Attribute indent   : Integer end
+    @Attribute selfType : Classifier (?) end
+    
+    @Constructor(selfType) ! end
+    
+    @Operation binds(name:String):Boolean
+      // Returns true when the name is bound in the current dynamic scope.
+      false
+    end
+    
+    @Operation dispatch(exp,env)
+      try
+        if debug
+        then
+          format(stdout,"~V~S(~S)~%",Seq{indent,exp.pprint().subst(" ","\n",true),env});
+          self.indent := indent + 2;
+          let type = super(exp,env)
+          in self.indent := indent - 2;
+             format(stdout,"~V<= ~S~%",Seq{indent,type});
+             type
+          end
+        else super(exp,env)
+        end
+      catch(exception)
+        TypeCheckFails(exception.toString())
+      end
+    end
+  
+    @Operation typesMatch(subTypes,superTypes)
+      if subTypes->size <> superTypes->size
+      then false
+      else 
+        if subTypes->size = 0 
+        then true
+        else 
+          0.to(subTypes->size - 1)->forAll(i |
+            subTypes->at(i).inheritsFrom(superTypes->at(i)))
+        end
+      end
+    end
+    
+  end
+
+
+

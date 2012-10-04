@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Send extends OCL::OCL
+  
+    // A send expression sends a message + arguments to a target
+    // object.
+  
+    @Attribute target : OCL::OCL end
+    @Attribute message : String end
+    @Attribute args : Seq(OCL::OCL) end
+    
+    @Constructor(target,message,args) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S.~S(~{,~;~S~})",Seq{
+        target.pprint(indent),
+        if message.isKindOf(SeqOfElement) then message->at(0) else message end,
+        args->collect(arg | arg.pprint(indent))})
+    end
+    
+  end

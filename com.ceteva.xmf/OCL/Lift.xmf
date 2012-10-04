@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+context OCL
+
+  @Class Lift extends OCL::OCL
+  
+    @Attribute exp : OCL::OCL end
+    
+    @Constructor(exp) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"[| ");
+      exp.pprint(out,indent + 2);
+      format(out," |]")
+    end
+    
+  end 

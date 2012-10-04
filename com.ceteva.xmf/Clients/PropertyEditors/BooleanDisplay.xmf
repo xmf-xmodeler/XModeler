@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class BooleanDisplay
+  
+    @Attribute label : FormLabel end
+    @Attribute checkBox : FormCheckBox end
+  
+    @Constructor(label,checkBox)
+    end
+
+    @Operation addToForm(form:Form,x,y,labelWidth)
+      self.addLabel(form,x,y);
+      self.addCheckBox(form,x+labelWidth,y)
+    end
+
+    @Operation addLabel(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+    
+    @Operation addCheckBox(form,x,y)
+      self.checkBox.setX(x);
+      self.checkBox.setY(y);
+      form.addElement(self.checkBox)
+    end
+
+  end

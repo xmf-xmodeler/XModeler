@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Read extends Instr
+  
+    @Doc
+      A machine instruction that performs an non blocking read on the
+      input channel found at the head of the stack.
+    end
+     
+    @Operation toString():String
+      "<Read>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

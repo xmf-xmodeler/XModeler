@@ -1,0 +1,314 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Or
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Or(<left.toExp(FV + left.FV())>,<right.toExp(FV + right.FV())>) |]
+    end
+
+context Grammar
+  @Operation clauseNamed(name)
+    if clauseCache.hasKey(name)
+    then clauseCache.get(name)
+    else
+      @Find(clause,clauses)
+        when clause.name().toString() = name
+        do clauseCache.put(name,clause);
+           clause
+        else null
+      end
+    end
+  end
+
+context Grammar
+  @Operation lift()
+    self.liftOrs();
+    let parentExps = SetExp("Set",parents->asSeq);
+        clauseExps = SetExp("Seq",clauses->collect(clause | clause.lift())->asSeq);
+        startingSymbolExp = StrExp(startingSymbol);
+        importExps = SetExp("Seq",imports)
+    in [| Root::Parser::BNF::CompiledGrammar(<parentExps>,<clauseExps>,<startingSymbolExp>,<importExps>).compile() |]
+    end
+  end
+  
+context Grammar
+  @Operation newClauseName(prefix)
+    let i = 0
+    in @While self.clauseNamed(prefix + i) <> null do
+         i := i + 1
+       end;
+       prefix + i
+    end
+  end
+  
+context Grammar
+  @Operation liftOrs()
+    @For clause in clauses do
+      clause.liftOrs(self)
+    end
+  end
+  
+context Clause
+  @Operation liftOrs(grammar)
+    self.body := self.liftOrsOuter(grammar,body)
+  end
+  
+context Clause
+  @Operation liftOrsOuter(grammar,body)
+    @CaseObj body of
+      Or[left,right] do
+        Or(self.liftOrsOuter(grammar,left),self.liftOrsOuter(grammar,right))
+      end
+      And[left,right] do
+        self.liftOrsInner(grammar,args->asSet,left,
+          @Operation(locals,left)
+            self.liftOrsInner(grammar,locals,right,
+              @Operation(locals,right)
+                And(left,right)
+              end)
+          end)
+      end
+      Opt[parser] do
+        self.liftOrsOuter(grammar,Or(parser,Nil()))
+      end
+      PreAction[ ] do
+        body
+      end
+      Nil[ ] do
+        body
+      end
+      Call[ ] do
+        body
+      end
+      Name[ ] do
+        body
+      end
+      Int[ ] do
+        body
+      end
+      Str[ ] do
+        body
+      end
+      PreAction[ ] do
+        body
+      end
+      StarCons[ ] do
+        self.liftOrsInner(grammar,args->asSet,body,
+          @Operation(locals,body)
+            body
+          end)
+      end
+      Char[ ] do
+        body
+      end
+      Line[ ] do
+        body
+      end
+      Term[ ] do
+        body
+      end
+      TypeCheck[ ] do
+        body
+      end
+      PrePredicate[ ] do
+        body
+      end
+      else self.error("LIFT CLAUSE OUTER " + body.toString())
+    end
+  end
+  
+context Clause
+  @Operation liftOrsInner(grammar,locals,body,next)
+    @CaseObj body of
+      Or[left,right] do
+        let name = grammar.newClauseName(name + "-Dis");
+            args =  locals->asSeq->qsort(@Operation(x,y) x < y end) then
+            call = Call(name,args);
+            clause = Clause(name,args,body)
+        in grammar.add(clause);
+           clause.liftOrs(grammar);
+           next(locals,call)
+        end
+      end
+      PlusCons[parser] do
+        let name = grammar.newClauseName(name + "-PlusCons");
+            args =  locals->asSeq->qsort(@Operation(x,y) x < y end) then
+            call = Call(name,args);
+            clause = Clause(name,args,And(parser,And(Bind("$head"),And(StarCons(parser),And(Bind("$tail"),Cons())))))
+        in grammar.add(clause);
+           clause.liftOrs(grammar);
+           next(locals,call)
+        end
+      end
+      And[left,right] do
+        self.liftOrsInner(grammar,locals,left,
+          @Operation(locals,left)
+            self.liftOrsInner(grammar,locals,right,
+              @Operation(locals,right)
+                next(locals,And(left,right))
+              end)
+          end)
+      end
+      Parser::BNF::Bind[name] do
+        next(locals->including(name),body)
+      end
+      Opt[parser] do
+        self.liftOrsInner(grammar,locals,Or(parser,Nil()),next)
+      end
+      StarCons[parser] do
+        @CaseObj parser of
+          Char[ ] do
+            next(locals,Chars())
+          end
+          else
+            let name = grammar.newClauseName(name + "-Star") then
+                args =  locals->asSeq->qsort(@Operation(x,y) x < y end) then
+                newBody = Or(And(parser,And(Bind("$head"),And(Call(name,args),And(Bind("$tail"),Cons())))),Nil()) then
+                clause = StarClause(name,args,newBody)
+            in grammar.add(clause);
+               clause.liftOrs(grammar);
+               next(locals,Call(name,args))
+            end
+        end
+      end
+      Call[ ] do
+        next(locals,body)
+      end
+      Terminal [ ] do
+        next(locals,body)
+      end
+      Cons[ ] do
+        next(locals,body)
+      end
+      Nil[ ] do
+        next(locals,body)
+      end
+      PreAction[ ] do
+        next(locals,body)
+      end
+      Name[ ] do
+        next(locals,body)
+      end
+      Int[ ] do
+        next(locals,body)
+      end
+      Str[ ] do
+        next(locals,body)
+      end
+      Tok[ ] do
+        next(locals,body)
+      end
+      PState[ ] do
+        next(locals,body)
+      end
+      At[ ] do
+        next(locals,body)
+      end
+      Bind[name] do
+        next(locals->including(name),body)
+      end
+      Cut[ ] do
+        next(locals,body)
+      end
+      EOF[ ] do
+        next(locals,body)
+      end
+      ImportAt[ ] do
+        next(locals,body)
+      end
+      Float[ ] do
+        next(locals,body)
+      end
+      Char[ ] do
+        next(locals,body)
+      end
+      Chars[ ] do
+        next(locals,body)
+      end
+      Line[ ] do
+        next(locals,body)
+      end
+      Term[ ] do
+        next(locals,body)
+      end
+      TypeCheck[ ] do
+        next(locals,body)
+      end
+      PrePredicate[ ] do
+        next(locals,body)
+      end
+      else self.error("LIFT CLAUSE INNER " + body.toString())
+    end
+  end
+  
+context Clause
+  @Operation cnf(grammar)
+    let bodies = body.cnf(grammar)->collect(instrs | self.compileLocals(args->asSet,instrs,grammar))
+    in CompiledClause(name,args,body,bodies)
+    end
+  end
+  
+context Clause
+  @Operation lift() 
+    let nameExp = StrExp(name);
+        argsExp = SetExp("Seq",args->collect(a | StrExp(a)));
+        bodyExp = body.toExp(args->asSet + body.FV())
+    in [| Root::Parser::BNF::Clause(<nameExp>,<argsExp>,<bodyExp>) |]
+    end
+  end
+  
+context Clause
+  @Operation compileLocals(locals,instrs,grammar)
+    Block(0,instrs).compileLocals(args,locals,grammar)
+  end
+  
+context Block
+  @Operation compileLocals(args,locals,grammar)
+    let locals = (locals + instrs->iterate(i L = Set{} | L + i.FV()))->asSeq.qsort(@Operation(x,y) x < y end)
+    in self.locals := locals->size;
+       self.calcArgMap(args,locals);
+       self.instrs := instrs->collect(i |
+         @CaseObj i of
+           Bind[name] do
+             SetLoc(locals->indexOf(name))
+           end
+           Cons[ ] do
+             i.setHeadIndex(locals->indexOf("$head"));
+             i.setTailIndex(locals->indexOf("$tail"));
+             i
+           end
+           Call[name,args] do
+             Call(name,args,args->collect(a | locals.indexOf(a)))
+           end
+           else i
+         end
+       )
+    end
+  end
+  
+context And
+  @Operation cnf(grammar)
+    let lefts = left.cnf(grammar);
+        rights = right.cnf(grammar)
+    in lefts->iterate(left C = Seq{} | 
+         rights->iterate(right C = C | C->including(left + right)))
+    end
+  end
+  
+context Empty
+  @Operation cnf(grammar)
+    Seq{Seq{}}
+  end
+  
+context Or
+  @Operation cnf(grammar)
+    left.cnf(grammar) + right.cnf(grammar)
+  end
+  
+context Recognizer
+  @Operation cnf(grammar)
+    Seq{Seq{self}}
+  end 
+  

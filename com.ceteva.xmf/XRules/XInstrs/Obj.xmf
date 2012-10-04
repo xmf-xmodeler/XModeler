@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class Obj extends Instr
+  
+    @Attribute path : Seq(String) end
+    @Attribute slots : Seq(String) end
+    
+    @Constructor(path,slots) ! end
+  
+  end

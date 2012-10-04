@@ -1,0 +1,140 @@
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class XML extends Walker
+  
+    @Doc 
+      Walk a value and translate it to XMF standard XML representation.
+      Cycles are handles by producing refs (all elements have an id).
+      Elements not in the given name spaces are saved as name space refs
+      and assumed to be present when the XML is loaded and transformed
+      by an XML input channel.
+    end
+  
+    @Attribute nameSpaces : Set(NameSpace) end
+    
+    @Constructor() 
+      self.initWalker()
+    end
+    
+    @Constructor(nameSpaces) 
+      self.initWalker()
+    end
+  
+    @Operation defaultWalk(e:Element,arg:Element):Element
+       format(arg,"<~S self='~S'/>",Seq{self.of().pathSeq()->separateWith("_"),self.toString()})
+    end
+    
+    @Operation nameSpaceElement(namedElement):Boolean
+      let nameSpaceElement = false
+      in @For nameSpace in nameSpaces do
+           @For element inTableValues nameSpace.contents do
+             if namedElement = element 
+             then nameSpaceElement := true
+             end
+           end
+         end;
+         nameSpaceElement
+      end
+    end
+    
+    @Operation reWalk(v:Element,arg:Element):Element
+      format(arg,"<IdRef id='~S'/>",Seq{self.getRef(v)})
+    end
+    
+    @Operation walkBoolean(b:Boolean,arg:Element):Element 
+      format(arg,"<Boolean value='~S'/>",Seq{b})
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      format(arg,"<Integer value='~S'/>",Seq{i})
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      format(arg,"<Null/>")
+    end
+     
+    @Operation walkObject(o:Object,arg:Element):Element 
+      if o.isReallyKindOf(XCore::NamedElement) and 
+         not self.nameSpaceElement(o)
+      then self.walkRef(o,arg)
+      else super(o,arg)
+      end
+    end
+      
+    @Operation walkOperation (o:Operation,arg:Element):Element
+      format(arg,"<Operation name='~S'/>",Seq{o.name})
+    end
+    
+    @Operation walkPreObject(o:Object,arg:Element)
+      format(arg,"<Object id='~S'>",Seq{self.getRef(o)});
+      self.walkRef(o.of(),arg)
+    end
+     
+    @Operation walkPostObject(o:Object,arg:Element)
+      format(arg,"</Object>")
+    end
+    
+    @Operation walkRef(namedElement:NamedElement,arg:Element)
+      let path = namedElement.pathSeq()
+      in format(arg,"<Ref root='~S'>",Seq{path->head});
+         @For name in path->tail do
+           format(arg,"<NameSpaceRef name='~S'/>",Seq{name})
+         end;
+         format(arg,"</Ref>")
+      end
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,arg:Element):Element 
+      if s->isEmpty
+      then format(arg,"<EmptySeq/>")
+      else
+        format(arg,"<Seq>");
+        self.walk(s->head,arg);
+        self.walk(s->tail,arg);
+        format(arg,"</Seq>")
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,arg:Element):Element 
+      if s->isEmpty
+      then format(arg,"<EmptySet/>")
+      else
+        format(arg,"<Set>");
+        @For e in s do
+          self.walk(e,arg)
+        end;
+        format(arg,"</Set>")
+      end
+    end
+     
+    @Operation walkSlot(o:Object,s:String,arg:Element)
+      format(arg,"<Slot name='~S'>",Seq{s});
+      self.walk(o.get(s),arg);
+      format(arg,"</Slot>")
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      format(arg,"<String value='~S'/>",Seq{s})
+    end
+    
+    @Operation walkSymbol(s:Symbol,arg:Element):Element 
+      format(arg,"<Symbol value='~S'/>",Seq{s})
+    end
+    
+    @Operation walkTable(t:Table,arg:Element):Element
+      format(arg,"<Table>");
+      @For key in t.keys() do
+        format(arg,"<TableEntry>");
+        self.walk(key,arg);
+        self.walk(t.get(key),arg);
+        format(arg,"</TableEntry>")
+      end;
+      format(arg,"</Table>")
+    end
+     
+  end
+     

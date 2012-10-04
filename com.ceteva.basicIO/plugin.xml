@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.propertyPages">
+      <page
+            objectClass="org.eclipse.core.resources.IFile"
+            name="Sample Page"
+            nameFilter="*.*"
+            class="com.ceteva.basicIO.properties.SamplePropertyPage"
+            id="com.ceteva.basicIO.properties.samplePropertyPage">
+      </page>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.startup">
+         <startup class="com.ceteva.basicIO.BasicIOStartup"/>
+   </extension> 
+
+</plugin>

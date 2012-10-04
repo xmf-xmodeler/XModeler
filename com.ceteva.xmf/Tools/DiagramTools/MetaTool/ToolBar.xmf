@@ -1,0 +1,97 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @NodeType ToolBar
+    @Box toolBarType
+      minWidth = 100
+      minHeight = 30
+      @Image toolBarImage(CENTRE)
+        "ToolBar.gif"
+        width = 15 
+        height = 15
+        @Menu
+          @MenuAction "Add Group"
+            self.owner().addNew("groupType")
+          end
+          @MenuAction "Delete"
+            self.owner().owner().delete(true)
+          end
+        end
+      end
+      @Star
+        @PaddedBox groupType(ALIGN,showTop,showLeft,showRight,showBottom)
+          pad = 5
+          @PaddedBox groupAttribute(CENTRE,HORIZONTAL)
+            pad = 3
+            @Image groupImage(LEFT)
+              "Group.gif"
+              width = 15
+              height = 15
+              @Menu
+                @MenuAction Delete
+                  self.owner().owner().delete(true)
+                end
+                @MenuAction "New Button"
+                  self.owner().owner().addNew("buttonBox")
+                end
+              end
+            end
+            @PaddedText name(CENTRE)
+              "Group Name"
+              pad = 3
+            end
+          end
+          @Star
+            @PaddedBox buttonBox(ALIGN,showTop,showLeft,showRight,showBottom)
+              pad = 3
+              @PaddedBox button(CENTRE,HORIZONTAL)
+                pad = 3
+                @Image groupImage(LEFT)
+                  "Button.gif"
+                  width = 15
+                  height = 15
+                end
+                @PaddedText name(CENTRE)
+                  "Button Name"
+                  pad = 3
+                  @Menu
+                    @MenuAction Delete
+                      self.owner().owner().delete(true)
+                    end
+                  end
+                end
+                @Or EdgeOrNode
+                  @Image edgeImage(RIGHT)
+                    "Edge.gif"
+                    width = 15
+                    height = 15
+                    @Menu @MenuAction Node self.owner().changeTo("EdgeOrNode","nodeImage") end end
+                  end
+                  @Image nodeImage(RIGHT)
+                    "Node.gif"
+                    width = 15
+                    height = 15
+                    @Menu @MenuAction Edge self.owner().changeTo("EdgeOrNode","edgeImage") end end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end

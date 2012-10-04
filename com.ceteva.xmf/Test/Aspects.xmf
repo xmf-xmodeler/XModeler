@@ -1,0 +1,25 @@
+parserImport Aspects;
+
+format(stdout,"This file tests aspects. It adds an aspect to packages to flatten them.~%");
+format(stdout,"You should see a flattened version of XCore.~%");
+
+@Aspect Flatten
+
+  @Class Container
+    @Operation flatten()
+      self.contents()->iterate(c S = Seq{} | S + c.flatten())
+    end
+  end
+  
+  @Class Element
+    @Operation flatten()
+      Seq{self}
+    end 
+  end
+  
+end;
+
+XOCL.flatten();
+    
+  
+  

@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Mosaic;
+
+context Mosaic
+
+  @Class MosaicClient extends Client
+  
+    @Attribute perspectives : Seq(Perspective) end
+
+    @Constructor(name)
+      self.setCommandInterpreter(MosaicCommandInterpreter());
+      self.setEventHandler(MosaicEventHandler())
+    end
+    
+    @Operation addPerspective(perspective)
+      self.perspectives := perspectives->prepend(perspective);
+      perspective.setOwner(self);
+      perspective.new();
+      perspective.show()
+    end
+    
+    @Operation setFilenameRedirect(source,target)
+      commandInterpreter.setFilenameRedirect(source,target)
+    end
+
+  end

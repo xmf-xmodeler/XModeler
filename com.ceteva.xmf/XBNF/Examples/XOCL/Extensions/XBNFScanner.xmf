@@ -1,0 +1,32 @@
+parserImport XBNF::Grammars;
+parserImport XBNF::Scanning::Structure;
+
+
+import XBNF;
+import Grammars;
+
+context Grammar
+
+  @Scanner Scanner extends Root::OCL::Scanner 
+    
+      Token("?")
+      Token("^")
+      Token("scanner")
+      Token("builtin")
+      Token("extends")
+      Token("Empty")
+      Token("Char")
+      Token("Line")
+      Token("Str")
+      Token("Token")
+      Token("Int")
+      Token("Name")
+      Token("EOF")
+      Token("@")
+      Token("ImportAt")
+      Token("Not")
+      
+      "'" [a - z A - Z] [a - z A - Z 0 - 9 "_"] * "'" { Terminal }
+    
+      
+    end

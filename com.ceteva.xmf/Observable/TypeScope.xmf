@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import OCL;
+import Observable;
+
+context Observable 
+
+  @Class TypeScope extends Scope
+ 
+     @Attribute path          : Seq(String) end 
+     @Attribute retrospective : Boolean     end
+     
+     @Constructor(path,retrospective) ! end
+     
+     @Operation attach(generator)
+       let class = path.ref(Seq{Root,XCore})
+       in if class = null
+          then self.error(formats("Cannot attach generator to ~{::~;~S~}.",Seq{path}))
+          else 
+            let newListener = @Operation(o) o.addGenerator(generator) end
+            in newListener.newListenerFor(class);
+               if retrospective
+               then
+                 @For o classifiedBy class do
+                   o.addGenerator(generator)
+                 end
+               end
+            end;
+            generator.addCreationListeners(class)
+          end
+       end
+     end
+     
+     @Operation observe(observer)
+       let class = path.ref(Seq{Root,XCore})
+       in if class = null
+          then self.error(formats("Cannot attach observer to ~{::~;~S~}.",Seq{path}))
+          else 
+            let newListener = @Operation(o) o.addObserver(observer) end
+            in newListener.newListenerFor(class);
+               if retrospective 
+               then
+                 @For o classifiedBy class do
+                   o.addObserver(observer)
+                 end
+               end
+            end
+          end
+       end
+     end
+     
+  end

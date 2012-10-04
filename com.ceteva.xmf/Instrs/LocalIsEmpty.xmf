@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class LocalIsEmpty extends Instr
+  
+    @Doc
+      This machine instruction references a local variable location
+      in the current stack frame and pushes whether it is empty or not.
+    end
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+    @Operation toString():String
+      "<LocalIsEmpty " + name + "," + offset + ">"
+    end
+    
+  end
+  

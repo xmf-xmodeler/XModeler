@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+import Env;
+
+context OCL
+
+  @Class Condp extends Pattern
+  
+    @Doc
+     A conditional pattern involves a sub-pattern and a predicate expression.
+     for the conditional pattern to succeed, the sub-pattern must succeed and
+     the condition must be satisfied. The sub-pattern may bind variables and
+     the condition is performed in the scope of any pattern bound variables.
+    end
+    
+    @Attribute pattern : Pattern end
+    @Attribute condition : Performable end
+     
+    @Constructor(pattern,condition) ! end
+    
+    @Operation bind(value:Element,target:Element,env:Env,imports:Seq(NameSpace)):Env
+      let env = pattern.bind(value,target,env,imports)
+      in if condition.eval(target,env,imports)
+         then env
+         else throw PatternFailed(self,value)
+         end
+      end
+    end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{pattern.lift(),condition.lift()})
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       pattern.matchCode(value,[| if <condition> then <success> else <fail> end |],fail)
+     end
+     
+     @Operation needsBacktrack():Boolean
+       pattern.needsBacktrack()
+     end
+     
+     @Operation newParam()
+       pattern.newParam()
+     end
+     
+     @Operation newVar():String
+       pattern.newVar()
+     end
+     
+     @Operation pprint(out)
+       pattern.pprint(out);
+       format(out," when ");
+       condition.pprint(out,0)
+     end
+     
+   end

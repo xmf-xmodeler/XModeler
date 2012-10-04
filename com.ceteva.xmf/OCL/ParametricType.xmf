@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ParametricType extends TypeExp
+  
+    @Doc
+      Represents a type expression consisteing of a named
+      parametric type applied to a sequence of type expressions.
+    end
+    
+    @Attribute constructor : Seq(String) end
+    @Attribute args        : Seq(TypeExp) end
+    
+    @Constructor(constructor,args) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~{::~;~S~}(",Seq{constructor});
+      @For arg in args do
+        arg.pprint(out,indent);
+        if not isLast then format(out,",") end
+      end;
+      format(out,")")
+    end
+    
+    @Operation toSig()
+      Seq{TypeExp::PARAMETRIC,constructor,args->collect(a | a.toSig())}
+    end
+    
+  end

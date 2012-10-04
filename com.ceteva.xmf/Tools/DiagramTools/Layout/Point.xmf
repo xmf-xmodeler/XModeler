@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Layout
+
+  @Class Point 
+  
+    @Attribute x : Integer (?,!) end
+    @Attribute y : Integer (?,!) end
+    
+    @Constructor(x,y) ! end
+    
+  end

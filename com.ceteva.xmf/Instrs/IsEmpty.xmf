@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class IsEmpty extends Instr
+  
+    @Operation toString():String
+      "<IsEmpty>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

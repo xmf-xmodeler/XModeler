@@ -1,0 +1,22 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Operation in Eval(aOperation,arg,seen)
+  let result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports;
+      oimports = aOperation.imports;
+      doc = aOperation.doc();
+      performable = aOperation.performable;
+      type = aOperation.type;
+      isMultiArgs = aOperation.isMultiArgs;
+      parameters = aOperation.parameters;
+      name = aOperation.name then
+      op = InterpretedOperation(name,parameters,isMultiArgs,env,target,oimports,doc.eval(target,env,imports),performable)
+  in result(aOperation,op,cont) 
+  end
+end;

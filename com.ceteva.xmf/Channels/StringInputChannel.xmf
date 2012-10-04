@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class StringInputChannel extends StandardInputChannel
+  
+    @Doc
+      A string input channel reads characters from a string.
+    end
+        
+    @Operation close()
+      Kernel_close(channel)
+    end
+    
+    @Operation init(args) 
+      let string = args->at(0)
+      in self.channel := Kernel_stringInputChannel(string)
+      end
+    end    
+      
+    @Operation eof():Boolean
+      Kernel_eof(channel)  
+    end
+      
+    @Operation read(buffer):Integer
+      let char = self.read();
+          chars = 0
+      in @While char > 0 do
+           chars := chars + 1;
+           @TypeCase(buffer)
+             Vector do
+               buffer.put(0,char)
+             end
+             Buffer do
+               buffer.add(char)
+             end
+             else self.error("Unknown type of buffer for a read: " + buffer.toString())
+           end;
+           char := self.read()
+         end;
+         chars
+      end
+    end
+     
+  end

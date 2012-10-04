@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context OCL
+
+  @Class Consp extends Pattern
+  
+    @Doc
+      A cons pattern consists of a head and a tail pattern. A value matches a cons
+      pattern when the value is a cons pair and the head of the pair matches the
+      head of the pattern and the tail of the pair matches the tail of the pattern.
+      Cons patterns can be sugared so that they look like conventional sequences.
+      Constructor: Consp(head,tail)
+        The head and tail are patterns.
+    end
+    
+     @Attribute head : Pattern end
+     @Attribute tail : Pattern end
+     
+     @Constructor(head,tail) ! end
+     
+     @Operation bind(value:Element,target:Element,env:Env::Env,imports:Seq(NameSpace)):Env::Env
+       if value.isKindOf(SeqOfElement)
+       then head.bind(value->head,target,env,imports) + tail.bind(value->tail,target,env,imports)
+       else throw PatternFailed(self,value)
+       end
+     end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{head.lift(),tail.lift()})
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       let headVar = head.newVar();
+           tailVar = tail.newVar()
+       in [| if <value>.isKindOf(SeqOfElement) and <value> <> Seq{}
+             then 
+               let <headVar> = <value>->head;
+                   <tailVar> = <value>->tail
+               in <head.matchCode(Var(headVar),tail.matchCode(Var(tailVar),success,fail),fail)>
+               end
+             else <fail>
+             end
+          |]
+       end
+     end
+     
+     @Operation needsBacktrack():Boolean
+       head.needsBacktrack() or
+       tail.needsBacktrack()
+     end
+     
+     @Operation pprint(out)
+       format(out,"Seq{");
+       head.pprint(out);
+       format(out," | ");
+       tail.pprint(out);
+       format(out,"}")
+     end
+     
+     @Operation toSig()
+       ParametricType(Seq{"Seq"},Seq{NamedType()}).toSig()
+     end
+     
+   end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ValueBinding extends Binding
+  
+    @Attribute value : OCL::OCL end
+    
+    @Constructor(name,value) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"~S = ~S",Seq{name,value.pprint(indent + name.toString()->size + 3)})
+    end
+    
+  end 

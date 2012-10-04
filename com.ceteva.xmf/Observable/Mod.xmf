@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import OCL;
+import Observable;
+
+context Observable 
+
+  @Class Mod extends Condition
+ 
+     @Attribute name : String end 
+     
+     @Constructor(name) ! end
+     
+     @Operation perform(env,object,slot,new,old)
+       slot.toString() = name
+     end
+     
+  end

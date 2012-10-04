@@ -1,0 +1,179 @@
+parserImport XOCL;
+
+context Package
+  
+  @Operation writeXDiagSkelCreateDiagram(dir:String,class:Class,name:String,nodes,edges,atts,manifest:OrderedContainer,
+                                         toolDescriptorType:String,diagramType:String,createDiagramOpName:String)
+  
+    // Construct a show diagram operation for the root class.
+    
+    let registerDisplay = 
+          @Operation(out,register,path,display)
+            @Case display of
+              Seq{"Ellipse",w,h,c} do 
+                null
+              end
+              Seq{"Box",f,b,l,c,D} do
+                @For display in D do
+                  register(out,register,path + Seq{"box"},display)
+                end
+              end
+              Seq{"Attribute",a} do
+                format(out,"                     tool.register(node.ref1(Seq{~{,~;\"~S\"~}}),n);~%",Seq{path + Seq{a.name()}});
+                @Case a.type of
+                  [String] do
+                    format(out,"                     node.ref1(Seq{~{,~;\"~S\"~}}).setText(n.~S);~%",Seq{path + Seq{a.name()},a.name()})
+                  end
+                  [Boolean] do
+                    format(out,"                     node.ref1(Seq{~{,~;\"~S\"~}}).setText(n.~S.toString());~%",Seq{path + Seq{a.name()},a.name()})
+                  end
+                  [Integer] do
+                    format(out,"                     node.ref1(Seq{~{,~;\"~S\"~}}).setText(n.~S.toString());~%",Seq{path + Seq{a.name()},a.name()})
+                  end
+                  else null
+                end 
+              end
+              Seq{"Image",f,w,h} do
+                null
+              end
+            end
+          end
+    in
+    @WithOpenFile(out -> dir + "/CreateDiagram.xmf")
+      format(out,"parserImport XOCL;~%~%");
+      format(out,"context ~S~%",Seq{class.path()});
+      format(out,"  @Operation ~S_raw(name)~%",Seq{createDiagramOpName});
+      format(out,"    let tool = self.createTool(\"~S\") then~%",Seq{name});
+      format(out,"        diagram = tool.diagram();~%");
+      format(out,"        flatten = Walkers::Flatten() then~%");
+      format(out,"        dummy = flatten.walk(self,10) then~%");
+      format(out,"        A = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)));~%",Seq{atts->collect(a | a.owner().path())});
+      format(out,"        N = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)));~%",Seq{nodes->collect(n | n->at(0).path())});
+      format(out,"        E = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)))~%",Seq{edges->collect(e | e->at(0).path())});
+      format(out,"    in @Busy(\"Generating Tool\")~%");
+      format(out,"         @WithoutRendering(diagram)~%");
+      format(out,"           tool.setHandleEvents(false);~%");
+      format(out,"           @For n in N do~%");
+      format(out,"             @Find(c,Seq{~{,~;~S~}}) when n.of() = c do~%",Seq{nodes->collect(n | n->at(0).path())});
+      format(out,"               let node = ~S::~S::~S::Editor.nodeType(c.name().toString()).new(10,10,tool)~%",Seq{self.path(),class.name(),name});
+      format(out,"               in~%");
+      format(out,"                  @CaseObj n of~%");
+      @For node in nodes do
+        let class = node->at(0);
+            layoutAtt = node->at(2)
+        in format(out,"                    ~S[ ] do~%",Seq{class.path()});
+           registerDisplay(out,registerDisplay,Seq{},node->at(1));
+           if layoutAtt <> null
+           then format(out,"                   node.setLayoutId(n.~S);~%",Seq{layoutAtt.name()})
+           end;
+           format(out,"                  n~%");
+           format(out,"                end~%")
+        end
+      end;
+      format(out,"                    else null~%");
+      format(out,"                  end;~%");
+      format(out,"                  tool.register(node,n);~%");
+      format(out,"                  tool.register(n,node)~%");
+      format(out,"               end~%");
+      format(out,"             end~%");
+      format(out,"           end;~%");
+      @For edge in edges do
+        format(out,"         let O = E->select(e | e.of() = ~S)~%",Seq{edge->at(0).path()});
+        format(out,"         in @For o in O do~%");
+        format(out,"              let os = o.~S;~%",Seq{edge->at(1).name()});
+        format(out,"                  ot = o.~S then~%",Seq{edge->at(2).name()});
+        format(out,"                  source = tool.find(os).port();~%");
+        format(out,"                  target = tool.find(ot).port() then~%");
+        format(out,"                  edge = ~S::~S::~S::Editor.edgeType(\"~S\").new(source,target,tool)~%",Seq{self.path(),class.name(),name,edge->at(0).name()});
+        format(out,"              in~%");
+        if not edges->isEmpty
+        then
+          format(out,"                 @CaseObj o of~%");
+          @For edge in edges do
+            let class = edge->at(0) then
+                A = class->allAttributes()->select(a | a.type = String or a.type = Integer or a.type = Boolean or a.type = XOCL::Exp)->asSeq
+            in if not A->isEmpty
+               then
+                 format(out,"                   ~S[ ] do~%",Seq{class.path()});
+                 @For a in A do
+                   format(out,"                      tool.register(edge.ref(\"~S\"),o);~%",Seq{a.name()});
+                   @Case a.type of
+                     [String] do
+                       format(out,"                     edge.ref(\"~S\").textChanged(o.~S)",Seq{a.name(),a.name()})
+                     end
+                     [Integer] do
+                       format(out,"                     edge.ref(\"~S\").textChanged(o.~S.toString())",Seq{a.name(),a.name()})
+                     end
+                     [Boolean] do
+                       format(out,"                     edge.ref(\"~S\").textChanged(o.~S.toString())",Seq{a.name(),a.name()})
+                     end
+                     [XOCL::Exp] do
+                       format(out,"                     if o.~S.isReallyKindOf(XOCL::Exp)~%",Seq{a.name()});
+                       format(out,"                     then~%");
+                       format(out,"                       edge.ref(\"~S\").textChanged(o.~S.exp.pprint())~%",Seq{a.name(),a.name()});
+                       format(out,"                     end")
+                     end
+                   end;
+                   if not isLast 
+                   then format(out,";~%")
+                   else format(out,"~%")
+                   end
+                end;
+                format(out,"                    end~%")
+              end
+            end
+          end
+        end;
+        format(out,"                   else null~%");
+        format(out,"                 end;~%");
+        format(out,"                 tool.register(edge,Seq{o,os,ot});~%");
+        format(out,"                 tool.register(o,edge)~%");
+        format(out,"              end~%");
+        format(out,"         end~%");
+        format(out,"       end;~%")
+      end;
+      @For a in atts do
+        format(out,"       let A = A->select(a | a.isKindOf(~S))~%",Seq{a.owner().path()});
+        format(out,"       in @For source in A do~%");
+        if a.type.isKindOf(Class)
+        then format(out,"            let target = source.~S in ~%",Seq{a.name()})
+        else format(out,"            @For target in source.~S do~%",Seq{a.name()})
+        end;
+        format(out,"               if tool.isRegistered(source) and tool.isRegistered(target)~%");
+        format(out,"               then~%");
+        format(out,"                 let edge = ~S::~S::~S::Editor.edgeType(\"~S\").new(tool.find(source).port(),tool.find(target).port(),tool)~%",Seq{self.path(),class.name(),name,a.XDiagSkelName()});
+        format(out,"                 in tool.register(edge,Seq{source,target})~%");
+        format(out,"                 end~%");
+        format(out,"               end~%");
+        format(out,"            end~%");
+        format(out,"          end~%");
+        format(out,"        end;~%")
+      end;
+      format(out,"           tool.setHandleEvents(true);~%");
+      format(out,"           diagram~%");
+      format(out,"         end~%");
+      format(out,"       end~%");
+      format(out,"    end~%");
+      format(out,"  end~%");
+      format(out,"~%");
+      format(out,"context ~S~%",Seq{class.path()});
+      format(out,"  @Operation ~S(name)~%",Seq{createDiagramOpName});
+      format(out,"    xmf.diagramManager().newDiagram(self,name,\"~S\")~%",Seq{diagramType});
+      format(out,"  end~%");
+      format(out,"~%");
+      format(out,"let~%");
+      format(out,"  descriptor = xmf.toolManager().toolDescriptor(~S::~S,\"~S\");~%",Seq{self.path(),class.name(),toolDescriptorType});
+      format(out,"  contribution = Clients::DiagramsMapping::DiagramContribution(~%");
+      format(out,"                   \"~S\",~%",Seq{diagramType});
+      format(out,"                   ~S,~%",Seq{class.path()});
+      format(out,"                   ~S::~S_raw)~%",Seq{class.path(),createDiagramOpName});
+      format(out,"in~%");
+      format(out,"  descriptor.setDiagramContribution(contribution);~%");
+      format(out,"  xmf.diagramManager().addContribution(contribution)~%");
+      format(out,"end;~%");
+      manifest.add("CreateDiagram")
+    end
+    end
+    
+  end
+  

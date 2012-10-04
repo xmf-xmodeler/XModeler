@@ -1,0 +1,20 @@
+import OCL;
+import Instrs;
+
+context Root::OCL::Obj
+  @Operation FV():Element
+    self.expand().FV()
+  end
+
+context Root::OCL::Obj
+  @Operation maxLocals():Element
+    self.expand().maxLocals()
+  end
+
+context Root::OCL::Obj
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if self.hasCompiler()
+    then self.compiler().invoke(class,Seq{self,env,frame,isLast,saveSource})
+    else self.expand().compile(env,frame,isLast,saveSource)
+    end
+  end

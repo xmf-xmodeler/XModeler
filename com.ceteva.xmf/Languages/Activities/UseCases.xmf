@@ -1,0 +1,75 @@
+parserImport XOCL;
+
+import Languages;
+import Activities;
+
+context Activities
+
+ @Package UseCases extends XCore
+ 
+    @Class Specification isabstract 
+   
+      @Attribute activityModel : ActivityModel end
+      @Attribute traceFile     : String (!)    end
+      
+      @Operation createActivityModel()
+        let tool = ActivityTool.newTool()
+        in self.activityModel := tool.element;
+           tool.element.setOwner(self);
+           self.add(tool)
+        end
+      end
+      
+      @Operation sendInstance(target,message,args)
+        if activityModel = null
+        then super(target,message,args)
+        else
+          let activity = activityModel.getElement(message)
+          in if activity <> null
+             then 
+               if traceFile = ""
+               then activity.invoke(target,args)
+               else activity.invoke(target,args,traceFile)
+               end
+             else super(target,message,args)
+             end
+          end
+        end
+      end
+      
+      @Operation toXML()
+        let file = xmf.saveFile(xmf.projDir(),"*.xml")
+        in if file <> ""
+           then
+             let out = IO::FileOutputChannel(file) then
+                 xout = IO::XMLOutputChannel(out,Set{})
+             in xout.write(activityModel);
+                out.close()
+             end
+           end
+        end
+      end
+      
+    end
+    
+    @Class PackageSpec extends Package,Specification 
+    
+      @Operation init()
+        super();
+        self.createActivityModel();
+        self
+      end
+    
+    end
+    
+    @Class ClassSpec extends Class,Specification
+     
+      @Operation init()
+        super();
+        self.createActivityModel();
+        self
+      end
+      
+    end
+        
+  end

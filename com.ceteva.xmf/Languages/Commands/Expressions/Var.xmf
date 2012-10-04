@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Expressions;
+import Instrs;
+
+context Expressions
+
+  @Class Var extends Exp
+  
+    @Attribute name : String end
+   
+    @Constructor(name) ! end
+    
+    @Operation compile(typeEnv,valueEnv)
+      let index = valueEnv->indexOf(name)
+      in if index < 0
+         then self.error("Unbound variable " + name)
+         else Seq{LocalRef(index)}
+         end
+      end
+    end
+    
+    @Operation desugar1():Performable
+      OCL::Var(name)
+    end
+    
+    @Operation desugar2(typeEnv):Performable
+      OCL::Var(name)
+    end
+    
+    @Operation eval(target,env,imports)
+      env.lookup(name)
+    end
+    
+    @Operation pprint(out)
+      format(out,"~S",Seq{name})
+    end
+    
+  end

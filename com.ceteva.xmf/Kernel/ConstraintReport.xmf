@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class ConstraintReport
+  
+    @Doc 
+      A constraint report is produced by sen-ding a classify message
+      to an element or a check constraints message to a classifier.
+      A report is a tree structured element describing the constraints
+      that were performed and their outcomes. Note that internal
+      nodes of the tree may have dummy constraint reports used as
+      containers of sub-constraint reports. Such dummies have a
+      null constraint and an empty reason, but the satisfied boolean
+      is the conjunction of the sub-reports.
+    end
+  
+    @Attribute children   : Seq(ConstraintReport) (?,+) end    
+    @Attribute candidate  : Element               (?) end
+    @Attribute constraint : Constraint            (?) end
+    @Attribute satisfied  : Boolean               (?) end
+    @Attribute reason     : String                (?) end
+    
+    @Constructor(candidate,constraint,satisfied) end
+    @Constructor(candidate,constraint,satisfied,reason,children) end
+    @Constructor(candidate,constraint,satisfied,reason) ! end
+    
+    @Operation failures():Seq(ConstraintReport)
+      children->iterate(report F = Seq{} |
+        if report.satisfied()
+        then F + report.failures()
+        else F->including(report) + report.failures()
+        end)
+    end
+    
+  end

@@ -1,0 +1,8 @@
+parserImport XOCL;
+
+xmf.setProperty("undoEngine",Undo::UndoEngine());
+
+context XMF
+  @Operation undoEngine()
+    self.property("undoEngine")
+  end

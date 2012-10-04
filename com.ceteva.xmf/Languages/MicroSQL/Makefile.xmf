@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile("Languages/MicroSQL/Boot",true,true);
+compileFile("Languages/MicroSQL/Manifest",true,true);
+compileFile("Languages/MicroSQL/MicroSQL",true,true);
+compileFile("Languages/MicroSQL/Column",true,true);
+compileFile("Languages/MicroSQL/Constraint",true,true);
+compileFile("Languages/MicroSQL/Table",true,true);
+compileFile("Languages/MicroSQL/SQLExpression",true,true);
+compileFile("Languages/MicroSQL/Select",true,true);

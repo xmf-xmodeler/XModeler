@@ -1,0 +1,82 @@
+parserImport XOCL;
+
+import Associations;
+
+context Package
+  @Attribute associations : Set(Association) (+,-) end
+  
+@For package in Root.allContentsOf(Package) do
+  if not package.hasSlot("associations")
+  then package.addStructuralFeature("associations",Set{})
+  end
+end;
+  
+context Package
+  // Use 'add' to add either an operation or a classifier 
+  // to a package.
+  @Operation add(n:NamedElement):Classifier
+    if n.isKindOf(Operation)
+    then self.addOperation(n); super(n)
+    else 
+      if n.isKindOf(Package)
+      then
+        self.addPackage(n);
+        super(n)
+      elseif n.isKindOf(Class)
+      then
+        self.addClass(n);
+        super(n)
+      elseif n.isKindOf(Association)
+      then
+        self.addAssociation(n);
+        super(n)
+      else
+        super(n)
+      end
+    end
+  end
+  
+context Package 
+  // addClass is used to add classes to a package.
+  @Operation addAssociation(a:Association)
+    self.resolveNameClash(a.name,self.associations);
+    a.setOwner(self);
+    self.associations := self.associations->including(a);
+    self
+  end
+  
+context Package
+
+  // Remove an element from a package. Needs to be redefined
+  // from the inherited NameSpace::remove because a package is 
+  // a namespace for operations, packages and classes.
+  
+  @Operation remove(n:NamedElement):Classifier
+    if n.isKindOf(Operation)
+    then 
+      self.removeOperation(n); 
+      super(n)
+    else
+      if n.isKindOf(Package)
+      then 
+        self.removePackage(n);
+        super(n)
+      else 
+        if n.isKindOf(Class)
+        then 
+          self.removeClass(n);
+          super(n)
+        elseif n.isKindOf(Association)
+        then
+          self.removeAssociation(n);
+          super(n)
+        else super(n)
+        end
+      end
+    end
+  end 
+  
+context Package 
+  @Operation removeAssociation(association)
+    self.associations := self.associations->excluding(association)
+  end   

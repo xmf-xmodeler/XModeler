@@ -1,0 +1,209 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import ModelClipboard;
+import Menus;
+import Forms;
+
+context Forms
+
+  @Class TreeNode extends DraggableClientElement, DroppableClientElement, RightClickable, TextComponent
+  
+    @Attribute icon           : String        (?)       end
+    @Attribute nodes          : Seq(TreeNode) (?,+,-)   end
+    @Attribute selected       : Boolean       (!)       end
+
+    @Constructor(text,isEditable) end
+    
+    @Constructor(text,isEditable,icon) end
+
+    @Operation add(node:TreeNode)
+      // Use this in preference to addItem for
+      // consistency.
+      self.addItem(node)
+    end
+    
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the treeNode is created and if the
+      // contents are ever refreshed.
+
+      self
+    end
+    
+    @Operation addItem(node:TreeNode)
+      node.setOwner(self);
+      self.nodes := nodes + Seq{node}
+    end
+    
+    @Operation delete()
+      self.commandInterpreter().removeNode(self);
+      owner.remove(self)
+    end
+    
+    @Operation deselectAll()
+      @For node in nodes do
+        node.setSelected(false);
+        node.deselectAll()
+      end
+    end
+    
+    @Operation deselectAllInTree()
+      // Deselect all siblings in the same tree.
+      self.tree().deselectAll()
+    end
+
+    @Operation dispose()
+      self.disposeCollection(nodes);
+      self.clearRightClickMenu();
+      super()
+    end
+
+    @Operation doubleSelected()
+      self
+    end 
+
+    @Operation expand()
+      // Over-ride in sub-classes where necessary...
+      self
+    end
+
+	@Operation new(parent)
+	
+	  // Create a new tree node on a form and initialise it.
+	  // Adds node at end.
+	  
+      if icon = null 
+      then self.commandInterpreter().newTreeNodeCommand(parent,self)
+      else self.commandInterpreter().newIconedTreeNodeCommand(parent,self)
+      end;
+      self.addContents();
+      self.newContents();
+      self.setRightClickMenu();
+      self
+    end   
+    
+    @Operation new(parent,index)
+	
+	  // Create a new tree node on a form and initialise it.
+	  // The supplied index is the position of the node.
+	  
+      if icon = null 
+      then self.commandInterpreter().newTreeNodeCommand(parent,self,index)
+      else self.commandInterpreter().newIconedTreeNodeCommand(parent,self,index)
+      end;
+      self.addContents();
+      self.newContents();
+      self.setRightClickMenu();
+      self
+    end   
+    
+    @Operation newContents()
+      @For node in nodes do
+        node.new(self)
+      end
+    end    
+    
+    @Operation remove(element)
+      self.deleteFromNodes(element)
+    end
+
+    @Operation renew(parent)
+	  if icon = null 
+      then self.commandInterpreter().newTreeNodeCommand(parent,self)
+      else self.commandInterpreter().newIconedTreeNodeCommand(parent,self)
+      end;
+      self.setRightClickMenu();
+      @For node in nodes do
+        node.renew(self)
+      end;
+      self
+    end
+    
+    @Operation renew(parent,index)
+	  if icon = null 
+      then self.commandInterpreter().newTreeNodeCommand(parent,self,index)
+      else self.commandInterpreter().newIconedTreeNodeCommand(parent,self,index)
+      end;
+      self.setRightClickMenu();
+      @For node in nodes do
+        node.renew(self)
+      end;
+      self
+    end
+
+    @Operation deselected()
+      if selected
+      then
+        self.setDeselected()
+      end
+    end
+
+    @Operation selected()
+      // For now assume no multiple selections...
+      if not selected
+      then
+        self.deselectAllInTree();
+        self.setSelected(true)
+      end
+    end
+
+    @Operation setDeselected()
+      self.commandInterpreter().deselectTreeNodeCommand(self);
+      self.selected := false
+    end
+
+    @Operation setIndex(index:Integer)
+      if not owner.isKindOf(TreeNode)
+      then
+        xmf.errorMessage("Cannot move the position of the root node of a tree.")
+      elseif index >= owner.nodes->size
+      then
+        xmf.errorMessage("Cannot move tree node, as index is out of range.")
+      else
+        owner.nodes := owner.nodes->excluding(self)->insertAt(self,index);
+        self.commandInterpreter().moveTreeNodeCommand(self,owner,index);
+        self.newContents()
+      end
+    end
+
+    @Operation setSelected()
+      self.commandInterpreter().selectTreeNodeCommand(self);
+      self.selected := true
+    end
+
+    @Operation tree():FormTree
+      // Return the root of the tree...
+      if owner = null
+      then null
+      else 
+        if owner.isKindOf(FormTree)
+        then owner
+        else owner.tree()
+        end
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        text = Seq{"text",text};
+        toolTipText = Seq{"toolTipText",text};
+        editable = Seq{"editable",isEditable};
+        expanded = Seq{"expanded",false};
+        selected = Seq{"selected",selected} then
+        attributes = Seq{id,text,editable,selected}
+      in
+        @Command(self) startElement("node",attributes) end;
+        @For node in nodes
+        do
+          node.synchronise()
+        end;
+        @Command(self) endElement("node") end
+      end
+    end    
+
+  end

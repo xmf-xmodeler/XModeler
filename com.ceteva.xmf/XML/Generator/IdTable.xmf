@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import XML;
+
+context Generator
+
+  @Class IdTable
+  
+    @Attribute table : Table end
+    @Attribute counter : Integer end
+    
+    @Constructor()
+      self.table := Table(100)
+    end
+    
+    @Operation allocateId(value)
+      table.put(value,counter);
+      self.counter := counter + 1;
+      table.get(value)
+    end
+    
+    @Operation hasId(value):Boolean
+      table.hasKey(value)
+    end
+    
+    @Operation idAttribute(value,name)
+      Attribute(name,self.ref(value))
+    end
+    
+    @Operation ref(value)
+      if table.hasKey(value)
+      then table.get(value)
+      else self.allocateId(value)
+      end
+    end
+    
+  end

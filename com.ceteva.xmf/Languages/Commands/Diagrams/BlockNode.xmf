@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Clients;
+import Diagrams;
+import Languages;
+import Commands;
+import Diagrams;
+
+context Diagrams
+
+  @Class BlockNode extends Statement
+  
+    @Bind border = 10 end
+  
+    @Attribute box        : Box end
+    @Attribute statements : Diagram end
+  
+    @Constructor(x,y)
+       self.width := 150;
+       self.height := 50
+    end
+    
+    @Operation addDisplays()
+      self.box := Box(0,0,150,50,0);
+      self.statements := CommandDiagram("Block Statements",10,10,width-(BlockNode::border*2),height-(BlockNode::border*2));
+      box.add(statements);
+      self.add(box) 
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation resize(width,height)
+      box.resize(width,height);
+      statements.resize(width-(BlockNode::border*2),height-(BlockNode::border*2));
+      super(width,height)
+    end
+    
+  end
+  
+  

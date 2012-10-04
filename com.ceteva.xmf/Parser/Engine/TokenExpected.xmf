@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Exceptions;
+import Parser;
+
+context Parser
+
+  @Class TokenExpected extends ParseError
+     
+    @Attribute token  : String      (?,!) end // The received token.
+    @Attribute tokens : Seq(String) (?,!) end // The expected tokens.
+    
+    @Constructor(input,errorPos,token,tokens) !
+      tokens := tokens->asSeq;
+      self.tokens := tokens;
+      self.setBacktrace();
+      @Case tokens->size of
+        0 do
+          self.message := formats("Not expecting ~S at this point",Seq{token})
+        end
+        1 do
+          self.message := formats("Encountered ~S but expecting token ~S",Seq{token,tokens->head})
+        end
+        else self.message := formats("Encountered ~S but expecting one of the following tokens ~{,~;~S~}",Seq{token,tokens})
+      end
+    end
+    
+  end
+      

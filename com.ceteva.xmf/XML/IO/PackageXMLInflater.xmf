@@ -1,0 +1,103 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class PackageXMLInflater extends NameSpaceXMLInflater
+  
+    @Operation endAttribute(tag:Buffer,inch:XMLInputChannel)
+      null
+    end
+  
+    @Operation endClass(tag:Buffer,inch:XMLInputChannel)
+      let class = inch.openObject() then
+          next = inch.pop()
+      in @While next <> inch do
+           class.add(next);
+           next := inch.pop()
+         end
+      end
+    end
+  
+    @Operation endPackage(tag:Buffer,inch:XMLInputChannel)
+      let package = inch.openObject() then
+          next = inch.pop()
+      in @While next <> inch do
+           package.add(next);
+           next := inch.pop()
+         end
+      end
+    end
+  
+    @Operation endObject(tag:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("Attribute")
+      then self.endAttribute(tag,inch)
+      elseif tag.stringEqual("Class")
+      then self.endClass(tag,inch)
+      elseif tag.stringEqual("Package")
+      then self.endPackage(tag,inch)
+      else super(tag,inch)
+      end
+    end
+    
+    @Operation startAttribute(atts:Buffer,inch:XMLInputChannel)
+      let name = inch.attValue(atts,"name").toString();
+          path = inch.attValue(atts,"type").toString();
+          modifier = inch.attValue(atts,"modifier").toString();
+          id = inch.attValue(atts,"id").toString() then
+          attribute = XCore::Attribute(name)
+      in inch.push(attribute);
+         attribute.type := 
+           @Operation()
+             let type = path.lookupPath(Root)
+             in if modifier = "1"
+                then type
+                elseif modifier = "*"
+                then Set(type)
+                else Seq(type)
+                end
+             end
+           end;
+         inch.register(attribute,id)
+      end
+    end
+    
+    @Operation startClass(atts:Buffer,inch:XMLInputChannel)
+      let name = inch.attValue(atts,"name").toString();
+          id = inch.attValue(atts,"id").toString();
+          parentPaths = inch.decodeValue(inch.attValue(atts,"parents"));
+          isAbstract = inch.attValue(atts,"isabstract").toString().asBool() then
+          class = XCore::Class(name)
+      in class.isAbstract := isAbstract;
+         class.parents := 
+           @Operation() 
+             parentPaths->collect(path | path.lookupPath(Root))
+           end;
+         inch.push(class);
+         inch.push(inch);
+         inch.register(class,id)
+      end
+    end
+    
+    @Operation startPackage(atts:Buffer,inch:XMLInputChannel)
+      let name = inch.attValue(atts,"name").toString() then
+          id = inch.attValue(atts,"id").toString();
+          package = XCore::Package(name)
+      in inch.push(package);
+         inch.push(inch);
+         inch.register(package,id)
+      end
+    end
+    
+    @Operation startObject(tag:Buffer,atts:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("Attribute")
+      then self.startAttribute(atts,inch)
+      elseif tag.stringEqual("Class")
+      then self.startClass(atts,inch)
+      elseif tag.stringEqual("Package")
+      then self.startPackage(atts,inch)
+      else super(tag,atts,inch)
+      end
+    end
+    
+  end

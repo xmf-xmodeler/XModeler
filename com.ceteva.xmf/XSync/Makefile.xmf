@@ -1,0 +1,11 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XSync/Boot",true,true);
+compileFile(xmf.homeDir() + "/XSync/Manifest",true,true);
+compileFile(xmf.homeDir() + "/XSync/XSync",true,true);
+
+compileFile(xmf.homeDir() + "/XSync/Network/Makefile",true,true);
+(xmf.homeDir() + "/XSync/Network/Makefile.o").loadBin(false);
+
+compileFile(xmf.homeDir() + "/XSync/Syntax/Makefile",true,true);
+(xmf.homeDir() + "/XSync/Syntax/Makefile.o").loadBin(false);

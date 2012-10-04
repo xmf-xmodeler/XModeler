@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Throw extends OCL::OCL
+  
+    @Doc
+      A throw expression throws a value to the most recently performed
+      try expression. The value is bound to the catch-variable in the 
+      try and the body of the catch is performed.
+    end
+     
+     @Attribute exp : Performable end
+     
+     @Constructor(exp) ! end
+    
+     @Operation pprint(out,indent)
+       format(out,"throw ");
+       exp.pprint(out,indent)
+     end
+     
+   end

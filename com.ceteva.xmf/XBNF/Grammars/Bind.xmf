@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Bind extends Recognizer
+  
+    @Attribute name       : String     end
+    @Attribute recognizer : Recognizer end
+    
+    @Constructor(name,recognizer) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      if BV->includes(name)
+      then format(stdout,"Warning: duplicate binding occurrences of ~S. Variable names should be distinct.~%",Seq{name})
+      end;
+      let index = if BV->includes(name) then BV->indexOf(name) else BV->size end;
+          newBV = if BV->includes(name) then BV else BV + Seq{name} end
+      in recognizer.CNF(grammar,BV,
+           @Operation(parser,ignoreBV,newClauses)
+             handler(parser + Seq{BindVar(name,index)},newBV,newClauses)
+           end)
+      end
+    end
+    
+    @Operation FV():Set(String)
+      recognizer.FV()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S = ",Seq{name});
+      recognizer.pprint(out,indent+2)
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      recognizer.setLocals(locals,
+        @Operation(locals)
+          next(locals+Seq{name})
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      recognizer.terminals()
+    end
+    
+  end

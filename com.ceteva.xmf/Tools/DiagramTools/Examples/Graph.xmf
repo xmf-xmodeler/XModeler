@@ -1,0 +1,129 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs; 
+import DiagramEvents;
+
+context Root
+  // Define a new tool type in the global name space...
+  @ToolType GraphEditor
+    // Nodes have ports (so they can be linked via edges)...
+    @NodeType Node(hasport)
+      // A node has a label attribute of type Text with default "label"...
+      @Text label "label" end
+      // A node has a delete menu action. Note that 'self' refers to the
+      // menu container (i.e. the node)...
+      @Menu
+        @MenuAction Delete self.delete() end
+      end
+    end
+    // Edges can be attached between nodes and have arrow at the target...
+    @EdgeType Edge Node -> Node targetHead = arrow 
+      // An edge has an attribute named label with default contents "label"...
+      @Label label(end,10,10) "label" end
+      // An edge can be deleted...
+      @Menu
+        @MenuAction Delete self.delete() end
+      end
+    end
+    // The tool bar allows nodes and edges to be created...
+    @ToolBar 
+      @ToolGroup Operations
+        @ToolButton Node          icon = "Tools/Node.gif" end
+        @ToolButton Edge   isEdge icon = "Tools/Edge.gif"     end
+      end
+    end
+end
+
+context Root
+  @ElementManager GraphManager
+    @EventHandler New_Node()
+      let node = Graphs::Node("label")
+      in register(event.node(),node);
+         register(node,event.node());
+         event.tool().element().add(node)
+      end
+    end
+  end
+  
+context GraphManager
+  @EventHandler New_Edge()
+    let edge = Graphs::Edge("label",find(event.source()),find(event.target()))
+    in register(edge,event.edge());
+       register(event.edge(),edge);
+       event.tool().element().add(edge)
+    end
+  end
+  
+context GraphManager
+  @EventHandler Node_Removed()
+    event.tool().element().remove(find(event.node()))
+  end
+  
+context GraphManager
+  @EventHandler Edge_Removed()
+    event.tool().element().remove(find(event.edge()))
+  end
+  
+context GraphManager
+  @EventHandler Node_label_Changed()
+    let node = find(event.root())
+    in node.setData(event.new())
+    end
+  end
+  
+context GraphManager
+  @EventHandler Edge_label_Changed()
+    let edge = find(event.edge())
+    in edge.setData(event.new())
+    end
+  end
+  
+context GraphManager
+  @EventHandler Graph_Object_nodes_Changed()
+    @WithoutEvents(event.tool())
+      let newNodes = event.new() - event.old()
+      in @For newNode in newNodes do
+           if find(newNode) = null
+           then 
+             let toolNode = event.tool().newNode("Node",10,10)
+             in register(newNode,toolNode);
+                register(toolNode,newNode);
+                toolNode.ref1(Seq{"label"}).setText(newNode.data())
+             end
+           end
+         end
+      end
+    end
+  end
+  
+context GraphManager
+  @EventHandler Graph_Object_edges_Changed()
+    @WithoutEvents(event.tool())
+      let newEdges = event.new() - event.old()
+      in @For newEdge in newEdges do
+           if find(newEdge) = null
+           then 
+             let source = find(newEdge.source()).port();
+                 target = find(newEdge.target()).port() then
+                 toolEdge = event.tool().newEdge("Edge",source,target)
+             in register(newEdge,toolEdge);
+                register(toolEdge,newEdge);
+                toolEdge.ref("label").textChanged(newEdge.data())
+             end
+           end
+         end
+      end
+    end
+  end
+
+Root::tool := Tool(GraphEditor,"Graph Editor",GraphManager,Graphs::Graph());
+tool.element().observeBy(tool);

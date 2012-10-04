@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import SearchReport;
+
+context SearchReport
+
+  @Class SearchNodes extends SearchNode, OrderedContainer
+  
+    @Constructor(text,icon) end
+  
+    @Operation addContents()
+      @For node in self.contents() do
+        if not nodes->includes(node)
+        then
+          self.addItem(node)
+        end
+      end
+    end
+    
+  end
+    
+    

@@ -1,0 +1,73 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Languages::Processes;
+  
+context Processes
+  @Class ProcessStep extends XCore::NamedElement, XCore::Contained, Syntax
+
+    @Attribute action : Operation end
+    //@Attribute body : Performable end
+    @Attribute dialogMessage : String end
+    @Attribute isComplete : Boolean = false end
+
+    @Constructor(name,action,dialogMessage) end
+    //@Constructor(name,body,dialogMessage) end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      ProcessStep ::= name = Name 'do' body = Exp DialogMessage = Message {      
+        ProcessStep(Symbol(name),body,dialogMessage)
+      }.
+      
+      DialogMessage ::= 'message' Str | { "" }.
+            
+    end
+
+    @Operation activate()
+      self.activate(true)
+    end
+
+    @Operation activate(continue : Boolean)
+      if owner<>null then
+        action.invoke(owner.actionTarget(), Seq{});
+        self.complete(true);
+        if continue then
+          if xmf.confirm(dialogMessage+"\n\nContinue?") then
+            owner.advance()
+          else
+            xmf.message(owner.name+" process aborted.")
+          end
+        else
+          xmf.message(dialogMessage)
+        end
+      else
+        xmf.message("Process step cannot be activated as it does not\nhave an owning process.")
+      end
+    end
+
+    @Operation complete(complete : Boolean)
+      self.isComplete := complete;
+      self.setName(name)
+    end
+
+    @Operation doubleClick()
+      action.invoke(owner.actionTarget(), Seq{});
+      self.complete(true)
+    end
+
+    @Operation labelString()
+      let completedName = 
+        if isComplete then "[Completed] " + self.name else self.name end
+      in
+        if owner<>null
+        then
+          "Step "+owner.indexForStep_twoDigits(self)+": "+completedName
+        else
+          self.name
+        end
+      end
+    end
+
+  end

@@ -1,0 +1,147 @@
+parserImport XOCL;
+parserImport XRules;
+
+import IO;
+import XRules;
+import Env;
+  
+context Root
+  @Rules Test import Root
+  
+    // Create a basic rule set...
+    // Populated over several files...
+    
+  end
+   
+context Root::Test
+  @Rule Concat(S1,S2,S3) 
+    S3 = S1 + S2
+  end
+  
+context Test
+  @Rule Cycle(X,Seq{1|X},Y) 
+    Cycle(X,Y)
+  end
+  
+context Test
+  @Rule Cycle(Seq{Y|X},Y) end
+  
+context Test
+  @Rule Cycle2(A,X[x=A]) end
+  
+context Test
+  @Rule PrintIt(X)
+    call @Operation(x) xmf.message(x.toString()); true end(X)
+    Y = X + 1
+    call @Operation(x) xmf.message(x.toString()); true end(Y)
+  end
+   
+context Test 
+  @Rule IncIt(X,Y)
+    Y = eval @Operation(x) x + 1 end(X)
+  end
+  
+context Test
+  @Rule NextId(X)
+    X = eval @Operation() Root::counter := counter + 1; counter end()
+  end
+
+context Test
+  @Rule FloatTest(1.234) end 
+  
+context Test
+  @Rule CutTest(Seq{},X) end
+  
+context Test
+  @Rule CutTest(Seq{H|T},H) //! // Comment out the ! in order to perform full backtracking.
+    call @Operation(x) x.println(); false end(H)
+  end
+   
+context Test
+  @Rule CutTest(Seq{H|T},X)
+    CutTest(T,X)
+  end
+  
+context Test
+  @Rule FailTest(Seq{}) ! 
+    fail
+  end
+  
+context Test
+  @Rule FailTest(Seq{H|T})
+    FailTest(H)
+  end
+  
+context Test
+  @Rule FailTest(Seq{H|T}) !
+    FailTest(T)
+  end
+  
+context Test
+  @Rule FailTest(V)
+    call @Operation(x) x.println() end(V)
+    // Perform fail to print all atomic values in tree...
+    fail
+  end
+  
+context Test
+  @Rule TryTest(N)
+    try 
+      Count(N)
+    catch(Error)
+      call @Operation(x) xmf.message(x) end(Error)
+    end
+  end
+  
+context Test
+  @Rule Count(0)
+    throw "Error: 0"
+  end
+  
+context Test
+  @Rule Count(N)
+    try
+      X = N - 1
+      Count(X)
+    catch(Error)
+      Message = Error + N
+      call @Operation(M) xmf.message(M) end(Message)
+      throw Message
+    end
+  end
+  
+context Test
+  @Rule Amb(1,"A") end
+  
+context Test
+  @Rule Amb(1,"B") end
+  
+context Test
+  @Rule IfTest(X)
+    if Amb(X,V)
+    then // Ignore this case
+    else throw "Error"
+    end
+  end
+  
+context Test
+  @Rule Search(Key,Seq{})
+    fail
+  end
+  
+context Test
+  @Rule Search(Key,Seq{Seq{Key|Value}|Table}) !
+    // Comment out the ! to see the effect of cut on backtracking.
+  end
+  
+context Test
+  @Rule Search(Key,Seq{Pair|Table})
+    call @Operation(p) p.println() end(Pair)
+    Search(Key,Table)
+  end
+  
+context Test
+  @Builtin test(x,y)[rules,indent,env,succ,fail,exception]
+    //succ(unify(x,y,env),fail)
+    succ(env,fail)
+  end

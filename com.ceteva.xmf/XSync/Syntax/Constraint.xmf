@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Constraint isabstract 
+  
+    @AbstractOp code(varEnv:Env):Performable end
+  
+    @AbstractOp freeVars():Set(String) end
+    
+    @AbstractOp relocate(direction:String) end
+  
+  end

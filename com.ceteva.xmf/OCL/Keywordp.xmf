@@ -1,0 +1,93 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Keywordp extends Pattern
+  
+    @Doc
+      A keyword pattern consists of a class C and a sequence of key patterns:
+      C[n1 = p1, n2 = p2, ...]. A value matches a keyword pattern when the value
+      is an instance of the class and the value has slots for each name and when
+      the values of the slots match the corresponding patterns.
+     end
+    
+     @Attribute class : String end
+     @Attribute names : Seq(String) end
+     @Attribute keys : Seq(Keyp) end
+     
+     @Constructor(class,names,keys) ! end
+     
+     @Operation bind(value:Element,target:Element,env:Env::Env,imports:Seq(NameSpace)):Env::Env
+       let c = if env.binds(class)
+               then names->iterate(name nameSpace = env.lookup(class) | nameSpace.getElement(name))
+               else names->iterate(name nameSpace = 
+                      @Find(nameSpace,imports) 
+                        when nameSpace.hasElement(class)
+                        do nameSpace.getElement(class)
+                        else self.error("Cannot find name space " + class)
+                      end | nameSpace.getElement(name))
+               end
+       in if value.isKindOf(c)
+          then keys->iterate(key env = env | key.bind(value,target,env,imports))
+          else throw PatternFailed(self,value)
+          end
+       end
+     end  
+     
+     @Operation lift():Performable
+       let nameExps = SetExp("Seq",names->collect(name | StrExp(name)));
+           keyExps = SetExp("Seq",keys->collect(key | key.lift()))
+       in Apply(self.typeExp(),Seq{StrExp(class),nameExps,keyExps})
+       end
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       let matchClass = self.newVar();
+           matchCnstr = self.newVar();
+           classCode = names->iterate(n code = Var(class) | [| <code> :: <n> |])
+       in 
+         [| let <matchClass> = <classCode>
+            in if <Var(matchClass)> = null or not <Var(matchClass)>.isKindOf(XCore::Class)
+               then <fail>
+               else 
+                 if <value>.isKindOf(<Var(matchClass)>)
+                 then <self.matchKeys(keys,value,success,fail)>
+                 else <fail>
+                 end
+               end
+            end
+         |] 
+       end
+     end
+     
+     @Operation matchKeys(keys:Seq(Keyp),value:Performable,success:Performable,fail:Performable):Performable
+       if keys->isEmpty
+       then success
+       else keys->head.matchCode(value,self.matchKeys(keys->tail,value,success,fail),fail)
+       end
+     end
+     
+     @Operation needsBacktrack():Boolean
+       keys->exists(key | key.needsBacktrack())
+     end
+     
+     @Operation pprint(out)
+       let index = 0
+       in format(out,"~S~{~;::~S~}[",Seq{class,names});
+          @For key in keys do
+            key.pprint(out);
+            if not isLast
+            then format(out,",")
+            end
+          end;
+          format(out,"]")
+       end
+     end
+     
+     @Operation toSig()
+       NamedType(Seq{class | names}).toSig()
+     end
+            
+   end

@@ -1,0 +1,54 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class ConstraintSourceEditor extends CodeboxEditor
+  
+    @Operation checkDaemons()
+      super();
+      let contex = textbox.contex then
+          op = contex.get(textbox.slotName)
+      in
+        @SlotValueChanged multi once ConstraintSourceEditor::daemons_contexNameChanged(contex,"name") end;
+        @SlotValueChanged multi once ConstraintSourceEditor::daemons_contexOpCodeChanged(op,"*") end
+      end
+    end
+
+    @Operation daemons_contexNameChanged(e,slot,newName,oldName)
+      self.setFormName();
+      self.setName(name)
+    end
+
+    @Operation daemons_contexOpCodeChanged(e,slot,newValue,oldValue)
+      slot:=slot.toString();
+      if slot="codeBox" or slot="source" then
+        textbox.setText(self.strippedSource(e));
+        textbox.resetText()
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      let op = textbox.contex.get(textbox.slotName)
+      in
+        op.removeDaemonsWithTarget(self,true)
+      end
+    end
+
+    @Operation strippedSource(op)
+      let
+        source = op.source() then
+        as = OCL::OCL.grammar.parseString(source,"Exp1",Seq{XOCL})
+      in
+        as.performable.pprint(3)
+      end
+    end
+
+  end

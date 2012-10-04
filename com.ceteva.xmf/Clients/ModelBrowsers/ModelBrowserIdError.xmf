@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Exceptions;
+import Clients;
+
+context ModelBrowsers
+
+  @Class ModelBrowserIdError extends Exception
+  
+    @Attribute id : Element end
+    @Attribute value : Element end
+    
+    @Constructor(id,value) 
+      self.setBacktrace();
+      self.message := "No model browser id " + id + " found in " + value 
+    end
+    
+  end

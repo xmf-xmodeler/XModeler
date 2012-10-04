@@ -1,0 +1,159 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class PropertyEditor isabstract extends LockableFormWithHistory,RightClickableWithElement
+  
+    @Attribute layoutManager : PropertyEditorLayoutManager end
+
+    @Constructor(element)
+      self.initForm()
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        //globalMenu.add(MenuAction("Assign to Global Variable",target,Seq{},PropertyEditor::assignToGlobal));
+        //globalMenu.add(MenuAction("Evaluate Expression",target,Seq{},PropertyEditor::evaluateExpression));
+        globalMenu.add(MenuAction("Refresh Form",target,Seq{},PropertyEditor::clearAndRefresh_client));
+        globalMenu
+      end
+    end
+
+    @Operation clearAndRefresh()
+      self.commandInterpreter().clearFormCommand(self);
+      self.refresh()
+    end
+
+    @Operation clearAndRefresh_client()
+      self.clearAndRefresh()
+    end
+
+    @Operation initForm()
+      self.layoutManager := StandardPELayoutManager(self);
+      self.contents := Seq{}
+    end
+    
+    @Operation dispose()
+      self.clearRightClickMenu();
+      super()
+    end
+
+    @Operation focusGained()
+      super();
+      //self.clearAndRefresh();
+      element.selectModelBrowserNode(true)
+    end
+
+    @Operation focusLost()
+      super();
+      element.selectModelBrowserNode(false)
+    end
+
+    @Operation refresh()
+      self.initForm();
+      super();
+      //self.clearRightClickMenu();
+      self.setRightClickMenu();
+      self
+    end
+
+    @Operation renew(newForm:Boolean)
+      super(newForm);
+      self.refresh()
+    end
+
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the property editor is created and if the
+      // displays are ever refreshed.
+      
+      self
+    end
+    
+    @Operation newSingletonDisplay(e:Element,labelText:String)
+      self.newSingletonDisplay(SingletonTextField,e,labelText)
+    end
+    
+    @Operation newSingletonDisplay(fieldType:Class,e:Element,labelText:String)
+      let
+        editable = e.isReallyKindOf(String) orelse
+                   e.isReallyKindOf(Integer) orelse
+                   e.isReallyKindOf(Float) orelse
+                   (e.isReallyKindOf(NamedElement) andthen not e.isKindOf(EnumChoice));
+        fieldText = e.labelString()
+      then
+        label = FormLabel(0,0,labelText);
+        field = fieldType(0,0,0,0,fieldText,editable,e)
+      in
+        SingletonDisplay(label,field)
+      end  
+    end
+
+    @Operation newBooleanDisplay(b:Boolean,labelText:String)
+      self.newBooleanDisplay(FormCheckBox,b,labelText)
+    end
+
+    @Operation newBooleanDisplay(checkBoxType:Class,b:Boolean,labelText:String)
+      let
+        label = FormLabel(0,0,labelText);
+        checkBox = checkBoxType(0,0,b)
+      in
+        BooleanDisplay(label,checkBox)
+      end  
+    end
+
+    @Operation newEnumerationDisplay(e:Element,labelText:String)
+      self.newEnumerationDisplay(EnumChoiceComboBox,e,labelText)
+    end
+    
+    @Operation newEnumerationDisplay(comboBoxType:Class,e:Element,labelText:String)
+      let
+        label = FormLabel(0,0,labelText);
+        comboBox = comboBoxType(0,0,0,0,e)
+      in
+        EnumerationDisplay(label,comboBox)
+      end  
+    end
+
+    @Operation newCollectionDisplay(values,labelText:String)
+      let
+        label = FormLabel(0,0,labelText);
+        list = FormList(0,0,0,0)
+      in
+        if not values->isEmpty then
+          values := values->asSeq;
+          if values.isProperSequence()
+          then values := values->sortNamedElements_CaseIndependent()
+          else values := values.asProperSeq()->sortNamedElements_CaseIndependent()
+          end;
+          @For e inSeq values do
+            let
+              editable = e.isKindOf(NamedElement);          
+              itemText = e.labelString() then            
+              item = CollectionListElement(itemText,e)
+            in
+              list.addItem(item)
+            end           
+          end
+        end;
+        CollectionDisplay(label,list)
+      end  
+    end
+
+    @Operation newCodeboxDisplay(textbox,labelText:String)
+      let label = FormLabel(0,0,labelText)
+      in
+        CodeboxDisplay(label,textbox)
+      end  
+    end
+
+  end

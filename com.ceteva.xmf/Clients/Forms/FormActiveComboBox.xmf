@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormActiveComboBox extends FormComboBox
+  
+    @Attribute actionTable : Table = Table(10) end
+
+    @Operation addItem(item:String,action:CompiledOperation,actionSource)
+      super(item);
+      actionTable.put(item,Seq{action,actionSource})
+    end
+    
+    @Operation setSelected(text)
+      super(text);
+      let actionSeq = actionTable.get(text) in
+        actionSeq->at(0).invoke(actionSeq->at(1),Seq{})
+      end
+    end
+     
+  end

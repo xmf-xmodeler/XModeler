@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class DependencyEdge extends Edge
+  
+    @Attribute typePath : Seq(String) end
+  
+    @Constructor(source,target,typePath) 
+      self.init(Seq{null,source,target,0,Edge::arrow,Set{},Seq{},Color()});
+      self.lineStyle := Line::dashLine;
+      if typePath->asSet <> XCore::Dependency.pathSeq()->asSet
+      then self.add(StereotypeLabel(typePath->last))
+      end
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},DependencyEdge::delete));
+        globalMenu
+      end
+    end
+
+    @Operation delete()
+      Edge::delete.invoke(self,Seq{});
+      self.owner := null
+    end
+
+    @Operation layoutId():String
+      "Dependency(" + typePath->separateWith(",") + ")"
+    end
+    
+  end
+  

@@ -1,0 +1,303 @@
+parserImport XOCL;
+
+import MDC::Values;
+
+context ! Values
+
+  // Class deployed by Tony Clark on Wed Dec 21 09:34:22 GMT 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Object extends Value
+
+    @Attribute slots : Set(Slot) (?,!,+,-) end
+    
+    @Operation allValues()
+      slots->iterate(slot V = Seq{self} |
+        if slot.value <> null
+        then V + slot.allValues()
+        else V
+        end
+      )
+    end
+    
+    @Operation addSlot(type,value)
+      if value = null
+      then self.addSlot(type,value,null)
+      else self.addSlot(type,value,value.display())
+      end
+    end
+    
+    @Operation addSlot(type,value,display)
+      let slot = Slot(type,value,display)
+      in self.addToSlots(slot);
+         slot.setOwner(self)
+      end
+    end
+    
+    @Operation applyTheme(tool,theme,adding:Boolean)
+      if not theme.handleValue(tool,self,adding)
+      then 
+        @For slot in slots do
+          slot.applyTheme(tool,theme,adding)
+        end
+      end
+    end
+    
+    @Operation clicks(display,clicks)
+      @For slot in slots do
+        slot.clicks(display,clicks)
+      end
+    end
+    
+    @Operation displayChanged(tool,display,new,old)
+    
+      // Called when some text has changed in the
+      // diagram. Find the value with the associated
+      // display and change the value...
+      
+      @For slot in slots do
+        slot.displayChanged(tool,display,new,old)
+      end
+    end
+    
+    @Operation displayRemoved(tool,display)
+      
+      // Called when a display element has been removed.
+      // We assume that only slots could be affected by
+      // such a change...
+      
+      @For slot in slots do
+        slot.displayRemoved(tool,display)
+      end
+      
+    end
+    
+    @Operation findDisplayValue(display)
+      let value = super(display); S = slots->asSeq
+      in @While value = null  and not S->isEmpty do
+           value := S->head.findDisplayValue(display);
+           S := S->tail
+         end;
+         value
+      end
+    end
+    
+    @Operation findElementValue(element)
+      let value = super(element); S = slots->asSeq
+      in @While value = null  and not S->isEmpty do
+           value := S->head.findElementValue(element);
+           S := S->tail
+         end;
+         value
+      end
+    end
+    
+    @Operation isNode(display)
+      self.isNormalNode(display) or
+      self.isCollectionNode(display)
+    end
+    
+    @Operation isNormalNode(display)
+      display.isKindOf(Clients::Diagrams::Node) 
+    end
+    
+    @Operation isCollectionNode(display)
+      display.owner.isReallyKindOf(Clients::Diagrams::Node) andthen
+      display.owner.type.isKindOf(MDC::Displays::NestedNodeType)
+    end
+    
+    @Operation findRootValue(object)
+    
+      // Returns the receiver when it is a node...
+      if element = object and self.isNode(display)
+      then self
+      else
+        let root = null
+        in @For s in slots when root = null do
+             root := s.findRootValue(object)
+           end;
+           root
+        end
+      end
+    end
+    
+    @Operation modifyDisplay(tool,new,old)
+    
+      // Called when the receiver is the value
+      // of a slot that has changed to be new.
+      // We need to set the value of the element
+      // and then re-populate from this point on.
+      
+      self.element := new;
+      if new <> null then new.observeBy(tool,true) end;
+      type.populate(tool,self,new)
+    end
+    
+    @Operation mostSpecificSlotFor(name,new,old):Slot
+    
+      // An object may have two or more slots with the 
+      // same name. The types will be different and may
+      // inherit from one another. Return the most 
+      // specific slot...
+      
+      @Find(slot,slots)
+        when slot.type().attribute().name() = name
+        do if slot.type().attribute().hasSetType() or
+              slot.type().attribute().hasSeqType()
+           then self.mostSpecificCollectionSlotFor(name,new,old)
+           else self.mostSpecificAtomicSlotFor(name,new,old)
+           end
+        else null
+      end
+    end
+    
+    @Operation mostSpecificCollectionSlotFor(name,new,old):Slot
+      let added = new - old;
+          deleted = old - new
+      in @Find(slot,slots)
+           when 
+             let att1 = slot.type().attribute();
+                 type1 = slot.type().type().classifier()
+             in att1.name() = name andthen
+                added->forAll(value | value.isKindOf(type1)) andthen
+                deleted->forAll(value | value.isKindOf(type1)) andthen
+                not slots->exists(s | 
+                  let att2 = s.type().attribute() then
+                      type2 = s.type().type().classifier()
+                  in att2.name() = name andthen
+                     s <> slot and 
+                     added->forAll(value | value.isKindOf(type2)) and
+                     deleted->forAll(value | value.isKindOf(type2)) and
+                     type2.inheritsFrom(type1)
+                  end
+                )
+             end
+           else null
+         end
+      end
+    end
+    
+    @Operation mostSpecificAtomicSlotFor(name,new,old):Slot
+      @Find(slot,slots)
+        when 
+          let att1 = slot.type().attribute();
+              type1 = slot.type().type().classifier()
+          in att1.name() = name andthen
+             new.isKindOf(type1) andthen
+             not slots->exists(s | 
+               let att2 = s.type().attribute() then
+                   type2 = s.type().type().classifier()
+               in att2.name() = name andthen
+                  s <> slot andthen
+                  new.isKindOf(type2) andthen 
+                  type2.inheritsFrom(type1)
+               end
+             )
+          end
+        else null
+      end
+    end    
+    
+    @Operation newNode(tool,node)
+    
+      // A new node has been added to the diagram.
+      // Broadcast the node to the slots to see if
+      // any updates need to take place...
+      
+      @For slot in slots do
+        slot.newNode(tool,node)
+      end
+      
+    end
+    
+    @Operation node()
+    
+      // Returns the node for the display element.
+      // If the object is a collection node then the
+      // node is a owner of the display...
+      
+      if self.isNormalNode(display)
+      then display
+      else display.owner
+      end
+    end
+    
+    @Operation nodeRemoved(tool,node)
+    
+      // A node has been removed. The only thing
+      // we can affect is the slots of a root node
+      // so broadcast the message...
+      
+      @For slot in slots do
+        slot.nodeRemoved(tool,node)
+      end
+      
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%~V",Seq{self.of().name(),indent+2});
+      format(out,"Element: ~S~%~V",Seq{element,indent+2});
+      format(out,"Slots~%~V",Seq{indent+4});
+      @For s in slots do
+        s.pprint(out,indent+4);
+        if not isLast
+        then format(out,"2~%~V",Seq{indent+4})
+        end
+      end;
+      format(out,"~%~Vend",Seq{indent+2})
+    end
+    
+    @Operation rootChanged(tool,slot,new,old)
+    
+      // Called when the controlled object has changed state
+      // and therefore slot may be one of the root fields...
+      
+      let s = self.mostSpecificSlotFor(slot,new,old)
+      in if s <> null
+         then s.rootChanged(tool,new,old)
+         end
+      end
+    end
+    
+    @Operation slotValue(name)
+      @Find(slot,slots)
+        when slot.type().attribute().name().toString() = name.toString()
+        do slot.value()
+        else null
+      end
+    end
+    
+    @Operation stateChanged(tool,object,slot,new,old)
+    
+      // The slot of the supplied object has changed. If the
+      // object is that managed by this value node then update
+      // the display accordingly. Otherwise pass the state
+      // changed event down the tree.
+      
+      if object = element
+      then 
+        // One of our slots may have changed...
+        if tool.element().element() = object
+        then self.rootChanged(tool,slot,new,old)
+        else
+          let s = self.mostSpecificSlotFor(slot,new,old)
+          in if s <> null
+             then s.modifyDisplay(tool,new,old)
+             end
+          end
+        end
+      else 
+        @For s in slots do
+          s.stateChanged(tool,object,slot,new,old)
+        end
+      end
+      
+    end
+
+  end

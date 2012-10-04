@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context OCL
+
+  @Class ASTNode
+  
+    @Attribute exp      : Performable  (?,!)   end
+    @Attribute children : Seq(ASTNode) (?,+,-) end
+    
+    @Constructor(exp,children) end
+    @Constructor(exp)          end
+    
+  end

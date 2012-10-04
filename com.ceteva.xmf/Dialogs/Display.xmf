@@ -1,0 +1,55 @@
+parserImport XOCL;
+
+context Dialogs
+
+  @Class Display isabstract
+  
+    @AbstractOp choose(continuation:Operation,default:Operation):Element
+      @Doc
+        Halts current execution until the user chooses an
+        option from those currently registered with the display.
+        Continues with the chosen dialog.
+      end
+    end
+    
+    @AbstractOp option(message:String,delayed:Operation):Element
+      @Doc
+        Registers an option. The option consists of something to
+        display and where to go if the option is chosen. Note that
+        the second argument is a 0-arity operation that returns a 
+        display.
+      end
+    end
+    
+    @AbstractOp reset():Element
+      @Doc
+        Resets all options.
+      end
+    end
+    
+    @AbstractOp separator(continuation:Operation):Element
+      @Doc
+        Causes a separator to be displayed in the output.
+      end
+    end
+    
+    @AbstractOp show(label:String,value:Element,continuation:Operation):Element
+      @Doc
+        Displays a value with an optional label (empty string if ignored).
+      end
+    end
+    
+    @AbstractOp value(label:String,type:Seq(String),continuation:Operation):Element
+      @Doc
+        Passes a value of the appropriate type to the continuation.
+        The type is supplied as a path.
+      end
+    end
+    
+    @AbstractOp yesOrNo(question:String,continuation:Operation):Element
+      @Doc
+        Asks a question and supplies true or false to the continuation.
+      end
+    end
+    
+  end

@@ -1,0 +1,47 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation classToMicroJava(name,P,O,C,A) 
+  
+    let K = constraintsToMicroJava(C);
+        M = O->asSeq->collect(o | XCoretoMicroJava(o));
+        F = A->asSeq->collect(a | XCoretoMicroJava(a))
+    in if P = Set{Object}
+       then [| @Java class <name> { <* F + K + M *> } end |]
+       else 
+         let parent = P->sel.name.toString()
+         in [| @Java class <name> extends <Seq{parent}> { <* F + K + M *> } end |]
+         end
+       end
+    end
+    
+  end
+  
+context Mappings
+
+  @Map TranslateClass(XCore::Class) -> Structure::Class
+  
+    @Clause MapClass
+    
+      XCore::Class[name=name,parents=P,operations=O,constraints=C,attributes=A] do 
+      
+        classToMicroJava(name,P,O,C,A) 
+      
+    end
+    
+  end
+      
+        
+          
+      

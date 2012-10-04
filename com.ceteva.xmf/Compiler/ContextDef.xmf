@@ -1,0 +1,22 @@
+import OCL;
+import Instrs;
+
+context ContextDef
+  @Operation FV():Element
+    self.desugar().FV()
+  end
+
+context ContextDef
+  @Operation maxLocals():Element
+    self.desugar().maxLocals()
+  end
+  
+context ContextDef
+  @Operation desugar()
+    [| XCore::NameSpace::define(<element>,<path>,<BoolExp(isForward)>) |]
+  end
+    
+context ContextDef
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    self.desugar().compile(env,frame,isLast,saveSource)
+  end

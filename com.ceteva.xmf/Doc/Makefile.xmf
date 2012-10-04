@@ -1,0 +1,6 @@
+Compiler::compileFile("Doc/Boot",true,true);
+Compiler::compileFile("Doc/HTML/Makefile",true,true);
+Compiler::compileFile("Doc/Doc",true,true);
+Compiler::compileFile("Doc/ToLatex",true,true);
+
+"Doc/HTML/Makefile.o".loadBin(false);

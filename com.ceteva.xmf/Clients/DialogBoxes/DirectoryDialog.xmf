@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class DirectoryDialog extends ContainedClientElement
+  
+    @Attribute dir  : String end
+  
+    @Constructor(dir)
+      if dir.hasPrefix("/") then
+        self.dir := dir.subst("","/",false)
+      end
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newDirectoryDialog(self)
+    end
+  
+  end

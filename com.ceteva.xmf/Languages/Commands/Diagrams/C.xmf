@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Diagrams;
+import Graphs;
+import Env;
+
+context Diagrams
+
+  @Class C extends Statement
+  
+    @Attribute test     : Node end
+    @Attribute thenNode : Node end
+    @Attribute elseNode : Node end
+    
+    @Constructor(test,thenNode,elseNode) end
+    
+    @Constructor() ! end
+   
+  end

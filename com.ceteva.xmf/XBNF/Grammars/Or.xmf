@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Or extends Recognizer
+  
+    @Attribute left : Recognizer end
+    @Attribute right : Recognizer end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      left.CNF(grammar,BV,
+        @Operation(left,leftBV,newClauses1)
+          right.CNF(grammar,BV,
+            @Operation(right,rightBV,newClauses2)
+              let newName = grammar.newNT();
+                  leftFV = self.left.FV();
+                  rightFV = self.right.FV() then
+                  FV = BV->select(v | (leftFV + rightFV)->includes(v)) then
+                  BOA = FV->collect(a | BV->indexOf(a));
+                  clause = Clause(newName,FV,Seq{left,right},FV->size + leftBV->size.max(rightBV->size))
+              in handler(Seq{Call(newName,FV,BOA)},BV,(newClauses1 + newClauses2)->including(clause))
+              end
+            end)
+         end)
+    end
+     
+    @Operation FV():Set(String)
+      left.FV()->union(right.FV())
+    end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      format(out," | ");
+      right.pprint(out,indent)
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      left.setLocals(locals,next);
+      right.setLocals(locals,next)
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals() + right.terminals()
+    end
+   
+  end 
+      

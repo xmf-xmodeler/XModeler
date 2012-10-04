@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Iterate in AST(aIterate,arg,seen)
+  let body = self.dispatch(aIterate.body,arg);
+      value = self.dispatch(aIterate.value,arg);
+      accumulator = self.dispatch(aIterate.accumulator,arg);
+      collection = self.dispatch(aIterate.collection,arg)
+  in ASTNode(aIterate,Seq{collection,value,body})
+  end
+end;

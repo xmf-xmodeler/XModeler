@@ -1,0 +1,59 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class CollectionMult extends Multiplicity
+
+    @Doc
+      This captures the multiplicity for any attribute with a collection type.
+    end
+
+    @Attribute isOrdered : Boolean (?,!) end       // Is the collection type ordered (sequence) or not (set)?
+    @Attribute hasUpperBound : Boolean (?,!) end   // Does the multiplicity have an upper bound?
+    @Attribute lowerBound : Integer (?,!) end      // Specifies the lower bound for the multiplicity
+    @Attribute upperBound : Integer (?,!) end      // Specifies the upper bound for the multiplicity
+
+    @Constructor(isOrdered,hasUpperBound,lowerBound,upperBound) end
+
+    @Operation check(value):Boolean
+      if self.isUnbounded()
+      then true
+      else let size = value.size()
+           in  if size < lowerBound
+               then false
+               else if not hasUpperBound
+                    then true
+                    else if size > upperBound
+                         then false
+                         else true
+                         end
+                    end
+               end
+           end
+      end
+    end
+
+    @Operation isUnbounded():Boolean
+      lowerBound = 0 and not hasUpperBound
+    end
+
+    @Operation multString():String
+      let isUnbounded = self.isUnbounded()
+      in
+        if self.isOrdered
+        then if isUnbounded then "$" else "$" + self.rangeString() + " " end
+        else if isUnbounded then "*" else self.rangeString() + " " end
+        end
+      end
+    end
+   
+    @Operation rangeString():String
+      lowerBound.toString() + ".." +
+        if hasUpperBound then upperBound.toString() else "*" end
+    end
+
+    @Operation simpleMultString():String
+      if self.isUnbounded() then "*" else self.rangeString() end
+    end
+
+  end

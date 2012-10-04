@@ -1,0 +1,36 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class YesOrNo extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      YesOrNo ::= question = Exp { YesOrNo(question) }.
+      
+    end 
+    
+    @Attribute question : Performable end
+    
+    @Constructor(question) end 
+    
+    @Operation desugar() 
+      [| @Operation(c) 
+            @Operation(d) 
+              d.yesOrNo(<question>,c) 
+            end 
+         end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@YesOrNo~%~V",Seq{indent+2});
+      question.pprint(out,indent+2);
+      format(out,"~Vend",Seq{indent})
+    end
+    
+  end

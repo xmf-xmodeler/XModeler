@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class TailSend extends Instr
+  
+    @Attribute arity : Integer end
+    @Attribute message : String end
+    @Attribute messageOffset : Integer end
+    
+    @Constructor(message,arity) end
+    
+    @Operation toString():String
+      "<TailSend " + arity + "," + message.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.messageOffset := codeBox.constOffset(message);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(messageOffset.byte(2),arity,messageOffset.byte(1))
+    end
+    
+  end

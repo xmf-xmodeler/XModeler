@@ -1,0 +1,131 @@
+// Copyright Ceteva Limited, 2005. Not to be redistributed in any form without
+// written agreement from Ceteva Limited.
+
+parserImport XOCL;
+
+import Walkers;
+import OCL;
+
+context Walkers
+
+  @Class ConstraintReporter extends Walker
+  
+    // Run over the system and return constraint reports.
+    
+    @Attribute reports      : Set(ConstraintReport) (+) end  // Contains all the constraint check reports.
+    @Attribute justFailures : Boolean                   end  // True when just failing checks are recorded.
+    
+    @Constructor(justFailures) ! 
+      self.initWalker()
+    end
+  
+    @Operation defaultWalk(e:Element,arg:Element):Element
+      null
+    end
+    
+    @Operation reWalk(v:Element,arg:Element):Element
+      null
+    end
+    
+    @Operation walkBoolean(b:Boolean,arg:Element):Element 
+      null
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      null
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      null
+    end
+     
+    @Operation walkOperation (o:Operation,arg:Element):Element
+      null
+    end
+    
+    @Operation walkPreObject(o:Object,arg:Element)
+      null
+    end
+    
+    @Operation walkObject(o:Object,arg:Element):Element
+      self.encounter(o);
+      if not o.isKindOf(NameSpace) 
+      then 
+        let result = o.checkConstraints() 
+        in if justFailures 
+           then
+             if not result.satisfied 
+             then
+                 result.children := result.failures();
+                 self.addToReports(result)
+             end
+           else self.addToReports(result)
+           end
+        end;
+        super(o,arg)
+      end
+    end
+     
+    @Operation walkPostObject(o:Object,arg:Element)
+      null
+    end
+    
+    @Operation walkSlot(o:Object,s:String,arg:Element)
+      self.walk(o.get(s),arg)
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,arg:Element):Element 
+      if not s->isEmpty
+      then 
+        self.walk(s->head,arg);
+        self.walk(s->tail,arg)
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,arg:Element):Element 
+      @For x in s do
+        self.walk(x,arg)
+      end
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      null
+    end
+    
+    @Operation walkSymbol(s:Symbol,arg:Element):Element 
+      null
+    end
+    
+    @Operation walkTable(t:Table,arg:Element):Element
+      @For v inTableValues t do
+        self.walk(v,arg)
+      end
+    end
+    
+    @Operation walkVector(v:Vector,arg:Element):Element
+      @Count i from 0 to v.size() - 1 do
+        self.walk(v.ref(i),arg)
+      end
+    end
+    
+    @Operation walkConstraints(e:Element)
+    
+      // Returns the results of walking over the children of an element e
+      // as a single constraint report, containing child reports...
+      
+      self.reports := Set{};
+      self.walk(e,null);
+      let selfReport = ConstraintReport(e,null,true);
+          elementReports = self.reports->asSeq
+      in @For report in elementReports do
+           selfReport.addToChildren(report)
+         end;
+         let childrenSatisfied = selfReport.children->forAll(r | r.satisfied()) 
+         in selfReport.satisfied := selfReport.satisfied and childrenSatisfied
+         end;
+         selfReport
+      end 
+    end 
+    
+  end
+     

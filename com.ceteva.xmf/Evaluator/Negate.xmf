@@ -1,0 +1,21 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Negate in Eval(aNegate,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aNegate.exp,
+       @Operation(next,result,call,return)
+         self.eval(aNegate.exp,env,target,imports,next,result,call,return,
+           @Operation(bool)
+             result(aNegate,not bool,cont)
+           end)
+       end)
+  end
+end;

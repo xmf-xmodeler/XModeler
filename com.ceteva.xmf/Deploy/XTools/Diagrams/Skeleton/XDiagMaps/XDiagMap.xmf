@@ -1,0 +1,614 @@
+parserImport XOCL;
+
+import Exceptions;
+import Clients::Diagrams;
+import IO;
+import XDiagMaps;
+
+context XDiagMaps
+
+  @Class CancelDeploy extends Exception
+  
+    // Used to catch cancellations.
+    
+  end
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class XDiagMap 
+
+    @Attribute edges           : Set(Edge)           (?,!,+,-) end
+    @Attribute generalizations : Set(Generalization) (?,!,+,-) end
+    @Attribute nodes           : Set(Node)           (?,!,+,-) end
+    @Attribute class           : Class               (?,!)     end
+    @Attribute package         : Package             (?,!)     end
+    @Attribute allowNotes      : Boolean             (?,!)     end
+    @Attribute observations    : Set(ObservedClass)  (?,!,+,-) end
+    @Attribute diagramType     : String              (?,!)     end
+    @Attribute toolDescriptorType : String           (?,!)     end
+    
+    @Constructor(package) ! end
+    
+    @Operation attributeEdge(attribute:Attribute):Edge
+      @Find(edge,self.attributeEdges())
+        when edge.attribute() = attribute
+        else null
+      end
+    end
+    
+    @Operation attributeEdges():Set(AttributeEdge)
+      edges->select(edge | edge.isKindOf(AttributeEdge))
+    end
+    
+    @Operation attributesInNodes():Set(Attribute)
+      // Calculates those attributes contained in nodes...
+      nodes->iterate(n A = Set{} | A + n.attributes())
+    end
+    
+    @Operation chooseAttribute(A,reason)
+    
+      // Choose an attribute from A for a given reason.
+      // Returns null if no choice is possible and throws
+      // an exception if choice is cancelled.
+              
+      if A->isEmpty
+      then null 
+      elseif A->size = 1 
+      then A->head 
+      else 
+        let a = xmf.select("Label","Choose an attribute " + reason,A,null,null)
+        in if a = null
+           then throw CancelDeploy()
+           else a 
+           end
+        end
+      end
+    end
+    
+    @Operation classEdges():Set(ClassEdge)
+      edges->select(edge | edge.isKindOf(ClassEdge))
+    end
+    
+    @Operation containerLayout():String
+    
+      // Choose a container layout style...
+      
+      let layout = xmf.select("Layout","Select a layout style",Seq{"HORIZONTAL","VERTICAL","OVERLAY"},null,null)
+      in if layout = null
+         then throw CancelDeploy()
+         else layout
+         end
+      end
+    end 
+    
+    @Operation deploy()
+  
+      // Ask for the appropriate elements and then deploy...
+    
+      try 
+    
+        // Choose the directory to write the files into...
+        
+        let dir = self.deployDir()
+        in // Choose a name for the diagram type that will be
+           // shown in the 'Create Diagram' menu option...
+           self.setDiagramType();
+           // Choose a class from the package for which we are
+           // defining the editor...
+           self.setClass();
+           // Choose the classes that are to be shown as nodes
+           // and their displays...
+           self.setNodes();
+           // Choose the classes and attributes that are to be
+           // shown as edges...
+           self.setEdges();
+           // Allow notes...?
+           self.allowNotes := xmf.question("Allow notes on the diagrams?");
+           // Set the observed classes and their observed atts...
+           self.setObservations();
+           // Write out the definition...
+           let manifest = self.write(dir);
+               message = "XTool for " + class.name() + " deployed in " + dir + ".\n\n" +
+                         "Would you like to compile and load the XTool now?"
+           in
+             if xmf.question(message)
+             then manifest.compileBuildLoadManifest()
+             end
+           end
+        end
+      
+      catch(x)
+      
+        // Allow any step in the process to cancel by throwing 
+        // an exception...
+        @TypeCase(x)
+          CancelDeploy do
+            xmf.warning("Deployment cancelled.")
+          end
+          else throw x
+        end
+      end
+    
+    end
+    
+    @Operation deployDir()
+    
+      // Choose a directory to write the tool definition to...
+      
+      let dir = xmf.selectDirectory(xmf.projDir())
+      in if not dir.fileExists()
+         then throw CancelDeploy()
+         else dir
+         end
+      end
+      
+    end
+    
+    @Operation designDisplay(A:Set(Attribute))
+       
+       // Build up a display component interactively...
+       
+       let displays = Seq{"Box","Container","Ellipse","Image","Shape"} + A->asSeq then
+           display = xmf.select("Display Type","Choose display type",displays,null,null);
+           width = @Operation() xmf.getInteger("Width","Type display width",100) end;
+           height = @Operation() xmf.getInteger("Height","Type display height",50) end;
+           fill = @Operation() xmf.question("Fill the Box/Container?") end;
+           border = @Operation() xmf.question("Draw the border for the Box/Container?") end;
+           curve = @Operation() xmf.getInteger("Curve","Corner curve for Box/Container",0) end
+       in if display = null
+          then throw CancelDeploy()
+          else
+            @Case display of
+              "Box" do
+                Box(fill(),border(),"OVERLAY",chooseNodeColour(Box),width(),height(),0,0,curve(),Seq{})
+              end
+              "Container" do
+                Box(fill(),border(),self.containerLayout(),chooseNodeColour(Box),width(),height(),0,0,curve(),self.designDisplays(A))
+              end
+              "Ellipse" do
+                Ellipse(width(),height(),chooseNodeColour(class))
+              end
+              "Image" do
+                Image(xmf.openFile(xmf.projDir(),"*.gif"),width(),height())
+              end
+              "Shape" do
+                let colour = chooseNodeColour(Shape)
+                in Shape(true,colour,colour,self.getPoints())
+                end
+              end
+              else 
+                if display.underlyingType() = display.type
+                then DisplayAtomicAtt(display)
+                elseif display.underlyingType().isKindOf(DataType)
+                then DisplayCollectionAtt(display)
+                else DisplayCollectionAtt(display,self.mkRenderText("Renderer for " + display.name(),display))
+                end
+            end
+          end
+       end
+     end
+     
+     @Operation designDisplays(A:Set(Attribute))
+       let display = self.designDisplay(A)
+       in if xmf.question("More elements?")
+          then Seq{display | self.designDisplays(A)}
+          else Seq{display}
+          end
+       end
+     end
+     
+     @Operation edgeClasses():Seq(Class)
+    
+        // Returns the classes represented by edges.
+    
+       edges->select(edge | edge.isKindOf(ClassEdge))->collect(edge | edge.class())
+      
+     end
+     
+    @Operation edgeAttributes():Set(Attribute)
+    
+      // Returns set of attributes represented by edges.
+      
+      edges->select(edge | edge.isKindOf(AttributeEdge))->collect(edge | edge.attribute())
+    end
+
+    @Operation getCreateDiagramOpName()
+      "createDiagram_" + class.name().toString() + "_" + diagramType.stripInvalidNameChars()
+    end
+
+    @Operation getPoints()
+      if xmf.question("More Points?")
+      then
+        let x = xmf.getInteger("X","x co-ordinate",0) then
+            y = xmf.getInteger("Y","y co-ordinate",0)
+        in Seq{Seq{x,y} | self.getPoints()}
+        end
+      else Seq{}
+      end
+    end
+    
+    @Operation isAttributeEdge(attribute:Attribute):Boolean
+      self.attributeEdges()->exists(edge | edge.attribute() = attribute)
+    end
+    
+    @Operation isEdgeClass(class:Class):Boolean
+      self.classEdges()->exists(edge | edge.class() = class)
+    end
+    
+    @Operation isNodeClass(class:Class):Boolean
+      self.nodes()->exists(node | node.class() = class)
+    end
+    
+    @Operation mkClassEdge(class)
+    
+      // Tuen a chosen class with at least two attributes in the
+      // model to a class edge. Non source and target attributes
+      // can be turnd into labels.
+      
+      let A = class.allAttributes()->select(a | self.nodeClasses()->exists(c | c.inheritsFrom(a.underlyingType())))->asSeq then
+          source = xmf.select("Source","Select attribute designating source of edge of type " + class.name(),A,null,null)
+      in if source = null
+         then throw CancelDeploy()
+         else 
+           let target = xmf.select("Target","Select attribute designating target of an edge of type " + class.name(),A->excluding(source),null,null)
+           in if target = null
+              then throw CancelDeploy()
+              else 
+                let L = 
+                  let B = class.allAttributes()->select(a | a.type = String or a.type = Boolean or a.type = Integer or a.type = XOCL::Exp)->asSeq
+                  in if not B->isEmpty
+                     then xmf.selects("Labels","Select attributes of " + class.name() + " to be displayed as labels.",B,null,null)
+                     else Seq{}
+                     end
+                  end then
+                    edge = ClassEdge(class,self.nodeFor(source.underlyingType()),self.nodeFor(target.underlyingType()),source,target,chooseEdgeColour(class),L->collect(a | Label(a)))
+                in edge.setEnd("source",class.name());
+                   edge.setEnd("target",class.name());
+                   edge.setLineStyle(class.name());
+                   edge
+                end
+              end
+            end
+         end
+      end
+    end
+  
+    @Operation mkNode(class)
+    
+      // Turn a chosen class into a node with display properties.
+      // Offers a number of diaplsy patterns to choose from.
+      // Selects the attribute to be used as the layout id.
+    
+      let unlabelledDisplays = Seq{"Ellipse","Box","Image","Vertical Bar","Horizontal Bar","Triangle","Design..."};
+          labelledDisplays = Seq{"Label","Label Under Ellipse","Label On Ellipse","Label On Box","Labelled Image"};
+          A = class.allAttributes()->select(a | a.type = String or a.type = Integer or a.type = Boolean)->asSeq then
+          L = class.allAttributes()->select(a | a.type = String or a.type = Integer)->asSeq;
+          displays = if A->isEmpty then unlabelledDisplays else labelledDisplays + unlabelledDisplays end then
+          display = xmf.select("Display Style","Choose display style for " + class.name(),displays,null,null);
+          width = @Operation() xmf.getInteger("Width","Type display width",100) end;
+          height = @Operation() xmf.getInteger("Height","Type display height",50) end;
+          length = @Operation() xmf.getInteger("Length","Type length",100) end;
+          id = @Operation() self.chooseAttribute(L,"to be used as an id for each instance") end;
+          label = @Operation() DisplayAtomicAtt(self.chooseAttribute(A,"to be used as a label")) end;
+          menu = self.menu(class)
+      in @Case display of
+            "Label" do
+              Node(class,DisplayAtomicAtt(self.chooseAttribute(A,"to be used as a label")),id(),menu)
+            end
+            "Ellipse" do
+              Node(class,Ellipse(width(),height(),chooseNodeColour(class)),id(),menu)
+            end
+            "Label Under Ellipse" do
+              Node(class,Box(false,false,"VERTICAL",null,Seq{Ellipse(width(),height(),chooseNodeColour(class)),label()}),id(),menu)
+            end
+            "Label On Ellipse" do
+              Node(class,Box(false,false,"OVERLAY",null,Seq{Ellipse(width(),height(),chooseNodeColour(class)),label()}),id(),menu)
+            end
+            "Box" do
+              Node(class,Box(true,true,"OVERLAY",chooseNodeColour(class),width(),height(),0,0,0,Seq{}),id(),menu)
+            end
+            "Label On Box" do
+              Node(class,Box(true,true,"OVERLAY",chooseNodeColour(class),width(),height(),0,0,0,Seq{label()}),id(),menu)
+            end
+            "Image" do
+              Node(class,Image(xmf.openFile(xmf.projDir(),"*.gif"),width(),height()),id(),menu)
+            end
+            "Labelled Image" do
+              Node(class,Box(false,false,"VERTICAL",null,Seq{Image(xmf.openFile(xmf.projDir(),"*.gif"),width(),height()),label()}),id(),menu)
+            end
+            "Vertical Bar" do
+              let length = length()
+              in Node(class,Box(true,true,"OVERLAY",chooseNodeColour(class),10,length,10,length,0,Seq{}),id(),menu)
+              end
+            end
+            "Horizontal Bar" do
+              let length = length()
+              in Node(class,Box(true,true,"OVERLAY",chooseNodeColour(class),length,10,length,10,0,Seq{}),id(),menu)
+              end
+            end
+            "Triangle" do
+              let dir = xmf.select("Direction","Direction of point",Seq{"North","South","East","West"},null) then
+                  colour = if dir <> null then chooseNodeColour(class) end then
+                  length = length()
+              in if dir <> null
+                 then 
+                   @Case dir of
+                     "North" do
+                       Node(class,Shape(true,colour,colour,Seq{Seq{length.div(2),0},Seq{0,length},Seq{length,length}}),id(),menu)
+                     end
+                     "South" do
+                       Node(class,Shape(true,colour,colour,Seq{Seq{0,0},Seq{length,0},Seq{length.div(2),length}}),id(),menu)
+                     end
+                     "East" do
+                       Node(class,Shape(true,colour,colour,Seq{Seq{0,length.div(2)},Seq{length,0},Seq{length,length}}),id(),menu)
+                     end
+                     "West" do
+                       Node(class,Shape(true,colour,colour,Seq{Seq{0,0},Seq{length,length.div(2)},Seq{0,length}}),id(),menu)
+                     end
+                   end
+                 end
+              end
+            end
+            "Label Over Lane" do
+            
+              // Not offered. Requires the following modifications:
+              // Node optionally has port.
+              // Display element optionally has port.
+              // Display element has both min and max width and height.
+              // Display element states alignment wrt container.
+              
+              let label = Box(false,false,"OVERLAY",Color(150,150,150),Seq{label()});
+                  lane = Box(true,false,"VERTICAL",null,Seq{Line(5,0,5,50,"CENTRE",Color(70,70,255))})
+              in Node(class,Box(false,false,"VERTICAL",null,50,100,0,0,Seq{label,lane}),id(),menu)
+              end
+            end
+            "Design..." do
+              Node(class,self.designDisplay(class.allAttributes()),id(),menu)
+            end
+            else throw CancelDeploy()
+          end
+       end
+     end
+     
+     @Operation mkRenderText(message:String,attribute:Attribute):RenderText
+     
+       // As questions relating to how the instances of the attribute
+       // type will be rendered.
+       
+       let class = attribute.underlyingType() then
+           A = class.allAttributes()->asSeq then
+           options = Seq{"Text Concatenation","Constant Text","Send toString to Element"} + A then
+           option = xmf.select(message,"Choose a rendering style.",options + A,null,null)
+       in @Case option of
+            [null] do
+              throw CancelDeploy()
+            end
+            "Text Concatenation" do
+              RenderConcat(
+                self.mkRenderText("Left",attribute),
+                self.mkRenderText("Right",attribute))
+            end
+            "Constant Text" do
+              RenderConstant(xmf.getString("Constant Text","Type Constant",""))
+            end
+            "Send toString to Element" do
+              RenderToString()
+            end
+            else RenderAttribute(class,option)
+          end
+        end
+     end
+     
+     @Operation menu(class)
+    
+      // Create a menu for the class. The menu will allow
+      // any of the 0-arity operations to be invoked directly
+      // from the menu and also allow arbitrary code to be defined
+      // as a menu item.
+      
+      let operations = class.allOperations()->select(op | op.arity() = 0)->asSeq then
+          choices = operations + Seq{"Code..."};
+          menuItems = Seq{};
+          more = xmf.question("Create menu items for " + class.name())
+      in @While more do
+           let operation = xmf.select("Menu Item","Choose a menu item for " + class.name(),choices,null,null)
+           in if operation = null
+              then throw CancelDeploy()
+              elseif operation.isKindOf(Operation)
+              then menuItems := menuItems + Seq{MenuAction(operation.name(),formats("tool.find(self).~S()",Seq{operation.name()}))}
+              else 
+                let name = xmf.getString("Item Name","Type name for menu item","name") then
+                    action = xmf.getString("Program Code","Type the action for the menu item","null")
+                in menuItems := menuItems + Seq{MenuAction(name,action)}
+                end
+              end;
+              more := xmf.question("More menu items for " + class.name)
+           end
+         end;
+         Menu(menuItems)
+      end
+    end
+    
+    @Operation nodeClasses():Set(Class)
+    
+        // Returns the classes represented by nodes.
+    
+       nodes->collect(node | node.class())
+      
+     end
+    
+    @Operation nodeFor(class)
+    
+      // Return the node for the given class otherwise null...
+      
+      @Find(node,nodes)
+        when node.class() = class
+        else null
+      end
+      
+    end
+    
+    @Operation setAttributeEdges()
+  
+      // Choose the attributes that determine the edge types...
+    
+      let classes = package.allContentsOf(Class) - self.edgeClasses()->including(self.class()) then
+          attributes = classes->iterate(c A = Seq{} | A + c.attributes->asSeq) then
+          attributes = attributes - self.attributesInNodes()->asSeq then
+          attributes = attributes->select(a | classes->includes(a.underlyingType())) then
+          displays = attributes->collect(a | formats("~S::~S : ~S",Seq{a.owner().name(),a.name(),a.underlyingType().name()}))
+      in if attributes->isEmpty
+         then Seq{}
+         else 
+           let chosen = xmf.selects("Edge Types","Select edge types for diagram editor:",displays,null,null)
+           in @For path in chosen do
+                self.edges := edges->including(
+                  let attribute = attributes->at(displays->indexOf(path)) then
+                      source = self.nodeFor(attribute.owner());
+                      target = self.nodeFor(attribute.underlyingType())
+                  in AttributeEdge(source,target,attribute,chooseEdgeColour(attribute)).nameDialog()
+                  end)
+              end 
+           end
+         end
+      end
+    end
+    
+    @Operation setClass()
+     
+     // Choose the root class that the XTool diagram editor
+     // will use as the element type.
+     
+     let classes = package.allContentsOf(Class)->reject(c | c.isAbstract)
+     in if classes->isEmpty
+        then
+          xmf.warning("No classes to deploy");
+          throw CancelDeploy()
+        else 
+          let class = xmf.select("Root Class","Select Class for Editor:",classes,null,null)
+          in if class = null
+             then throw CancelDeploy()
+             else 
+               self.class := class
+             end
+          end
+        end
+      end
+    end
+    
+    @Operation setClassEdges()
+    
+      // Class edges are those that have at least two attributes
+      // whose types are classes in the model. These attributes
+      // can therefore be used as the source and target of the
+      // edge representing an instance of the class.
+    
+      let classes = (package.allContentsOf(Class)->reject(c | c.isAbstract)) - self.nodeClasses() then
+          allEdgeClasses = 
+            classes->select(c | 
+              c.allAttributes()->exists(a1 |
+                c.allAttributes()->exists(a2 |
+                  a1 <> a2 and
+                  self.nodeClasses()->exists(c | c.inheritsFrom(a1.underlyingType())) and
+                  self.nodeClasses()->exists(c | c.inheritsFrom(a2.underlyingType())))))
+      in if not allEdgeClasses->isEmpty
+         then 
+           let stringOp = 
+                 @Operation(element)
+                   element.name().toString() + " from " + element.owner.toString()
+                 end then
+               edgeClasses = xmf.selects("Edge Types","Select edge types for diagram editor:",allEdgeClasses,null,stringOp)
+           in @For class in edgeClasses do
+                self.edges := edges->including(self.mkClassEdge(class))
+              end
+           end
+         end
+      end
+      
+    end
+
+    @Operation setDiagramType()
+     
+     // Choose a name for the diagram type that will be
+     // shown in the 'Create Diagram' menu option.
+     
+     let diagramType = xmf.input("New Diagram Type",
+                          "Element types can have multiple diagram types associated with them." +
+                          "Enter a name for this diagram type.",
+                          "Default_Diagram")
+     in if diagramType <> null andthen diagramType <> ""
+        then
+          self.diagramType := diagramType;
+          self.toolDescriptorType := "DiagramTool_"+diagramType.stripInvalidNameChars()
+        else
+          throw CancelDeploy()
+        end
+      end
+    end
+
+    @Operation setEdges()
+    
+      // The edges on a diagram can arise from classes in the model
+      // or from attributes of classes in the model. 
+      
+      self.setClassEdges();
+      self.setAttributeEdges()
+      
+    end
+    
+    @Operation setNodes()
+  
+      // Choose the classes that will be used as node types.
+    
+      let classes = package.allContentsOf(Class)->excluding(class)->reject(c | c.isAbstract)
+      in if not classes->isEmpty
+         then 
+           let stringOp = 
+                @Operation(element)
+                  element.name().toString() + " from " + element.owner.toString()
+                end then
+               nodeClasses = xmf.selects("Node Types","Select node types for diagram editor:",classes,null,stringOp)
+           in @For class in nodeClasses do
+                self.nodes := nodes->including(self.mkNode(class))
+              end
+           end
+         end
+      end
+    
+    end
+    
+    @Operation setObservations()
+    
+      // For now just set all the classes as observed...
+      
+      @For node in nodes do
+        let observation = ObservedNode(node)
+        in @For att in node.class().allAttributes() do
+             observation.addToObservedAttributes(att)
+           end;
+           self.addToObservations(observation)
+        end
+      end;
+      
+      @For edge in self.classEdges() do
+        self.addToObservations(ObservedEdge(edge))
+      end;
+      
+      self.addToObservations(ObservedRoot(class))
+      
+    end
+    
+    
+    
+  end
+
+  

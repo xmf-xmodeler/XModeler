@@ -1,0 +1,63 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @NodeType NodeType(OVERLAY,hasport)
+    @Box nodeBox(ALIGN)
+      @Star display
+        BoxType
+        EllipseType
+        ImageType
+        StarType 
+        TextType
+      end
+      @PaddedBox nameBox(ALIGN,HORIZONTAL,hideLeft,hideRight,hideTop,hideBottom)
+        pad = 3
+        @Text name(CENTRE)
+          "Node Type Name"
+          @Menu
+            @MenuAction "New Box Type"
+              self.owner().owner().addNew("BoxType")
+            end
+            @MenuAction "New Star Type"
+               self.owner().owner().addNew("StarType")
+            end
+            @MenuAction "New Ellipse Type"
+              self.owner().owner().addNew("EllipseType")
+            end
+            @MenuAction "New Text Type"
+             self.owner().owner().addNew("TextType")
+            end
+            @MenuAction "New Image Type"
+              self.owner().owner().addNew("ImageType")
+            end
+            @MenuAction Reorder
+              self.owner().owner().userOrderContents()
+            end
+            @MenuItems Edit
+              @MenuAction Diagram
+                self.root().owner().edit()
+              end
+              @MenuAction Model
+                tool.find(self.root()).edit()
+              end
+            end
+          end
+        end
+        Container
+      end
+    end
+  end

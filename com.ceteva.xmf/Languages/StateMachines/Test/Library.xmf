@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+context Root
+
+@Package Library
+
+  @Class Library
+    @Attribute stock : Set(Copy) end
+    @Constructor(stock) end
+  end
+  
+  @Class Book
+    @Attribute isbn : String end
+  end
+  
+  @Class Copy
+    @Attribute book : Book end
+    @Attribute copyId : String end
+    @Attribute onLoan : Boolean end
+    @Attribute returnDate : Integer end
+    @Constructor(book,copyId) end
+  end
+
+end

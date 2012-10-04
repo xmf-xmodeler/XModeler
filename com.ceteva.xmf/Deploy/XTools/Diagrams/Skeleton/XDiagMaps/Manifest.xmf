@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+@Manifest XDiagMaps
+  p = @File XDiagMaps end
+  @File AnnotatedElement end
+  @File Label end
+  @File Edge end
+  @File AttributeEdge end
+  @File ClassEdge end
+  @File Box end
+  @File Ellipse end
+  @File Line end
+  @File Shape end
+  @File RenderText end
+  @File RenderAttribute end
+  @File RenderConcat end
+  @File RenderConstant end
+  @File RenderToString end
+  @File DisplayAtt end
+  @File DisplayAtomicAtt end
+  @File DisplayCollectionAtt end
+  @File Image end
+  @File Display end
+  @File Generalization end
+  @File MenuItem end
+  @File MenuItems end
+  @File MenuAction end
+  @File Menu end
+  @File Node end
+  @File ObservedClass end
+  @File ObservedRoot end
+  @File ObservedNode end
+  @File ObservedEdge end
+  @File XDiagMap end
+  @File WriteMap end
+  @File Package end
+do p
+end;

@@ -1,0 +1,20 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XarDB/Boot",true,true);
+compileFile(xmf.homeDir() + "/XarDB/Const",true,true);
+compileFile(xmf.homeDir() + "/XarDB/XarDB",true,true);
+compileFile(xmf.homeDir() + "/XarDB/XarInstr",true,true);
+compileFile(xmf.homeDir() + "/XarDB/HotLoad",true,true);
+compileFile(xmf.homeDir() + "/XarDB/IndexedInstr",true,true);
+compileFile(xmf.homeDir() + "/XarDB/Lookup",true,true);
+compileFile(xmf.homeDir() + "/XarDB/MkCons",true,true);
+compileFile(xmf.homeDir() + "/XarDB/MkSet",true,true);
+compileFile(xmf.homeDir() + "/XarDB/MkSymbol",true,true);
+compileFile(xmf.homeDir() + "/XarDB/MkObj",true,true);
+compileFile(xmf.homeDir() + "/XarDB/MkSlot",true,true);
+compileFile(xmf.homeDir() + "/XarDB/ProcessInstr",true,true);
+compileFile(xmf.homeDir() + "/XarDB/Put",true,true);
+compileFile(xmf.homeDir() + "/XarDB/Ref",true,true);
+compileFile(xmf.homeDir() + "/XarDB/RefObj",true,true);
+compileFile(xmf.homeDir() + "/XarDB/Table",true,true);
+compileFile(xmf.homeDir() + "/XarDB/XarFile",true,true);

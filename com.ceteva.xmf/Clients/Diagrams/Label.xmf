@@ -1,0 +1,145 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class Label extends ContainedDiagramElement, RightClickable
+  
+    @Attribute text : String (?) end
+    @Attribute font : String (?) end
+    @Attribute attachedTo : String (?) end
+    @Attribute relx : Integer (?) end
+    @Attribute rely : Integer (?) end
+    @Attribute editable : Boolean (?,!) end
+    @Attribute underline : Boolean (?,!) end
+    @Attribute truncate : Integer = 0-1 (?,!) end
+    @Attribute color : Color = static Color() (?,!) end
+    @Attribute hidden : Boolean (?) end
+    
+    @Constructor(text,attachedTo,relx,rely,editable) end
+    
+    @Constructor(text,attachedTo,relx,rely,editable,color) end
+        
+    @Constructor(id,text,attachedTo,relx,rely,editable) ! end
+    
+    @Constructor(id,text,attachedTo,relx,rely,editable,color) ! end
+    
+    @Constructor(id,text,attachedTo,relx,rely,editable,truncate) end
+
+    @Operation delete()
+      @Command(self) deleteCommand(self) end;
+      self.removeFromOwner()
+    end
+
+    /* @Operation dispose()
+      self.clearRightClickMenu();
+      super()
+    end */
+    
+    @Operation disposeId(disposeChildren)
+      self.clearRightClickMenu();
+      super(disposeChildren)
+    end
+
+    @Operation layoutData():XML::Element
+      DiagramLayout::Label(text,relx,rely)
+    end
+    
+    @Operation hide() 
+    
+      // Cause the label to disappear from the diagram. 
+      
+      if not hidden
+      then 
+        self.hidden := true;
+        @Command(self) hideCommand(self) end
+      end
+    end
+    
+    @Operation move(x,y)
+      @When relx <> x or rely <> y do
+        self.relx := x;
+        self.rely := y;
+        @Command(self) moveCommand(self,x,y) end
+      end
+    end
+    
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newEdgeTextCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.remove(self)
+      else self.error("Label::removeFromOwner: no owner.")
+      end
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newEdgeTextCommand(parent,self) end;
+      self.setRightClickMenu();
+      if self.hidden
+      then @Command(self) hideCommand(self) end
+      end;
+      self
+    end
+    
+    @Operation setColor(color:Color)
+      self.color := color;
+      @Command(self) setColor(self,color) end
+    end
+    
+    @Operation setFont(font:String)
+      self.font := font;
+      @Command(self) setFont(self,font) end
+    end
+
+    @Operation show() 
+    
+      // Cause the label to reappear on the diagram.
+      
+      if hidden
+      then 
+        self.hidden := false;
+        @Command(self) showCommand(self) end
+      end
+    end
+    
+    @Operation synchronise()
+
+      // color ignored
+    
+      let
+        id = Seq{"identity",id};
+        text = Seq{"text",text};
+        font = Seq{"font",font};
+        attachedTo = Seq{"attachedTo",attachedTo};
+        relx = Seq{"x",relx};
+        rely = Seq{"y",rely};
+        editable = Seq{"editable",editable};
+        underline = Seq{"underline",underline};
+        truncate = Seq{"truncate",truncate};
+        hidden = Seq{"hidden",hidden} then
+        attributes = Seq{id,text,font,attachedTo,relx,rely,editable,underline,truncate,hidden}
+      in
+        @Command(self) startElement("label",attributes) end;
+        @Command(self) endElement("label") end
+      end
+    end
+    
+    @Operation textChanged(newText) 
+      @Command(self) setTextCommand(self,newText) end;
+      if self.text <> newText
+      then self.text := newText
+      end // Avoid unnecessary daemon firing
+    end
+    
+  end

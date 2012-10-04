@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Token 
+
+	@Attribute type : Integer end         // An integer denoting the type.
+	@Attribute data : Element end         // The whitespace stripped chars.
+	@Attribute charPos : Integer end      // The current charPos.
+	@Attribute lineCount : Integer end    // The current lineCount.
+	@Attribute charCount : Integer end    // The total chars consumed in input.
+	@Attribute chars : String end         // The raw input.
+	
+	@Constructor(type,data,charPos,lineCount,charCount,chars) ! end
+	
+  end

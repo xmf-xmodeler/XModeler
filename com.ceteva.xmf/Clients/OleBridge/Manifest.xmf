@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest OleBridge
+  @File OleBridge end
+  @File OleObject end
+  @File OleTopLevel end
+  @File OleBridgeCommandInterpreter end
+  @File OleBridgeClient end
+  @Ref MicrosoftWord end
+  @Ref MicrosoftExcel end
+end;

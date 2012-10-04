@@ -1,0 +1,93 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context XOCL
+
+  @Class WithoutRendering extends Sugar
+  
+    @Doc
+      Prevents ren-dering of diagrams for the scope of an expression. 
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       WithoutRendering ::= '(' diagramid = Diagram  packetSize = PacketSize ')' body = Exp {
+       
+         WithoutRendering(diagramid,body,packetSize)
+         
+       }.
+       
+       Diagram ::= Exp | '*' {null}.
+       
+       PacketSize ::= ',' size = Exp { size } | { [| 30 |] }.
+       
+    end
+    
+    @Attribute diagramid  : Performable end
+    @Attribute body       : Performable end
+    @Attribute packetSize : Performable end
+    
+    @Constructor(diagramid,body,packetSize) end
+    
+    @Operation desugarAll()
+      [| 
+        let 
+          result = null;
+          diagrams = xmf.diagramManager().renderDiagramsOff(<packetSize>)
+        in
+          try
+            result := <body>
+          catch(exception)
+            xmf.diagramManager().renderDiagramsOn(diagrams);
+            throw exception
+          end;
+          xmf.diagramManager().renderDiagramsOn(diagrams);
+          result
+        end
+      |]
+    end
+    
+    @Operation desugarDiagram()
+        [| let 
+             dia = <diagramid>
+           in
+             if dia.hasCommandInterpreter()
+             then
+               let command = dia.commandInterpreter()
+               in 
+                 command.setPacketSize(<packetSize>);
+                 command.stopRender(dia);
+                 try 
+                   let result = <body> 
+                   in 
+                     command.startRender(dia);
+                     command.setPacketSize(1);
+                     result 
+                   end 
+                 catch(exception) 
+                   command.startRender(dia);
+                   command.setPacketSize(1);
+                   throw exception 
+                 end 
+               end
+             else
+               <body>
+             end
+           end
+        |]
+    end
+    
+    @Operation desugar():Peformable
+      if diagramid = null
+      then
+        self.desugarAll()
+      else
+        self.desugarDiagram()
+      end
+   end
+   
+end               
+    
+    

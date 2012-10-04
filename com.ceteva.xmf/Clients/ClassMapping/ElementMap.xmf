@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class ElementMap isabstract extends Contained
+  
+    @AbstractOp element()
+      // Returns the model element in the map.
+    end
+
+    @Operation selectedChangedDaemon(node,slot,newSelected,oldSelected)
+      self.element().selectModelBrowserNode(newSelected)
+    end
+
+  end

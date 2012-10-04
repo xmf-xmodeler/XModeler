@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Exceptions
+  @File Exceptions            end
+  @File ArityError            end
+  @File Error                 end
+  @File FileNotFound          end
+  @File IndexOutOfBounds      end
+  @File NameSpaceRef          end
+  @File NoSlot                end
+  @File NoOperation           end
+  @File PathNotFound          end
+  @File StackFrame            end
+  @File Exception             end
+  @File TypeError             end
+  @File UnboundVar            end
+  @File StringConversionError end
+  @File MapFailed end
+do
+  Project(Exceptions,dir,self)
+end;
+    

@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  @Class Break metaclass BrowsedClass extends DocumentElement
+      @Operation labelString()
+        ""
+      end
+  end

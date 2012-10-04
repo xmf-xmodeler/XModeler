@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class LinkAnchor extends Entry
+
+    @Attribute entries : Seq(Entry) (?,!,+,-) end
+    @Attribute ref : String (?,!,+,-) end
+    
+    @Constructor(entries,ref) ! end
+    
+    @Operation contents()
+      entries
+    end
+
+  end

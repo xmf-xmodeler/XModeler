@@ -1,0 +1,128 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Extend extends Menu
+  
+    @Attribute class : Seq(String) end
+    @Attribute args : Seq(String) end
+    
+    @Constructor(path,name,class,args) ! end
+    
+    @Grammar 
+    
+      Args ::= '(' (a = Name as = (',' Name)* ')' { Seq{a|as} } | ')' { Seq{} }).
+    
+      Extend ::= path = Path name = Path  '->' 'including' '(' class = Path args = Args ')' { 
+        Extend(path,name,class,args) 
+      }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+    
+    @Operation initInstance(class,names:Seq(String),obj):Boolean
+      // Returns true when the object should be added....
+      let cancelled = false
+      in @While not cancelled and not names->isEmpty do
+           let name = names->head
+           in @Find(a,class.allAttributes())
+                when a.name().toString() = name
+                do if a.type.isKindOf(Enum)
+                   then cancelled := Extend::initInstanceSlotFromEnum(a.type,name,obj)
+                   else cancelled := Extend::initInstanceSlot(a.type,name,obj)
+                   end
+               end
+            end;
+            names := names->tail
+          end;
+          not cancelled
+      end
+    end
+     
+    @Operation initInstanceSlotFromEnum(type,name,obj)
+      let types = type.contents()->asSeq then
+          choice = xmf.select("Set " + name.upperCaseInitialLetter(),"Select value for " + name,types,null,null)
+      in if choice = null
+         then true
+         else 
+           obj.set(name,choice);
+           false
+         end
+      end
+    end
+     
+    @Operation initInstanceSlot(type,name,obj)
+      @Case type of
+        [String] do
+          let s = xmf.getString("Set " + name.upperCaseInitialLetter(),"Enter " + name,"")
+          in if s <> null
+             then obj.set(name,s); false
+             else true
+             end
+          end
+        end
+        [Integer] do
+          let i = xmf.getInteger("Set " + name.upperCaseInitialLetter(),"Enter value for " + name,0)
+          in if i.isReallyKindOf(Integer)
+             then obj.set(name,i); false
+             else true
+             end
+          end
+        end
+        [Boolean] do
+          let b = xmf.getBoolean("Set " + name.upperCaseInitialLetter(),"Select value for " + name,true)
+          in if b.isReallyKindOf(Boolean)
+             then obj.set(name,b); false
+             else true
+             end
+          end
+        end
+        [Float] do
+          let i = xmf.getFloat("Set " + name.upperCaseInitialLetter(),"Enter value for " + name,0)
+          in if i.isReallyKindOf(Float)
+             then obj.set(name,i); false
+             else true
+             end
+          end
+        end
+        else false
+      end
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          classPath = self.class;
+          args = args;
+          name = name->last then
+          o = 
+            @Operation() 
+              let class = classPath->ref(Seq{Root})
+              in if class <> null
+                 then 
+                   let newObj = class();
+                       attribute = @Find(a,self.of().allAttributes()) when a.name().toString() = name end
+                   in if Extend::initInstance(class,args,newObj)
+                      then 
+                        self.set(name,self.get(name)->including(newObj));
+                        if attribute.isComposite and newObj.isReallyKindOf(Contained)
+                        then newObj.setOwner(self)
+                        end
+                      end
+                   end
+                 end
+              end
+            end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, Seq{"Add" | self.displayPath()},"",false,true}))
+      end 
+    end
+    
+  end

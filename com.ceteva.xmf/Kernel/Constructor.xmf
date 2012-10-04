@@ -1,0 +1,76 @@
+parserImport XOCL;
+
+context Constructor
+  @Operation body()
+    self.body
+  end
+  
+context Constructor
+  @Operation getBodySource()
+    self.body.source()
+  end
+
+context Constructor
+  @Operation init(args) 
+    self.names := args->at(0);
+    self.body := args->at(1);
+    // Migration to 3 initialization args. After full build no need to test.
+    if args->size >= 3 then self.documentation := args->at(2) end;
+    if args->size = 4 then self.source := args->at(3) end;
+    self
+  end
+
+context Constructor
+  @Operation invoke(object,args)
+    // Invoking a constructor will set the slots of the receiver to
+    // the supplied values.
+    if args->size <> names->size 
+    then self.error("Constructor expects " + names->size + " args, supplied with " + args->size)
+    else
+      @For name in names do
+        if object.hasStructuralFeature(name)
+        then object.set(name,args->head)
+        else self.error("Constructor for class " + object.of().path() + " attempting to set non-existent slot " + name)
+        end;
+        args := args->tail
+      end;
+      if body <> null then body.invoke(object,Seq{}) end;
+      object
+    end
+  end
+  
+context Constructor
+  @Operation ref(object:Object,index:Integer)
+    // Reference the index'th named slot in the object as defined by the
+    // sequence of names in the constructor.
+    if index < names->size
+    then 
+      let name = names->at(index)
+      in object.get(name)
+      end
+    else self.error("Constructor::ref: index " + index + " out of range.")
+    end
+  end
+  
+context Constructor
+  @Operation setBodySource(source)
+    self.body.source := source
+  end  
+  
+context Constructor
+  @Operation setOwner(owner:Class)
+    // When a constructor is added to a class, the owner of the body must
+    // be set in order for name space refs to be resolved correctly.
+    if body <> null
+    then body.owner := owner
+    end;
+    super(owner)
+  end
+
+context Constructor
+  @Operation toString():String
+    if owner.isReallyKindOf(Class)
+    then "<Constructor " + owner.name + "(" + names->separateWith(",") + ")>"
+    else super()
+    end
+  end

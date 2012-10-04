@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ParametricType in AST(aParametricType,arg,seen)
+  let args = aParametricType.args->collect(x | self.dispatch(x,arg))
+  in ASTNode(aParametricType,args)
+  end
+end;

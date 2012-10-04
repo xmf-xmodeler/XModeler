@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import MDC;
+
+context MDC
+
+  @Package Types
+  
+    @Operation indexFor(container,displayType)
+      if container.type() = displayType
+      then container
+      else 
+        let newContainer = indexFor(container,displayType.owner())
+        in @Find(element,newContainer.contents())
+             when element.type() = displayType
+             else self.error("indexFor: cannot find " + displayType.toString() + " in " + container.toString())
+           end
+        end
+      end
+    end
+  
+  end

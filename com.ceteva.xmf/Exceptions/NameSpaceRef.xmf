@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class NameSpaceRef extends Exception
+  
+    @Doc
+      This exception is raisd when a name space does not contain an element with
+      a given name.
+      Constructor: NameSpaceRef(nameSpace,name)
+    end
+     
+    @Attribute nameSpace : NameSpace end
+    @Attribute name : String end
+    
+    @Constructor(nameSpace,name) !
+       self.setBacktrace();
+       self.message := 
+         "The name space " + nameSpace.toString() +
+         " does not define " + name + ". \n" +
+         "The following names are defined: " + nameSpace.names()->asSeq->separateWith(",")
+    end
+    
+  end
+      
+    

@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Database;
+
+context Database
+
+  @Class QueryExp
+  
+    @Attribute body : Exp end
+    
+    @Constructor(body)
+    end
+    
+    @Operation run(database:Database)
+      database.query(self)
+    end
+  
+  end

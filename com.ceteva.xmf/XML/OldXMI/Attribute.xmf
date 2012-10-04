@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import IO;
+
+context Attribute
+  @Operation writeXMI11(out:outputChannel)
+    format(out,"<UML:Attribute xmi.id='~S' name='~S'>~%",Seq{self.path(),name});
+    self.writeXMI11Multiplicity(out); 
+    self.writeXMI11Type(out);
+    format(out,"</UML:Attribute>~%")
+  end
+  
+context Attribute
+  @Operation writeXMI11Multiplicity(out:OutputChannel)
+    format(out,"<UML:StructuralFeature.multiplicity>~%");
+    format(out,"<UML:Multiplicity>~%");
+    format(out,"<UML:Multiplicity.range>~%");
+    format(out,"<UML:MultiplicityRange lower = '1' upper = '1'/>~%");
+    format(out,"</UML:Multiplicity.range>~%");
+    format(out,"</UML:Multiplicity>~%");
+    format(out,"</UML:StructuralFeature.multiplicity>~%")
+  end
+
+context Attribute
+  @Operation writeXMI11Type(out:OutputChannel)
+     format(out,"<UML:StructuralFeature.type>~%");
+     format(out,"<Foundation.Core.Classifier xmi.idref = '~S'/>~%",Seq{self.underlyingType().path()});
+     format(out,"</UML:StructuralFeature.type>~%")
+  end

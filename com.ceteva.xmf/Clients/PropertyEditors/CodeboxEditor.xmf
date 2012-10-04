@@ -1,0 +1,99 @@
+parserImport XOCL;
+parserImport XMap;
+
+import XMap;
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CodeboxEditor extends LockableFormWithHistory
+  
+    @Attribute textbox : CodeboxDisplayTextBox end
+
+    @Constructor(textbox)
+      self.initForm();
+      self.checkDaemons()
+    end
+
+    @Operation addContents()
+      self.addElement(textbox)
+    end
+
+    @Operation checkDaemons()
+      let contex = textbox.contex
+      in
+        if contex.hasSlot("owner") then
+          @SlotValueChanged multi once CodeboxEditor::daemons_contexOwnerChanged(contex,"owner") end
+        end
+      end
+    end
+
+    @Operation daemons_contexOwnerChanged(e,slot,newOwner,oldOwner)
+      if newOwner.isKindOf(Null) andthen not xmf.clientManager().saving then
+        oldOwner.removeDaemonsWithTarget(self,true);
+        self.closeCommand()
+      end
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+
+    @Operation formHistoryType()
+      CodeboxEditor
+    end
+
+    @Operation historyDialogMessage():String
+      "Select a text form to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Text Form History"
+    end
+
+    @Operation initForm()
+      textbox.setX(0);
+      textbox.setY(0);
+      textbox.setWidth(1000);
+      textbox.setHeight(400);
+      self.typeName := "Text";
+      self.initialize();
+      self.setFormName()
+    end
+
+    @Operation matchesTextbox(textbox:FormTextBox)
+      self.textbox.contex = textbox.contex and
+      self.textbox.slotName.toString() = textbox.slotName.toString()
+    end
+
+    @Operation refresh()
+      super();
+      self.checkDaemons()
+    end
+
+    @Operation removeDaemons()
+      textbox.contex.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation renew(newForm:Boolean)
+      super(newForm);
+      self.checkDaemons()
+    end
+
+    @Operation setFormName()
+      self.setItemName();
+      self.name := typeName +
+        if itemName <> ""
+        then " - " + itemName
+        else ""
+        end
+    end
+
+    @Operation setItemName()
+      self.itemName := textbox.contex.nameString() + "[" + textbox.slotName + "]"
+    end
+
+  end

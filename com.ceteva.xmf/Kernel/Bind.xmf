@@ -1,0 +1,21 @@
+context Bind
+  @Operation init()
+    if value.isReallyKindOf(Operation) and owner <> null
+    then 
+      self.value.setOwner(owner);
+      self.value := value();
+      if self.owner.isKindOf(NameSpace)
+      then 
+        self.owner.contents.put(name,value);
+        self
+      else self
+      end
+    else self
+    end    
+  end
+
+context Bind
+  @Operation init(args):Element
+    self.name := args->at(0);
+    self.value := args->at(1)
+  end

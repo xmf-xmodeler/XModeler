@@ -1,0 +1,6 @@
+import OCL;
+
+context StrExp
+  @Operation eval(target,env,imports)
+    value
+  end

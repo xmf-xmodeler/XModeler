@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+let
+  registry = xmf.registry();
+  fileEditorPoint = ExtensionPoint("com.ceteva.textEditors.handler")
+in
+  registry.addExtensionPoint(fileEditorPoint)
+end;

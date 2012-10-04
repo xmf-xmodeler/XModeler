@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Negate in TypeChecker(exp,env,encountered)
+  let type = self.dispatch(exp.exp,env)
+  in if type.type() = Boolean
+     then TypeCheckExp(exp,Boolean,Seq{type})
+     else TypeCheckFails("negate expects a boolean",TypeCheckExp(exp,Element,Seq{type}))
+     end
+  end
+end;

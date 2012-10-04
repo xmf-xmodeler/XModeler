@@ -1,0 +1,60 @@
+parserImport XOCL;
+
+context Thread
+  @Operation asSeq():Seq(Thread)
+    let t = self;
+        seq = Seq{self}
+    in t := t.next();
+       @While t <> self do
+         seq := seq + Seq{t};
+         t := t.next()
+       end;
+       seq
+    end
+  end
+
+context Thread
+  @Operation id():Integer
+    Kernel_threadId(self)
+  end
+  
+context Thread 
+  @Operation kill()
+    Kernel_threadKill(self)
+  end
+  
+context Thread
+  @Operation next():Thread
+    Kernel_threadNext(self)
+  end
+  
+context Thread
+  @Operation sleep()
+    Kernel_sleep(self)
+  end
+  
+context Thread
+  @Operation state():Integer
+    Kernel_threadState(self)
+  end
+  
+context Thread
+  @Operation stateString():String
+    @Case self.state() of 
+      0 do "ACTIVE"        end
+      1 do "BLOCK_READ"    end
+      2 do "BLOCK_CONNECT" end
+      3 do "SLEEPING"      end
+      else "DEAD"
+    end
+  end
+  
+context Thread 
+  @Operation toString():String
+    "Thread[id=" + self.id() + ",state=" + self.stateString() + "]"
+  end
+  
+context Thread
+  @Operation wake(result)
+    Kernel_wake(self,result)
+  end

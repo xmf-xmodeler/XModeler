@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Env;
+import Walkers;
+
+context CompiledOperation
+
+  @Operation typeCheck(selfType:Classifier,env:Env)
+    let exp = OCL::OCL.grammar.parseString(self.source(),"Exp",Seq{XOCL}) then
+        body = exp.performable;
+        args = self.paramNames();
+        types = self.paramTypes();
+        type = self.type() then
+        env = args->iterate(arg env = env |
+          let type = types->at(args->indexOf(arg))
+          in env.bind(arg,type)
+          end);
+        typeChecker = TypeChecker(selfType) then
+        bodyType = typeChecker.dispatch(body,env)
+    in if bodyType.type().inheritsFrom(type)
+       then TypeCheckOperation(self,TypeCheckExp(exp,type,Seq{bodyType}))
+       else 
+         let message = 
+               "Operation " + 
+               self.name().toString() + 
+               " fails because the declared return type (" + type.toString() +
+               ") is incompatible with the type " + bodyType.type().toString() + 
+               " calculated from the body."
+         in TypeCheckOperation(self,TypeCheckFails(message,TypeCheckExp(exp,Element,Seq{bodyType})))
+         end
+       end
+    end
+  end
+  
+context CompiledOperation
+  @Operation typeCheck()
+    self.typeCheck(Element,NullEnv())
+  end
+          

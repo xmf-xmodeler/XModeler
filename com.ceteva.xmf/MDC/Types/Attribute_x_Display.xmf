@@ -1,0 +1,497 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import MDC;
+import Displays;
+import Types;
+
+context ! Types
+
+  @Class Attribute_x_Display extends Display_x_Display
+  
+    // Attribute_x_Display has been modified to remove the displayType attribute.
+    // An instance of this class with a non-atomic attribute should implicitly 
+    // add a box to contain the collection elements.
+    // Requires update in the class operations below....
+
+    @Attribute type          : Classifier_x_Display (?,!) end
+    @Attribute attribute     : Attribute            (?,!) end
+    @Attribute containerType : ContainerType        (?,!) end
+    
+    @Constructor(attribute,type) 
+    
+      // If the attribute has an atomic type then the 
+      // display type for the attribute is the same
+      // as the classifier display type. Otherwise
+      // it will either be a box or a sub-diagram...
+      
+      if attribute.hasAtomicType()
+      then 
+        self.containerType := ContainerType::Immediate;
+        self.displayType := type.display().displayType()
+      else self.setBoxContainment()
+      end
+    end
+    
+    @Operation addElement(tool,node,attribute)
+    
+      // The attribute display type must be a container...
+    
+      @Case containerType of
+        [ContainerType::Immediate] do
+          self.error("Cannot add an element.")
+        end
+        [ContainerType::Box] do
+          type.display().addElement(tool,node,attribute)
+        end
+        [ContainerType::Diagram] do
+          type.display().addDiagramElement(tool,node,attribute)
+        end
+      end
+      
+    end
+    
+    @Operation addNew(tool,display,name)
+    
+      // Used to add a new instance of the named type to the
+      // supplied display. If the display is immediate then 
+      // the request is an error. If the display is a box then
+      // it supports addNew directly. If the display is a 
+      // diagram then the tool type must be used to add a new
+      // node of the appropriate type.
+      
+      @Case containerType of
+        [ContainerType::Immediate] do
+          self.error("Cannot add a new " + name + " to immediate.")
+        end
+        [ContainerType::Box] do
+          display.addNew(name)
+        end
+        [ContainerType::Diagram] do
+          tool.newNode(name,0,0,display).displays->head
+        end
+      end
+      
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        T := type.allMappingTypes(T)
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      @Case containerType of
+        [ContainerType::Immediate] do
+          type.allNodes()
+        end
+        [ContainerType::Box] do
+          type.allNodes()
+        end
+        [ContainerType::Diagram] do
+          type.allNodes()->including(Root_x_Node(attribute,Classifier_x_Node(attribute.underlyingType(),self.nodeType())))
+        end
+      end
+    end
+
+    @Operation associate(tool,object,display)
+      if attribute.hasAtomicType()
+      then
+        let slotValue = object.slotValue(tool,attribute.name(),type)
+        in type.associate(tool,slotValue,indexFor(display,type.displayType()))
+        end
+      else
+        let slotValues = object.slotValues(tool,attribute.name(),Classifier_x_Display(attribute.type,type.displayType()),type);
+            displayContainer = indexFor(display,displayType)
+        in @For value in slotValues do
+             type.addNew(tool,value,display,displayContainer)
+           end
+        end
+      end
+    end
+    
+    @Operation attributeChanged(tool,object,display,new,old)
+      let value = object.get(attribute.name())
+      in if display.type() = type.displayType()
+         then self.handleChangedAttribute(tool,object,display,new,value.toString())
+         else type.attributeChanged(tool,value,display,new,old)
+         end
+      end
+    end
+    
+    @Operation build(tool,value,display)
+    
+      // Build the slot for the attribute into the supplied
+      // object value. Note that the value may be null because
+      // the immediate slot value for the object may be null.
+      // In this case all slot values are set to <UNKNOWN> and
+      // will be set when the value is populated later...
+      
+      if attribute.hasAtomicType()
+      then 
+        let name = attribute.name();
+            object = value.element() then
+            element = if object = null then "<UNKNOWN>" else object.get(name) end then
+            slotValue = type.build(tool,element,display)
+        in value.addSlot(self,slotValue,display)
+        end
+      else value.addSlot(self,Seq{},display)
+      end
+    end
+    
+    @Operation changeContainment(tool,type):Boolean
+    
+      // Called to change the containment type.
+      // Returns true when the type has been changed...
+      
+      @Case type of
+        [ContainerType::Immediate] do
+          if attribute.hasAtomicType()
+          then true
+          else false
+          end
+        end
+        [ContainerType::Box] do
+          if attribute.hasAtomicType() 
+          then false
+          else 
+            if containerType = ContainerType::Diagram
+            then self.changeContainmentToBox(tool)
+            end;
+            true
+          end
+        end
+        [ContainerType::Diagram] do
+          if attribute.hasAtomicType()
+          then false
+          else 
+            if containerType = ContainerType::Box
+            then self.changeContainmentToDiagram(tool)
+            end;
+            true
+          end
+        end
+      end
+    end
+    
+    @Operation changeContainmentToDiagram(tool)
+    
+      // Move over the type in the box type to a node
+      // type...
+      
+      let oldDisplayType = displayType
+      in self.setDiagramContainment();
+         let newDisplayType = displayType;
+             node = tool.find(self) then
+             parentNode = node.owner() then
+             parentMap = tool.find(parentNode)
+         in parentMap.substDisplay(newDisplayType,oldDisplayType)
+         end
+      end
+    end
+    
+    @Operation changeContainmentToBox(tool)
+    
+      // Move over the type in the diagram node to the
+      // type in a box...
+      
+      let oldDisplayType = displayType
+      in self.setBoxContainment();
+         let newDisplayType = displayType;
+             node = tool.find(self) then
+             parentNode = node.owner() then
+             parentMap = tool.find(parentNode)
+         in parentMap.substDisplay(newDisplayType,oldDisplayType)
+         end
+      end
+    end
+    
+    @Operation changeDisplay(displayMap)
+      @Case containerType of
+        [ContainerType::Immediate] do
+          self.displayType := displayMap.displayType()
+        end
+        [ContainerType::Box] do
+          self.setStarType(displayMap.displayType())
+        end
+        [ContainerType::Diagram] do
+          self.setNodeType(displayMap.displayType())
+        end
+      end;
+      type.setDisplay(displayMap)
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      if not attribute.hasAtomicType()
+      then Seq{attribute | type.collectionAttributes()}
+      else type.collectionAttributes()
+      end
+    end
+    
+    @Operation disassociate(tool,object,display)
+      if attribute.hasAtomicType()
+      then
+        let value = object.get(attribute.name())
+        in type.disassociate(tool,value,display)
+        end
+      else
+        let values = object.get(attribute.name());
+            displayContainer = indexFor(display,displayType)
+        in @For value,display in values,displayContainer.contents() do
+             type.disassociate(tool,value,display)
+           end
+        end
+      end
+    end
+    
+    @Operation displayRemoved(tool,object,display)
+      if display.type() = type.displayType()
+      then self.handleDisplayRemoved(tool,object,display)
+      else type.displayRemoved(tool,object.get(attribute.name()),display)
+      end
+    end
+    
+    @Operation handleChangedAttribute(tool,object,display,new,old)
+      @WithoutEvents(tool)
+        if attribute.hasAtomicType()
+        then
+          let name = attribute.name() then
+              oldValue = object.get(name);
+              newValue = self.coerceValue(new)
+          in MDCSetSlot(object,name,newValue);
+             tool.slotChangedEvent(object,name,newValue,oldValue);
+             tool.disassociate(display,old);
+             tool.associate(display,new)
+          end
+        else
+          let contents = display.owner().contents() then
+              contents = contents->select(d | d.type() = type.displayType()) then
+              index = contents->indexOf(display) then
+              collection = object.get(attribute.name()) then
+              newCollection = collection.replaceAt(index,self.coerceValue(new));
+              name = attribute.name()
+          in MDCSetSlot(object,name,newCollection);
+             tool.slotChangedEvent(object,name,collection,newCollection);
+             tool.disassociate(old,display);
+             tool.associate(new,display)
+          end
+        end
+      end
+    end
+    
+    @Operation handleDisplayRemoved(tool,object,display)
+      @WithoutEvents(tool)
+        let value = tool.find(display);
+            name = attribute.name()
+        in MDCReduceSlot(object,name,value);
+           tool.disassociate(value,display)
+        end
+      end
+    end
+    
+    @Operation newDisplay(tool,displayMap)
+    
+      // Called when a new display node is added to an
+      // attribute node. Find the map associated with the
+      // parent node of the attribute and replace the
+      // display...
+      
+      if attribute.hasAtomicType()
+      then self.newImmediateDisplay(tool,displayMap)
+      else self.newCollectionDisplay(tool,displayMap)
+      end
+    end
+    
+    @Operation newImmediateDisplay(tool,displayMap)
+    
+      // Delete the old node and install the new display.
+      // Remember that the parent map contains the display
+      // type and therefore the old display must be 
+      // replaced by the new display...
+      
+      let attNode = tool.find(self) then
+          parentNode = attNode.owner() then
+          parentMap = tool.find(parentNode);
+          oldDisplay = type.display().displayType();
+          newDisplay = displayMap.displayType() then
+          oldDisplayNode = tool.find(type.display())
+      in // @WithoutEvents(tool)
+           parentMap.substDisplay(newDisplay,oldDisplay);
+           oldDisplayNode.delete();
+           self.changeDisplay(displayMap)
+         // end
+      end
+    end
+    
+    @Operation newCollectionDisplay(tool,displayMap)
+      
+      // The local display type is a Star() and this
+      // should be emptied and the type replaced by 
+      // displayMap.displayType()
+      
+      let newDisplay = displayMap.displayType() then
+          oldDisplayNode = tool.find(type.display())
+      in // @WithoutEvents(tool)
+           oldDisplayNode.delete();
+           self.changeDisplay(displayMap)
+         // end
+      end
+    end
+    
+    @Operation newRootElementType(tool,node)
+      
+      // Called when the display for the attribute is to be
+      // changed to a diagram type...
+      
+      let displayMap = RootElementType(type.classifier())
+      in tool.register(node,displayMap);
+         tool.register(displayMap,node);
+         node.setTextIn(type.classifier().toString());
+         if attribute.hasAtomicType()
+         then self.newImmediateDisplay(tool,displayMap)
+         else self.newCollectionDisplay(tool,displayMap)
+         end
+      end
+    end
+    
+    @Operation nodeType()
+    
+      // Assumes that container type is Diagram...
+      displayType.nodeTypes()->asSeq->head
+    end
+    
+    @Operation populate(tool,value,element)
+      @Case containerType of
+        [ContainerType::Immediate] do
+          self.populateImmediate(tool,value,element)
+        end
+        [ContainerType::Box] do
+          self.populateBox(tool,value,element)
+        end
+        [ContainerType::Diagram] do
+          self.populateDiagram(tool,value,element)
+        end
+      end
+    end
+    
+    @Operation populateDiagram(tool,value,element)
+    
+      // For each collection-value in the element-object
+      // add a node to the contained diagram and populate
+      // the new node...
+      
+      let values = value.slotValue(attribute.name())
+      in @For value in values do
+           let newDisplay = displayType.newNode(type.display().displayType().name().toString(),10,10,tool,tool,diagram())
+           in value.setDisplay(newDisplay);
+              value.type().populate(tool,value,value.element())
+           end
+         end
+      end
+    end
+    
+    @Operation populateBox(tool,value,element)
+    
+      // For each collection-value in the element-object
+      // add a new instance of the contained display type
+      // and populate the new instance...
+      
+      let values = value.slotValue(attribute.name())
+      in @For value in values do
+           let newDisplay = value.display().addNew(type.display().displayType().name().toString())
+           in value.setDisplay(newDisplay);
+              value.type().populate(tool,value,value.element())
+           end
+         end
+      end
+    end
+           
+    @Operation populateImmediate(tool,value,element)
+    
+      // The supplied element may be null when an immediate type
+      // has not been set yet. The structure of the immediate will 
+      // have been built and should be populated with <UNKOWN> down
+      // the tree...
+      
+      let slotValue = value.slotValue(attribute.name());
+          elementValue = if element = null then "<UNKNOWN>" else element.get(attribute.name()) end
+      in type.display().setDisplay(tool,slotValue,elementValue);
+         type.populate(tool,slotValue,if element = null then null else elementValue end)
+      end
+    end
+    
+    @Operation setBoxContainment()
+    
+      // Create a new box type for the display type.
+      // NB does not change the current dipslay type
+      // in the parent type...
+      
+      let star = Star("Star(" + attribute.name() + ")");
+          box = Box("Box(" + attribute.name() + ")")
+      in box.add(star);
+         box.fill := false;
+         box.showTop := false;
+         box.showBottom := false;
+         box.showLeft := false;
+         box.showRight := false;
+         star.add(type.display().displayType());
+         self.containerType := ContainerType::Box;
+         self.displayType := box
+      end
+    end
+    
+    @Operation setDiagramContainment()
+    
+      // Create a new diagram type for the display type.
+      // NB does not change the current display type in
+      // the parent type. We must create a node type for
+      // the underlying display type...
+      
+      let toolType = ToolType("Diagram(" + attribute.name() + ")");
+          nodeType = NestedNodeType(type.display().displayType().name())
+      in toolType.add(nodeType);
+         toolType.setMinWidth(50);
+         toolType.setMinHeight(50);
+         toolType.setPadTop(20);
+         toolType.setPadRight(20);
+         toolType.setPadBottom(20);
+         toolType.setPadLeft(20);
+         nodeType.add(type.display().displayType());
+         nodeType.hasPort := true;
+         self.containerType := ContainerType::Diagram;
+         self.displayType := toolType
+      end
+    end
+         
+    
+    @Operation setDisplay(tool,value,element)
+      null
+    end
+    
+    @Operation setNodeType(newDisplayType)
+      let nodeTypes = displayType.nodeTypes()
+      in @For nodeType in nodeTypes do
+           nodeType.setName(newDisplayType.name());
+           nodeType.displays := Seq{newDisplayType}
+         end
+      end
+    end
+    
+    @Operation setStarType(newDisplayType)
+      displayType.contents()->head.types := Seq{newDisplayType}
+    end
+    
+    @Operation starType()
+      displayType.contents()->head.types()->head
+    end
+    
+    @Operation toString()
+      type.display().displayType().of().name() + "(" + attribute.toString() + ")"
+    end
+
+  end

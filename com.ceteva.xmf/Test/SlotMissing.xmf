@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context Root
+  @Class X
+    @Operation slotMissing(slot,v)
+      slot
+    end
+    @Operation noOperationFound(message,args)
+      message + "XXX"
+    end
+  end
+  
+context Root
+  @Operation test(o)
+    o.missing(1,2,3)
+  end

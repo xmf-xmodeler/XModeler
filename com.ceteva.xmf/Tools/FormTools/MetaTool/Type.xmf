@@ -1,0 +1,153 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools;
+import FormTools;
+import Types;
+import MetaTool;
+
+context MetaTool
+  @Bind ContainerControls =
+    @Menu
+      @MenuAction Box
+        self.newNode("Box")
+      end
+      @MenuAction Button
+        self.newNode("Button")
+      end
+      @MenuAction CheckBox
+        self.newNode("CheckBox")
+      end
+      @MenuAction ComboBox
+        self.newNode("ComboBox")
+      end
+      @MenuAction Label
+        self.newNode("Label")
+      end
+      @MenuAction List
+        self.newNode("List")
+      end
+      @MenuAction TextBox
+        self.newNode("TextBox")
+      end
+      @MenuAction TextField
+        self.newNode("TextField")
+      end
+      @MenuAction Tree
+        self.newNode("Tree")
+      end
+    end
+  end
+
+context MetaTool
+  @ToolType "FormTool"(HORIZONTAL)
+    @Tree "FormTree"
+      minWidth = 300
+      minHeight = 500
+      padRight = 10
+      @TreeNode "Box" "A Box"
+        icon = "Forms/Box.gif"
+        ContainerControls
+        @Ref "Box" end
+        @Ref "Button" end
+        @Ref "CheckBox" end
+        @Ref "ComboBox" end
+        @Ref "Label" end
+        @Ref "List" end
+        @Ref "TextBox" end
+        @Ref "TextField" end
+        @Ref "Tree" end
+      end
+      @TreeNode "Button" "A Button"
+        icon = "Forms/Button.gif"
+      end
+      @TreeNode "CheckBox" "A CheckBox"
+        icon = "Forms/CheckBox.gif"
+      end
+      @TreeNode "ComboBox" "A ComboBox"
+        icon = "Forms/ComboBox.gif"
+      end
+      @TreeNode "Label" "A Label"
+        icon = "Forms/Label.gif"
+      end
+      @TreeNode "List" "A List"
+        icon = "Forms/List.gif"
+      end
+      @TreeNode "TextBox" "A TextBox"
+        icon = "Forms/TextBox.gif"
+      end
+      @TreeNode "TextField" "A TextField"
+        icon = "Forms/TextField.gif"
+      end
+      @TreeNode "Tree" "A Tree"
+        icon = "Forms/Tree.gif"
+        @TreeNode "TreeNode" "A TreeNode"
+          icon = "Forms/TreeNode.gif"
+          @Ref "TreeNode" end
+          @Menu
+            @MenuAction TreeNode
+              self.newNode("TreeNode")
+            end
+          end
+        end
+        @Menu
+          @MenuAction TreeNode
+            self.newNode("TreeNode")
+          end
+        end
+      end
+      @TreeNode "Form" "A Form"
+        icon = "Forms/Form.gif"
+        ContainerControls
+        @Ref "Box" end
+        @Ref "Button" end
+        @Ref "CheckBox" end
+        @Ref "ComboBox" end
+        @Ref "Label" end
+        @Ref "List" end
+        @Ref "TextBox" end
+        @Ref "TextField" end
+        @Ref "Tree" end
+      end
+    end
+    @Tree "EventTree"
+      minWidth = 300
+      minHeight = 500
+      @TreeNode "EventHandler" "Event Handler"
+        icon = "Forms/EventHandler.gif"
+      end
+    end
+  end
+  
+context MetaTool
+  @ElementManager FormManager
+    @EventHandler New_FormTool_FormTree_Form_Box()
+      let parentType = find(event.parent()) then
+          name = parentType.newName("Box") then
+          boxType = Types::Box(name)
+      in register(event.value(),boxType);
+         event.value().setTextIn(name);
+         parentType.add(boxType)
+      end
+    end
+  end
+  
+context MetaTool
+  @Class FormMetaTool extends FormTools::Structure::Tool
+    @Operation showForm()
+      super();
+      let tree = self.form().ref1(Seq{"FormTree"}) then
+          formNode = tree.newNode("Form")
+      in format(stdout,"formNode = ~S~%",Seq{formNode});
+         self.register(formNode,self.element());
+         elementManager.table.keys()
+      end
+    end
+  end
+      
+    
+context Root
+  @Bind tool = FormMetaTool(FormTool,"tool",FormManager,Types::ToolType("X")) end
+  

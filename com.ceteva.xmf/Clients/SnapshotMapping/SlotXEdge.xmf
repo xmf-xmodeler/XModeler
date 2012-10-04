@@ -1,0 +1,106 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import XMap;
+
+context SnapshotMapping
+
+  @Class SlotXEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute object  : Object end
+    @Attribute slot    : String end
+    @Attribute value   : Object end
+    @Attribute edge    : SlotEdge (?) end
+    
+    @Constructor(object,slot,value,edge,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()})
+    end
+    
+    /* @Operation attributeNameChanged(newName)
+      object.renameSlot(slot,newName);
+      edge.name.setName(newName);
+      self.slot := newName
+    end */
+    
+    @Operation element()
+      Seq{object,slot}
+    end
+    
+    @Operation slotRemoved(element,slot,newValue,oldValue)
+      self.edge.delete()
+    end
+    
+    @Operation hotLoaded() 
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()},false)
+    end
+    
+    @Operation checkDaemons()
+      self.checkEdgeDaemons();
+      self.checkSlotDaemons()
+    end
+    
+    @Operation remove()
+      if object.hasSlot(slot)
+      then
+        object.set(slot,null)
+      end
+    end
+    
+    @Operation setValue(newValue)
+      self.value := newValue
+    end
+    
+    @Operation slotSourceChanged(element,slot,newPort,oldPort)
+      if newPort <> oldPort
+      then
+        self.owner.slotSourceChanged(self,newPort,oldPort)
+      end
+    end
+    
+    @Operation slotTargetChanged(element,slot,newPort,oldPort)
+      if newPort <> oldPort
+      then
+        self.owner.slotTargetChanged(self,newPort,oldPort,self.slot)
+      end
+    end
+    
+    @Operation slotValueChanged(element,slot,newValue,oldValue)
+      self.owner.slotValueChanged(self,newValue)
+    end
+    
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once SlotXEdge::slotSourceChanged(edge,"source") end;
+      @SlotValueChanged multi once SlotXEdge::slotTargetChanged(edge,"target") end
+    end
+    
+    @Operation checkSlotDaemons()
+      @SlotValueChanged multi SlotXEdge::slotValueChanged(object,slot) end
+    end
+    
+    @Operation removeDaemons()
+      let class = object.of()
+      in
+    
+        // this edge may be removed either as a result of deleting its
+        // attribute or simply because the user wanted to change the value
+        // in the case of the latter we must ensure the attribute's
+        // daemons are removed
+      
+        if class.hasAttribute(slot)
+        then
+          class.getAttribute(slot).removeDaemonsWithTarget(self,true)
+        end
+      end;
+      edge.removeDaemonsWithTarget(self,true);
+      object.removeDaemonsWithTarget(self,true)
+    end
+  end  

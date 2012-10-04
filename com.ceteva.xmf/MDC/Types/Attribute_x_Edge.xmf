@@ -1,0 +1,131 @@
+parserImport XOCL;
+
+import MDC;
+import Tools::DiagramTools::Types;
+import MDC::Types;
+
+context ! Types
+
+  @Class Attribute_x_Edge extends Element_x_Edge
+
+    @Attribute attribute : Attribute          (?,!) end
+    @Attribute source    : Free_x_Node        (?,!) end
+    @Attribute target    : Free_x_Node        (?,!) end
+    @Attribute creationHandler : Operation = Attribute_x_Edge::mkCreationHandler() (?,!) end
+    @Attribute deletionHandler : Operation = Attribute_x_Edge::mkDeletionHandler() (?,!) end
+    @Attribute sourceReconnectHandler : Operation = Attribute_x_Edge::mkSourceReconnectHandler() (?,!) end
+    @Attribute targetReconnectHandler : Operation = Attribute_x_Edge::mkTargetReconnectHandler() (?,!) end
+    
+    @Constructor(attribute,edgeType,source,target) end
+
+    @Operation mkCreationHandler()
+      @Operation[closure="MDC::Types::Attribute_x_Edge::mkCreationHandler"](self_,tool,object,element)
+        let attribute = self_.attribute() then
+            name = attribute.name()
+        in 
+           if attribute.hasAtomicType()
+           then 
+             tool.slotChangedEvent(object,name,element,object.get(name));
+             MDC::MDCSetSlot(object,name,element)
+           else 
+             tool.slotChangedEvent(object,name,object.get(name)->including(element),object.get(name));
+             MDC::MDCExtendSlot(object,name,element)
+           end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation edgeRemoved(tool,object,element)
+    
+      // Called when the edge has been deleted.
+
+      let handler = self.deletionHandler()
+      in
+        handler(self,tool,object,element)
+      end
+    end
+
+    @Operation mkDeletionHandler()
+      @Operation[closure="MDC::Types::Attribute_x_Edge::mkDeletionHandler"](self_,tool,object,element)
+
+        let attribute = self_.attribute() then
+            name = attribute.name()
+        in if attribute.hasAtomicType()
+           then tool.slotChangedEvent(object,name,null,object.get(name));
+                MDC::MDCSetSlot(object,name,null)
+           else let new = object.get(name)->excluding(element);
+                    old = object.get(name)
+                in MDC::MDCSetSlot(object,name,new);
+                   tool.slotChangedEvent(object,name,new,old)
+                end
+           end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation sourceReconnected(tool,target,newSource,oldSource)
+    
+      // Called when the edge has changed and the object must be
+      // modified.
+      
+      let handler = self.sourceReconnectHandler()
+      in
+        handler(self,tool,target,newSource,oldSource)
+      end
+    end
+
+    @Operation mkSourceReconnectHandler()
+      @Operation[closure="MDC::Types::Attribute_x_Edge::mkSourceReconnectHandler"](self_,tool,target,newSource,oldSource)
+        let attribute = self_.attribute() then
+            name = attribute.name() then
+            oldSourceSlotValue = oldSource.get(name);
+            newSourceSlotValue = newSource.get(name)
+        in if attribute.hasAtomicType()
+           then
+             tool.slotChangedEvent(oldSource,name,null,oldSourceSlotValue);
+             oldSource.set(name,null);
+             tool.slotChangedEvent(newSource,name,target,newSourceSlotValue);
+             MDC::MDCSetSlot(newSource,name,target)
+           else
+             tool.slotChangedEvent(oldSource,name,oldSourceSlotValue->excluding(target),oldSourceSlotValue);
+             oldSource.set(name,oldSourceSlotValue->excluding(target));
+             tool.slotChangedEvent(newSource,name,newSourceSlotValue->including(target),newSourceSlotValue);
+             MDC::MDCExtendSlot(newSource,name,target)
+           end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation targetReconnected(tool,source,newTarget,oldTarget)
+    
+      // Called when the edge has changed and the object must be
+      // modified.
+      
+      let handler = self.targetReconnectHandler()
+      in
+        handler(self,tool,source,newTarget,oldTarget)
+      end
+    end
+
+    @Operation mkTargetReconnectHandler()
+      @Operation[closure="MDC::Types::Attribute_x_Edge::mkTargetReconnectHandler"](self_,tool,source,newTarget,oldTarget)
+        let attribute = self_.attribute() then
+            name = attribute.name() then
+            sourceSlotValue = source.get(name)
+        in if attribute.hasAtomicType()
+           then
+             tool.slotChangedEvent(source,name,newTarget,sourceSlotValue);
+             MDC::MDCSetSlot(source,name,newTarget)
+           else
+             tool.slotChangedEvent(source,name,sourceSlotValue->excluding(oldTarget)->including(newTarget),sourceSlotValue);
+             MDC::MDCReplaceSlot(source,name,newTarget,oldTarget)
+           end
+        end
+      end.setOwner(null)
+    end
+
+    @Operation toString()
+      "Link(" + attribute.name() + ": " + source.type().classifier().name + " --> " + attribute.underlyingType().name() + ")"
+    end
+
+  end

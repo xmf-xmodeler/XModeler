@@ -1,0 +1,26 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class PullDownMenuDivider
+  
+    @Attribute id       : String end
+    @Attribute parent   : String end
+    
+    @Constructor(id,parent) end
+    
+    @ToXML(PULLDOWN_MENU_DIVIDER)[Id=id,ref_PullDown_Menu_Item = parent] end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

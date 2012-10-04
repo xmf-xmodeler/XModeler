@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class SetGlobal extends Instr
+ 
+    @Attribute name : String end
+    @Attribute frame : Integer end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,frame,offset) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(0,frame,offset)
+    end
+    
+    @Operation toString():String
+      "<SetGlobal " + name + "," + frame + "," + offset + ">"
+    end
+    
+    
+  end

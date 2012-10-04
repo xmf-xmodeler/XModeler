@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Syntaxp in AST(aSyntaxp,arg,seen)
+  let exp = self.dispatch(aSyntaxp.exp,arg)
+  in ASTNode(aSyntaxp,Seq{exp})
+  end
+end;

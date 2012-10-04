@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Clients;
+import ExtensionPoints;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class ClipboardRule isabstract extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar
+
+      ClipboardRule ::= CutRule | CopyRule | PasteRule.
+      
+      CutRule ::=   description = StrExp
+                    'Cut' '(' parentVar = Name ',' elementVar = Name ',' widgetVar = Name ')'
+                    'from' parentType = ClipboardType
+                    condition = ( 'when' Exp | { [| true |] } )
+                    action = ('do' Exp | { [| null |] } )
+      { CutRule(parentVar,elementVar,widgetVar,description,parentType,condition,action) }.
+
+      CopyRule ::=  description = StrExp
+                    'Copy' '(' elementVar = Name ',' widgetVar = Name ')'
+                    'type' elementType = ClipboardType
+                    condition = ( 'when' Exp | { [| true |] } )
+                    action = ('do' Exp | { [| null |] } )
+      { CopyRule(elementVar,widgetVar,description,elementType,condition,action) }.
+
+      PasteRule ::= description = StrExp
+                    'Paste' '(' parentVar = Name ',' elementVar = Name ',' widgetVar = Name ',' isCopyVar = Name ')'
+                    'to' parentType = ClipboardType
+                    condition = ( 'when' Exp | { [| true |] } )
+                    preAction = ('do' 'before' Exp | { [| null |] } )
+                    postAction = ('do' 'after' Exp | 'do' Exp | { [| null |] } )
+      { PasteRule(parentVar,elementVar,widgetVar,isCopyVar,description,parentType,condition,preAction,postAction) }.
+      
+      ClipboardType ::= root = VarExp names = ('::' Name)* { Path(root,names) }.
+
+    end
+    
+    @Attribute elementVar : String end
+    @Attribute widgetVar : String end
+    @Attribute description : StrExp end
+    @Attribute interfaceType : Classifier end
+    @Attribute condition : Exp end
+  
+  end

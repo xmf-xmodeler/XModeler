@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CodeComboBox isabstract extends FormActiveComboBox
+    
+    @Operation getCode(codedElement)
+      // By default this does nothing
+      // and should be overridden by
+      // subclasses
+      self
+    end
+    
+    @Operation getCodedElement()
+      // By default this does nothing
+      // and should be overridden by
+      // subclasses
+      self
+    end
+
+  end

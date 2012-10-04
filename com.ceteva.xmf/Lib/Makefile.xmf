@@ -1,0 +1,13 @@
+Compiler::compileFile("Lib/Boot",true,true);
+Compiler::compileFile("Lib/Env",true,true);
+Compiler::compileFile("Lib/Format",true,true);
+Compiler::compileFile("Lib/LazySeq",true,true);
+Compiler::compileFile("Lib/ObjectWithProperties",true,true);
+Compiler::compileFile("Lib/Sheet",true,true);
+Compiler::compileFile("Lib/Stacks/Makefile",true,true);
+Compiler::compileFile("Lib/Graphs/Makefile",true,true);
+Compiler::compileFile("Lib/Arrays/Makefile",true,true);
+"Lib/Stacks/Makefile.o".loadBin(false);
+"Lib/Graphs/Makefile.o".loadBin(false);
+"Lib/Arrays/Makefile.o".loadBin(false);
+Compiler::compileFile("Lib/Time",true,true);

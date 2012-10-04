@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+context Root
+  @Package TreePackage
+    @Package NestedPackage
+      @Operation test()
+        Fork(Leaf(100),Leaf(200))
+      end
+    end
+    @Class TreeNode isabstract
+    end
+    @Class Fork extends TreeNode
+      @Attribute left : TreeNode end
+      @Attribute right : TreeNode end
+      @Operation toString()
+        "Fork(" + left.toString() + "," + right.toString() + ")"
+      end
+      @Operation init(args)
+        self.left := args->at(0);
+        self.right := args->at(1)
+      end
+    end
+    @Class Leaf extends TreeNode 
+      @Attribute data : Element end
+      @Operation toString()
+        "Leaf(" + data + ")"
+      end
+      @Operation init(args)
+        self.data := args->at(0)
+      end
+      @Operation copy()
+        Leaf(data)
+      end
+      @Operation dup()
+        Fork(self,self)
+      end
+    end
+  end
+  
+  "The tree test checks that nested and mutually recursive name space".println();
+  "references work. You should see a selection of leaf nodes and fork".println();
+  "nodes being displayed".println();
+  
+  let node = Root::TreePackage::Leaf(100)
+  in node.toString().println();
+     node.copy().toString().println();
+     node.dup().toString().println();
+     Root::TreePackage::NestedPackage::test().toString().println()
+  end; 

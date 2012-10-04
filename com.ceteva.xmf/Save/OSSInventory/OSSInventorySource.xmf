@@ -1,0 +1,152 @@
+let table = Stacks::Stack()
+in @Package OSSInventory metapackage Root::XCore::Package
+     @Package InventoryModel metapackage Root::XCore::Package
+       @Class IPStream_S2000 metaclass Root::OSSInventory::Inventory::Service  extends Root::OSSInventory::InventoryModel::IPStream_SService
+         @Constraint S2000Spec
+           self.upStream = 250 and self.downStream = 2000 and self.unitType = "kbps"
+          fail if not self.upStream = 250
+           then
+             "The upStream value does not equal 250 "
+           else
+             ""
+           end + if not self.downStream = 2000
+           then
+             "The downStream value does not equal 2000 "
+           else
+             ""
+           end + if not self.unitType = "kbps"
+           then
+             "The unitType does not equal kbps "
+           else
+             ""
+           end
+         end
+       end
+       @Class IPStream_Office metaclass Root::OSSInventory::Inventory::Service  extends Root::OSSInventory::InventoryModel::IPStream
+         
+       end
+       @Class IPStream_SService metaclass Root::OSSInventory::Inventory::Service  extends Root::OSSInventory::InventoryModel::IPStream
+         @Constraint IPStream_SSpec
+           true
+          fail ""
+         end
+       end
+       @Class IPStream_S500 metaclass Root::OSSInventory::Inventory::Service  extends Root::OSSInventory::InventoryModel::IPStream_SService
+         @Constraint S500Spec
+           self.upStream = 250 and self.downStream = 500 and self.unitType = "kbps"
+          fail if not self.upStream = 250
+           then
+             "The upStream value does not equal 250 "
+           else
+             ""
+           end + if not self.downStream = 500
+           then
+             "The downStream value does not equal 500 "
+           else
+             ""
+           end + if not self.unitType = "kbps"
+           then
+             "The unitType does not equal kbps "
+           else
+             ""
+           end
+         end
+       end
+       @Class IPStream metaclass Root::OSSInventory::Inventory::Service  extends Root::XCore::Object
+         @Attribute unitType : Root::XCore::String end
+         @Attribute content : Root::XCore::String end
+         @Attribute upStream : Root::XCore::Integer end
+         @Attribute downStream : Root::XCore::Integer end
+       end
+       @Class IPVPN metaclass Root::OSSInventory::Inventory::Product  extends Root::XCore::Object
+         @Attribute containedServices : Set(Root::OSSInventory::InventoryModel::IPStream) end
+         @Operation addService(up : Integer,dwn : Integer,unit : String,con : String):XCore::Element
+           self.containedServices := self.containedServices->including(OSSInventory::InventoryModel::IPStream(up,dwn,unit,con))
+         end
+         @Constraint IPVPNSpec
+           if self.containedServices->exists(c |
+             c.isKindOf(InventoryModel::IPStream_S500))
+           then
+             not self.containedServices->exists(c |
+               c.isKindOf(InventoryModel::IPStream_S1000))
+           else
+             true
+           end
+          fail "IPVPN cannot contain both 500 and 1000 IPStreams"
+         end
+       end
+       @Class IPStream_S1000 metaclass Root::OSSInventory::Inventory::Service  extends Root::OSSInventory::InventoryModel::IPStream_SService
+         @Constraint S1000Spec
+           self.upStream = 250 and self.downStream = 1000 and self.unitType = "kbps"
+          fail if not self.upStream = 250
+           then
+             "The upStream value does not equal 250 "
+           else
+             ""
+           end + if not self.downStream = 1000
+           then
+             "The downStream value does not equal 1000 "
+           else
+             ""
+           end + if not self.unitType = "kbps"
+           then
+             "The unitType does not equal kbps "
+           else
+             ""
+           end
+         end
+       end
+     end
+     @Package Inventory metapackage Root::XCore::Package extends Root::XCore
+       @Class Entity metaclass Root::XCore::Class isabstract extends Root::XCore::Class
+         @Constraint SameSpecs
+           constraints->forAll(c |
+             let ctype = c.of()
+           in @Case ctype of
+                [ Inventory::ServiceSpec ] do
+                  self.isKindOf(Inventory::Service)
+                end
+                [ Inventory::ProductSpec ] do
+                  self.isKindOf(Inventory::Product)
+                end
+                [ Inventory::ResourceSpec ] do
+                  self.isKindOf(Inventory::Resource)
+                end
+              end
+           end)
+          fail self.toString() + ": constraint <" + name + "> failed."
+         end
+         @Constraint SameParentType
+           parents->reject(p |
+             p = XCore::Object)->forAll(p |
+             p.of() = self.of())
+          fail self.toString() + ": constraint <" + name + "> failed."
+         end
+       end
+       @Class Service metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::Entity
+         
+       end
+       @Class EntitySpec metaclass Root::XCore::Class isabstract extends Root::XCore::Constraint
+         
+       end
+       @Class ServiceSpec metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::EntitySpec
+         
+       end
+       @Class EntityAttribute metaclass Root::XCore::Class  extends Root::XCore::Attribute
+         
+       end
+       @Class Product metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::Entity
+         
+       end
+       @Class Resource metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::Entity
+         
+       end
+       @Class ProductSpec metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::EntitySpec
+         
+       end
+       @Class ResourceSpec metaclass Root::XCore::Class  extends Root::OSSInventory::Inventory::EntitySpec
+         
+       end
+     end
+   end
+end

@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Command extends Sugar
+    
+    @Attribute object	 : Performable      end
+    @Attribute name      : String           end
+    @Attribute args      : Seq(Performable) end
+    
+    @Constructor(object,name,args) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Command ::= '(' object = Exp ')'
+        name = Name '(' args = CommandArgs ')' { 
+          Command(object,name,args)
+      }.
+      
+      CommandArgs ::= arg = Exp args = (',' Exp)* { Seq{ arg | args } } | { Seq{} }.
+      
+    end
+    
+    @Operation desugar():Performable
+      [|
+        try
+          if <object>.hasCommandInterpreter()
+          then
+            <object>.commandInterpreter().send(<StrExp(name)>,<SetExp("Seq",args)>)
+          end
+        catch(exception)
+          exception.edit()
+        end
+      |]
+    end
+    
+  end

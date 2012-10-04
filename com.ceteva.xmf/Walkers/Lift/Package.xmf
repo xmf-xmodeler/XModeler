@@ -1,0 +1,17 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Package in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::Package
+  @Operation lift():Performable
+    let metaExp = Path::toPath(self.of().pathSeq());
+        parentExps = parents->asSeq->collect(p | Path::toPath(p.pathSeq()));
+        defExps = self.contents()->asSeq->collect(d | d.lift())
+    in XOCL::Package(name,metaExp,parentExps,defExps)
+    end
+  end

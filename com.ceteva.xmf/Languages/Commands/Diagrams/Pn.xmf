@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Diagrams;
+import Graphs;
+import Env;
+
+context Diagrams
+
+  @Class Pn extends Statement
+  
+    @Attribute nodes : Seq(Node) end
+    
+    @Constructor() end
+    
+    @Constructor(nodes) end
+    
+    @Operation toString()
+      "<A Pn(" + nodes->size + ")>"
+    end
+    
+  end

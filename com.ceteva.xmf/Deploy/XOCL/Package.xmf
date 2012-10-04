@@ -1,0 +1,156 @@
+parserImport XOCL;
+
+import IO;
+
+context Package 
+  @Operation deployXOCL()
+  
+    // Choose the directory and name of the
+    // directory to deploy into.
+    
+    if true//self.performDeployXOCLCheck()
+    then
+    
+      let dir = xmf.selectDirectory(xmf.projDir())
+      in if dir.fileExists()
+         then
+           let name = xmf.getString("Package name","Name of directory",name)
+           in if name <> null
+              then 
+               dir := dir + "/" + name;
+               if if dir.fileExists()
+                  then xmf.question("Overwrite " + dir)
+                  else true
+                  end
+               then 
+                 @Busy("Deploying " + self)
+                   self.deployXOCL(dir)
+                 end;
+                 true
+               else false
+               end
+              else false
+              end
+           end
+         else false
+         end
+       end
+     end
+   end
+
+context Package
+  @Operation performDeployXOCLCheck():Boolean
+    // Not needed anymore as will now add _Package to package files
+    true
+    /*@Find(class,self.allContentsOf(Class))
+      when class.name() = self.name()
+      do xmf.warning(formats("Cannot deploy: ~S clashes with ~S.~%Change the names so they do not clash.",Seq{self,class}));
+         false
+      else self.allContentsOf(Package)->forAll(p | p.performDeployXOCLCheck())
+    end*/
+  end
+
+context Package
+  @Operation deployXOCL(dir:String)
+    let // Eventually browsed classes will not require a special
+        // metaclass, until then this needs to be set...
+        ADD_BROWSER_META = xmf.question("Make classes Browsed Classes?")
+    in
+      self.deployXOCL(dir,ADD_BROWSER_META)
+    end
+  end
+   
+context XCore::Package
+  @Operation deployXOCL(dir:String,ADD_BROWSER_META:Boolean)
+  
+    // Writes out the text that can be used to reconstruct
+    // the element. This operation should check that the directory
+    // is present before writing files to it.
+    
+    try
+      if if dir.fileExists()
+         then true
+         else dir.mkDir()
+         end
+      then
+        self.deployManifest(dir,ADD_BROWSER_META);
+        if ADD_BROWSER_META then 
+          self.deployInterfaces(dir)
+        end;
+        @WithOpenFile(fout -> dir + "/" + self.name() + "_Package" + ".xmf")
+           format(fout,"parserImport XOCL;~%~%");
+           format(fout,"context ! ~{::~;~S~}~%~%",Seq{self.owner().pathSeq()});
+           format(fout,"@Package ~S end",Seq{self.name()});
+           @For p in self.packages do
+             p.deployXOCL(dir + "/" + p.name(),ADD_BROWSER_META)
+           end;
+           @For c in self.classes do
+             c.deployXOCL(dir,ADD_BROWSER_META)
+           end;
+           fout.close()
+        end
+      else self.error("Cannot find deployment directory " + dir)
+      end
+    catch(exception)
+      format(stdout,"Error writing package source: ~S~%",Seq{exception})
+    end
+  end
+  
+context XCore::Package
+  @Operation deployInterfaces(dir:String)
+    // Creates a new directory for the interface definitions for
+    // each class in the package...
+    let interfaceDir = dir + "/Interfaces"
+    in if interfaceDir.fileExists() orelse interfaceDir.mkDir()
+       then 
+         @For c in self.classes do
+           c.deployInterface(interfaceDir)
+         end;
+         self.deployInterfaceManifest(interfaceDir)
+       end
+    end
+  end
+  
+context XCore::Package
+  @Operation deployInterfaceManifest(dir:String)
+  
+    // Creates a manifest for the interfaces...
+    
+    @WithOpenFile(fout -> dir + "/Manifest.xmf")
+       format(fout,"parserImport XOCL;~%");
+       format(fout,"parserImport Manifests;~%~%");
+       format(fout,"@Manifest ~S~%",Seq{self.name()});
+       @For c in self.classes do
+         format(fout,"  @File ~S end~%",Seq{c.name()})
+       end;
+       format(fout,"end;~%");
+       fout.close()
+    end
+    
+  end
+  
+context XCore::Package
+  @Operation deployManifest(dir:String,ADD_BROWSER_META:Boolean)
+  
+    // Creates a manifest for the receiver. The manifest contains an
+    // entry for each of the elements in the package.
+    
+    @WithOpenFile(fout -> dir + "/Manifest.xmf")
+       format(fout,"parserImport XOCL;~%");
+       format(fout,"parserImport Manifests;~%~%");
+       format(fout,"@Manifest ~S~%",Seq{self.name()});
+       format(fout,"  p = @File ~S end~%",Seq{self.name() + "_Package"});
+       @For c in self.classes do
+         format(fout,"  @File ~S end~%",Seq{c.name()})
+       end;
+       @For p in self.packages do
+         format(fout,"  @Ref ~S end~%",Seq{p.name()})
+       end; 
+       if ADD_BROWSER_META then
+         format(fout,"  @Ref Interfaces end~%")
+       end;
+       format(fout,"do p~%");
+       format(fout,"end;~%");
+       fout.close()
+    end
+  end

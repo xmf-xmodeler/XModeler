@@ -1,0 +1,13 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+
+context WithoutSourcePos
+
+ @Grammar extends OCL::OCL.grammar()
+    
+   WithoutSourcePos ::= body = Exp { WithoutSourcePos(body) }.
+      
+ end 
+    

@@ -1,0 +1,29 @@
+parserImport XOCL;
+// parserImport Tools::Basic;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class Resize extends DiagramEvent
+  
+    // Occurs when an element is resized...
+  
+    @Attribute value     : Element    (?) end
+    @Attribute newWidth  : Integer    (?) end
+    @Attribute newHeight : Integer    (?) end
+    @Attribute oldWidth  : Integer    (?) end
+    @Attribute oldHeight : Integer    (?) end
+    
+    // A value has been resized on a diagram...
+    
+    @Constructor(value,newWidth,newHeight,oldWidth,oldHeight) ! end
+    
+    @Operation raisedName():String
+      value.type().name() + "_Resized"
+    end
+    
+  end

@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class StarClause extends CompiledClause
+    @Operation copy()
+      StarClause(name,args,body,Seq{})
+    end
+  end

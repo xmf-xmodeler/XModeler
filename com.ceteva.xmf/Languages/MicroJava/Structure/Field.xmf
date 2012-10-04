@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import Expressions;
+
+context Structure
+
+  @Class Field extends Feature
+  
+    @Attribute modifiers : Modifiers end
+    @Attribute type      : Type end
+    @Attribute name      : String end
+    @Attribute value     : JExp end
+    
+    @Constructor(name) end
+    
+    @Constructor(modifiers,type,name,value) ! end
+    
+    @Operation pprint(out,indent)
+      modifiers.pprint(out);
+      type.pprint(out);
+      format(out," ~S",Seq{name});
+      if value <> null
+      then 
+        format(out," = ");
+        value.pprint(out)
+      end;
+      format(out,";")
+    end
+    
+  end

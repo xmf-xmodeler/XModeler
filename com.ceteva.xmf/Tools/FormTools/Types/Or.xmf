@@ -1,0 +1,64 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Or metaclass Root::XCore::Class  extends FormContainer
+ 
+    @Doc 
+      An Or is a named disjunction of form types. The container of an or type
+      can be told to replace the current instance of one of or-ed types with an
+      instance of one of the other or-ed types.
+    end
+  
+    @Attribute types : Seq(FormElement) (+,?) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Or ::= name = Name defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::FormTools::Types::Or(<OCL::StrExp(name)>) |] | 
+          [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        FormElement do
+          element.setOwner(self);
+          self.addToTypes(element)
+        end
+      end
+    end
+    
+    @Operation hasTypeNamed(name:String):Boolean
+      self.typeNamed(name) <> null
+    end
+    
+    @Operation new(parent,path,env,tool)
+      let display = types->at(0).new(parent,path + Seq{name.toString()},tool);
+          env = types->iterate(t env = env | t.bind(env))
+      in parent.setOrHandler(self,parent,path,tool,display);
+         display
+      end
+    end
+    
+    @Operation typeNamed(name:String):DisplayType
+      @Find(type,types)
+        when type.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation underlyingTypes():Seq(DisplayType)
+      types
+    end
+end

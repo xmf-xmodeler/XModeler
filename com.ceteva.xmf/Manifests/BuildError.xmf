@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context Manifests
+
+  @Class BuildError extends Exception
+ 
+     @Attribute text : String end
+     
+     @Constructor(message,text) !
+       self.setBacktrace();
+       self.message := message;
+       self.text := text 
+    end   
+  end
+      
+    

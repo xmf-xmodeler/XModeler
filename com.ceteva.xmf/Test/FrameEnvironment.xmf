@@ -1,0 +1,54 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a frame environment within the context of the namespace Frames
+context Frames
+
+	// the FrameEnvironment defines the context of execution of a frame
+	// it also handles the merging of environments that occurs when a
+	// frame uses a subordinate frame.
+	@Class FrameEnvironment
+	    @Constructor(name,environment) end 
+		
+		// define CS for a FrameEnvironment
+		@Grammar extends OCL::OCL.grammar
+			FrameEnvironment ::= 
+				myName=Name
+				defs=Defs
+				{import OCL
+				in [| import Frames in FrameEnvironment(<StrExp(myName)>,<defs>) end |]
+				end}.
+				
+			Defs ::= Assignment* | { [| Seq{Env::NullEnv()} |] }.
+			
+			Assignment ::= 'set' var=Exp 'to' value=Exp 'end' { [| Env::NullEnv().bind(<var>,<value>) |] }.
+			
+		end
+		
+		// a frame environment must have an identifying name
+		@Attribute name : String end
+		
+		// a frame environment encapsulates an Environment
+		@Attribute environment : Env end
+		
+		// frame environments e1 & e2 may be merged to yield environment e3
+		// merging of environments gives precedence to the receiver, such that
+		// the assignments in the receiver's environment (e1) override duplicates
+		// in e2's environment
+		@Operation merge(e:FrameEnvironment):FrameEnvironment
+			let theName=self.name + "." + e.name in
+				FrameEnvironment(theName, 
+				                 self.environment.add(e.environment))
+			end
+		end
+		
+		// lookup the value of a bound variable within the current environment
+		@Operation lookup(name:String):Element
+			self.environment.lookup(name)
+		end
+		
+	end

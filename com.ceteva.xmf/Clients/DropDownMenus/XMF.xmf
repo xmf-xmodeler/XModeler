@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+context XMF
+  @Operation addDropDownMenuItem(path:Seq(String),action:Operation)
+    @Doc
+      Adds a drop down menu item to the tool bar for XMF-Mosaic.
+      The path allows menus and sub-groups to be identified.
+      The named menu is modified whith a new item. The item has the 
+      supplied name and invokes the supplied action which must be 
+      an operation of 0 arguments. 
+    end
+    let registry = xmf.registry();
+        id = "com.ceteva.xmf.dropMenus" then
+        point = registry.getExtensionPoint(id) then
+        contributions = point.contributions;
+        pathSize = path.size();
+        pathString = path.toString()->subst("","&",true)
+    in 
+       @Find (c,contributions)
+         when c.values->at(0).size() = pathSize andthen
+              c.values->at(0).toString()->subst("","&",true) = pathString
+         do registry.removeContribution(id,c)
+       end;
+       registry.addContribution(id,TypeLessContribution(Seq{path,action}))
+    end
+  end

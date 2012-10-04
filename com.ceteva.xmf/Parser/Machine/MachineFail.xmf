@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import Parser::Machine;
+
+context Parser::Machine
+
+   @Class Fail isabstract
+    
+      // A fail point describes the action to perform when a parse fails.
+      // The machine state maintains a stack of failures.
+    
+      @Operation fail(state : State)
+        print("Unimplemented abstract operation: fail")
+      end
+    
+    end
+    
+context Parser::Machine
+    
+    @Class TraceFail extends Fail
+    
+      // Used to print a message when the current nonterminal fails.
+      
+      @Attribute name : String end
+      @Attribute fail : Fail end
+      
+      @Operation init(args):Element
+        self.name := args->at(0);
+        self.fail := args->at(1)
+      end
+      
+      @Operation fail(state:State)
+        state.decIndent();
+        (" ".repeat(state.indent) + name + " fails.").println();
+        fail.fail(state)
+      end
+      
+    end
+    
+context Parser::Machine
+    
+    @Class InitialFail extends Fail
+    
+      // If this fail is ever reached then the entire parse fails.
+      // Set the 'failed' flag which will cause the machine to
+      // halt.
+    
+      @Operation init(args)
+        self
+      end
+      
+      @Operation fail(state:State)
+        state.failed := true
+      end
+      
+    end
+
+context Parser::Machine
+
+  @Class MachineFail extends Fail, BasicState
+      
+      // A machine fail state records and restores the basic
+      // state information when failure occurs.
+      
+      @Operation init(args):Element
+        self
+      end
+      
+      @Operation fail(state:State):State
+        state.owner := owner;
+        state.grammar := grammar;
+        state.tokens := tokens;
+        state.successes := successes;
+        state.fail := fail;
+        state.stack := stack;
+        state.cut := cut;
+        state.consumedChars := consumedChars;
+        state.locals := locals;
+        state.globals := globals;
+        state.imports := imports;
+        state.token := token;
+        state.indent := indent
+      end
+      
+    end

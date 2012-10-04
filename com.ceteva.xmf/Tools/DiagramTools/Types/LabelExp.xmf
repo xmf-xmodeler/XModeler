@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients::Diagrams::Line;
+import Tools;
+import Menus;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context Types
+
+  @Class LabelExp extends Label 
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      LabelExp ::= name = Name '(' attachedTo = LabelEnd ',' x = Exp ',' y = Exp atts = LabelAtts ')' text = Str A = Atts {
+      
+        [| let label = Tools::DiagramTools::Types::LabelExp(<OCL::StrExp(name)>)
+           in label.relx       := <x>;
+              label.rely       := <y>;
+              label.text       := <OCL::StrExp(text)>;
+              label.attachedTo := <OCL::StrExp(attachedTo)>;
+              label.editable   := not <OCL::BoolExp(atts->includes("readOnly"))>;
+              label.underline  := <OCL::BoolExp(atts->includes("underline"))>;
+              label.truncate   := <OCL::IntExp(A.lookup("truncate",0-1))>;
+              label
+           end
+         |]
+       }.
+       
+       LabelEnd ::= 'end' { "end" } | 'start' { "start" } | 'middle' { "middle" }.
+       
+       LabelAtts ::= ',' name = Name names = (',' Name)* { Seq{name | names} } | { Seq{} }.
+       
+       Atts ::= atts = Att* { atts->iterate(att e = AttEnv() | att + e) }.
+      
+       Att ::= name = Name '=' value = AttValue { AttEnv().bind(name,value) }.
+      
+       AttValue ::= Str | Name | Int.
+       
+     end
+     
+     @Operation new(edge,path:Seq(String),tool)
+       let label = Tools::DiagramTools::Diagrams::LabelExp(text,attachedTo,relx,rely,editable)
+       in label.setLabelChangedHandler(
+            @Operation(label,new,old)
+              let source = edge.source().owner();
+                  target = edge.target().owner()
+              in tool.raise(EdgeAttributeChanged(edge,source,target,path + Seq{name.toString()},label,new,old))
+              end
+            end);
+          label.setTruncate(truncate);
+          label.setType(self);
+          label
+       end
+     end
+     
+   end

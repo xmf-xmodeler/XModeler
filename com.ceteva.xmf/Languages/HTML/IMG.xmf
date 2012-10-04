@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:33 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class IMG extends Root::HTML::HTMLElement
+
+    @Attribute width : Root::XCore::Integer = (0-1) (?,!) end
+    @Attribute vspace : Root::XCore::Integer (?,!) end
+    @Attribute useMap : Root::XCore::String (?,!) end
+    @Attribute start : Root::XCore::String (?,!) end
+    @Attribute onLoad : Root::XCore::String (?,!) end
+    @Attribute onError : Root::XCore::String (?,!) end
+    @Attribute onAbort : Root::XCore::String (?,!) end
+    @Attribute name : Root::XCore::String (?,!) end
+    @Attribute src : Root::XCore::String (?,!) end
+    @Attribute lowsrc : Root::XCore::String (?,!) end
+    @Attribute loop : Root::XCore::Integer (?,!) end
+    @Attribute longdesc : Root::XCore::String (?,!) end
+    @Attribute ismap : Root::XCore::Boolean (?,!) end
+    @Attribute hspace : Root::XCore::Integer (?,!) end
+    @Attribute height : Root::XCore::Integer = (0-1) (?,!) end
+    @Attribute dynsrc : Root::XCore::String (?,!) end
+    @Attribute controls : Root::XCore::Boolean (?,!) end
+    @Attribute border : Root::XCore::Integer (?,!) end
+    @Attribute alt : Root::XCore::String (?,!) end
+    @Attribute align : Root::XCore::String (?,!) end
+
+    @Constructor(align,alt,border,controls,dynsrc,height,hspace,ismap,longdesc,loop,lowsrc,src,name,onAbort,onError,onLoad,start,useMap,vspace,width,contents) ! end
+
+    @Operation HTMLAttributes():Seq(String)
+      let A = super()
+      in if width < 0 or height < 0
+         then A - Seq{"width","height"}
+         else A
+         end
+      end
+    end
+    
+  end

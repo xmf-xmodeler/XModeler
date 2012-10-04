@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class ArityError extends Exception
+  
+    @Doc
+      This exception is thrown when an operator is
+      applied to an incorrect number of arguments.
+    end
+     
+    @Attribute operator : Operation end
+    @Attribute args : Seq(Element) end
+    
+    @Constructor(operator,args) !
+      self.setBacktrace();
+      self.message := 
+        "Operator " + operator.toString() + " expects " + operator.arity() + 
+        " arguments but was supplied with " + args.toString()
+    end
+    
+  end
+      
+    

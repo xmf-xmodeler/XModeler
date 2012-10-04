@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provide the registry
+// which enables clients to interact in a non-dependable way  
+
+xmf.setProperty("registry",Clients::Registry());
+
+context XMF
+  @Operation registry()
+    self.property("registry")
+  end

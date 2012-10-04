@@ -1,0 +1,385 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+ 
+  @Class For extends Sugar
+  
+    @Doc
+      A for loop selects elements from a sequence in turn and 
+      performs an action. The for directives can be used to indicate
+      looping through a collection or parts of a table. Using the
+      directives for tables can be much more efficient because an
+      intermediate collection is not constructed. 
+    end
+     
+     @Attribute names     : Seq(String)      end  // The controlled variables.
+     @Attribute directive : String           end  // The type of for loop. 
+     @Attribute guard     : Performable      end  // A guard on the bound element (null = true).
+     @Attribute colls     : Seq(Performable) end  // The collections.
+     @Attribute body      : Performable      end  // The body performed in the scope of 'name'.
+     @Attribute isExp     : Boolean          end  // Returns a value.
+     
+     @Constructor(names,directive,colls,guard,body,isExp) ! end
+     
+     @Grammar extends OCL::OCL.grammar 
+   
+       For ::= 
+    
+         names = ForNames 
+         dir = ForDirective 
+         colls = ForColls 
+         guard = ('when' Exp | { null })
+         isExp = ForType 
+         body = Exp { 
+      
+           For(names,dir,colls,guard,body,isExp) 
+        
+       }. 
+       
+       ForColls ::= exp = Exp exps = (',' Exp)* { Seq{exp | exps} }.
+    
+       ForDirective ::= 
+    
+         'classifiedBy'  { "classifiedBy" }  |
+         'in'            { "in" }            | 
+         'inReverse'     { "inReverse" }     |
+         'inTableKeys'   { "inTableKeys" }   | 
+         'inTableValues' { "inTableValues" } | 
+         'inSeq'         { "inSeq" }.
+         
+       ForNames ::= name = AName names = (',' AName)* { Seq{name | names} }.
+         
+       ForType ::= 'do' { false } | 'produce' { true }.
+    
+     end  
+     
+     @Operation bindIndices():Seq(ValueBinding)
+       
+       // Bind each of the controlled variables to an index.
+       
+       0.to(names->size-1)->collect(i |
+         ValueBinding(names->at(i) + "Index",[| <Var("forColl" + i)>->size - 1 |]))
+         
+     end
+     
+     @Operation bindNames():Seq(ValueBinding)
+       
+       // Bind each of the controlled variables to the head of the
+       // corresponding collection.
+       
+       0.to(names->size-1)->collect(i |
+         ValueBinding(names->at(i),[| <Var("forColl" + i)>->head |]))
+         
+     end
+     
+     @Operation collBindings():Seq(ValueBinding)
+     
+       // Returns a sequence of bindings that guarantee the collections
+       // are all sequences...
+       
+       0.to(colls->size-1)->collect(i |
+         ValueBinding("forColl" + i,[| <colls->at(i)>->asSeq |]))
+     end
+     
+     @Operation decIndices():Seq(ValueBinding)
+       
+       // Reduce each index.
+       
+       0.to(names->size-1)->iterate(i decs = [| null |] |
+         [| <decs>; <Var(names->at(i) + "Index")> := <Var(names->at(i) + "Index")> - 1 |])
+         
+     end
+     
+     @Operation desugar() 
+     
+       // Check that the controlled variables match the number of collections
+       // and dispatch on the for-directive...
+       
+       if names->size = colls->size
+       then
+         @Case directive of 
+           "classifiedBy" do
+             self.desugarClassifiedBy()
+           end
+           "in" do 
+             self.desugarInSeq() 
+           end
+           "inReverse" do
+             self.desugarInReverse()
+           end
+           "inTableKeys" do 
+             self.desugarInTableKeys() 
+           end
+           "inTableValues" do 
+             self.desugarInTableValues() 
+           end
+           "inSeq" do 
+             self.desugarInSeq() 
+           end
+           else self.error("Unknown for directive: " + directive)
+         end
+       else self.error("For: controlled variables do not match collections: " + self.pprint())
+       end
+     end
+     
+     @Operation desugarClassifiedBy():Performable
+       [| let <self.walkerBindings()>
+          in <self.walkerSetup()>;
+             <For(names,"in",self.walkerResults(),guard,body,isExp)>
+          end 
+       |]
+     end
+     
+     @Operation desugarInReverse():Performable
+       if isExp
+       then self.desugarInReverseExp()
+       else self.desugarInReverseAction()
+       end
+     end
+     
+     @Operation desugarInSeq():Performable
+       if isExp
+       then self.desugarInSeqExp()
+       else self.desugarInSeqAction()
+       end
+     end
+     
+     @Operation desugarInReverseAction():Performable
+       [| let <self.collBindings()>
+          in let isLast = true
+             in let <self.bindIndices()>
+                in @While not <self.indexCheck(0-1)> do
+                     let <self.indexNames()>
+                     in let isFirst = <self.indexCheck(0)>
+                        in <self.protect(body)>;
+                           <self.decIndices()>;
+                           isLast := false
+                        end
+                     end
+                  end
+                end
+             end
+          end
+        |]
+     end
+     
+    @Operation desugarInReverseExp():Performable
+       [| let <self.collBindings()>
+          in let isLast = true;
+                 forResults = Seq{}
+             in let <self.bindIndices()>
+                in @While not <self.indexCheck(0-1)> do
+                     let <self.indexNames()>
+                     in let isFirst = <self.indexCheck(0)>
+                        in <self.protect(body)>;
+                           <self.decIndices()>;
+                           isLast := false
+                        end
+                     end
+                  end
+                end;
+                forResults->reverse
+             end
+          end
+        |]
+     end
+     
+    @Operation desugarInSeqAction():Performable
+       [| let <self.collBindings()>
+          in let isFirst = true
+             in @While not <self.emptyCollCheck()> do
+                  let <self.bindNames()>
+                  in <self.takeTails()>;
+                     let isLast = <self.emptyCollCheck()>
+                     in <self.protect(body)>;
+                        isFirst := false
+                     end
+                  end
+                end
+             end
+          end
+        |]
+     end
+     
+    @Operation desugarInSeqExp():Performable
+       [| let <self.collBindings()>
+          in let isFirst = true;
+                 forResults = Seq{}
+             in @While not <self.emptyCollCheck()> do
+                  let <self.bindNames()>
+                  in <self.takeTails()>;
+                     let isLast = <self.emptyCollCheck()>
+                     in <self.protect(body)>;
+                        isFirst := false
+                     end
+                  end
+                end;
+                forResults->reverse
+             end
+          end
+        |]
+     end
+     
+     @Operation desugarInTableKeys():Performable
+       if names->size = 1
+       then self.desugarInTableKeys(names->head,colls->head)
+       else self.error("For: multiple binding not supported for inTableKeys directive: " + self.pprint())
+       end
+     end
+     
+     @Operation desugarInTableKeys(name:String,coll:Performable):Performable
+       [| let forTable = <coll>.asVector()
+          in @Count forIndex from 0 to forTable->size do
+               let forBucket = forTable.ref(forIndex)
+               in @For forCell in forBucket do
+                    let <name> = forCell->head;
+                        isFirst = isFirst and forIndex = 0;
+                        isLast = isLast and (forIndex = forTable->size - 1)
+                    in <self.protect(body)>;
+                       isFirst := false
+                    end
+                  end
+               end
+             end
+          end 
+        |]
+      end
+      
+      @Operation desugarInTableValues():Performable
+        if names->size = 1
+        then self.desugarInTableValues(names->head,colls->head)
+        else self.error("For: multiple bindings not supported for inTableValuesdirective: " + self.pprint())
+        end
+      end
+      
+      @Operation desugarInTableValues(name:String,coll:Performable):Performable
+        [| let forTable = <coll>.asVector()
+           in @Count forIndex from 0 to forTable->size do
+                let forBucket = forTable.ref(forIndex)
+                in @For forCell in forBucket do
+                     let <name> = forCell->tail;
+                         isFirst = isFirst and forIndex = 0;
+                         isLast = isLast and (forIndex = forTable->size - 1)
+                     in <self.protect(body)>;
+                        isFirst := false
+                     end 
+                   end
+                end
+              end
+           end
+        |]
+     end 
+     
+     @Operation emptyCollCheck():Performable
+      
+      // Check that any of the collection variables is empty...
+      
+      1.to(colls->size-1)->iterate(i test = [| <Var("forColl0")>->isEmpty |] |
+        [| <test> or <Var("forColl" + i)>->isEmpty |])
+        
+    end
+                    
+     @Operation indexCheck(n:Integer):Performable
+      
+      // Check that any of the indices have reached n..
+      
+      1.to(colls->size-1)->iterate(i test = [| <Var(names->at(0) + "Index")> = <IntExp(n)> |] |
+        [| <test> or <Var(names->at(i) + "Index")> = <IntExp(n)> |])
+        
+    end
+                    
+     @Operation indexNames():Seq(ValueBinding)
+       
+       // Bind each of the controlled variables to the indexed element
+       // of the corresponding collection.
+       
+       0.to(names->size-1)->collect(i |
+         ValueBinding(names->at(i),[| <Var("forColl" + i)>->at(<Var(names->at(i) + "Index")>) |]))
+         
+     end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{names.lift(),StrExp(directive),colls.lift(),guard.lift(),body.lift(),isExp.lift()})
+     end
+     
+     @Operation pprint(out,indent)
+      format(out,"@For ~{,~;~S~} ~S ",Seq{names,directive});
+      @For coll in colls do
+        coll.pprint(out,indent);
+        if not isLast then format(out,",") end
+      end;
+      if guard <> null
+      then 
+        format(out," when ");
+        guard.pprint(out,indent)
+      end;
+      if isExp
+      then format(out," produce~%~V",Seq{indent+2})
+      else format(out," do~%~V",Seq{indent + 2})
+      end;
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation protect(exp:Performable)
+    
+      // If the guard is defined then check it before performing
+      // the expression. Otherwise perform the expression. If
+      // we are an expression then add the result of the expression
+      // to the for results; these will be returned at the end of
+      // the evaluation.
+      
+      if guard = null
+      then 
+        if isExp
+        then [| forResults := Seq{<exp> | forResults} |]
+        else exp 
+        end
+      else 
+        if isExp
+        then [| if <guard> 
+                then forResults := Seq{<exp> | forResults} 
+                end |]
+        else [| if <guard> 
+                then <exp> 
+                end |]
+        end
+      end
+    end
+      
+    @Operation takeTails():Performable
+      1.to(colls->size-1)->iterate(i updates = [| <Var("forColl0")> := <Var("forColl0")>->tail |] |
+        [| <updates>; <Var("forColl" + i)> := <Var("forColl" + i)>->tail |])
+    end
+    
+    @Operation walkerBindings():Seq(ValueBinding)
+     
+       // Returns a sequence of bindings that set up walkers ....
+       
+       0.to(colls->size-1)->collect(i |
+         ValueBinding("forWalker" + i,[| Walkers::Find(@Operation(o) o.isReallyKindOf(<colls->at(i)>) end) |]))
+    end
+    
+    @Operation walkerResults():Seq(Performable)
+      
+      // Return a sequence of expressions that produce the walker results...
+      
+      0.to(colls->size-1)->collect(i |
+        [| <Var("forWalker" + i)>.results() |])
+        
+    end
+    
+    @Operation walkerSetup():Performable
+    
+      // Walk each walker from Root...
+      
+      0.to(colls->size-1)->iterate(i walkers = [| null |] |
+        [| <walkers>; <Var("forWalker" + i)>.walk(Root,null) |])
+       
+    end 
+    
+  end 

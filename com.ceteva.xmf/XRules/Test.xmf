@@ -1,0 +1,493 @@
+parserImport XOCL;
+parserImport XRules;
+
+import IO;
+import XRules;
+import Env;
+
+context Root
+  @Class X
+    @Attribute x : X end
+  end
+
+context Root
+  @Operation test0()
+    @WithRules(Test)
+      Append(Seq{0,1,2,3,4},l,Seq{0,1,2,3,4,5,6,7,8,9})
+      return l
+    end
+  end
+ 
+context Root
+  @Operation test1()
+    let time = Time()
+    in @Count x from 0 to 1000 do
+         @WithRules(Test)
+           Append(Seq{1,2,3,4},l,Seq{1,2,3,4,5,6,7,8,9})
+           return l
+         end
+       end;
+       (Time() - time).pprint()
+    end
+  end
+  
+context Root
+  @Operation test2()
+    let v = NamedElement("fred")
+    in let time = Time()
+       in @Count x from 0 to 1000 do
+            @WithRules(Test)
+              GetName(<Class>,name)
+              return name
+            end
+          end;
+          (Time() - time).pprint()
+       end
+    end
+  end
+  
+context Root
+  @Operation test3()
+    let time = Time()
+    in @WithRules(Test)
+         To(0,1000,l)
+         return l
+       end
+    end
+  end
+  
+context Root
+  @Operation test4()
+    let time = Time()
+    in @WithRules(Test)
+         SerializePackage(<Clients>,data)
+         return data
+       end;
+       (Time() - time).pprint()
+    end
+  end
+  
+context Root
+  @Operation test5()
+    @WithRules(Test)
+      SerializePackage(P,Seq{
+        "Package","P",Seq{
+          Seq{"Class","C"},
+          Seq{"Package","Q",Seq{
+            Seq{"Class","D"}
+          }}
+        }})
+      return P
+    end
+  end
+  
+context Root
+  @Operation test6()
+    @WithRules(Test)
+      Concat("My_","Integer",P)
+      return P
+    end
+  end
+  
+context Root
+  @Operation test7()
+    @WithRules(Test)
+      Cycle(X,X,Y)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test7a()
+    @WithRules(Test)
+      Cycle2(V,V)
+      return V
+    end
+  end
+  
+context Root
+  @Operation test8()
+    @WithRules(Test)
+      PrintIt(100)
+      return true
+    end
+  end
+  
+context Root
+  @Operation test9()
+    @WithRules(Test)
+      IncIt(10,Y)
+      return Y
+    end
+  end
+  
+Root::counter := 0;
+  
+context Root
+  @Operation test10()
+    @WithRules(Test)
+      NextId(Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test11()
+    @WithRules(Test)
+      FloatTest(Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test12()
+    @WithRules(Test)
+      FloatTest(1.234)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test13()
+    @WithRules(Test)
+      CutTest(Seq{1,2,1,3,1,4,1,5},1)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test14()
+    @WithRules(Test)
+      FailTest(Seq{Seq{1,Seq{2,3},Seq{4}},Seq{5,Seq{6},7}})
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test15()
+    @WithRules(Test)
+      TryTest(10)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test16(n)
+    @WithRules(Test)
+      try
+        IfTest(<n>)
+        Return = "OK"
+      catch(Error)
+        Return = Error
+      end
+      return Return
+    end
+  end
+  
+context Root
+  @Operation test17(key)
+    @WithRules(Test)
+      Search(<key>,Seq{Seq{"A"|1},Seq{"B"|2},Seq{"C"|3}})
+      fail
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test18(package)
+    @WithRules(Test)
+      GetNames(<package>,names)
+      return names
+    end
+  end
+  
+context Root
+  @Operation test19()
+    @WithRules(Test)
+      TryBuiltin(Seq{100,101,102},X)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test20()
+    @WithRules(Test)
+      TryBuiltin(X,"Elephant")
+      return X
+    end
+  end
+  
+context Root
+  @Operation testAll()
+    test1().println();
+    test2().println();
+    test3().println();
+    test4().println();
+    test5().println();
+    test6().println();
+    test7();
+    test8();
+    test9().println();
+    test10().println();
+    test11().println();
+    test12().println();
+    test13().println();
+    test14().println();
+    test15().println();
+    test16(1).println()
+  end
+    
+  
+context Root
+  @Rules Test import Root
+  
+    // Create a basic rule set...
+    // Populated over several files...
+    
+  end
+  
+context Root::Test
+  @Rule Append(Seq{},l,l) end
+  
+context Root::Test
+  @Rule Append(Seq{h | l1},l2,Seq{h | l3})
+    Append(l1,l2,l3)
+  end
+  
+context Root::Test
+  @Rule GetName(NamedElement[name=n],n) end
+  
+context Root::Test
+  @Rule GetName(N,N) end
+
+context Root::Test
+  @Rule GetNames(Package[classes=C;packages=P],N) 
+    GetNames(C,N1)
+    GetNames(P,N2)
+    Append(N1,N2,N)
+  end
+  
+context Root::Test
+  @Rule GetNames(Class[attributes=A;operations=O],N) 
+    GetNames(A,N1)
+    GetNames(O,N2)
+    Append(N1,N2,N)
+  end
+  
+context Root::Test
+  @Rule GetNames(Seq{X|S},Seq{XN|N})
+    GetName(X,XN)
+    GetNames(X,N1)
+    GetNames(S,N2)
+    Append(N1,N2,N)
+  end
+ 
+context Root::Test
+  @Rule GetNames(Seq{},Seq{}) end
+
+context Root::Test
+  @Rule GetNames(X,Seq{}) end
+  
+context Root::Test
+  @Rule To(n,m,Seq{}) n > m end
+  
+context Root::Test
+  @Rule To(n,m,Seq{}) n = m end
+  
+context Root::Test
+  @Rule To(n,m,Seq{n | l}) 
+    k = n + 1
+    To(k,m,l)
+  end
+    
+context Root::Test
+  @Rule SerializePackages(Seq{},Seq{}) end
+    
+context Root::Test
+  @Rule SerializePackages(Seq{P | Ps},Seq{T | Terms})
+    SerializePackage(P,T)
+    SerializePackages(Ps,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializePackage(Package[name=n;packages=P;classes=C],Seq{"Package",n,Terms}) 
+    SerializeClassesAndPackages(P,C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(Seq{},C,Terms) 
+    SerializeClasses(C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(P,Seq{},Terms)
+    SerializePackages(P,Terms)
+  end
+  
+context Root::Test
+  @Rule SerializeClassesAndPackages(P,Seq{C | Cs},Seq{T | Terms})
+    SerializeClass(C,T)
+    SerializeClassesAndPackages(P,Cs,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClassesAndPackages(Seq{P | Ps},C,Seq{T | Terms})
+    SerializePackage(P,T)
+    SerializeClassesAndPackages(Ps,C,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClasses(Seq{},Seq{}) end
+    
+context Root::Test
+  @Rule SerializeClasses(Seq{C | Cs},Seq{T | Terms})
+    SerializeClass(C,T)
+    SerializeClasses(Cs,Terms)
+  end
+    
+context Root::Test
+  @Rule SerializeClass(Class[name=n],Seq{"Class",n}) end
+   
+context Root::Test
+  @Rule Concat(S1,S2,S3) 
+    S3 = S1 + S2
+  end
+  
+context Test
+  @Rule Cycle(X,Seq{1|X},Y) 
+    Cycle(X,Y)
+  end
+  
+context Test
+  @Rule Cycle(Seq{Y|X},Y) end
+  
+context Test
+  @Rule Cycle2(A,X[x=A]) end
+  
+context Test
+  @Rule PrintIt(X)
+    call @Operation(x) xmf.message(x.toString()); true end(X)
+    Y = X + 1
+    call @Operation(x) xmf.message(x.toString()); true end(Y)
+  end
+   
+context Test 
+  @Rule IncIt(X,Y)
+    Y = eval @Operation(x) x + 1 end(X)
+  end
+  
+context Test
+  @Rule NextId(X)
+    X = eval @Operation() Root::counter := counter + 1; counter end()
+  end
+
+context Test
+  @Rule FloatTest(1.234) end 
+  
+context Test
+  @Rule CutTest(Seq{},X) end
+  
+context Test
+  @Rule CutTest(Seq{H|T},H) //! // Comment out the ! in order to perform full backtracking.
+    call @Operation(x) x.println(); false end(H)
+  end
+   
+context Test
+  @Rule CutTest(Seq{H|T},X)
+    CutTest(T,X)
+  end
+  
+context Test
+  @Rule FailTest(Seq{}) ! 
+    fail
+  end
+  
+context Test
+  @Rule FailTest(Seq{H|T})
+    FailTest(H)
+  end
+  
+context Test
+  @Rule FailTest(Seq{H|T}) !
+    FailTest(T)
+  end
+  
+context Test
+  @Rule FailTest(V)
+    call @Operation(x) x.println() end(V)
+    // Perform fail to print all atomic values in tree...
+    fail
+  end
+  
+context Test
+  @Rule TryTest(N)
+    try 
+      Count(N)
+    catch(Error)
+      call @Operation(x) xmf.message(x) end(Error)
+    end
+  end
+  
+context Test
+  @Rule Count(0)
+    throw "Error: 0"
+  end
+  
+context Test
+  @Rule Count(N)
+    try
+      X = N - 1
+      Count(X)
+    catch(Error)
+      Message = Error + N
+      call @Operation(M) xmf.message(M) end(Message)
+      throw Message
+    end
+  end
+  
+context Test
+  @Rule Amb(1,"A") end
+  
+context Test
+  @Rule Amb(1,"B") end
+  
+context Test
+  @Rule IfTest(X)
+    if Amb(X,V)
+    then // Ignore this case
+    else throw "Error"
+    end
+  end
+  
+context Test
+  @Rule Search(Key,Seq{})
+    fail
+  end
+  
+context Test
+  @Rule Search(Key,Seq{Seq{Key|Value}|Table}) !
+    // Comment out the ! to see the effect of cut on backtracking.
+  end
+  
+context Test
+  @Rule Search(Key,Seq{Pair|Table})
+    call @Operation(p) p.println() end(Pair)
+    Search(Key,Table)
+  end
+  
+context Test
+  @Builtin test(x,y)[rules,indent,env,succ,fail,exception]
+    //succ(unify(x,y,env),fail)
+    succ(env,fail)
+  end
+  
+context Test
+  @Coerce Seq_x_String
+     S1:Seq(Element) = S2.asSeq()
+     S2:String = S1.asString()
+  end
+  
+context Test
+  @Rule TryBuiltin(Sequence,String)
+    Seq_x_String(Sequence,String)
+  end

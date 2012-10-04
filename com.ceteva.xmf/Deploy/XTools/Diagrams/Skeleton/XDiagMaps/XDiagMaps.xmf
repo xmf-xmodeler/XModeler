@@ -1,0 +1,152 @@
+parserImport XOCL;
+
+import IO;
+import Clients::Diagrams;
+
+context ! Root
+
+// Package deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+// Note that the ! above means that the definitions in this
+// file may contain forward references. Any namespace defined
+// using ! must be initialised (either directly or via its 
+// containing name space) when loaded. The initialisation
+// will occur automatically if you build and load the deployed
+// model using the deployed manifest.
+
+@Package XDiagMaps 
+
+    @Operation chooseColour(element)
+      chooseColourWithDefault(element,Clients::Diagrams::Color(0,0,0))
+    end
+
+    @Operation chooseColourWithDefault(element,color)
+    
+      // Return a colour that will be used to display a component
+      // representing the element...
+      
+      xmf.getColor("Choose a colour for " + element.toString(),color)
+      
+    end
+
+    @Operation chooseEdgeColour(element)
+      // default edge colour is black
+      chooseColourWithDefault(element,Clients::Diagrams::Color(0,0,0))
+    end
+    
+    @Operation chooseNodeColour(element)
+      // default edge colour is white
+      chooseColourWithDefault(element,Clients::Diagrams::Color(255,255,255))
+    end
+
+    @Operation diagramNotes(tool)
+    
+      // Calculate a sequence of pairs containing notes and the
+      // elements that the notes are attached to...
+      
+      let notes = Seq{}
+      in @For edge in tool.diagram().edges() do
+           let sourceNode = edge.sourceNode();
+               targetNode = edge.targetNode()
+           in if tool.isRegistered(targetNode) and
+                 sourceNode.type().name().toString() = "Note"
+              then 
+                let target = tool.find(targetNode)
+                in notes := Seq{Seq{sourceNode.ref1(Seq{"box","note"}).text(),target} | notes}
+                end
+              end
+           end
+         end;
+         notes
+      end
+      
+    end
+    
+    @Operation writeHandlerComment(out)
+      format(out,"// *** Guide to XTool Event Handlers ***~%");
+      format(out,"// -------------------------------------~%");
+      format(out,"//~%");
+      format(out,"// Each event handler has a name and an args list~%");
+      format(out,"// The name is a combination of the name of the type~%");
+      format(out,"// of the event and the name of the type of domain ~%");
+      format(out,"// element. In general the args list is empty.~%");
+      format(out,"// A handler is fired when an event that matches the~%");
+      format(out,"// name of the event is raised. The event is referenced~%");
+      format(out,"// as 'event' within the body of the handler. All events~%");
+      format(out,"// have an operation tool() that returns the tool raising~%");
+      format(out,"// the event and therefore the domain element is~%");
+      format(out,"// event.tool().element() and the diagram is event.tool().diagram()~%");
+      format(out,"// In general handlers are supplied with diagram elements~%");
+      format(out,"// and must map them to domain elements. The mapping is performed~%");
+      format(out,"// using the tool via the following operations:~%");
+      format(out,"//   event.tool().isRegistered(element):Boolean~%");
+      format(out,"//   event.tool().register(e1,e2)~%");
+      format(out,"//   event.tool().find(element)~%");
+      format(out,"//   event.tool().deregister(element)~%");
+      format(out,"// Specific types of event each support different operations~%");
+      format(out,"// that return values appropriate to the event. The following are~%");
+      format(out,"// typical paths as defined by the tool type:~%");
+      format(out,"//   NodeType~%");
+      format(out,"//   NodeType_name (name may involve several levels)~%");
+      format(out,"//   EdgeType~%");
+      format(out,"//   EdgeType_label~%");
+      format(out,"// Typical event types are:~%");
+      format(out,"//   New_NodeType~%");
+      format(out,"//     event.node():Node~%");
+      format(out,"//   New_EdgeType~%");
+      format(out,"//     event.edge():Edge~%");
+      format(out,"//     event.source():Node~%");
+      format(out,"//     event.target():Node~%");
+      format(out,"//   NodeType_Removed~%");
+      format(out,"//     event.node():Node~%");
+      format(out,"//   EdgeType_Removed~%");
+      format(out,"//     event.edge():Edge~%");
+      format(out,"//   NodeType_name_Changed~%");
+      format(out,"//     event.value():Display~%");
+      format(out,"//     event.root():Node~%");
+      format(out,"//     event.new():String~%");
+      format(out,"//     event.old():String~%");
+      format(out,"//   EdgeType_label_Changed~%");
+      format(out,"//     event.edge():Edge~%");
+      format(out,"//     event.new():String~%");
+      format(out,"//     event.old():String~%");
+      format(out,"//     event.source():Node~%");
+      format(out,"//     event.target():Node~%");
+      format(out,"//   NodeType_Clicked~%");
+      format(out,"//     event.node():Node~%");
+      format(out,"//     event.clicks():Integer~%");
+      format(out,"//   EdgeType_Clicked~%");
+      format(out,"//     event.node():Node~%");
+      format(out,"//     event.clicks():Integer~%");
+      format(out,"//   NodeType_Selected~%");
+      format(out,"//     event.value():Node~%");
+      format(out,"//     event.selected():Boolean~%");
+      format(out,"//   EdgeType_Selected~%");
+      format(out,"//     event.value():Edge~%");
+      format(out,"//     event.selected():Boolean~%");
+      format(out,"//   EdgeType_Source_Changed~%");
+      format(out,"//     event.edge():Edge~%");
+      format(out,"//     event.new():Node~%");
+      format(out,"//     event.old():Node~%");
+      format(out,"//   EdgeType_Target_Changed~%");
+      format(out,"//     event.edge():Edge~%");
+      format(out,"//     event.new():Node~%");
+      format(out,"//     event.old():Node~%");
+      format(out,"//~%")
+    end
+
+  @Operation writeToolHeader(out:OutputChannel)
+      format(out,"parserImport XOCL;~%");
+      format(out,"parserImport Tools::Basic;~%");
+      format(out,"parserImport Tools::DiagramTools::Types;~%");
+      format(out,"parserImport Tools::DiagramTools::Structure;~%");
+      format(out,"parserImport Tools::Menus;~%");
+      format(out,"parserImport Tools::Events;~%");
+      format(out,"parserImport Tools::DiagramTools::Types::DisplayTypes;~%~%");
+      format(out,"import Tools;~%");
+      format(out,"import DiagramTools;~%");
+      format(out,"import Structure;~%");
+      format(out,"import Graphs;~%");
+      format(out,"import DiagramEvents;~%~%")
+    end
+
+end

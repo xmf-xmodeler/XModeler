@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Compiler;
+import OCL;
+import Instrs;
+
+context Var
+  @Operation FV():Element
+    Set{name}
+  end
+
+context Var
+  @Operation maxLocals():Element
+    0
+  end
+
+context Var
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if saveSource and sourceSet and sourcePos
+    then env.ref(name,lineCount,charCount)
+    else env.ref(name)
+    end
+  end
+  
+context Var
+  @Operation lift()
+    Apply(self.typeExp(),Seq{StrExp(name),IntExp(lineCount),IntExp(charCount)})
+  end

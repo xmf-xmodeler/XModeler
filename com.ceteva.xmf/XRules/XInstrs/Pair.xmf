@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class Pair extends Instr
+  
+    @Constructor() ! end
+  
+  end

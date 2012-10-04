@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Doc in Lift(o,arg,encountered)
+  XOCL::Doc(o.doc)
+end;

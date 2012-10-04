@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+context Root
+  @Package UseCase
+    @Class Model
+      @Attribute actors : Seq(Actor) end
+      @Attribute useCases : UseCases end
+    end
+    @Class Actor
+      @Attribute name : String end
+      @Attribute uses : Seq(UseCase) end
+      @Constructor(name) ! end
+    end
+    @Class UseCases
+      @Attribute cases : Seq(UseCase) end
+    end
+    @Class UseCase
+      @Attribute name : String end
+      @Attribute includes : Seq(UseCase) end
+      @Attribute extends : Seq(UseCase) end
+      @Constructor(name) ! end
+    end
+  end
+  

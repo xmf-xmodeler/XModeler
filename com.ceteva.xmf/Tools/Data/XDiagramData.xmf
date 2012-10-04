@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Tools;
+import Data;
+import Clients;
+import Diagrams;
+
+context Data
+
+  @Class XDiagramData extends XToolData
+  
+    // Serialization data for an XTool Diagram tool.
+    // Saves the graph underlying the diagram...
+    
+    @Attribute graph : Graph (?) end
+    
+    @Constructor(managerData,graph) end
+    
+  end

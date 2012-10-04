@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Clients::BrowserInterface::Displays;
+
+context Displays
+
+  @Class Literal extends Display
+  
+    @Attribute value : String end
+    
+    @Constructor(value) ! end
+    
+    @Operation map(object)
+      Seq{value}
+    end
+    
+  end

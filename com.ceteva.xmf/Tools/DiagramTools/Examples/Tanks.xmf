@@ -1,0 +1,151 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+
+// A simple example showing how XTool diagrams can provide a simulation by
+// animating changes in tanks. The domain model is a graph where the nodes
+// represent tanks and the edges represent directed pipes between tanks.
+// Nodes are labelled with the amount contained in the tank. When a tank is
+// emptied, its contents flow doen its outlet pipes to the target tanks.
+// If a target tank becomes full then it will overflow into its target tanks
+// and so on (spillage is assumed if this cannot empty a tank). 
+
+Root::type :=  
+
+  // The tool type consists of tank nodes with two boxes. The empty
+  // box is drawn above the contents box. To animate the contents of
+  // the tank going up and down we change the max and min height of the
+  // contents box and then redraw the tank by sending it a layout()
+  // message. Initially all tanks are half full.
+
+@ToolType StateEditor
+  @NodeType Tank(hasport)
+    minWidth = 100
+    maxHeight = 100
+    minHeight = 100
+    @Box empty(ALIGN,nofill)
+      minHeight = 50
+      maxHeight = 50
+    end
+    @Box contents(ALIGN)
+      maxHeight = 50
+      minHeight = 50
+      fillColor = "50,255,255"
+    end
+    @Menu
+      // Add 10 units of content...
+      @MenuAction Inc
+         changeTank(self,10)
+      end
+      // Empty all content...
+      @MenuAction Empty
+        emptyTank(tool,self)
+      end
+      // Remove 10 units of content...
+      @MenuAction Dec
+        changeTank(self,0-10)
+      end
+    end  
+  end
+  
+  // Directed flow pipes between tanks...
+  
+  @EdgeType Flow Tank -> Tank targetHead = arrow end
+  
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Tank             icon = "Tools/State.gif" end
+      @ToolButton Flow    isEdge    icon = "Tools/Edge.gif" end
+    end
+  end
+end;
+
+context Root
+
+  @Operation changeTank(tank,amount)
+  
+    // Change the amount in a tank by modifying the max and min
+    // height of the box. If these are set to be the same value
+    // then layout will be forced to draw the box at a given height.
+    
+    let empty = tank.ref1(Seq{"empty"});
+        contents = tank.ref1(Seq{"contents"})
+    in empty.setMaxHeight(empty.maxHeight - amount);
+       empty.setMinHeight(empty.minHeight - amount);
+       contents.setMaxHeight(contents.maxHeight + amount);
+       contents.setMinHeight(contents.minHeight + amount);
+       contents.setFillColor(Clients::Diagrams::Color(contents.minHeight,255,255));
+       tank.layout()
+    end
+  end
+  
+context Root
+  @Operation transfer1(tool,tank)
+  
+    // Transfer a unit from the supplied tank to its target
+    // tanks...
+    
+    let node = tool.find(tank) then
+        graph = tool.element() then
+        edges = graph.edgesFrom(node) then
+        tanks = edges->map("target")->collect(tank | tool.find(tank))
+    in @For targetTank in tanks do
+         changeTank(tank,0-1);
+         if targetTank.ref1(Seq{"contents"}).minHeight < 100
+         then changeTank(targetTank,1)
+         else transfer1(tool,targetTank)
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation emptyTank(tool,tank)
+  
+    // Remove all the contents from the supplied tank...
+    
+    let contents = tank.ref1(Seq{"contents"})
+    in @While contents.minHeight > 0 do
+         transfer1(tool,tank)
+       end
+    end
+  end
+
+Root::manager :=
+
+  // Define the event handlers that create a configuration
+  // of tanks and link them together with pipes.
+  
+@ElementManager StateManager !
+  @EventHandler New_Tank()
+    let tank = Graphs::Node(50)
+    in event.tool().element().add(tank);
+       register(event.node(),tank);
+       register(tank,event.node())
+    end
+  end
+  
+  @EventHandler New_Flow()
+    let source = find(event.source());
+        target = find(event.target()) then
+        edge = Graphs::Edge(null,source,target)
+    in event.tool.element().add(edge);
+       register(edge,event.edge());
+       register(event.edge(),edge)
+    end
+  end
+end;
+
+context Root
+  @Operation tankDemo()
+    Tool(type,"State Editor",manager,Graphs::Graph()).showDiagram()
+  end

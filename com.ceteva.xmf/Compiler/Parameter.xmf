@@ -1,0 +1,9 @@
+import OCL;
+
+context Parameter
+  @Operation lift()
+    if name.isKindOf(Drop)
+    then Apply(Path(Var("XCore"),Seq{"Parameter"}),Seq{name.lift(),Var("Element")})
+    else Apply(Path(Var("XCore"),Seq{"Parameter"}),Seq{StrExp(name),Var("Element")})
+    end
+  end

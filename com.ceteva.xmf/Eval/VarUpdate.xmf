@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context VarUpdate
+
+   @Operation eval(target,env,imports)
+     if env.binds(name)
+     then env.setValue(name,value.eval(target,env,imports))
+     else 
+       @Find(nameSpace,imports)
+         when nameSpace.hasElement(name)
+         do nameSpace.putElement(name,value.eval(target,env,imports))
+         else Root.putElement(name,value.eval(target,env,imports))
+       end
+     end
+   end

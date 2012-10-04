@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ModelBrowsers
+  ModelBrowsers = @File ModelBrowsers end
+  @File ModelBrowserIdError end
+  @File Dummy end
+  @File ModelBrowserNode end
+  @File ModelBrowser end
+  @File ModelBrowserCommandInterpreter end
+  @File ModelBrowserEventHandler end
+  @File ModelBrowserClient end
+  @File AbstractMappingClient end
+  @File Extensions end
+do Project(ModelBrowsers,dir,self)
+end;

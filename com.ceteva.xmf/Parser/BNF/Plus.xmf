@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Plus extends Recognizer
+  
+    // Parses 1 or more occurrences of input dictated by a parser.
+    
+    @Attribute parser : Recognizer end
+    
+    @Constructor(parser) end
+    
+    @Operation code(outputChannel)
+      parser.code(outputChannel);
+      format(outputChannel,"+ ")
+    end
+    
+    @Operation FV():Set(String)
+      parser.FV()
+    end
+    
+    @Operation nextSet(grammar)
+      parser.nextSet(grammar)
+    end
+    
+    @Operation terminals():Set(String)
+      parser.terminals()
+    end
+    
+    @Operation parse(machine)
+      machine.pushSuccess(And(parser,Star(parser)))
+    end
+    
+    @Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Plus(<parser.toExp(FV)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self.parser := parser.transform(FV,grammar)
+    end
+
+  end

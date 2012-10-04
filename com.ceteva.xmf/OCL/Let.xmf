@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Let extends OCL::OCL
+  
+    @Doc
+      A 'let' expression allows local variables to be defined. The scope of any 
+      'let' introduced variables is the body of the 'let' expression. Once thay
+      are introduced, the variable sare local to the body and may be referenced 
+      or updated. Let allows more than one 'binding' before the body in which
+      case the bindings are separated using ';' or 'then'. Bindings separated with
+      ';' established in parallel (i.e. the values cannot refer to the names in other 
+      bindings) and bindings separated with 'then' are established in sequence.
+      
+      Constructor: Let(bindings,body)
+        Constructs a 'let' expression. The bindings are a sequence of value bindings.
+        The body is an expression.
+    end
+  
+    @Attribute bindings : Seq(ValueBinding) end
+    @Attribute body : OCL::OCL end
+    
+    @Constructor(bindings,body) ! end
+
+    @Operation pprint(out,indent)
+      format(out,"let ");
+      if bindings.isKindOf(Seq(Element))
+      then
+        @For b in bindings do
+          b.pprint(out,indent + 4);
+          if not isLast 
+          then format(out,";~%~V",Seq{indent + 4})
+          else format(out,"~%~V",Seq{indent})
+          end
+        end
+      else 
+        // Assume that this is a dropped element....
+        bindings.pprint(out)
+      end;
+      format(out,"in ");
+      body.pprint(out,indent + 3);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

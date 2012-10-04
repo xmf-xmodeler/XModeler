@@ -1,0 +1,558 @@
+parserImport XOCL;
+
+import IO;
+import XML::Parser;
+import Clients;
+import Diagrams;
+
+context IO
+  @Class DiagramXMLInflater extends ObjectXMLInflater
+  
+    @Operation addDisplays(inch)
+      let 
+        display = inch.openObject() then
+        next = inch.pop()
+      in 
+        @While next <> inch do
+          display.displays := display.displays->including(next);
+          next.owner := display;
+          next := inch.pop()
+        end
+      end
+    end
+  
+    @Operation endBox(tag:Buffer,inch:XMLInputChannel)
+      self.addDisplays(inch)
+    end
+    
+    @Operation endDiagram(tag:Buffer,inch:XMLInputChannel)
+      let 
+        diagram = inch.openObject();
+        graph = Graph();
+        next = inch.pop()
+      in
+        diagram.graph := graph;
+        @While next <> inch do
+          if next.isKindOf(Node)
+          then
+            graph.nodes := graph.nodes->including(next)
+          else
+            graph.edges := graph.edges->including(next)
+          end;
+          next.owner := diagram;
+          next := inch.pop()
+        end
+      end
+    end
+    
+    @Operation endEdge(tag:Buffer,inch:XMLInputChannel)
+      let 
+        edge = inch.openObject();
+        next = inch.pop()
+      in
+        @While next <> inch do
+          if next.isKindOf(Label)
+          then
+            edge.labels := edge.labels->including(next)
+          else
+            edge.wayPoints := Seq{next | edge.wayPoints}
+          end;
+          next.owner := edge;
+          next := inch.pop()
+        end
+      end
+    end
+    
+    @Operation endEllipse(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endGroup(tag:Buffer,inch:XMLInputChannel)
+      self.addDisplays(inch)
+    end
+    
+    @Operation endImage(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endLabel(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endLine(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endNode(tag:Buffer,inch:XMLInputChannel)
+      self.addDisplays(inch)
+    end
+  
+    @Operation endObject(tag:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("Box")
+      then 
+        self.endBox(tag,inch)
+      elseif tag.stringEqual("Diagram")
+      then 
+        self.endDiagram(tag,inch)
+      elseif tag.stringEqual("Edge")
+      then 
+        self.endEdge(tag,inch)
+      elseif tag.stringEqual("Ellipse")
+      then 
+        self.endEllipse(tag,inch)
+      elseif tag.stringEqual("Group")
+      then 
+        self.endGroup(tag,inch) 
+	  elseif tag.stringEqual("Image")
+      then 
+        self.endImage(tag,inch)
+	  elseif tag.stringEqual("Label")
+      then 
+        self.endLabel(tag,inch)
+	  elseif tag.stringEqual("Line")
+      then 
+        self.endLine(tag,inch)
+	  elseif tag.stringEqual("Node")
+      then 
+        self.endNode(tag,inch)
+      elseif tag.stringEqual("Point")
+      then 
+        self.endPoint(tag,inch)
+      elseif tag.stringEqual("Port")
+      then 
+        self.endPort(tag,inch)
+      elseif tag.stringEqual("Shape")
+      then 
+        self.endShape(tag,inch)
+      elseif tag.stringEqual("DiagramText")
+      then 
+        self.endText(tag,inch)
+      elseif tag.stringEqual("Waypoint")
+      then 
+        self.endWaypoint(tag,inch)
+      end
+    end
+   
+    @Operation endPoint(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endPort(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endShape(tag:Buffer,inch:XMLInputChannel)
+      let 
+        shape = inch.openObject() then
+        next = inch.pop()
+      in 
+        @While next <> inch do
+          if next.isKindOf(Point)
+          then
+            shape.point := shape.point->including(next);
+            next := inch.pop()
+          end
+        end
+      end
+    end
+    
+    @Operation endText(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation endWaypoint(tag:Buffer,inch:XMLInputChannel)
+      self
+    end
+    
+    @Operation result(value,idTable)
+      @For v in idTable.values()
+      do
+        if v.isKindOf(Edge)
+        then
+          v.source := idTable.get(v.source);
+          v.target := idTable.get(v.target)
+        end
+      end;
+      let client = xmf.clientManager().findClient(Clients::Diagrams::DiagramClient)
+      in
+        client.add(value);
+        value.renew();
+        value
+      end
+    end
+  
+    @Operation startBox(atts:Buffer,inch:XMLInputChannel)
+      let
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        cornerCurve = inch.attValue(atts,"cornerCurve").toString().asInt();
+        showTop = inch.attValue(atts,"showTop").toString().asBool();
+        showBottom = inch.attValue(atts,"showBottom").toString().asBool();
+        showLeft = inch.attValue(atts,"showLeft").toString().asBool();
+        showRight = inch.attValue(atts,"showRight").toString().asBool();
+        lineColorRed = inch.attValue(atts,"lineColorRed").toString().asInt();
+        lineColorGreen = inch.attValue(atts,"lineColorGreen").toString().asInt();
+        lineColorBlue = inch.attValue(atts,"lineColorBlue").toString().asInt();
+        fillColorRed = inch.attValue(atts,"fillColorRed").toString().asInt();
+        fillColorGreen = inch.attValue(atts,"fillColorGreen").toString().asInt();
+        fillColorBlue = inch.attValue(atts,"fillColorBlue").toString().asInt();
+        box = Box()
+      in
+        box.x := x;
+        box.y := y;
+        box.width := width;
+        box.height := height;
+        box.cornerCurve := cornerCurve;
+        box.showTop := showTop;
+        box.showBottom := showBottom;
+        box.showLeft := showLeft;
+        box.showRight := showRight;
+        box.lineColor := Color(lineColorRed,lineColorGreen,lineColorBlue);
+        box.fillColor := Color(fillColorRed,fillColorGreen,fillColorBlue);
+        inch.push(box);
+        inch.push(inch);
+        inch.register(box,id)
+      end
+    end
+  
+    @Operation startDiagram(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        name = inch.attValue(atts,"name").toString();
+        isOpen = inch.attValue(atts,"isOpen").toString().asBool();
+        isSubDiagram = inch.attValue(atts,"isSubDiagram").toString().asBool();
+        diagram = Diagram()
+      in
+        diagram.name := name;
+        diagram.isOpen := isOpen;
+        diagram.isSubDiagram := isSubDiagram;
+        inch.push(diagram);
+        inch.push(inch);
+        inch.register(diagram,id)
+      end
+    end
+    
+    @Operation startEdge(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        source = inch.attValue(atts,"source").toString();
+        target = inch.attValue(atts,"target").toString();
+        refx = inch.attValue(atts,"refx").toString().asInt();
+        refy = inch.attValue(atts,"refy").toString().asInt();
+        sourceHead = inch.attValue(atts,"sourceHead").toString().asInt();
+        targetHead = inch.attValue(atts,"targetHead").toString().asInt();
+        lineStyle = inch.attValue(atts,"lineStyle").toString().asInt();
+        colorRed = inch.attValue(atts,"colorRed").toString().asInt();
+        colorGreen = inch.attValue(atts,"colorGreen").toString().asInt();
+        colorBlue = inch.attValue(atts,"colorBlue").toString().asInt();
+        edge = Edge()
+      in
+        edge.source := source;
+        edge.target := target;
+        edge.refx := refx;
+        edge.refy := refy;
+        edge.sourceHead := sourceHead;
+        edge.targetHead := targetHead;
+        edge.lineStyle := lineStyle;
+        edge.color := Color(colorRed,colorGreen,colorBlue);
+        inch.push(edge);
+        inch.push(inch);
+        inch.register(edge,id)
+      end
+    end
+    
+    @Operation startEllipse(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        showOutline = inch.attValue(atts,"showOutline").toString().asBool();
+        lineColorRed = inch.attValue(atts,"lineColorRed").toString().asInt();
+        lineColorGreen = inch.attValue(atts,"lineColorGreen").toString().asInt();
+        lineColorBlue = inch.attValue(atts,"lineColorBlue").toString().asInt();
+        fillColorRed = inch.attValue(atts,"fillColorRed").toString().asInt();
+        fillColorGreen = inch.attValue(atts,"fillColorGreen").toString().asInt();
+        fillColorBlue = inch.attValue(atts,"fillColorBlue").toString().asInt();
+        ellipse = Ellipse()
+      in
+        ellipse.x := x;
+        ellipse.y := y;
+        ellipse.width := width;
+        ellipse.height := height;
+        ellipse.showOutline := showOutline;
+        ellipse.lineColor := Color(lineColorRed,lineColorGreen,lineColorBlue);
+        ellipse.fillColor := Color(fillColorRed,fillColorGreen,fillColorBlue);
+        inch.push(ellipse);
+        inch.register(ellipse,id)
+      end
+    end
+    
+    @Operation startGroup(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();  
+        x = inch.attValue(atts,"x").toString().asInt();  
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();  
+        height = inch.attValue(atts,"height").toString().asInt();
+        group = Group()
+      in
+        group.x := x;
+        group.y := y;
+        group.width := width;
+        group.height := height;
+        inch.push(group);
+        inch.push(inch);
+        inch.register(group,id)
+      end
+    end
+    
+    @Operation startImage(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();  
+        filename = inch.attValue(atts,"filename").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        image = Image()
+      in
+        image.filename := filename;
+        image.x := x;
+        image.y := y;
+        image.width := width;
+        image.height := height;
+        inch.push(image);
+        inch.register(image,id)
+      end
+    end
+
+    @Operation startLabel(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        text = inch.attValue(atts,"text").toString();
+        attachedTo = inch.attValue(atts,"attachedTo").toString();
+        relx = inch.attValue(atts,"relx").toString().asInt();
+        rely = inch.attValue(atts,"rely").toString().asInt();
+        editable = inch.attValue(atts,"editable").toString().asBool();
+        underline = inch.attValue(atts,"underline").toString().asBool();
+        truncate = inch.attValue(atts,"truncate").toString().asInt();
+        colorRed = inch.attValue(atts,"colorRed").toString().asInt();
+        colorGreen = inch.attValue(atts,"colorGreen").toString().asInt();
+        colorBlue = inch.attValue(atts,"colorBlue").toString().asInt();
+        label = Label()
+      in
+        label.text := text;
+        label.attachedTo := attachedTo;
+        label.relx := relx;
+        label.rely := rely;
+        label.editable := editable;
+        label.underline := underline;
+        label.truncate := truncate;
+        label.color := Color(colorRed,colorGreen,colorBlue);
+        inch.push(label);
+        inch.register(label,id)
+      end
+    end
+    
+    @Operation startLine(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x1").toString().asInt();
+        y = inch.attValue(atts,"y1").toString().asInt();
+        x2 = inch.attValue(atts,"x1").toString().asInt();
+        y2 = inch.attValue(atts,"y2").toString().asInt();
+        lineStyle = inch.attValue(atts,"lineStyle").toString().asInt();
+        colorRed = inch.attValue(atts,"colorRed").toString().asInt();
+        colorGreen = inch.attValue(atts,"colorGreen").toString().asInt();
+        colorBlue = inch.attValue(atts,"colorBlue").toString().asInt();
+        line = Line()
+      in
+        line.x := x;
+        line.y := y;
+        line.x2 := x2;
+        line.y2 := y2;
+        line.lineStyle := lineStyle;
+        line.color := Color(colorRed,colorGreen,colorBlue);
+        inch.push(line);
+        inch.register(line,id)
+      end    
+    end
+    
+    @Operation startNode(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        iconised = inch.attValue(atts,"iconised").toString().asBool();
+        node = Node()
+      in
+        node.x := x;
+        node.y := y;
+        node.width := width;
+        node.height := height;
+        node.iconised := iconised;
+        inch.push(node);
+        inch.push(inch);
+        inch.register(node,id)
+      end 
+    end    
+  
+    @Operation startObject(tag:Buffer,atts:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("Box")
+      then 
+        self.startBox(atts,inch)
+      elseif tag.stringEqual("Diagram")
+      then
+        self.startDiagram(atts,inch)
+      elseif tag.stringEqual("Edge")
+      then 
+        self.startEdge(atts,inch)
+      elseif tag.stringEqual("Ellipse")
+      then 
+        self.startEllipse(atts,inch)
+      elseif tag.stringEqual("Group")
+      then 
+        self.startGroup(atts,inch) 
+	  elseif tag.stringEqual("Image")
+      then 
+        self.startImage(atts,inch)
+	  elseif tag.stringEqual("Label")
+      then 
+        self.startLabel(atts,inch)
+	  elseif tag.stringEqual("Line")
+      then 
+        self.startLine(atts,inch)
+	  elseif tag.stringEqual("Node")
+      then 
+        self.startNode(atts,inch)
+      elseif tag.stringEqual("Point")
+      then 
+        self.startPoint(atts,inch)
+      elseif tag.stringEqual("Port")
+      then 
+        self.startPort(atts,inch)
+      elseif tag.stringEqual("Shape")
+      then 
+        self.startShape(atts,inch)
+      elseif tag.stringEqual("DiagramText")
+      then 
+        self.startText(atts,inch)
+      elseif tag.stringEqual("Waypoint")
+      then 
+        self.startWaypoint(atts,inch)                                               
+      else 
+        format(stdout,"Cannot parse tag: ~S",Seq{tag})
+        // super(tag,atts,inch)
+      end
+    end
+
+    @Operation startPoint(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        point = Point()
+      in
+        point.x := x;
+        point.y := y;
+        inch.push(point);
+        inch.register(point,id)
+      end
+    end
+    
+    @Operation startPort(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        port = Port()
+      in
+        port.x := x;
+        port.y := y;
+        port.width := width;
+        port.height := height;
+        inch.push(port);
+        inch.register(port,id)
+      end
+    end
+
+    @Operation startShape(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        width = inch.attValue(atts,"width").toString().asInt();
+        height = inch.attValue(atts,"height").toString().asInt();
+        outline = inch.attValue(atts,"y").toString().asBool();
+        lineColorRed = inch.attValue(atts,"lineColorRed").toString().asInt();
+        lineColorGreen = inch.attValue(atts,"lineColorGreen").toString().asInt();
+        lineColorBlue = inch.attValue(atts,"lineColorBlue").toString().asInt();
+        fillColorRed = inch.attValue(atts,"fillColorRed").toString().asInt();
+        fillColorGreen = inch.attValue(atts,"fillColorGreen").toString().asInt();
+        fillColorBlue = inch.attValue(atts,"fillColorBlue").toString().asInt();
+        shape = Shape()
+      in
+        shape.x := x;
+        shape.y := y;
+        shape.width := width;
+        shape.height := height;
+        shape.outline := outline;
+        shape.lineColor := Color(lineColorRed,lineColorGreen,lineColorBlue);
+        shape.fillColor := Color(fillColorRed,fillColorGreen,fillColorBlue);
+        inch.push(shape);
+        inch.register(shape,id)
+      end
+    end
+    
+    @Operation startText(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        ttext = inch.attValue(atts,"text").toString();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        editable = inch.attValue(atts,"editable").toString().asBool();
+        underline = inch.attValue(atts,"underline").toString().asBool();
+        italicise = inch.attValue(atts,"italicise").toString().asBool();
+        colorRed = inch.attValue(atts,"colorRed").toString().asInt();
+        colorGreen = inch.attValue(atts,"colorGreen").toString().asInt();
+        colorBlue = inch.attValue(atts,"colorBlue").toString().asInt();
+        text = Text()
+      in
+        text.text := ttext;
+        text.x := x;
+        text.y := y;
+        text.editable := editable;
+        text.underline := underline;
+        text.italicise := italicise;
+        text.color := Color(colorRed,colorGreen,colorBlue);
+        inch.push(text);
+        inch.register(text,id)
+      end
+    end
+    
+    @Operation startWaypoint(atts:Buffer,inch:XMLInputChannel)
+      let 
+        id = inch.attValue(atts,"id").toString();
+        index = inch.attValue(atts,"index").toString().asInt();
+        x = inch.attValue(atts,"x").toString().asInt();
+        y = inch.attValue(atts,"y").toString().asInt();
+        waypoint = WayPoint()
+      in
+        waypoint.index := index;
+        waypoint.x := x;
+        waypoint.y := y;
+        inch.push(waypoint);
+        inch.register(waypoint,id)
+      end
+    end  
+  
+  end

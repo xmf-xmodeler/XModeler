@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class Dependency extends DocumentedElement, NameSpace
+  
+    @Doc
+      A depen-dency occurs between a source and a target model element.
+      When a depen-dency is created, the attach operation is performed
+      and when it is removed the detach operation is performed. These
+      operations allow sub-classes of Depen-dency to have semantics.
+      
+      In addition, a depen-dency has a set of names, which are translated
+      into labels on diagrams. Subclasses of depen-dency can set any number
+      of names as are needed, each of which can be associated with the source,
+      target or the depen-dency itself, and as with attach and detach, the
+      'setNameValue' can be redefined to provide the necessary semantics.
+    end
+     
+    @Attribute source : Element (?,!) end
+    @Attribute target : Element (?,!) end
+    @Attribute names  : Set(DependencyName) end
+    
+    @Constructor(source,target) !
+      self.add(DependencyName("endName","depends",DependencyName::TARGET,true))
+    end
+
+    @Operation add(n:NamedElement):Classifier
+      if n.isKindOf(DependencyName)
+      then 
+        self.addDependencyName(n); 
+        super(n)
+      else 
+        n.setOwner(self); 
+        super(n)
+      end
+    end
+
+    @Operation addDependencyName(dn:DependencyName)
+      self.resolveNameClash(dn.name,names);
+      self.names := names->including(dn);
+      dn.setOwner(self);
+      self
+    end
+
+    @Operation attach()
+      self
+    end
+    
+    @Operation detach()
+      self
+    end
+
+    @Operation remove(n:NamedElement)
+      if n.isKindOf(DependencyName)
+      then 
+        self.removeDependencyName(n); 
+        super(n)
+      else super(n)
+      end
+    end
+
+    @Operation removeDependencyName(dn:DependencyName)
+      self.names := names->excluding(dn);
+      self
+    end
+
+    @Operation setNameValue(name:String,value:String)
+      if self.contents.hasKey(name)
+      then
+        let dn = self.getContents(name)
+        in
+          dn.value := value
+        end
+      end
+    end
+
+  end

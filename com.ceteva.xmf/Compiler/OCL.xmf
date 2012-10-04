@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+
+context Root::OCL::OCL
+  @AbstractOp FV() end 
+
+context Root::OCL::OCL
+  @AbstractOp maxLocals():Element end
+
+context Root::OCL::OCL
+  @AbstractOp compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element end
+  
+context Root::OCL::OCL
+  @Operation typeExp()
+    // Returns an expression which when evaluated will produce
+    // the type of the receiver. Used when lifting expressions.
+    Path(Var("Root"),Seq{"OCL",self.of().name})
+  end

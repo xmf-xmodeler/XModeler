@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Basic;
+import Events;
+import Menus;
+
+context Basic
+
+  @Class XToolsBrowser extends NameSpace
+  
+    @Attribute objectManager : ObjectManager = ObjectManager("Objects") (?) end
+    @Attribute definitionManager : DefinitionManager = DefinitionManager("ToolDefinitions") (?) end
+  
+    @Doc
+      The XTools browser is simply a handy container for the XTools
+      object and definition managers.
+    end
+    
+    @Constructor(name)
+      self.setName(name);
+      Root.add(self); // This is to make sure the tool browser does not get included in saves.
+      self.add(objectManager);
+      self.add(definitionManager)
+    end
+
+  end

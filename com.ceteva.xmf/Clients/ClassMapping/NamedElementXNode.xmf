@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class NamedElementXNode extends ElementXNode
+  
+    @Operation checkNodeDaemons()
+      @SlotValueChanged multi once NamedElementXNode::nodeLabelChanged_namedElementNode(node.labelText,"text") end;
+      super()
+    end
+    
+    @Operation checkElementDaemons()
+      @SlotValueChanged multi once NamedElementXNode::elementNameChanged_namedElementNode(element,"name") end;
+      super()
+    end
+    
+    @Operation elementNameChanged_namedElementNode(attribute,slot,newText,oldText)
+      if node.labelText.text <> newText.toString()
+        then node.setLabel(newText.toString())
+        end
+    end
+    
+    @Operation nodeLabelChanged_namedElementNode(attribute,slot,newText,oldText)
+      if element.name().toString() <> newText
+        then element.setName(newText)
+      end
+    end
+
+    @Operation removeDaemons()
+      node.labelText.removeDaemonsWithTarget(self,true);
+      element.removeDaemonsWithTarget(self,true);
+      super()      
+    end
+
+  end

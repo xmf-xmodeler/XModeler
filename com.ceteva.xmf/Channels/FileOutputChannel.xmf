@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class FileOutputChannel extends OutputChannel
+    
+    @Doc
+      A file output channel is used to write chars to a file.
+      Constructor: FileOutputStream(fileName:String)
+        Creates and returns a file output stream to the named file.
+        The file should be passed as a pathname to the file. The file will
+        be created if it does not already exist.
+    end
+       
+     @Attribute channel : Element end
+     
+     @Operation channel()
+       channel
+     end
+       
+     @Operation close()
+       Kernel_close(channel)
+     end
+     
+     @Operation init(args)
+       self.channel := Kernel_fileOutputChannel(args->at(0))
+     end  
+     
+     @Operation flush()
+       Kernel_flush(channel)
+     end
+     
+     @Operation setChannel(channel)
+       self.channel := channel
+     end
+       
+     @Operation write(value)
+       Kernel_write(channel,value)
+     end
+       
+  end

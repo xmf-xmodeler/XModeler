@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Manifest PrintXML
+  p = @File PrintXML end
+  @File Node end
+  @File Attribute end
+  @File Text end
+  @File Element end
+  @File Call end
+  @File XML end
+do p
+end;

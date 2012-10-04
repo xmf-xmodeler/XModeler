@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Model Browser Plug-in
+Bundle-SymbolicName: com.ceteva.modelBrowser;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.modelBrowser.ModelBrowserPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Export-Package: com.ceteva.modelBrowser,
+ com.ceteva.modelBrowser.actions,
+ com.ceteva.modelBrowser.preferences,
+ com.ceteva.modelBrowser.views
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ com.ceteva.client,
+ com.ceteva.forms,
+ com.ceteva.menus,
+ com.ceteva.xmf
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

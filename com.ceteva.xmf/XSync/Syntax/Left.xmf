@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import XSync;
+import Env;
+import OCL;
+import Syntax;
+
+context Syntax
+
+  @Class Left extends Value
+  
+    @Attribute value : Value (?) end
+    
+    @Constructor(value) ! end
+    
+    @Operation code(varEnv:Env):Performable
+      [| Left(<value.code(varEnv)>) |]
+    end
+    
+    @Operation relocate(direction:String)
+      @Case direction of
+        "LEFT" do Left(self) end
+        "RIGHT" do Right(self) end
+      end
+    end
+    
+    @Operation vars():Set(String)
+      value.vars()
+    end
+    
+  end

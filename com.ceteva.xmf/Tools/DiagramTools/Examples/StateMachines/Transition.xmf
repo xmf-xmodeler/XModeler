@@ -1,0 +1,302 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import StateMachines;
+import IO;
+
+context StateMachines
+
+  @Class Transition
+    
+      @Attribute name   : String    (?,!) end  
+      @Attribute args   : Seq(Arg)  (?,!) end  
+      @Attribute source : String    (?,!) end    
+      @Attribute target : String    (?,!) end    
+      @Attribute pred   : XOCL::Exp (?,!) end 
+      @Attribute action : XOCL::Exp (?,!) end 
+      
+      @Constructor(name,args,source,target,pred,action) ! end
+      
+      @Grammar extends OCL::OCL.grammar
+      
+        Transition ::= n = OptName args = MessageArgs s = Name '->' t = Name 
+          
+          'when' c = Exp 'do' a = Exp {
+        
+          [| StateMachines::Transition(
+               <StrExp(n)>,
+               <SetExp("Seq",args)>,
+               <StrExp(s)>,
+               <StrExp(t)>,
+               <XOCL::Exp(c,args.name,null)>,
+               <XOCL::Exp(a,args.name,null)>) |]      
+        }.
+        
+        OptName ::= Name | { "" }.
+        
+        MessageArgs ::= NoMessageArgs | SomeMessageArgs.
+        
+        NoMessageArgs ::= '(' ')' { Seq{} }.
+        
+        SomeMessageArgs ::= '(' a = MessageArg as = (',' MessageArg)* ')' { Seq{a | as } }.
+        
+        MessageArg  ::= n = Name ':' t = MessageArgType { Arg(n,t) }.
+        
+        MessageArgType ::= n = Name { NamedType(n) } | 'Seq' '(' t = MessageArgType ')' { SeqType(t) }.
+        
+      end
+      
+      @Operation deployExp(out:OutputChannel,exp:Performable,class:Class,package:Package)
+        @Case exp of
+          OCL::BinExp(left,op,right) do
+            @Case op of
+              "+" do
+                self.deployExp(out,left,class,package);
+                format(out," + ");
+                self.deployExp(out,right,class,package)
+              end
+              "-" do
+                self.deployExp(out,left,class,package);
+                format(out," - ");
+                self.deployExp(out,right,class,package)
+              end
+              "and" do
+                self.deployExp(out,left,class,package);
+                format(out," && ");
+                self.deployExp(out,right,class,package)
+              end
+              "or" do
+                self.deployExp(out,left,class,package);
+                format(out," || ");
+                self.deployExp(out,right,class,package)
+              end
+              "*" do
+                self.deployExp(out,left,class,package);
+                format(out," * ");
+                self.deployExp(out,right,class,package)
+              end
+              "/" do
+                self.deployExp(out,left,class,package);
+                format(out," / ");
+                self.deployExp(out,right,class,package)
+              end
+              else self.error("I don't know how to deploy the binary operator: " + op)
+            end
+          end
+          OCL::Var(n) do
+            @Find(a,class.allAttributes())
+              when a.name().toString() = n
+              do format(out,"this.~S",Seq{n})
+              else format(out,n)
+            end
+          end
+          OCL::IntExp(n) do
+            format(out,"~S",Seq{n})
+          end
+          OCL::BoolExp(b) do
+            format(out,"~S",Seq{b})
+          end
+          OCL::StrExp(s) do
+            format(out,"\"~S\"",Seq{s})
+          end
+          OCL::Self() do
+            format(out,"this")
+          end
+          OCL::Send(o,m,args) do
+            self.deployExp(out,o,class,package);
+            format(out,".~S(",Seq{m});
+            @For arg in args do
+              self.deployExp(out,arg,class,package);
+              if not isLast then format(out,",") end
+            end;
+            format(out,")")
+          end
+          else self.error("I don't know how to deploy expression: " + exp.toString())
+        end
+      end
+      
+      @Operation deployGuard(out:OutputChannel,exp:Performable,class:Class,package:Package)
+        @Case exp of
+          OCL::BoolExp(true) do
+            format(out,"true")
+          end
+          OCL::Negate(g) do
+            format(out,"!(");
+            self.deployGuard(out,g,class,package);
+            format(out,")")
+          end
+          OCL::Parentheses(exp) do
+            format(out,"(");
+            self.deployGuard(out,exp,class,package);
+            format(out,")")
+          end
+          OCL::BinExp(left,op,right) do
+            @Case op of
+              "and" do
+                self.deployExp(out,left,class,package);
+                format(out," && ");
+                self.deployExp(out,right,class,package)
+              end
+              "or" do
+                self.deployExp(out,left,class,package);
+                format(out," || ");
+                self.deployExp(out,right,class,package)
+              end
+              ">" do
+                self.deployExp(out,left,class,package);
+                format(out," > ");
+                self.deployExp(out,right,class,package)
+              end
+              "<" do
+                self.deployExp(out,left,class,package);
+                format(out," < ");
+                self.deployExp(out,right,class,package)
+              end
+              "=" do
+                self.deployExp(out,left,class,package);
+                format(out," == ");
+                self.deployExp(out,right,class,package)
+              end
+              "<>" do
+                self.deployExp(out,left,class,package);
+                format(out," != ");
+                self.deployExp(out,right,class,package)
+              end
+              else self.error("I don't know how to deploy the binary operator: " + op)
+            end
+          end
+          OCL::Var(n) do
+            @Find(a,class.allAttributes())
+              when a.name().toString() = n
+              do format(out,"this.~S",Seq{n})
+              else format(out,n)
+            end
+          end
+          OCL::Send(o,m,args) do
+            self.deployExp(out,o,class,package);
+            format(out,".~S(",Seq{m});
+            @For arg in args do
+              self.deployExp(out,arg,class,package);
+              if not isLast then format(out,",") end
+            end;
+            format(out,")")
+          end
+          else self.error("I cannot deploy the OCL boolean expression: " + pred.toString())
+        end
+      end
+      
+      @Operation deployAction(out:OutputChannel,action:Performable,class:Class,package:package)
+        @Case action of
+          Return(exp) do
+            format(out,"        return ");
+            self.deployExp(out,exp,class,package);
+            format(out,";~%")
+          end
+          For(name,type,seq,body) do
+            format(out,"        for(int i = 0; i < ");
+            self.deployExp(out,seq,class,package);
+            format(out,".size(); i++) {~%");
+            format(out,"           java.util.Vector vector = ");
+            self.deployExp(out,seq,class,package);
+            format(out,";~%");
+            let typeName = type.javaTypeName()
+            in format(out,"          ~S ~S = (~S)vector.elementAt(i);~%",Seq{typeName,name,typeName})
+            end;
+            self.deployAction(out,body,class,package);
+            format(out,"        }~%")
+          end
+          OCL::If() do
+            format(out,"        if(");
+            self.deployExp(out,action.test,class,package);
+            format(out,") {~%");
+            self.deployAction(out,action.get("then"),class,package);
+            @Case action.get("else") of
+              OCL::BoolExp(false) do
+                null
+              end
+              else 
+                format(out,"        } else {~%");
+                self.deployAction(out,action.get("else"),class,package)
+            end;
+            format(out,"        }~%")
+          end
+          OCL::SlotUpdate(o,n,e) do
+            format(out,"        ");
+            self.deployExp(out,o,class,package);
+            format(out,".~S = ",Seq{n});
+            self.deployExp(out,e,class,package);
+            format(out,";~%")
+          end
+          OCL::Order(a1,a2) do
+            self.deployAction(out,a1,class,package);
+            self.deployAction(out,a2,class,package)
+          end
+          OCL::Send(o,m,args) do
+            format(out,"        ");
+            self.deployExp(out,o,class,package);
+            format(out,".send(new messages.Message(\"~S\",new messages.Arg[]{",Seq{m});
+            @For arg in args do
+              format(out,"new messages.Arg(");
+              self.deployExp(out,arg,class,package);
+              format(out,")");
+              if not isLast then format(out,",") end
+            end;
+            format(out,"}));~%")
+          end
+          OCL::Var("null") do
+            format(out,";")
+          end
+          else self.error("I don't know how to deploy action: " + action.toString())
+        end
+      end
+      
+      @Operation deployMessageHandler(out:OutputChannel,class:Class,package:Package)
+      
+        // Check that the message name is that for the handler and then
+        // bind the arguments. Check that the guard is satisfied before
+        // performing the action...
+        
+        format(out,"    if(message.name().equals(\"~S\") && _s_ == ~S) {~%",Seq{name,source});
+        @For arg,index in args,0.to(args->size) do
+          let typeName = arg.type().javaTypeName()
+          in @Case typeName of
+               "int" do
+                 format(out,"      ~S ~S = message.arg(~S).~SValue();~%",Seq{typeName,arg.name(),index,typeName})
+               end
+               "boolean" do
+                 format(out,"      ~S ~S = message.arg(~S).~SValue();~%",Seq{typeName,arg.name(),index,typeName})
+               end
+               "java.lang.String" do
+                 format(out,"      ~S ~S = message.arg(~S).stringValue();~%",Seq{typeName,arg.name(),index})
+               end
+               "java.util.Vector" do
+                 format(out,"      ~S ~S = message.arg(~S).values();~%",Seq{typeName,arg.name(),index})
+               end
+               else format(out,"      ~S ~S = (~S)message.arg(~S).objectValue();~%",Seq{typeName,arg.name(),typeName,index})
+             end  
+          end
+        end;
+        format(out,"      if(");
+        self.deployGuard(out,pred.exp,class,package);
+        format(out,") {~%");
+        format(out,"        _s_ = ~S;~%",Seq{target});
+        self.deployAction(out,action.exp,class,package);
+        format(out,"      }~%");
+        format(out,"    }~%")
+      end
+      
+      @Operation typeName(name,class,package)
+        @Find(arg,args)
+          when arg.name() = name
+          do arg.type().javaTypeName()
+          else
+            @Find(att,class.allAttributes())
+              when att.name().toString() = name
+              do att.type.javaTypeName(package)
+              else "Object"
+            end
+        end
+      end
+      
+    end

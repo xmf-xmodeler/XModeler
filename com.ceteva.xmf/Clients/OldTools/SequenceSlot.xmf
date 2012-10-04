@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class SequenceSlot extends ToolSlot
+  
+    @Attribute values : Seq(ToolObject) (+,-) end
+    
+    @Constructor(type,values) ! end
+    
+    @Operation add(object)
+      self.addToValues(object)
+    end
+    
+    @Operation containsObject(object)
+      values->exists(o | o = object or o.containsObject(object))
+    end
+    
+    @Operation layout(x,y,width,height)
+      @For value in values do
+        value.type.layout(value,x,y,width,height);
+        y := y + value.maxHeight()
+      end;
+      y
+    end
+    
+    @Operation minHeight()
+      values->iterate(v height = 0 | height + v.minHeight())
+    end
+    
+    @Operation minWidth()
+      values->iterate(v width = 0 | width + v.minWidth())
+    end
+    
+    @Operation value() values end
+    
+  end

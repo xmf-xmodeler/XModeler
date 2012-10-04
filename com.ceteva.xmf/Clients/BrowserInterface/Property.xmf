@@ -1,0 +1,102 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Property extends Menu
+  
+    @Constructor(path,name) ! end
+    
+    @Grammar 
+    
+      Property ::= path = Path name = Dots  { Property(path,name) }.
+      
+      Dots ::= n = Name ns = ('.' Name)* { Seq{n|ns} }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          path = path;
+          name = name then
+          o = @Operation() Property::property(self,name) end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, Seq{"Property" | self.displayPath()},"",false,true}))
+      end 
+    end
+    
+    @Operation property(o,path)
+      let obj = o.propertyTarget()
+      in
+        @For name in path->butLast do
+          obj := obj.get(name)
+        end;
+        let name = path->last
+        in @Find(a,obj.of().allAttributes())
+             when a.name().toString() = name
+             do Property::editProperty(obj,a)
+           end
+        end
+      end
+    end
+    
+    @Operation editProperty(obj,attribute)
+      if attribute.type.isKindOf(Enum)
+      then Property::editEnumProperty(obj,attribute)
+      else Property::editBasicProperty(obj,attribute)
+      end
+    end
+    
+    @Operation editEnumProperty(obj,attribute)
+      let current = obj.get(attribute.name()).toString();
+          enum = attribute.type then
+          values = enum.names->asSeq then
+          value = xmf.select("Set " + attribute.name().upperCaseInitialLetter(),"Select value for " + current,values,null,null)
+      in if value <> null
+         then obj.set(attribute.name(),enum.getElement(value))
+         end
+      end
+    end
+    
+    @Operation editBasicProperty(obj,attribute)
+      let value = obj.get(attribute.name())
+      in @Case attribute.type of
+           [String] do
+             let new = xmf.getString("Set " + attribute.name().upperCaseInitialLetter(),"Enter " + attribute.name(),value.toString())
+             in if new <> null then obj.set(attribute.name(),new) end
+             end
+           end
+           [Boolean] do
+             let new = xmf.getBoolean("Set " + attribute.name().upperCaseInitialLetter(),"Select value for " + attribute.name(),value)
+             in if new <> null then obj.set(attribute.name(),new) end
+             end
+           end
+           [Integer] do
+             let new = xmf.getInteger("Set " + attribute.name().upperCaseInitialLetter(),"Enter value for ",value)
+             in if new <> null then obj.set(attribute.name(),new) end
+             end
+           end
+           [Float] do
+             let new = xmf.getFloat("Set " + attribute.name().upperCaseInitialLetter(),"Enter value for",value)
+             in if new <> null then obj.set(attribute.name(),new) end
+             end
+           end
+         end
+      end
+    end
+    
+  end
+
+  
+context Object
+  @Operation propertyTarget()
+    self
+  end

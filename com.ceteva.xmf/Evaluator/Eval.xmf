@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Walkers;
+import Env;
+
+context Root::Evaluator
+
+  @Class Eval metaclass Dispatcher
+  
+    @Attribute env : Env::Env = NullEnv() (?) end
+    @Attribute target : Element (?) end
+    @Attribute imports : Seq(NameSpace) (?) end
+    @Attribute next : Operation end
+    @Attribute result : Operation end
+    @Attribute call : Operation end
+    @Attribute return : Operation end
+    @Attribute cont : Operation end
+    
+    @Operation desugar(originalExp,arg)
+      let exp = originalExp.desugar();
+          cont = cont
+      in call("<desugar>",exp,
+           @Operation()
+             next(exp,
+               @Operation(next,result,call,return)
+                 self.eval(exp,env,target,imports,next,result,call,return,
+                   @Operation(value)
+                     result(exp,value,@Operation(value) return(@Operation() result(originalExp,value,cont) end) end)
+                   end)
+               end)
+           end)
+      end
+    end
+    
+    @Operation eval(exp,env,target,imports,next,result,call,return,cont)
+      self.env := env;
+      self.target := target;
+      self.imports := imports;
+      self.next := next;
+      self.result := result;
+      self.call := call;
+      self.return := return;
+      self.cont := cont;
+      self.dispatch(exp,null)
+      
+    end
+    
+  end

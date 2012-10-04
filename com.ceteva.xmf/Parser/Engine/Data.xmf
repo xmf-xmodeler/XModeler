@@ -1,0 +1,445 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+parserImport Env;
+parserImport Manifests;
+
+[| <code> :: <n> |];
+
+@Grammar C ::= Line. end;
+
+self.attributes->iterate(a ignore = null | a.init());
+
+Daemon::allDaemons := Daemon::X::Y::Z::allDaemons->prepend(d);
+
+
+[| <x>.<XOCL::Class.name> := 10 |];
+
+Root::X := 10;
+x / y;
+0.to(100);
+1.234;
+
+context A::B::C
+  @Class C end
+
+@Doc 
+  This is a comment.
+end;
+
+@AbstractOp f() end;
+
+@For a,b,c in x,y,z do z end;
+
+@Attribute x : Seq(Integer) (?,!) end;
+
+@Bind x = 100 end;
+
+@Busy(x.y) 100 end;
+
+@CallCommand(i) m(1,2,3) end;
+
+@Case x of
+  10 do e1 end
+  v do e2 end
+  [k] do e3 end
+  S->including(x) do e4 end
+  S1 + S2 do e5 end
+  C(1,2,3) when xxx do e6 end
+  Seq{x} do null end
+  else true
+end;
+
+@CaseInt[257] char of
+  1 do e1 end
+  1,2,3 do e2 end
+  1 to 4 do e3 end
+  1 to 4,6 to 9 do e4 end
+  else e5 
+end;
+
+@CaseObj x of
+  K[x,y,z] do e1 end
+  P::Q::K[ ] do e2 end
+  else xxx
+end;
+
+@Class X
+  @Attribute x : Integer end
+  @Attribute y :Seq(Element) = self.m(self) end
+end;
+
+@Constraint C
+  x < 10 + 9
+fail
+  Spam + "plap"
+end;
+
+@Constructor(x,y) !
+  @Case x of
+    1 do 100 end
+    else self
+  end
+end;
+
+@Count x from 0 to 100 + 1 do self.m(x) end;
+
+@Enum X(a,b,"c") end;
+
+@Env x = 10; y = 80 + 1 end;
+
+@Fork x end;
+
+@Fork(spam) x end;
+
+@Grammar
+  X ::= 'x' EOF.
+  Y ::= Float.
+  A ::= Int.
+  B ::= Str.
+  C ::= Char.
+  D ::= Terminal.
+end;
+
+/*
+
+@Grammar extends O
+
+    XBNF_Action ::= 
+      '{' exp = Exp '}' 
+      { PreAction(exp) } | 
+      '?' boolExp = Exp
+      { PrePredicate(boolExp) }.
+    
+    XBNF_Atom ::= 
+      XBNF_Action    | 
+      XBNF_Literal   | 
+      XBNF_Call      | 
+      XBNF_Not       | 
+      '(' XBNF_Disjunction ')'.
+  
+    XBNF_Binding ::= 
+      name = Name '=' atom = XBNF_Sequence { 
+        And(atom,Bind(name)) 
+      }.
+    
+    XBNF_Call ::= 
+      name = Name args = XBNF_CallArgs { Call(name,args) }.
+      
+    XBNF_CallArgs ::= '^' '(' n = Name ns = (',' Name)* ')' { Seq{n|ns} } | { Seq{} }.
+  
+    XBNF_Clause ::= 
+      name = Name args = XBNF_ClauseArgs '::=' body = XBNF_Disjunction '.' { Clause(name,args,body) }. 
+  
+    XBNF_ClauseArgs ::= '(' n = Name ns = (',' Name)* ')' { Seq{n|ns} } | { Seq{} }.
+    
+    XBNF_Conjunction ::= 
+      elements = XBNF_Element+ { 
+       elements->tail->iterate(e conj = elements->head | 
+         And(conj,e)) 
+      }. 
+  
+    XBNF_Disjunction ::= 
+      element = XBNF_Conjunction (
+        '|' rest = XBNF_Disjunction { Or(element,rest) } | { element }).
+   
+    XBNF_Element ::= 
+      XBNF_Optional  | 
+      XBNF_Binding   | 
+      XBNF_Sequence.
+  
+    Grammar ::= 
+      parents = XBNF_GrammarParents
+      imports = XBNF_GrammarImports
+      clauses = XBNF_Clause* 
+      'end'
+      { Grammar(parents,clauses->asSet,"",imports) }.
+  
+    XBNF_GrammarImports ::= 
+      'import' class = Exp classes = (',' Exp)* { Seq{class | classes} } |
+      { Seq{} }.
+  
+    XBNF_GrammarParents ::= 
+      'extends' parent = Exp parents = (',' Exp)* { parents->asSet->including(parent) } |
+      { Set{} }.
+
+    XBNF_Literal ::= 
+      'Char'       { (Parser::BNF.getElement("Char"))() }     |
+      'Str'        { (Parser::BNF.getElement("Str"))() }      | 
+      'Terminal'   { (Parser::BNF.getElement("Term"))() }     |
+      'Token'      { (Parser::BNF.getElement("Tok"))() }      |
+      'Int'        { (Parser::BNF.getElement("Int"))() }      | 
+      'Float'      { (Parser::BNF.getElement("Float"))() }    | 
+      'Name'       { (Parser::BNF.getElement("Name"))() }     | 
+      'EOF'        { (Parser::BNF.getElement("EOF"))() }      | 
+      '!'          { (Parser::BNF.getElement("Cut"))() }      |
+      '@'          { (Parser::BNF.getElement("At"))() }       |
+      'ImportAt'   { (Parser::BNF.getElement("ImportAt"))() } | 
+      'pState'     { (Parser::BNF.getElement("PState"))() }   |
+      terminal = Terminal
+       { (Parser::BNF.getElement("Terminal"))(terminal) }.
+       
+    XBNF_Not ::= 'Not' '(' parser = XBNF_Sequence ')' { (Parser::BNF.getElement("Not"))(parser) }.
+
+    XBNF_Optional ::= 
+      '[' opt = XBNF_Disjunction ']'
+      { Opt(opt) }.
+  
+    XBNF_Path ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+    
+    XBNF_TypeCheck ::=
+      element = XBNF_Atom (':' type = XBNF_Path { And(element,TypeCheck(type)) } | { element }).
+  
+    XBNF_Sequence ::= 
+      element = XBNF_TypeCheck ( 
+        '*' { StarCons(element) } | 
+        '+' { PlusCons(element) } |
+       { element }).
+    
+end;
+
+Root::O :=
+
+  @Grammar 
+  
+    AddPattern ::= p1 = AtomicPattern ('+' p2 = AddPattern { Addp(p1,p2) } | { p1 }).
+ 
+    AName ::= Name! | Drop.
+    
+    Apply ::= a = Atom e = ApplyTail^(a) Arrow^(e).
+    
+    ApplyTail(a) ::= args = Args! { Apply(a,args) }  | args = KeyArgs! { Instantiate(a,args) } | { a }.
+    
+    Arrow(a) ::= '->' ! ArrowTail^(a) | { a }.
+    
+    Args ::= '(' ArgsTail.
+    
+    ArgsTail ::= ')' { Seq{} } | arg = Expr args = (',' Expr)* ')' { Seq{arg | args} }.
+    
+    ArrowTail(c) ::= n = Name x = CollOp^(c,n) Arrow^(x).
+     
+    Atom ::= VarExp! | Self! | StrExp! | IntExp! | IfExp! | BoolExp! | LetExp! | CollExp! | Parentheses | Drop | Lift | Throw | Try | ImportIn | FloatExp | LocalParserImport | AtExp.
+    
+    AtExp ::= '@'  @.
+
+    AtomicPattern ::= Varp | Constp | Objectp | Consp | Keywordp | Syntaxp | '(' Pattern ')'.
+    
+    CollOp(c,n) ::=  CollMessage^(c,n) | Collect^(c,n) | Iterate^(c,n) | { CollExp(c,n,Seq{}) }.
+    
+    CollMessage(c,n) ::= '(' as = CommaSepExps ')' { CollExp(c,n,as) }.
+    
+    Collect(c,n) ::= '(' v = AName '|' e = Expr ')' { IterExp(c,n,v,e) }.
+    
+    Iterate(c,n) ::= '(' v1 = AName v2 = AName '=' init = Expr '|' body = Expr ')' { Iterate(c,v1,v2,init,body) }.
+    
+    Binding ::= name = AName '=' value = SimpleExp { ValueBinding(name,value) }.
+
+    BindingList ::= binding = Binding bindings = (';' Binding)* { Seq{ binding | bindings } }.
+
+    Bindings ::= BindingList | Drop.
+    
+    BinOp ::= '<' { "<" } | '<=' { "<=" } | '>' { ">" } | '>=' { ">=" } | '<>' { "<>" } | '=' { "=" } | '::' { "::" } | ':=' { ":=" } | '.' { "." } | 'and' { "and" } | 'andthen' { "andthen" } | 'implies' { "implies" } | 'or' { "or" } | 'orelse' { "orelse" } | '+' { "+" } | '-' { "-" } | '*' { "*" } | '/' { "/" }.
+    
+    BoolExp ::= 'true' { BoolExp(true) } | 'false' { BoolExp(false) }.
+    
+    Boolp ::= 'true' { Constp(BoolExp(true)) } | 'false' { Constp(BoolExp(false)) }.
+
+    CollExp ::= SetExp! | SeqExp!.
+    
+    CommaSepExps ::= e = Expr es = (',' Expr)* { Seq{e | es} } | { Seq{} }.
+  
+    CompilationUnit ::= ParserImport* imports = Import* exps = CompilationBody* EOF { CompilationUnit(imports,exps) }.
+    
+    CompilationBody ::= Def | TopLevelExp.
+    
+    Consp ::= Pairp | Seqp | Emptyp.
+
+    Constp ::=  Intp | Strp | Boolp | Expp.
+
+    Def ::= 'context' isForward = ('!' { true } | { false }) path = Expr exp = Exp { ContextDef(resolve(path),exp,isForward) }. 
+ 
+    Drop ::= '<' e = Apply '>' { Drop(e) } | '<|' p = Pattern '|>' { DropPattern(p) }. 
+
+    EImport ::= 'import' exp = TopLevelExp { Evaluator::Import(exp) }.
+
+    Emptyp ::= n = Name '{' '}' { Constp(SetExp(n,Seq{})) }.
+
+    EmptySeqTail ::= '}' { SetExp("Seq",Seq{}) }.
+    
+    EvaluationUnit ::= ParserImport* imports = EImport* exps = (Def | TopLevelExp)* EOF { Evaluator::EvaluationUnit(imports,exps) }.
+    
+    Exp ::= e = Expr! { resolve(e) }.
+    
+    Expr ::= 'not' e = Expr { Negate(e) } | a = Apply ExpTail^(a).
+    
+    ExpTail(a) ::= o = Op! e = Expr { order(BinExp(a,o,e)) } | { a }.
+    
+    Exp1 ::= Exp EOF.
+    
+    Expp ::= '[' exp = Exp ']' { Constp(exp) }.
+    
+    FloatExp ::= f = Float { f.lift() }.
+    
+    IfExp ::= 'if' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) }.
+
+    IfTail ::= 'else' Exp 'end' | 'elseif' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) } | 'end' { BoolExp(false) }.
+
+    Import ::= 'import' exp = TopLevelExp { Import(exp) }.
+
+    ImportIn ::= 'import' exp = Expr 'in' body = Expr 'end' { ImportIn(exp,body) }.
+
+    IntExp ::= e = Int { IntExp(e) }. 
+    
+    Intp ::= i = Int { Constp(IntExp(i)) }.
+
+    KeyArgs ::= '[' (']' { Seq{} } | arg = KeyArg args = (',' KeyArg)* ']' { Seq{arg | args} }).
+    
+    KeyArg ::= name = Name '=' exp = Expr { KeyArg(name,exp) }.
+    
+    Keywordp ::= name = Name names = ('::' Name)* '[' keys = Keyps ']' { Keywordp(name,names,keys) }.
+    
+    Keyps ::= key = Keyp keys = (',' Keyp)* { Seq{key | keys} } | { Seq{} }.
+    
+    Keyp ::= name = Name '=' pattern = Pattern { Keyp(name,pattern) }.
+    
+    LetBody ::= 'in' body = Expr { body } | 'then' bindings = Bindings body = LetBody { Let(bindings,body) }.
+
+    LetExp ::= 'let' bindings = Bindings body = LetBody 'end' { Let(bindings,body) }.
+    
+    Lift ::= '[|' e = Exp '|]' { Lift(e) }.
+
+    LocalParserImport ::= 'parserImport' name = Name names = ('::' Name)* { Seq{name | names} } ImportAt 'in' e = Expr 'end' { ParserImport(Seq{name | names},e) }.
+    
+    LogicalExp ::= SimpleExp.
+    
+    NonEmptySeqTail ::= e = Expr PairOrElements^(e).
+    
+    Objectp ::= name = Name names = ('::' Name)* '(' slots = Patterns ')' { Objectp(name,names,slots) }.
+
+    Op ::= BinOp! | ';' { ";" }.
+    
+    OpType ::= domains = TypeArgs '->' range = TypeExp { OpType(domains,range) }.
+
+    PairOrElements(e) ::= '|' t = Expr '}' { ConsExp(e,t) } | es = (',' Expr)* '}' { SetExp("Seq",Seq{e|es}) }.
+    
+    Pairp ::= Name '{' head = Pattern '|' tail = Pattern '}' { Consp(head,tail) }.
+    
+    ParserImport ::= 'parserImport' name = Name names = ('::' Name)* ';' { Seq{name | names} } ImportAt.
+
+    Parentheses ::= '(' e = Exp ')' { Parentheses(e) }.
+    
+    PathExp ::= atom = Atom ('::'  name = AName names = ('::' AName)* { Path(atom,Seq{name | names}) } | { atom }).
+
+    Pattern ::= p = AddPattern es = PatternTail* p = { es->iterate(e s = p | Includingp(s,e)) } PatternGuard^(p).
+    
+    PatternGuard(p) ::= 'when' e = Exp { Condp(p,e) } | {p}.
+
+    PatternTail ::= '->' Name '(' p = Pattern ')' { p }.
+    
+    Patterns ::= head = Pattern tail = (',' Pattern)* { Seq{head | tail} } | { Seq{} }.
+    
+    Self ::= 'self' { Self() }. 
+    
+    SetExp ::= 'Set{' es = CommaSepExps '}' { SetExp("Set",es) }.
+    
+    SeqExp ::= 'Seq{' (EmptySeqTail | NonEmptySeqTail).
+    
+    Seqp ::=  Name '{' head = Pattern tail = SeqpTail { Consp(head,tail) }.
+
+    SeqpTail ::= ',' head = Pattern tail = SeqpTail { Consp(head,tail) } | '}' { Constp(SetExp("Seq",Seq{})) }.
+    
+    SimpleExp ::= 'not' e = SimpleExp { Negate(e) } | a = Apply SimpleExpTail^(a).
+    
+    SimpleExpTail(a) ::= o = BinOp! e = SimpleExp { order(BinExp(a,o,e)) } | { a }.
+    
+    StrExp ::= e = Str { StrExp(e) }. 
+    
+    Strp ::= s = Str { Constp(StrExp(s)) }.
+   
+    Syntaxp ::= '[|' e = Exp '|]' { Syntaxp(e) }.
+
+    Throw ::= 'throw' value = SimpleExp { Throw(value) }.
+
+    TopLevelExp ::= s = SimpleExp ';' { resolve(s) }.
+    
+    TopLevelCommand ::= c = SimpleExp p = pState { p.consumeToken := false } ';' { resolve(c) }.
+    
+    TypeExp ::= path = TypePath (args = TypeArgs { ParametricType(path,args) } | { NamedType(path) }) | Drop | OpType.
+    
+    TypeArgs ::= '(' arg = TypeExp args = (',' TypeExp)* ')' { Seq{arg | args} }.
+    
+    TypePath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+    
+    Try ::= 'try' body = Expr 'catch' '(' name = Name ')' handler = Expr 'end' { Try(body,name,handler) }.
+
+    VarExp ::= name = Name token = Token { Var(name,token.lineCount,token.charCount) }.
+    
+    Varp ::= name = AName pattern = ('=' Pattern | { null } ) type = (':' TypeExp | { NamedType() }) { Varp(name,pattern,type) }.
+    
+  end;
+
+@Imports(x) x;b;c end;
+
+@Letrec 
+  x = 10;
+  y = 20
+in x + y
+end;
+
+@Operation(x,y,z:Integer):String 
+  @Operation(a,b) null end;
+  @Operation(a,b) null end
+end;
+
+@Repeat x until y end;
+
+@Snapshot S(P())
+  o = Object[x=10;y = m]
+  m = Object[a=100 + 2;o = o]
+end;
+
+@TypeCase(x)
+  K::L::M do e1
+  end
+  else p
+end;
+
+@While true do false end;
+
+@WithOpenFile(fin <- e1) e2 end;
+
+@Manifest Engine
+  @File Constants end
+  @File Cons end
+  @File Empty end
+  @File Block end
+  @File CompiledClause end
+  @File StarClause end
+  @File Compiler end
+  @File Tokenizer end
+  @File Engine end
+  @File Grammar end
+  @File PreAction end
+  @File CompiledAction end
+  @File SetLoc end
+  @File Nil end
+  @File ParseError end
+  @File TokenExpected end
+  @File Recognizer end
+  @File Char end
+  @File Int end
+  @File Float end
+  @File Str end
+  @File Name end
+  @File Call end
+  @File EOF end
+  @File Terminal end
+  @File Term end
+  @File XOCL end
+  @File XOCLOps end
+  @File TopLevel end
+  @File Test end
+  //@File CompilationUnit end
+end;
+
+*/

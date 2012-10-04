@@ -1,0 +1,25 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Const extends GuardExp
+  
+    @Attribute value : Element (?) end
+    
+    @Constructor(value) end
+    
+    @Operation eval(env)
+      value
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

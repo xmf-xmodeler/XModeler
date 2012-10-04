@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Graphs
+
+  @Class ColorGenerator
+  
+    @Attribute index  : Integer = 0 end
+    @Attribute colors : Buffer = Buffer(10,true) end
+    
+    @Constructor()
+      colors.put(colors.size(),Color(0,0,255));
+      colors.put(colors.size(),Color(0,255,0));
+      colors.put(colors.size(),Color(255,0,0))
+    end
+    
+    @Operation next():Color
+      if index = colors.size()
+      then
+        self.index := 0
+      end;
+      let color = colors.at(index)
+      in
+        self.index := self.index + 1;
+        color
+      end
+    end
+    
+  end

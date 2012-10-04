@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Star extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity * requires that the attribute
+      is associated with 0 or more instances of the appropriate 
+      class.
+    end
+    
+    @Constructor() end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      XCore::CollectionMult(false,false,0,0)
+    end
+    
+    @Operation typeExp(type)
+      [| Set(<type>) |]
+    end
+
+    @Operation multString():String
+      "*"
+    end
+
+  end

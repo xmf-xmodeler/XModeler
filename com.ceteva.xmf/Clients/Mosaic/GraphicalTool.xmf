@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+
+context Mosaic
+
+  @Class GraphicalTool
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      GraphicalTool ::= id = Str {
+        [| Clients::Mosaic::GraphicalTool(<OCL::StrExp(id)>) |]
+      }.
+    
+    end
+  
+    @Attribute id : String end
+    
+    @Constructor(id)
+    end
+  
+  end

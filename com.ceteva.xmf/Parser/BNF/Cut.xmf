@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Cut extends Recognizer 
+  
+    // Throws away the choicepoints accrued within the current
+    // clause.
+    
+    @Constructor() ! end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," ! ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      machine.cut()
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Cut() |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class SyntaxNameSpace isabstract extends XCore::NameSpace, Syntax
+  
+    // NB Should inherit the other way round. Bug in ordering.
+  
+    @Doc 
+      A syntax name space is a container of named syntax elements.
+      This deals with the issue of lifting the imported name spaces
+      that should be referenced by name not lifted.
+    end
+    
+    @Operation lift()
+    
+      // The owner of each contained element is known to be self
+      // and will cause a loop if lifted directly. Use 'add' at
+      // evaluation time after setting the owner to be null for
+      // lifting...
+      
+      let instantiate = super()
+      in self.contents()->iterate(c x = instantiate | 
+           c.setOwner(null);
+           let x = [| <x>.add(<c.lift()>) |]
+           in c.setOwner(self);
+              x
+           end)
+      end
+    end
+    
+    @Operation liftKeyArgs()
+    
+      // Create a sequence of key args suitable to recreate the
+      // receiver. All slots must be set to the result of lifting
+      // the current value.
+      
+      let names = self.getStructuralFeatureNames()->excluding("imports")->excluding("contents");
+          importPaths = imports->collect(i | Path::toPath(i.pathSeq())) then
+          importKeyArg = KeyArg("imports",SetExp("Seq",importPaths))
+      in names->asSeq->collect(n | KeyArg(n,self.liftValue(self.get(n))))->including(importKeyArg)
+      end
+      
+    end
+    
+    
+     
+   end 

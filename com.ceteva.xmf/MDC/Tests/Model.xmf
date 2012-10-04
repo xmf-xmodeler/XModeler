@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+context Root
+  @Package Models
+    @Class Model
+      @Attribute classes : Set(Class) end
+      @Attribute packages : Set(Package) end
+      @Attribute associations : Set(Association) end
+    end
+    @Class Named 
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class Package extends Named
+      @Attribute model : Model  = Model() end
+    end
+    @Class Class extends Named
+      @Attribute simpleAttributes : Set(SimpleAttribute) end
+      @Attribute parents : Seq(Class) end
+    end
+    @Class Attribute isabstract extends Named end
+    @Class SimpleAttribute extends Attribute 
+      @Attribute type : String end
+    end
+    @Class AttributeRelation extends Attribute 
+      @Attribute type : Class end
+    end
+    @Class Association extends Named
+      @Attribute source : Class end
+      @Attribute target : Class end
+      @Attribute sourceMultiplicity : String end
+      @Attribute targetMultiplicity : String end
+    end
+  end
+  

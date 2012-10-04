@@ -1,0 +1,88 @@
+parserImport XOCL;
+
+context NamedElement
+  @Constructor(name)
+    self.setName(name)
+  end
+  
+context NamedElement
+
+  // 'getNamedElement' is a useful operations that takes
+  // a set of named elements and a name and returns the
+  // element with the given name (chosen randomly if necessary)
+  // or returns null if no element exists.
+  
+  @Operation getNamedElement(namedElements:Set(NamedElement),name:String):NamedElement
+    let es = namedElements->select(e | e.name.toString() = name.toString())
+    in if es->size = 0
+       then null
+       else es->sel
+       end
+    end
+  end
+  
+NamedElement.addOperation(
+
+  // Ensure that we do not override the attribute name
+  // in the name spacetable. This is then consistent with 
+  // the behaviour of a ? defined accessor.
+  
+  @Operation name():Symbol
+    self.name
+  end);
+
+context NamedElement
+
+  @Operation path():String
+    self.pathSeq()->separateWith("::")
+  end
+  
+context NamedElement
+
+  // A named element is associated with a path from the root
+  // owner of the named element to the named element. Named
+  // elements may be owned by themselves or 'null' in which 
+  // case they act as the root.
+  
+  @Operation pathSeq():Seq(String)
+    if self.owner() = self or self.owner() = null
+    then Seq{self.name.toString()}
+    else self.owner().pathSeq() + Seq{self.name.toString()}
+    end
+  end
+  
+context NamedElement
+  @Operation repopulate(other:NamedElement):Boolean
+  
+    // Returns true when the receiver has been repopulated
+    // with the contents of the argument. Returns false
+    // if this has not been done...
+    
+    false
+  end
+  
+context NamedElement
+  @Operation setName(name)
+    let oldName = self.name
+    in
+      if not name.isKindOf(Symbol) and not name.isKindOf(String)
+      then self.error("Cannot set the name of a named element to " + name)
+      else
+        let newName = Symbol(name.toString())
+        in
+          self.name := newName;
+          if owner <> null and owner.isKindOf(NameSpace)
+          then owner.nameChanged(self,newName,oldName)
+          end
+        end
+      end
+    end;
+    self
+  end
+
+context NamedElement
+  // Use the name to display the element.
+  @Operation toString():String
+    "<" + self.of().name.toString() + " " + self.name.toString() + ">"
+  end
+  

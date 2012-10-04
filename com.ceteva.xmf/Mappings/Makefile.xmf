@@ -1,0 +1,4 @@
+Compiler::compileFile("Mappings/Boot",true,true);
+Compiler::compileFile("Mappings/Mappings",true,true);
+Compiler::compileFile("Mappings/XCoreXSQL/Makefile",true,true);
+"Mappings/XCoreXSQL/Makefile.o".loadBin(false);

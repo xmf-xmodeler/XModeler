@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Diagrams
+
+  @Class Clickable isabstract 
+  
+    // A clickable thing has a handler that is used to 
+    // detect multiple clicks. Once an element is selected
+    // it can be multiply clicked on.
+    
+    @Attribute clickHandler   : Operation (?,!) end
+    
+    @Operation clicks(clicks:Integer)
+      super(clicks);
+      if clickHandler <> null
+      then clickHandler(clicks)
+      end
+    end
+    
+  end

@@ -1,0 +1,21 @@
+import OCL;
+
+context Self
+  @Operation FV():Element
+    Set{}
+  end
+
+context Self
+  @Operation maxLocals():Element
+    0
+  end
+
+context Self
+  @Operation compile(env:Element,frame:Element,isLast:Boolean,saveSource:Boolean):Element
+    Seq{Instrs::Self()}
+  end
+
+context Self
+  @Operation lift()
+    Apply(self.typeExp(),Seq{})
+  end

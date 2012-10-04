@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+
+context Structure
+
+  @Class Path 
+  
+    @Attribute names : Seq(String) end
+    
+    @Constructor(names) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~{.~;~S~}",Seq{names})
+    end
+    
+  end

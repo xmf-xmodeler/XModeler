@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+
+context BNF
+
+  @Class Line extends Recognizer
+	
+	@Constructor() ! end
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Line ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+
+    @Operation first(grammar)
+      Set{"Builtin(Line)"}
+    end
+
+    @Operation nullable(grammar):Boolean
+       false
+    end
+	
+	@Operation transform(FV:Set(String),grammar):Recognizer
+	  self
+	end
+	
+	@Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::Line() |]
+	end
+	
+  end

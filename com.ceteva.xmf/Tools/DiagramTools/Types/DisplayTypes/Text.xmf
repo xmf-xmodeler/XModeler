@@ -1,0 +1,116 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Text extends DisplayType
+  
+    @Bind displayAttributes = AttEnv() end
+  
+    @Attribute text      : String  (!,?)  end
+    @Attribute editable  : Boolean = true end
+    @Attribute underline : Boolean        end
+    @Attribute italicise : Boolean        end
+    @Attribute multiline : Boolean        end
+    @Attribute font      : String  (!,?)  end
+    @Attribute color     : String  (?,!)  end
+    @Attribute setFocus  : Boolean = true end
+  
+    @Grammar extends DisplayType.grammar
+    
+      Text ::= 
+      
+        name = Name 
+        atts = Properties 
+        text = Str 
+        dsplAtts  = Atts
+        
+        defs = Exp* {
+      
+        Text::displayAttributes := dsplAtts;
+      
+        defs->iterate(def exp = [| let text = Tools::DiagramTools::Types::DisplayTypes::Text(<OCL::StrExp(name)>) 
+           in text.editable   := not <OCL::BoolExp(atts->includes("readonly"))>;
+              text.underline  := <OCL::BoolExp(atts->includes("underline"))>;
+              text.italicise  := <OCL::BoolExp(atts->includes("italics"))>;
+              text.hasPort    := <OCL::BoolExp(atts->includes("hasport"))>;
+              text.multiline  := <OCL::BoolExp(atts->includes("multiline"))>;
+              text.layout     := <OCL::StrExp(filterLayout(atts))>;
+              text.padLeft    := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              text.padRight   := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              text.padTop     := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              text.padBottom  := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              text.minWidth   := <OCL::IntExp(dsplAtts.lookup("minWidth",0))>;
+              text.minHeight  := <OCL::IntExp(dsplAtts.lookup("minHeight",0))>;
+              text.maxWidth   := <OCL::IntExp(dsplAtts.lookup("maxWidth",9999))>;
+              text.maxHeight  := <OCL::IntExp(dsplAtts.lookup("maxHeight",9999))>;
+              text.text       := <OCL::StrExp(text)>;
+              text.color      := <OCL::StrExp(dsplAtts.lookup("color",""))>;
+              text
+           end
+        |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+      end
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let text = if multiline
+                 then 
+                   let multilineText = DiagramTools::Diagrams::MultilineText(text,0,0,minWidth,minHeight,editable)
+                   in
+                     multilineText.font := font;
+                     multilineText
+                   end
+                 else DiagramTools::Diagrams::Text(text,0,0,editable,underline,italicise,self.parseColor(color),font)
+                 end
+      in parent.add(text);
+         self.setGlobalMenu(text,tool,path + Seq{name.toString()});
+         text.setType(self);
+         text.setPadLeft(padLeft);
+         text.setPadRight(padRight);
+         text.setPadTop(padTop);
+         text.setPadBottom(padBottom);
+         text.setMinWidth(minWidth);
+         text.setMinHeight(minHeight);
+         text.setMaxWidth(maxWidth);
+         text.setMaxHeight(maxHeight);
+         text.setTextChangedHandler(Text::mkTextChangedHandler(tool,root,path,name));
+         text.setDeleteHandler(DisplayType::mkDeleteHandler(tool,root,path,name));
+         if hasPort then root.addPortAssociation(text) end;
+         text
+      end
+      
+    end
+    
+    @Operation mkTextChangedHandler(tool,root,path,name)
+      @Operation[closure="Tools::DiagramTools::Types::DisplayTypes::Text::mkTextChangedHandler"](text,new,old)
+        tool.raise(Tools::DiagramTools::DiagramEvents::AttributeChanged(root,path + Seq{name.toString()},text,new,old));
+        root.layout()
+      end.setOwner(null)
+    end
+    
+    @Operation setFocus()
+      if self.hasStructuralFeature("setFocus")
+      then self.setFocus
+      else true
+      end
+    end
+    
+  end

@@ -1,0 +1,101 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+
+  @Package Debug
+  
+    @Doc
+      Usage: @Debug::MonitorCalls(NS1,NS2,...) COMMAND en-d.report(stdout)
+      where NSi is a name space (expression).
+    end
+  
+    @Operation monitoredOp(callMonitor)
+      @Operation(target,args,supers)
+        let report = callMonitor.ensureEntry(self)
+        in report.call();
+           if not report.active()
+           then 
+             report.setActive(true);
+             report.setStartMem(Kernel_usedHeap());
+             let fun = Kernel_copy(self)
+             in Kernel_funSetTraced(fun,null);
+                report.start();
+                let value = Kernel_invoke(fun,target,args,supers) then
+                    heapUsed = (report.finish(); Kernel_usedHeap())
+                in if heapUsed > report.startMem()
+                   then report.incMemoryUsed(heapUsed - report.startMem())
+                   end;
+                   report.setActive(false);
+                   value
+                end
+             end
+           else 
+             let fun = Kernel_copy(self)
+             in Kernel_funSetTraced(fun,null);
+                Kernel_invoke(fun,target,args,supers)
+             end 
+           end
+        end
+      end
+    end
+    
+    @Operation monitor()
+      let nameSpaces = 
+        Root.allContentsOf(NameSpace)
+          ->asSeq
+          ->reject(n | n.isKindOf(Parser::BNF::Grammar))
+          ->sortNamedElements then
+          chosen = xmf.selects(
+            "Monitored Name Spaces",
+            "Choose the name spaces whose operations are monitored.\n" +
+            "Note that XCore and XCore classes should not be monitored.\n" +
+            "A report is generated for the number of calls and memory usage\n" +
+            "for the monitored operations for the duration of a command.\n" +
+            "You will be prompted for the command after entering the monitored\n" +
+            "name spaces.",
+            nameSpaces->asSeq,
+            null,
+            null)
+      in if not chosen->isEmpty
+         then 
+           let exp = xmf.getExp(
+             "Command",
+             "Type an expression whose operation usage is to be monitored.\n" +
+             "You need to enter full pathnames for named elements.\n" +
+             "Do not use a trailing semi-colon at the end of the command.")
+           in if exp <> null
+              then monitorCalls(chosen,@Operation() exp.eval(null,Env::NullEnv(),Seq{XCore,Root}) end,exp).edit()
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation monitorCalls(nameSpaces,operation,command)
+      let callMonitor = CallMonitor(command);
+          O = nameSpaces->iterate(nameSpace O = Set{} | 
+           O + nameSpace.allContentsOf(CompiledOperation)) - 
+            (XCore.allContentsOf(CompiledOperation) + Debug.allContentsOf(CompiledOperation))
+      in try
+           @For o in O do
+             Kernel_funSetTraced(o,monitoredOp(callMonitor))
+           end;
+           callMonitor.start();
+           operation();
+           callMonitor.finish();
+           @For o in O do
+             Kernel_funSetTraced(o,null)
+           end
+         catch(x)
+           @For o in O do
+             Kernel_funSetTraced(o,null)
+           end;
+           throw x
+         end;
+         callMonitor
+      end
+    end
+  
+  end

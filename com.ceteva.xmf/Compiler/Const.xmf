@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Instrs;
+import OCL;
+
+context Const
+  @Operation FV():Element
+    Set{}
+  end
+
+context Const
+  @Operation maxLocals():Element
+    0
+  end
+
+context Const
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if value.isKindOf(String)
+    then Seq{PushString(value)}
+    else if value.isKindOf(Integer)
+         then Seq{PushInteger(value)}
+         else if value = true
+              then Seq{PushTrue()}
+              else if value = false
+                   then Seq{PushFalse()}
+                   else Seq{Instrs::Const(value)}
+                   end
+              end
+         end
+    end
+  end

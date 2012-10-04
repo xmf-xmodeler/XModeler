@@ -1,0 +1,40 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class BindAtt extends Attribute
+  
+    @Doc
+      Succeeds when the element has an attribute with the given
+      name and binds the name to the value of the attribute. If
+      the class is initialised with a single argument then the 
+      name of the var is the same as the name of the attribute.
+    end
+    
+    @Attribute var     : String (?) end
+    @Attribute att     : String (?) end
+    @Attribute value   : Exp    (?) end
+    
+    @Constructor(var)
+      self.att := var
+    end
+     
+    @Constructor(var,att,value) ! 
+      if att = ""
+      then self.att := var
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S = ~S",Seq{var,att})
+    end
+    
+    
+  end

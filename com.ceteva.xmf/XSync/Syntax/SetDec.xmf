@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class SetDec extends Dec
+  
+    @Attribute set : Performable (?) end
+    
+    @Constructor(set) ! end
+    
+    @Operation addExp(net:Performable):Performable
+      [| let net = <net> 
+         in @For o in <set> do 
+              net.addToScopedObjects(o);
+              net.add(o) 
+            end; 
+            net 
+         end 
+       |]
+    end
+    
+  end

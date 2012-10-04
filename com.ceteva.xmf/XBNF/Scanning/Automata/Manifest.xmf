@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Tue May 24 11:45:19 BST 2005
+
+@Manifest Automata
+  p = @File Automata end
+  @File Disjunction end
+  @File CharRange end
+  @File FinalNode end
+  @File EdgeDecoration end
+  @File Epsilon end
+  @File NodeDecoration end
+  @File Decoration end
+  @File Automaton end
+  @File Tadpole end
+do p
+end;

@@ -1,0 +1,126 @@
+parserImport XOCL;
+parserImport Clients::ModelClipboard;
+
+import Clients::ExtensionPoints;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution("IO::File",Seq{"FileBrowser/File"}));
+  registry.addContribution(id,Contribution("IO::Directory",Seq{"FileBrowser/Directory"}));
+  registry.addContribution(id,Contribution("Clients::XmfFileTree::XmfManifest",Seq{"FileBrowser/Manifest"}));
+  self
+end;
+
+
+// *** NODE SORTING ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution("IO::File",Seq{1160}));
+  registry.addContribution(id,Contribution("IO::Directory",Seq{1100}));
+  registry.addContribution(id,Contribution("Clients::XmfFileTree::XmfManifest",Seq{1150}));
+  self
+end;
+
+
+// *** MODEL BROWSER MAPPINGS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.mappings"
+in
+  registry.addContribution(id,Contribution(IO::Directory,Seq{
+                                           Clients::FileBrowser::DirectoryXNode}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Utilities":"Add headers" on IO::Directory
+  IO::Directory::addHeaders
+end;
+
+@Menu "Delete" on IO::File multi
+  XCore::Contained::delete_client_redirect
+end;
+
+@Menu "Invoke Operation ..." on IO::File binds CTRL+I
+  XCore::Element::invokeOp
+end;
+
+@Menu "Refresh" on IO::Directory multi
+  IO::Directory::refreshFileTree
+end;
+
+@Menu "Browse" on IO::Directory binds CTRL+B
+  XCore::Element::browse_redirect
+end;
+
+//@Menu "Copy" on IO::File binds CTRL+C multi
+//  IO::File::copyToClipboard
+//end;
+
+//@Menu "Paste" on IO::Directory binds CTRL+V
+//  IO::Directory::paste
+//end;
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(IO::File,Seq{"IO::File"}));
+  registry.addContribution(id,Contribution(IO::Directory,Seq{"IO::File"}));
+  self
+end;
+
+
+// *** LABELS CHANGE GUARD ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.changeGuard"
+in
+  registry.addContribution(id,
+    Contribution(IO::File,Seq{
+      @Operation(element,text)
+        element.changeLabelGuard(text)
+      end
+  }));
+  self
+end;
+
+
+// *** LABELS CHANGE HANDLER ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.changeHandler"
+in
+  registry.addContribution(id,
+    Contribution(IO::File,Seq{
+      @Operation changeLabel(element,text)
+        element.renameActualFile(text.asSymbol())
+      end
+  }));
+  self
+end;
+
+
+// *** CLIPBOARD CUT COPY & PASTE ***
+
+@ClipboardRule "Add to directory"
+  // This is needed as we can't normally paste copied entries to containers
+  Paste(parent,element,widget,isCopy)
+    to IO::Directory
+    when isCopy
+    do before parent.containerPastePreHandler(element)
+end;

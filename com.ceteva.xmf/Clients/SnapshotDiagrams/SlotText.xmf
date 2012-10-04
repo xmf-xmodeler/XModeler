@@ -1,0 +1,49 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SlotText extends Group
+  
+    @Attribute name   : Text end
+    @Attribute equals : Text end
+    @Attribute value  : SlotValue end
+    
+    @Constructor(name,value,x,y) !  
+      self.name := Text(name,x+5,y,false);
+      self.equals := Text("=",x+25,y,false);
+      self.value := SlotValue(value,x + 50,y);
+      
+      // A group should not have any Display attributes set.
+      
+      self.x := 0;
+      self.y := 0
+    end
+    
+    @Operation addDisplays()
+      self.add(name);
+      self.add(equals);
+      self.add(value)
+    end
+    
+    @Operation setName(newName)
+      name.setText(newName.toString())
+    end
+    
+    @Operation setValue(newValue)
+      value.setText(newValue.toString())
+    end
+    
+    @Operation moveDown()
+      @Count i from 1 to 16 do
+        name.move(name.x,name.y-1);
+        equals.move(equals.x,equals.y-1);
+        value.move(value.x,value.y-1)
+      end
+    end
+    
+  end

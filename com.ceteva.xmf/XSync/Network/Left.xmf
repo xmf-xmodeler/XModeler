@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Left extends DirectedLocation
+  
+    @Operation value(token:Token)
+      if token.isKindOf(CompositeToken)
+      then location.value(token.left())
+      else self.error("Left expects a composite location : " + token.toString())
+      end
+    end
+  
+  end

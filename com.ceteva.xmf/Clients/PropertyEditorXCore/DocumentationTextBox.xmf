@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class DocumentationTextBox extends CodeboxDisplayTextBox
+
+    @Operation codeboxEditorType()
+      DocumentationEditor
+    end
+
+    @Operation setTextIn(text:String)
+      if contex.documentation.isKindOf(Null)
+      then
+        contex.set("documentation",Doc(text))
+      else
+        contex.documentation.set(contex.documentation,"doc",text)
+      end
+    end
+
+  end

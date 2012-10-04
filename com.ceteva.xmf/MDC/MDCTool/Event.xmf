@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! MDC
+
+  @Class Event isabstract
+  
+    // Events occur during MDCTool processing. These events can occur
+    // due to diagram editing or otherwise. The events are delayed and
+    // captures as an instance of a concrete sub-class of Event and
+    // processed when all the MDCTool machinery has completed.
+    
+    @AbstractOp process(tool) end
+    
+  end

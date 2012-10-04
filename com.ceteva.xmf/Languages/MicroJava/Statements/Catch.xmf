@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Catch 
+  
+    @Attribute path : Seq(String) (?) end
+    @Attribute name : String      (?) end
+    @Attribute body : Block       (?) end
+    
+    @Constructor(path,name,body) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"catch(~{.~;~S~} ~S) ",Seq{path,name});
+      body.pprint(out,indent)
+    end
+    
+  end

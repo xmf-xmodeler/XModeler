@@ -1,0 +1,113 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.ceteva</groupId>
+	<artifactId>xmodelermaven</artifactId>
+	<version>2.0.0</version>
+	<packaging>pom</packaging>
+	<modules>
+		<module>../com.ceteva.consoleInterface</module>
+		<module>../com.ceteva.console</module>
+		<module>../com.ceteva.basicIO</module>
+		<module>../com.ceteva.client</module>
+		<module>../com.ceteva.diagram</module>
+		<module>../com.ceteva.dialogs</module>
+		<module>../com.ceteva.forms</module>
+		<module>../com.ceteva.help</module>
+		<module>../com.ceteva.menus</module>
+		<module>../com.ceteva.modelBrowser</module>
+		<module>../com.ceteva.mosaic</module>
+		<module>../com.ceteva.text</module>
+		<module>../com.ceteva.undo</module>
+		<module>../com.ceteva.xmf</module>
+		<module>../com.ceteva.oleBridge</module>
+		<module>../com.ceteva.oleBridge.win32</module>
+		<module>../com.ceteva.xmfMosaic</module>
+		<module>../XModelerDistribution</module>
+	</modules>
+
+	<name>xmodelermaven</name>
+
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<tycho-version>0.15.0</tycho-version>
+	</properties>
+	<repositories>
+		<repository>
+			<!-- juno does not work!!! -->
+			<id>indigo</id>
+			<layout>p2</layout>
+			<url>http://download.eclipse.org/releases/indigo/</url>
+		</repository>
+		<!-- <repository>
+			<id>3.8.x</id>
+			<layout>p2</layout>
+			<url>http://download.eclipse.org/eclipse/updates/3.8/</url>
+		</repository>-->
+	</repositories> 
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-maven-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<extensions>true</extensions>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>target-platform-configuration</artifactId>
+				<version>${tycho-version}</version>
+				<configuration>
+					<resolver>p2</resolver>
+					<environments>
+						<environment>
+							<os>win32</os>
+							<ws>win32</ws>
+							<arch>x86</arch>
+						</environment>
+						<environment>
+							<os>macosx</os>
+							<ws>cocoa</ws>
+							<arch>x86</arch>
+						</environment>
+					</environments>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.eclipse.tycho</groupId>
+				<artifactId>tycho-p2-director-plugin</artifactId>
+				<version>${tycho-version}</version>
+				<executions>
+					<execution>
+						<id>materialize-products</id>
+						<goals>
+							<goal>materialize-products</goal>
+						</goals>
+					</execution>
+					<!--  uncomment comments for release -->
+					<execution>
+						<id>archive-products</id>
+						<goals>
+							<goal>archive-products</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<distributionManagement>
+		<repository>
+			<!-- todo this need to be pointing to the github repo -->
+			<id>XmodelerDependencies</id>
+			<name>Public Local Repository</name>
+			<url>file:///Users/Sebastian/XmodelerDependencies</url>
+		</repository>
+	</distributionManagement>
+	<dependencies>
+
+	</dependencies>
+</project>

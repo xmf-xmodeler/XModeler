@@ -1,0 +1,69 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import DiagramTools;
+import Types;
+
+context Types
+
+  @Class ToolButton
+  
+    @Attribute name    : String    (!,?) end
+    @Attribute typeName: String    (!,?) end
+    @Attribute icon    : String    (!,?) end
+    @Attribute isEdge  : Boolean         end
+    
+    @Constructor(name,icon,isEdge) ! 
+      self.typeName := name
+    end
+    
+    @Grammar 
+    
+      ToolButton ::= name = Name isEdge = IsEdge 'icon' '=' icon = Str {
+        [| Tools::DiagramTools::Types::ToolButton(
+             <OCL::StrExp(name)>,
+             <OCL::StrExp(icon)>,
+             <OCL::BoolExp(isEdge)>) |]
+      }.
+      
+      IsEdge ::= 'isEdge' { true } | { false }.
+      
+    end
+    
+    @Operation mkHandler(tool,isEdge,typeName,diagram)
+      @Operation[closure="Tools::DiagramTools::Types::ToolButton::mkHandler"](x,y)
+      
+        // Note that this handler is called whether we are creating a node
+        // or an edge. If creating a node then the args are the (x,y) position
+        // of the new node. When creating an edge then the arguments are the
+        // source and target ports for the edge.
+               
+        if isEdge
+        then tool.newEdge(typeName,x,y)
+        else tool.newNode(typeName,x,y,diagram)
+        end
+      end.setOwner(null)
+    end
+    
+    @Operation new(group:ToolGroup,diagram,tool:Tool)
+      let isEdge = self.isEdge;
+          typeName = if self.typeName <> "" then self.typeName else name end then
+          handler = ToolButton::mkHandler(tool,isEdge,typeName,diagram);
+          iconFilename = self.icon
+      in diagram.defineNewHandler(group.name(),name,typeName,isEdge,iconFilename,handler)
+      end
+    end
+    
+    @Operation setIconFile()
+    
+      // Browse for a suitable file...
+      
+      let path = xmf.openFile(xmf.projDir(),"*")
+      in if path.fileExists()
+         then self.setIcon(path)
+         end
+      end
+    end
+     
+  end

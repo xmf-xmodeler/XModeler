@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Root
+  @Package P
+    @Class C
+      @Operation toString():String
+        "<Import of class C worked!>"
+      end 
+    end
+  end
+  
+print("Class C available here = " + Kernel_hasVar("C"));

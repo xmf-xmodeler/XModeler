@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Env;
+import Walkers;
+
+context XCore::Package
+
+  @Operation typeCheck()
+    TypeCheckPackage(self,self.contents()
+      ->select(c | c.isKindOf(Classifier))
+      ->asSeq
+      ->collect(c | c.typeCheck()))
+  end
+          

@@ -1,0 +1,57 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class ExceptionNode extends TreeNode
+  
+    @Attribute exception : Exception end
+    
+    @Constructor(exception)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      @For frame in self.stackFrames() do
+        self.addItem(FrameNode(frame))
+      end
+    end
+    
+    @Operation doubleSelected()
+      null
+    end 
+    
+    @Operation setReportText()
+      if exception.message = ""
+      then self.text := exception.toString()
+      else self.text := exception.message
+      end
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Exception.gif"
+    end
+    
+    @Operation stackFrames()
+      let frames = exception.stackFrames()
+      in if frames->size > Exception::backtraceLimit and Exception::backtraceLimit > 0
+         then frames.take(Exception::backtraceLimit)
+         else frames
+         end
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        format(out,"~%");
+        node.pprint(out,indent+2)
+      end
+    end
+  end

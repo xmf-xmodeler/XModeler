@@ -1,0 +1,94 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import DiagramEvents;
+import MDC;
+import Values;
+import Types;
+
+context Root
+  @Package Test
+    @Class Controlled
+      @Attribute name : String end
+      @Attribute link1 : Class1 end
+      @Attribute link2 : Class2 end
+      @Attribute link3 : Seq(Class3) end
+    end
+    @Class Class1 
+      @Attribute name : String = "NAME" end
+      @Attribute link2 : Class2 = Class2() end
+      @Attribute link3 : Seq(Class3) end
+      @Attribute link4 : Set(Class3) end
+    end
+    @Class Class2 
+      @Attribute age : Integer end
+    end
+    @Class Class3 extends Class2
+      @Attribute balance : Float = 9.65 end
+    end
+  end
+  
+context Root
+  @Package Tables
+    @Class Model
+      @Attribute tables : Set(Table) end
+    end
+    @Class Table
+      @Attribute title : String = "TABLE" end
+      @Attribute cols : Seq(Col) end
+    end
+    @Class Col
+      @Attribute title : String = "COLUMN" end
+      @Attribute cells : Seq(Cell) end
+    end
+    @Class Cell
+      @Attribute value : String = "CELL" end
+    end
+  end
+  
+context Root
+  @Package Inherits
+    @Class Controlled
+      @Attribute source : Source end
+    end
+    @Class Source
+      @Attribute name : String end
+      @Attribute target : Target end
+    end
+    @Class Target isabstract end
+    @Class Target1 extends Target 
+      @Attribute name : String end
+    end
+    @Class Target2 extends Target 
+      @Attribute name : String end
+    end
+  end
+  
+context Root
+  @Package Relationships
+    @Class Model
+      @Attribute containers : Seq(Container) end
+    end
+    @Class Container
+      @Attribute data : Seq(Data) end
+    end
+    @Class Data
+      @Attribute a1 : String end
+      @Attribute a2 : Integer end
+      @Attribute related : Seq(Data) end
+    end
+  end
+  
+context Root
+  @Operation editToolType(class)
+    RootElementType(class).edit()
+  end
+  

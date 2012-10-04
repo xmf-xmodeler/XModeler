@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Table extends Entry
+
+    @Attribute headerColor : String = "#CCCCFF" (?,!) end
+    @Attribute header : String (?,!) end
+    @Attribute rows : Seq(Row) (?,!,+,-) end
+    @Attribute borderSize : Integer = 1 (?,!) end
+
+    @Constructor(header,rows) ! end
+    
+    @Operation contents()
+      rows
+    end
+    
+    @Operation maxRowWidth():Integer
+      rows->iterate(row width = 0 | width.max(row.cols()->size))
+    end
+
+  end

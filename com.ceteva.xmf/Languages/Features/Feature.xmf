@@ -1,0 +1,223 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Features;
+
+context ! Features
+  @Class Feature extends XCore::NameSpace
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Feature ::= name = Name isabstract = IsAbstract parents = Parents contents = Exp* {
+        FeatureDef(StrExp(name),BoolExp(isabstract),parents,SetExp("Seq",contents))
+      }.
+      
+      IsAbstract ::= 'isabstract' { true } | { false }.
+      
+      Parents ::= 'extends' parent = Parent parents = (',' Parent)* { SetExp("Seq",Seq{parent | parents}) } |
+        { SetExp("Seq",Seq{}) }.
+        
+      Parent ::= parent = Name { StrExp(parent) }.
+    
+    end
+  
+    @Attribute isabstract 	: Boolean end
+    @Attribute parents 		: Seq(Feature) end
+    @Attribute env			: Seq(Env) end
+    
+    @Constructor(name,isabstract,parents)
+      self.init(Seq{name})
+    end
+    
+    
+    
+    @Operation calculateEnv()
+      if env <> null
+      then
+        self.env := self.calculateEnvironment()
+      end;
+      env
+    end
+    
+    @Operation calculateEnvironment()
+      let env = Seq{}
+      in
+        @For content in self.contents()
+        do
+          if content.isKindOf(Feature)
+          then
+            env := env.prepend(content)
+          elseif content.isKindOf(FeatureRef)
+          then
+            env := env.prepend(content.dereference())
+          end
+        end;
+        @For parent in parents
+        do
+          let p = self.findParent(parent)
+          in
+            env := env + p.calculateEnv()
+          end
+        end;
+        env
+      end
+    end
+    
+    // Recursively calculates all features reachable from this feature or
+    // any of this feature's parents
+    
+    @Operation calculateFeature(parents:Seq(Feature)):Seq(Feature)
+      if not parents.isEmpty()
+      then
+        let parent = parents.head()
+        in
+          (parent.getFeature(self.name(),parents) + parent.calculateFeature(parents.tail())).flatten()
+        end
+      else
+        Seq{}
+      end
+    end
+    
+    // Calculates all sub features reachable from this feature
+    
+    @Operation calculateSubFeatures(env:Seq(Feature)):Seq(NextFeature)
+      let
+        behaviours = Seq{self.getBehaviour()} + self.findAllParentBehaviours()
+      in
+        self.stringsToFeatures(self.getNextFeatureString("Initial",behaviours),env)
+      end
+    end
+    
+    @Operation findAllParentBehaviours():Seq(Feature)
+      let
+        behaviours = Seq{}; 
+        parents = self.findAllParents()
+      in
+        @For p in parents
+        do
+          let b = p.getBehaviour()
+          in
+            if b <> null
+            then
+              behaviours := behaviours.prepend(b)
+            end
+          end
+        end;
+        behaviours
+      end
+    end
+    
+    @Operation findAllParents():Seq(Feature)
+      let p = Seq{}
+      in
+        @For parent in parents
+        do
+          let pp = self.findParent(parent)
+          in
+            if pp.isKindOf(Feature)
+            then
+              p := p->prepend(pp);
+              p := (p + pp.findAllParents()).flatten()
+            end
+          end
+        end;
+        p
+      end
+    end
+    
+    @Operation findParent(parent:String)
+      @Find(feature,owner.contents())
+      when
+        feature.isKindOf(Feature) andthen
+          feature.name().toString() = parent
+      else
+        format(stdout,"Warning cannot find parent ~S in ~S~%",Seq{parent,owner})
+      end
+    end
+    
+    @Operation getBehaviour():Behaviour
+      @Find(content,self.contents())
+      when content.isKindOf(Behaviour)
+      else null
+      end
+    end
+    
+    @Operation getFeature(name:String,env:Seq(Feature)):Seq(NextFeature)
+      let behaviours = Seq{self.getBehaviour()} + self.findAllParentBehaviours()
+      in
+        self.stringsToFeatures(self.getNextFeatureString(name,behaviours),env)
+      end
+    end
+    
+    @Operation getNextFeatureString(current:String,behaviours:Seq(behaviours))
+      let next = Seq{}
+      in
+        @For behaviour in behaviours
+        do
+          // should precheck when getting behaviours whether they are null
+        
+          if behaviour <> null
+          then
+            next := (next + behaviour.getNextFeature(current)).flatten()
+          end
+        end;
+        next
+      end
+    end
+    
+    @Operation nextFeature(parents:Seq(Feature)):Seq(Feature)
+      let next = Seq{}
+      in
+        next := next + self.calculateFeature(parents); 
+        next := next + self.calculateSubFeatures(Seq{self | parents});
+        next
+      end
+    end
+    
+    @Operation randomTrace(length:Integer)
+      self.randomTrace(Seq{},length)
+    end
+    
+    @Operation randomTrace(parents:Seq(Feature),length:Integer)
+      format(stdout,"Parents: ~S Do: ~S~%",Seq{parents->reverse,self.name()});
+      if length > 0
+      then
+        let options = self.nextFeature(parents)
+        in
+          if options.size() > 0
+          then
+            let
+              choice = Integer::random(options.size()-1) then
+              next = options.at(choice)
+            in
+              next.feature.randomTrace(next.env,length-1)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation stringsToFeatures(names:Seq(String),env2:Seq(Feature)):Seq(NextFeature)
+      let features = Seq{}
+      in
+        @For name in names
+        do
+          @Find(e,self.calculateEnv())
+          when e.name().toString() = name
+          do
+            features := features->prepend(NextFeature(e,env2))
+          else
+            format(stdout,"No name ~S exists in the environment ~S",Seq{name,self})
+          end
+        end;
+        features
+      end  
+    end
+    
+    @Operation toString()
+      self.name()
+    end
+  
+  end

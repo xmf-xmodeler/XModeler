@@ -1,0 +1,312 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Box extends Display, DisplayContainer
+  
+    @Attribute cornerCurve 		: Integer                (?)     	end
+    @Attribute showTop     		: Boolean = true         (?,!)   	end
+    @Attribute showBottom  		: Boolean = true         (?,!)   	end
+    @Attribute showLeft    		: Boolean = true         (?,!)   	end
+    @Attribute showRight   		: Boolean = true         (?,!)   	end
+    @Attribute lineColor   		: Color = static Color() (?,!)   	end
+    @Attribute fillColor   		: Color = static Color() (?,!)	  	end
+    @Attribute themeLineColor 	: Color 					        end
+    @Attribute themeFillColor	: Color						        end
+    
+    @Constructor(x,y,width,height,cornerCurve) end
+    
+    @Constructor(x,y,width,height,cornerCurve,lineColor,fillColor) end
+    
+    @Constructor(id,x,y,width,height,cornerCurve,lineColor,fillColor,displays) ! end
+    
+    @Operation deepContains(node:Node)
+      @Find(display,displays)
+        when display.deepContains(node)
+        do true 
+        else false
+      end
+    end
+    
+    @Operation delete()
+      @For display in displays do 
+        display.delete()
+      end;
+      super()
+    end
+    
+    @Operation dispose()
+      self.disposeCollection(displays);
+      super()
+    end
+    
+    @Operation disposeId(disposeChildren)
+      if disposeChildren
+      then
+        self.disposeIdCollection(displays,disposeChildren)
+      end;
+      super(disposeChildren)
+    end
+
+    @Operation expandHeight()
+    
+      // Ensures that the box is high enough to
+      // display its contents
+      
+      @For display in displays do
+        display.expandHeight() 
+      end;
+      
+      if self.height < self.maxHeight() then
+        self.resize(width,self.maxHeight())
+      end
+    end
+    
+    @Operation expandWidth()
+    
+      // Ensures that the box is wide enough to
+      // display is contents
+      
+      @For display in displays do
+        display.expandWidth() 
+      end;
+      
+      if self.width < self.maxWidth() then
+        self.resize(self.maxWidth(),height)
+      end
+    end
+    
+    @Operation getDisplay(name:String)
+    
+      // needs to be made more efficent
+    
+      @Find(display,displays)
+        when display.refname() = name
+        else
+          let target = null
+          in
+            @For display in displays
+            do
+              if display.getDisplay(name) <> null
+              then
+                target := display.getDisplay(name)
+              end
+            end;
+            target
+          end
+      end
+    end
+    
+    @Operation hideAllEdges()
+      self.showTop := false;
+      self.showBottom := false;
+      self.showLeft := false;
+      self.showRight := false
+    end
+    
+    @Operation maxHeight()
+    
+      // Returns the amount of space taken up by the contents
+      // if they stay where they are positioned. Therefore y
+      // positions are taken into account.
+      
+      let maxHeight = 0
+      in @For display in displays do
+           maxHeight := maxHeight.max(display.maxHeight() + display.y())
+         end;
+         maxHeight
+      end
+    end
+    
+    @Operation maxWidth()
+    
+      // Returns the amount of space taken up by the contents
+      // if they stay where they are. Therefore x positions are
+      // taken into account.
+      
+      let maxWidth = 0
+      in @For display in displays do
+           maxWidth := maxWidth.max(display.maxWidth() + display.x())
+         end;
+         maxWidth
+      end
+    end
+    
+    @Operation minHeight()
+    
+      // Does not take into consideration the y positions
+      // just returns the amount of space taken up by the
+      // displays.
+      
+      displays->iterate(d h = 0 | h + d.minHeight())
+    end
+    
+    @Operation minWidth()
+    
+      // Does not take into consideration the x positions
+      // just returns the amount of space taken up by the
+      // displays.
+      
+      displays->iterate(d w = 0 | w + d.minWidth())
+    end
+    
+    @Operation new(parent,setMenu)
+      
+      // Called once when the box is created.
+      
+      self.setOwner(parent);
+      @Command(self) newBoxCommand(parent,self) end;
+      self.addDisplays();
+      self.newDisplays(setMenu);
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation packHeight()
+    
+      // Causes the box to be set to the minimum size
+      // necessary to fit the contents. The component
+      // display elements are also packed.
+      
+      @For display in displays do
+        display.packHeight() 
+      end;
+      
+      self.resize(width,self.maxHeight())
+      
+    end
+    
+    @Operation packWidth()
+    
+      // Causes the box to be set to the minimum size
+      // necessary to fit the contents. The component
+      // display elements are also packed.
+      
+      @For display in displays do
+        display.packWidth() 
+      end;
+      
+      self.resize(self.maxWidth(),height)
+      
+    end
+    
+    @Operation preferenceChange()
+      @For display in displays
+      do
+        display.preferenceChange()
+      end
+    end 
+    
+    @Operation removeTheme()
+      @Command(self) setFillColor(self,fillColor) end;
+      @Command(self) setLineColor(self,lineColor) end;
+      @For display in displays
+      do
+        display.removeTheme()
+      end
+    end
+    
+    @Operation renew(parent)
+    
+      // Called after a diagram has been loaded in order
+      // to re-allocate the identifiers.
+      
+      @Command(self) newBoxCommand(parent,self) end;
+      self.renewDisplays();
+      self.setRightClickMenu();
+      self
+    end
+    
+    @Operation renewDisplays()
+      @For display in displays do
+        display.renew(self)
+      end
+    end
+     
+    @Operation resize(width,height) 
+    
+      // By default, when a box is resized the contents
+      // are not resized. Typically, the effect of
+      // resizing the box will depend on its semantics and
+      // should be defined in sub-classes.
+      
+      if width <> self.width or height <> self.height
+      then 
+        @Command(self) resizeCommand(self,width,height) end;
+        self.width := width;
+        self.height := height
+      end
+    end
+    
+    @Operation setFillColor(fillColor:Color)
+      self.fillColor := fillColor;
+      @Command(self) setFillColor(self,fillColor) end
+    end
+    
+    @Operation setLineColor(lineColor:Color)
+      self.lineColor := lineColor;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+    
+    @Operation setThemeFillColor(fillColor:Color)
+      self.themeFillColor := fillColor;
+      @Command(self) setFillColor(self,fillColor) end
+    end
+    
+    @Operation setThemeLineColor(lineColor:Color)
+      self.themeLineColor := lineColor;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+    
+    @Operation showFill(fill)
+      @Command(self) setFill(self,fill) end
+    end
+   
+    @Operation showEdges(top,bottom,left,right)
+      self.showTop := top;
+      self.showBottom := bottom;
+      self.showLeft := left;
+      self.showRight := right;
+      @Command(self) showBoxEdges(self) end
+    end
+    
+    @Operation showAllEdges()
+      self.showTop := true;
+      self.showBottom := true;
+      self.showLeft := true;
+      self.showRight := true
+    end
+
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden};
+        shown = Seq{"shown",shown};
+        cornerCurve = Seq{"cornerCurve",cornerCurve};
+        showTop = Seq{"showTop",showTop};
+        showBottom = Seq{"showBottom",showBottom};
+        showLeft = Seq{"showLeft",showLeft};
+        showRight = Seq{"showRight",showRight} then
+        attributes = Seq{id,x,y,width,height,hidden,shown,cornerCurve,showTop,showBottom,showLeft,showRight}
+      in
+        // line colors not yet synchronised
+        
+        @Command(self) startElement("box",attributes) end;
+        @For display in displays
+        do
+          display.synchronise()
+        end;
+        @Command(self) endElement("box") end
+      end
+    end
+    
+  end

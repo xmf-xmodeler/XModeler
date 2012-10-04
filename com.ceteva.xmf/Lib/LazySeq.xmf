@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class LazySeq
+  
+    // A lazy sequence acts like a sequence, but is lazily
+    // generated. The tail of a lazy sequence can be a 0-arity
+    // operation that will generate the tail on demand. This is
+    // useful for generating large sequences incrementally and
+    // representing infinite sequences.
+    
+    @Attribute head : Element end
+    @Attribute tail : Element end
+    
+    @Operation expand()
+      if self.isExpanded()
+      then
+        self
+      else 
+        self.tail := tail()
+      end
+    end
+    
+    @Operation head():Element
+      head
+    end
+    
+    @Operation init(args)
+      self.head := args->at(0);
+      self.tail := args->at(1)
+    end
+     
+    @Operation isEmpty():Boolean
+      false
+    end
+    
+    @Operation isExpanded():Boolean
+      not tail.isKindOf(Operation)
+    end
+    
+    @Operation tail():Seq(Element)
+      self.expand();
+      tail
+    end
+    
+  end

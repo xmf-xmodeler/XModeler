@@ -1,0 +1,34 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Let in PPrint(aLet,out,seen)
+  self.mark(
+    @Operation()
+      format(out,"let ");
+      self.mark(
+        @Operation()
+          if aLet.bindings.isKindOf(Seq(Element))
+          then
+            @For b in aLet.bindings do
+              self.dispatch(b,out);
+              if not isLast 
+              then 
+                format(out,";");
+                self.newLine()
+              end
+            end
+          else self.dispatch(aLet.bindings,out)
+         end
+       end);
+     self.newLine();
+     format(out,"in ");
+     self.mark(
+       @Operation()
+         self.dispatch(aLet.body,out)
+       end);
+     self.newLine();
+     format(out,"end")
+   end)
+end;

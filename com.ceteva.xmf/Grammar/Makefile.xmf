@@ -1,0 +1,8 @@
+Compiler::compileFile("Grammar/Boot",true,true);
+Compiler::compileFile("Grammar/Grammar",true,true);
+Compiler::compileFile("Grammar/Operation",true,true);
+Compiler::compileFile("Grammar/XOCL",false,true);
+Compiler::compileFile("Grammar/XOCLGrammar",false,false);
+Compiler::compileFile("Grammar/XOCLBootstrap",false,true);
+Compiler::compileFile("Grammar/XBNF",false,true);
+Compiler::compileFile("Grammar/XBNFGrammar",false,false);

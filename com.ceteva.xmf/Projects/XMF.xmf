@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Projects;
+
+xmf.setProperty("projectManager",null);
+
+context XMF
+  @Operation projectManager()
+    self.property("projectManager") 
+  end
+
+context XMF
+  @Operation projectManager(name)
+    self.projectManager().getElement(name) 
+  end
+  
+context XMF
+  @Operation setProjectManager(p:ProjectManager)
+    self.setProperty("projectManager",p)
+  end

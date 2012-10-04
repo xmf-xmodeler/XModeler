@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Root
+
+ @Package XMatch
+ 
+   @Doc
+     This package defines a simple string matching grammar that can be used
+     to match and extract portions of strings. See the class Pattern for
+     more details about how to define patterns and match them against strings.
+   end
+ 
+ end

@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+Classifier.shadowOperation(
+  // The grammar of a classifier can be set by adding the
+  // grammar to the classifier object via 'add'. If this
+  // file is loaded then the default 'add' is overridden
+  // to filter out the grammars.
+  @Operation add(namedElement:NamedElement):Classifier
+    if namedElement.isKindOf(Grammar)
+    then
+      self.addGrammar(namedElement);
+      super(namedElement)
+    else super(namedElement)
+    end
+  end);
+  
+context Classifier
+  // Add an operation to add grammars to a classifier.
+  @Operation addGrammar(grammar:Grammar)
+    grammar.owner := self;
+    grammar.startingSymbol := name.name;
+    self.grammar := grammar
+  end
+  
+context Classifier
+  // Find the grammar for a classifier.
+  @Operation grammar():Grammar
+     // This should add in the grammars for all the parent
+     // classifiers. Don't override any grammars that are 
+     // already a parent.
+     grammar
+  end

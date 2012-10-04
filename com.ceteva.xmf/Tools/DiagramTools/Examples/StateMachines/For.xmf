@@ -1,0 +1,45 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import StateMachines;
+
+context StateMachines
+
+  @Class For extends Performable
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      For ::= n = Name ':' t = Name 'in' s = Exp 'do' e = Exp { For(n,NamedType(t),s,e) }.
+      
+    end
+  
+    @Attribute name : String      end
+    @Attribute type : Type        end
+    @Attribute seq  : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(name,type,seq,body) ! end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      self.desugar().compile(env,frame,isLast,saveSource)
+    end
+    
+    @Operation desugar()
+      [| @XOCL::For <name> in <seq> do <body> end |]
+    end
+    
+    @Operation eval(target,env,imports)
+      self.desugar().eval(target,env,imports)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@For ~S : ",Seq{name});
+      type.pprint(out,indent);
+      format(out," in ");
+      seq.pprint(out,indent);
+      format(out," do~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

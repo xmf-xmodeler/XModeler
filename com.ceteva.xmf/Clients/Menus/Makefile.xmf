@@ -1,0 +1,19 @@
+import Compiler;
+
+compileFile("Clients/Menus/Boot",true,true);
+compileFile("Clients/Menus/Manifest",true,true);
+compileFile("Clients/Menus/Menus",true,true);
+compileFile("Clients/Menus/MenuAction",true,true);
+compileFile("Clients/Menus/MenuDef",true,true);
+compileFile("Clients/Menus/MenuItem",true,true);
+compileFile("Clients/Menus/MenuItems",true,true);
+compileFile("Clients/Menus/MenuManager",true,true);
+compileFile("Clients/Menus/MenuRegistryHandler",true,true);
+compileFile("Clients/Menus/PopupMenu",true,true);
+compileFile("Clients/Menus/GlobalMenu",true,true);
+compileFile("Clients/Menus/RightClickable",true,true);
+compileFile("Clients/Menus/RightClickableWithElement",true,true);
+compileFile("Clients/Menus/RightClickableProxy",true,true);
+compileFile("Clients/Menus/MenuClient",true,true);
+compileFile("Clients/Menus/MenuCommandInterpreter",true,true);
+compileFile("Clients/Menus/MenuEventHandler",true,true);

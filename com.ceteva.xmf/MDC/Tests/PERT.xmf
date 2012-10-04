@@ -1,0 +1,69 @@
+parserImport XOCL;
+
+context Root
+  @Package PERT
+    @Class Model
+      @Attribute activities : Set(Activity) (-,+,?) end
+    end
+    @Class Activity 
+      @Attribute description : String end
+      @Attribute start : Integer end
+      @Attribute duration : Integer end
+      @Attribute depends : Set(Activity) (-,+,?) end
+      @Constructor(description) ! end
+    end
+    @Operation initDiagram(tool : XCore::Element):XCore::Element
+      @Count i from 1 to 10 do
+        let line = Clients::Diagrams::Line(i * 75,50,i * 75,1000,Clients::Diagrams::Color(0,0,255));
+            text = Clients::Diagrams::Text(i.toString(),i * 75,37,false);
+            title = Clients::Diagrams::Text("Project Plan",300,10,false)
+        in tool.diagram.add(line);
+           tool.diagram.add(text);
+           tool.diagram.add(title);
+           title.new(tool.diagram);
+           text.new(tool.diagram());
+           line.new(tool.diagram())
+        end
+      end;
+      @Count i from 0 to 30 do
+        let line = Clients::Diagrams::Line(10,(i*30)+50,1000,(i*30)+50,Clients::Diagrams::Color(200,200,255))
+        in line.setLineStyle(2);
+           tool.diagram.add(line);
+           line.new(tool.diagram())
+        end
+      end
+           
+    end
+    @Operation addDepends(tool,activity)
+      let A = tool.element().element().activities->excluding(activity)->asSeq
+      in if not A->isEmpty
+         then 
+           let a = xmf.select("Activity","Previous Activity",A,null,null)
+           in if a <> null
+              then 
+                activity.depends := activity.depends->including(a)
+              end
+           end
+         end
+      end
+    end
+    @Operation moveHandler(tool,value)
+      let model = tool.element().element() then
+          activity = value.element() then
+          D = model.activities->select(a | a.depends->includes(activity));
+          minx = value.display().x + activity.duration
+      in activity.start := value.display().x;
+         @For a in D do
+           let v = tool.findElementValue(a)
+           in if v.element().start < minx
+              then 
+                @Tools::Basic::WithEvents(tool)
+                  v.display().move(minx,v.display().y)
+                end
+              end
+           end
+         end
+      end
+    end
+  end
+  

@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Tools;
+import Events;
+import DiagramTools;
+import DiagramEvents;
+import Structure;
+import Diagrams;
+import Types;
+import Data;
+
+context Structure
+
+  @Class ToolStub extends Tool
+  
+    @Doc
+      A toolstub is a means of capturing diagram stubs for XTooled element so that they are
+      properly saved and reloaded.
+    end
+    
+    @Constructor(element,diagram) end
+    
+  end

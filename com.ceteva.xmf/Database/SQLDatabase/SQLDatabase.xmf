@@ -1,0 +1,174 @@
+parserImport XOCL;
+
+import Database;
+import Interfaces;
+import SQL;
+
+context SQL
+
+  @Class SQLDatabase extends Database
+  
+    @Attribute conn		: DatabaseConnection end
+  
+    @Operation connect()
+      self.conn := DatabaseConnection(server,username,password);
+      conn.connect();
+      conn.use(database)
+    end
+    
+    @Operation close()
+      conn.close()
+    end
+    
+    @Operation deleteCollectionSlotValue(id,element)
+      let 
+        seq = element.asSeq();
+        collsvals = conn.query("SELECT * FROM colls WHERE id = " + id + ";")
+      in
+        @While collsvals.moveNext()
+        do
+          let 
+            pos = collsvals.getInteger(2);
+            valid = collsvals.getString(3)
+          in
+            self.deleteValue(valid,seq.at(pos))
+          end
+        end;
+        collsvals.close()
+      end;
+      conn.update("DELETE FROM colls WHERE id = " + id + ";")
+    end    
+    
+    @Operation deleteSlot(object,slotname,oldValue)
+      let objid = object.dbid()
+      in
+        let valids = conn.query("SELECT valueid FROM slots WHERE objid = " + objid + " AND name = \"" + slotname + "\";")
+        in
+          valids.moveNext();
+          let valid = valids.getString(1)
+          in
+			self.deleteValue(valid,oldValue);
+            conn.update("DELETE FROM slots WHERE name = \"" + slotname + "\";")
+          end;
+          valids.close()
+        end
+      end
+    end
+    
+    @Operation deletePrimitiveSlotValue(id,element)
+      conn.update("DELETE FROM primitives WHERE id =  " + id + ";")
+    end
+    
+    @Operation deleteValue(valid,element)
+      let types = conn.query("SELECT type FROM vals WHERE vals.id = " + valid + ";")
+      in
+        if types.moveNext()
+        then
+          let type = types.getString(1)
+          in
+            types.close();
+            if type = "primitive"
+            then
+              self.deletePrimitiveSlotValue(valid,element)
+            elseif type = "collection"
+            then
+              self.deleteCollectionSlotValue(valid,element)
+            end;
+            conn.update("DELETE FROM vals WHERE id = " + valid + ";")
+          end
+        end;
+        types.close()
+      end
+    end
+    
+    @Operation store(value)
+      @TypeCase(value)
+        String do self.storePrimitive("string",value) end
+        Integer do self.storePrimitive("integer",value) end
+        Boolean do self.storePrimitive("boolean",value) end
+        SetOfElement do self.storeCollection(value) end
+        SeqOfElement do self.storeCollection(value) end
+        Object do self.storeObject(value) end
+      end
+    end
+    
+    @Operation storeCollection(values)
+      let values = values->asSeq
+      in
+        conn.update("INSERT INTO vals (type) VALUES('collection');");
+        let valid = conn.lastInsertId()
+        in
+          @Count v from 0 to values.size()
+          do
+            let valueid = self.store(values.at(v))
+            in
+              conn.update("INSERT INTO colls VALUES(" + valid + "," + v + "," + valueid + ");")
+            end
+          end;
+          valid
+        end
+      end
+    end
+  
+    @Operation storeObject(object)
+      if object.hasDbid()
+      then object.dbid()
+      else
+        let of = object.of().path()
+        in
+          conn.update("INSERT INTO vals (type) VALUES('object');");  
+          let valid = conn.lastInsertId()
+          in
+            conn.update("INSERT INTO objects VALUES(" + valid + ",'" + of + "');");
+            object.setDbid(valid);
+            object.setDatabase(self);
+            @For att in object.of().allAttributes()
+            do
+              let name = att.name().toString().toString()
+              in
+                if name <> "database" and name <> "dbid"
+                then self.storeSlot(object,att.name)
+                end
+              end
+            end;
+            valid
+          end
+        end
+      end
+    end
+    
+    @Operation storePrimitive(type,value)
+      conn.update("INSERT INTO vals (type) VALUES('primitive');");
+      let valid = conn.lastInsertId()
+      in
+        conn.update("INSERT INTO primitives VALUES(" + valid + ",'" + type + "','" + value + "');");    
+        valid
+      end
+    end
+    
+    @Operation storeSlot(object,slotName)
+      let 
+        id = self.store(object.get(slotName));
+        objid = object.dbid()
+      in
+        conn.update("INSERT INTO slots VALUES(" + objid + ",'" + slotName + "'," + id + ");");
+        id
+      end
+    end
+    
+    @Operation updateSlot(object,slotname,newValue,oldValue)
+      self.deleteSlot(object,slotname,oldValue);
+      self.storeSlot(object,slotname)
+    end
+    
+    @Operation query(query)
+      let 
+        processor = QueryProcessor(query) then
+        sql = processor.run() then
+        result = conn.query(sql)
+      in
+        SQLQueryResult(self,conn,result)
+      end
+    end
+  
+  end

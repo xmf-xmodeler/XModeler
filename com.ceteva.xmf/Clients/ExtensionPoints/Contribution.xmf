@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Clients;
+
+context ExtensionPoints
+
+  @Class Contribution
+  
+    @Doc
+      An contribution is a binding between a type and a sequence of values.  The 
+      type is stored as a path reference which enables contributions to be 
+      constructed prior to the type being created.
+    end
+  
+    @Attribute typePath : String end
+    @Attribute type     : Classifier end
+    @Attribute values   : SeqOfElement end
+    
+    @Constructor(type,values)
+      if type.isKindOf(String)
+      then
+        self.typePath := type;
+        self.type := null
+      else
+        self.typePath := type.path()
+      end
+    end
+    
+    @Operation contributesTo(type)
+      type = self.type()
+    end
+    
+    @Operation getValue(index)
+      self.values->at(index)
+    end
+    
+    @Operation key()
+      type
+    end
+    
+    @Operation size()
+      self.values->size
+    end
+    
+    @Operation toString()
+      "Contribution(" + typePath + ")"
+    end
+    
+    @Operation type()
+      if type = null
+      then self.type := typePath.lookupPath(Root)
+      end;
+      type
+    end
+    
+  end

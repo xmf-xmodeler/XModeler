@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XOCL;
+import XML::Parser;
+
+context XML::Parser
+
+  @Class CommandConst extends CommandArg
+  
+    @Attribute value : Element (?) end
+    
+    @Constructor(value) ! end
+  
+  end

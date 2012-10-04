@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! MDC
+
+  @Class NewObject extends Event
+  
+    @Attribute object : Object (?,!) end
+    
+    @Constructor(object) ! end
+    
+    @Operation process(tool)
+      
+      // If a value has been registered for this
+      // element then fire any monitors defined 
+      // by the type...
+      
+      let value = tool.findElementValue(object)
+      in if value <> null
+         then tool.element().type().fireCreationMonitors(tool,value)
+         end
+      end
+    end
+    
+  end

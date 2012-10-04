@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients::Diagrams::Line;
+import Tools;
+import Menus;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context Types
+
+  @Class AbstractEdgeType extends AbstractDisplayType
+    
+    @Attribute recursive : Boolean (?,!) end
+    
+    @AbstractOp edgeLegal(tool,sourcePort,targetPort):Boolean
+    
+      // Return true when the ports are contained by nodes
+      // whose types match up.
+    
+    end
+    
+    @Operation new(sourcePort,targetPort,tool)
+    
+      // Create the edge only if the source and target node types
+      //match up. Otherwise display a warning.
+      
+      if self.edgeLegal(tool,sourcePort,targetPort)
+      then self.newEdge(sourcePort,targetPort,tool)
+      else 
+        let sourceName = sourcePort.owner().type().name();
+            targetName = targetPort.owner().type().name()
+        in xmf.warning("Cannot create " + name + " edge between " + sourceName + " and " + targetName)
+        end
+      end
+    end
+    
+    @AbstractOp newEdge(sourcePort,targetPort,tool)
+    end
+    
+  end

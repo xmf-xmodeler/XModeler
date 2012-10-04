@@ -1,0 +1,15 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context Letrec
+
+  @Grammar extends O
+    
+      Letrec ::=  bindings = Bindings 'in' body = Exp 'end' { Letrec(bindings,body) }.
+      
+    end 
+    
+    

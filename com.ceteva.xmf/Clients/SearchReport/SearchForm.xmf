@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import SearchReport;
+
+context SearchReport
+
+  @Class SearchForm extends LockableFormWithHistory
+  
+    @Attribute result : SearchNode end
+    
+    @Constructor(name,result)
+      self.typeName := "Search";
+      self.itemName := "\"" + name + "\"";
+      self.initialize()
+    end
+  
+    @Operation addContents()
+      self.addElement(FormLabel(10,9,"Search Results for " + itemName));
+      let tree = ReportTree(10,30,640,400,result) in
+        self.addElement(tree)
+      end;
+      self.addElement(FormLabel(0,440," "))
+    end
+
+    @Operation historyDialogMessage():String
+      "Select a search report to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Search Result History"
+    end
+
+  end

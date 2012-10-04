@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class If extends Statement
+  
+    @Attribute test : Exp end
+    @Attribute thenPart : Statement end
+    @Attribute elsePart : Statement end
+    
+    @Constructor(test,thenPart,elsePart) ! end
+    
+    // Incomplete....
+    
+    @Operation pprint(out,indent)
+      format(out,"if ");
+      test.pprint(out);
+      format(out,"~%~Vthen~%~V",Seq{indent,indent + 2});
+      thenPart.pprint(out,indent+2);
+      format(out,"~%~Velse~%~V",Seq{indent,indent + 2});
+      elsePart.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+      
+  end

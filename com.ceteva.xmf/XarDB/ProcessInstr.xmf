@@ -1,0 +1,153 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Operation processInstr(instr,inch)
+    @Case instr of 
+       [MKARRAY] do
+         stack.push(MkArray(read16(inch),Array,nextIndex(Array)))
+       end
+       [MKCONS] do
+         stack.push(MkCons(Seq(Element),nextIndex(Seq(Element))))
+       end
+       [MKOBJ] do
+         stack.push(MkObj(Object,nextIndex(Object)))
+       end
+       [MKSTRING] do
+         stack.push(Const(readString(inch,read16(inch))))
+       end
+       [MKSYMBOL] do
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKEMPTYSLOT] do
+         stack.push(Const(Set{}));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKNULLSLOT] do
+         stack.push(Const(null));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKNILSLOT] do
+         stack.push(Const(Seq{}));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKTRUESLOT] do
+         stack.push(Const(true));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKFALSESLOT] do
+         stack.push(Const(false));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKZEROSLOT] do
+         stack.push(Const(0));
+         stack.push(MkSymbol(readString(inch,read16(inch))))
+       end
+       [MKSET] do
+         let instr = MkSet()
+         in @Count x from 0 to read16(inch) do
+              instr.add(stack.pop())
+            end;
+            stack.push(instr)
+         end
+       end
+       [TABLE] do
+         stack.push(Table(XCore::Table,nextIndex(XCore::Table)))
+       end
+       [REFOBJ] do
+         stack.push(RefObj(read24(inch)))
+       end
+       [LOOKUP] do
+         let names = read8(inch) then
+             instr = Lookup(Object,nextIndex(Object));
+             instrs = Seq{}
+         in @Count n from 0 to names do
+              instrs := Seq{stack.pop() | instrs}
+            end;
+            @For i in instrs do
+              instr.add(i)
+            end;
+            stack.push(instr)
+         end
+       end
+       [LISTCONS] do
+         let head = stack.pop() then
+             cons = stack.top()
+         in if cons.isKindOf(MkCons)
+            then 
+              cons.add(head);
+              cons.add(Const(Seq{}))
+            else self.error("LISTCONS expects a MkCons: " + cons.toString())
+            end
+         end 
+       end
+       [SETCONS] do
+         let tail = stack.pop() then
+             head = stack.pop() then
+             cons = stack.top()
+         in if cons.isKindOf(MkCons)
+            then cons.add(head).add(tail)
+            else self.error("SETCONS expects a MkCons: " + cons.toString())
+            end
+         end
+       end
+       [MKNIL] do
+         stack.push(Const(Seq{}))
+       end
+       [MKINT] do
+         stack.push(Const(read24(inch)))
+       end
+       [SETOBJ] do
+         let type = stack.pop() then
+             properties = stack.pop() then
+             daemons = stack.pop() then
+             slots = read16(inch) then
+             attributes =
+               @For a in 0.to(slots-1) produce
+                 let name = stack.pop() then
+                     value = stack.pop();
+                     instr = MkSlot()
+                 in instr.add(name);
+                    instr.add(value);
+                    instr
+                 end
+               end then
+             obj = stack.top()
+          in if obj.isKindOf(MkObj)
+             then
+               obj.add(type);
+               obj.add(properties);
+               obj.add(daemons);
+               @For a in attributes do
+                 obj.add(a)
+               end
+             else self.error("SETOBJ expects a MkObj: " + obj.toString())
+             end
+          end
+       end
+       [PUT] do
+         let key = stack.pop() then
+             value = stack.pop() then
+             table = stack.top()
+         in if table.isKindOf(Table)
+            then table.add(Put().add(key).add(value))
+            else self.error("PUT expects a Table: " + table.toString())
+            end
+         end
+       end
+       [MKTRUE] do
+         stack.push(Const(true))
+       end
+       [MKFALSE] do
+         stack.push(Const(false))
+       end
+       [HOTLOAD] do
+         stack.push(HotLoad().add(stack.pop()))
+       end
+       else self.error("Unknown instruction: " + instr)
+    end
+  end
+      
+    

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class TopBars extends Box
+  
+    @Operation init(values)
+      self.showLeft := false;
+      self.showRight := false;
+      self.fill := false;
+      super(values)
+    end
+    
+  end

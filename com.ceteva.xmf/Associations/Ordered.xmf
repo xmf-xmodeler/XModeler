@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Ordered extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity <<ordered>> requires that the attribute
+      is associated with 0 or more instances of the appropriate 
+      class.
+    end
+    
+    @Constructor() end
+    
+    @Operation typeExp(type)
+      [| Seq(<type>) |]
+    end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      XCore::CollectionMult(true,false,0,0)
+    end
+
+    @Operation multString():String
+      "* <<ordered>>"
+    end
+
+  end

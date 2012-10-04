@@ -1,0 +1,58 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler New_EdgeType()
+    let edgeType = EdgeType("E")
+    in register(event.node(),edgeType);
+       event.tool().element().add(edgeType)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler EdgeType_edgeType_name_Changed()
+    find(event.root()).setName(event.new())
+  end
+
+context ToolBuilderManager
+  @EventHandler New_Source()
+    let edgeType = find(event.source());
+        nodeType = find(event.target())
+    in edgeType.setSource(nodeType)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler New_Target()
+    let edgeType = find(event.source());
+        nodeType = find(event.target())
+    in edgeType.setTarget(nodeType)
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler New_Inheritance()
+    let childType = find(event.source());
+        parentType = find(event.target())
+    in childType.addToParents(parentType.name().toString())
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler Inheritance_Removed()
+    let childType = find(event.source());
+        parentType = find(event.target())
+    in childType.deleteFromParents(parentType.name().toString())
+    end
+  end
+  
+  

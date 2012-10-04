@@ -1,0 +1,35 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class PullDownMenu
+  
+    @Attribute id       : String end
+    @Attribute items    : Seq(PullDownMenuItem) end
+    @Attribute dividers : Seq(PullDownMenuDivider) end
+     
+    @Constructor(id,items,dividers) end
+    
+    @ToXML(PULLDOWN_MENU)[Id=id]
+      items*
+      dividers*
+    end 
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else
+        @Find(x,items + dividers)
+          when x.find(id) <> null
+          do x.find(id)
+          else null
+        end
+      end
+    end
+    
+  end

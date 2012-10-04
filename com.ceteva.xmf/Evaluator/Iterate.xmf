@@ -1,0 +1,44 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Iterate in Eval(aIterate,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     processElements = 
+       @Operation(E,name,acc,value)
+         if E->isEmpty
+         then result(aIterate,value,cont)
+         else
+           next(aIterate.body,
+             @Operation(next,result,call,return)
+               self.eval(aIterate.body,env.bind(name,E->head).bind(acc,value),target,imports,next,result,call,return,
+                 @Operation(value)
+                   self.env := env;
+                   processElements(E->tail,name,acc,value)
+                 end)
+             end)
+         end
+       end
+   in next(aIterate.collection,
+        @Operation(next,result,call,return)
+          self.eval(aIterate.collection,env,target,imports,next,result,call,return,
+            @Operation(E)
+              next(aIterate.value,
+                @Operation(next,result,call,value)
+                  self.eval(aIterate.value,env,target,imports,next,result,call,return,
+                    @Operation(value)
+                      processElements(E->asSeq,aIterate.name,aIterate.accumulator,value)
+                    end)
+                end)
+            end)
+        end)
+   end
+end;

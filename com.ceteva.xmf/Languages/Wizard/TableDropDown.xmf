@@ -1,0 +1,41 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TableDropDown
+  
+    @Attribute columnName : String end
+    @Attribute columnWidth : Integer end
+    @Attribute columnOrder : Integer end
+    @Attribute isReadOnly : Boolean end
+    @Attribute tooltip : String end
+    @Attribute reportString : String end
+    @Attribute options : Seq(TableDropDownOption) end
+    @Attribute rows : Seq(TableDropDownRows) end
+    
+    @Constructor(columnName,columnWidth,columnOrder,isReadOnly,tooltip,reportString,options,rows) end
+    
+    @ToXML(Table_DropDown)[
+      column_name = columnName,
+      column_width = columnWidth,
+      column_order = columnOrder,
+      id_readonly = isReadonly,
+      tooltip,
+      report_string = reportString]
+      options*
+      rows*
+    end
+    
+    @Operation find(id)
+      @Find(x,options + rows)
+        when x.find(id) <> null
+        do x.find(id)
+        else null
+      end
+    end
+    
+  end

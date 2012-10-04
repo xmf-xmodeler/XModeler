@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolGroup
+  
+    @Attribute name    : String          (!)   end
+    @Attribute buttons : Seq(ToolButton) (+,-) end
+    
+    @Constructor(name) ! end
+    
+    @Operation addEdgeCreationButton(name)
+      self.addToButtons(EdgeCreationButton(name,"Tools/Edge.gif"))
+    end
+    
+    @Operation addNodeCreationButton(name)
+      self.addToButtons(NodeCreationButton(name,"Tools/Node.gif"))
+    end
+    
+    @Operation new(tool)
+      tool.diagram.defineToolGroup(name);
+      @For button in buttons do
+        button.new(name,tool)
+      end
+    end
+     
+  end

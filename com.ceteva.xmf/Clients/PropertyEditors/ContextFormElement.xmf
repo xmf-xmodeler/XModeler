@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class ContextFormElement extends FormElement
+  
+    @Attribute contex : Element (?,!) end
+    @Attribute slotName : String (?,!) end
+
+  end

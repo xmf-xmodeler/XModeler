@@ -1,0 +1,93 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuAction extends MenuItem
+  
+    @Doc
+      A menu action is an element of a menu that performs an action when
+      it is selected. The menu action is named, the name is shown as an item
+      in the owning menu item. The menu action is associated with an
+      operation that is invoked when the action is selected. The menu 
+      action includes the target and arguments for the operation.
+    end
+  
+  	@Attribute target   : Element         (!,?) end  // The target for the action.
+  	@Attribute args     : Seq(Element)    (!,?) end  // The args for the action.
+  	@Attribute action   : Operation       (!,?) end  // The action to be performed.
+  	@Attribute undoable : Boolean = false (!,?) end  // The action is undoable
+    
+    @Constructor(name,target,args,action) 
+    end
+    
+    @Constructor(name,keybinding,target,args,action)
+    end
+    
+    @Constructor(name,keybinding,target,args,action,supportsMulti)
+    end
+    
+    @Constructor(name,keybinding,target,args,action,supportsMulti,undoable)
+    end
+    
+    @Constructor(id,name,action) ! end
+    
+    @Operation getActualTarget(rightClickable)
+      if target.isReallyKindOf(Operation)
+      then target.invoke(rightClickable,Seq{})
+      else target
+      end
+    end
+    
+    @Operation getHandlerPoint()
+      xmf.menuManager().getHandlerPoint(self)
+    end
+    
+    @Operation new(parent) 
+      self.setOwner(parent);
+      self.commandInterpreter().newRightClickMenuCommand(parent,self)
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newRightClickMenuCommand(parent,self)
+    end
+    
+    @Operation runAction(target,args)
+      if undoable
+      then
+        @Undoable
+          action.invoke(target,args)
+        end
+      else
+        action.invoke(target,args)
+      end
+    end
+
+    @Operation select(rightClickable)
+      @WithoutRendering(*,100)
+        self.runAction(self.getActualTarget(rightClickable),args)
+      end
+    end
+
+    @Operation select()
+    
+      // Occurs when the menu action is selected via the mouse or shortcut.
+      // The action is performed.
+      
+      if not self.hasSlot("target")
+      then
+        // This case supports upward compatibility.
+        self.runAction(self,Seq{})
+      elseif target = null
+      then 
+        // Code uses new menu action, but is not upgraded
+        // to use the new constructor.
+        self.runAction(self,Seq{})
+      else
+        self.runAction(target,args)
+      end
+    end
+
+  end

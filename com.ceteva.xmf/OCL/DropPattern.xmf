@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class DropPattern extends OCL::OCL
+  
+    @Doc
+      A drop pattern should only occur within a syntax pattern. The meaning
+      is that the value occurring at that point in the matching syntax value
+      must match against the dropped pattern. For example: [| x + y |] must
+      match against a binary expression involving the variable names x and
+      y. Whereas [| <| x |> + <| y |> |] binds the variable patterns x and
+      y against the left and right sub-expressions. The former syntax pattern
+      is equivalent to: [| <| Varp("x") |> + <| Varp("y") |> |].
+    end
+    
+    @Attribute pattern : Pattern (?) end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation lift():Performable
+      [| OCL::DropPattern(<pattern.lift()>) |]
+    end
+     
+    @Operation pprint(out,indent)
+      format(out,"<| ");
+      pattern.pprint(out);
+      format(out," |>")
+    end
+    
+  end

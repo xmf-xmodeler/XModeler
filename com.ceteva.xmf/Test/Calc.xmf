@@ -1,0 +1,28 @@
+parserImport Parser::BNF;
+
+import Parser::Machine;
+
+Root::Calculator :=
+  @Grammar
+    Calc ::= Mult '='.
+   
+    Mult ::= n1 = Add (
+      '*' n2 = Mult { n1 * n2 } |
+      '/' n2 = Mult { n1 / n2 } |
+      { n1 }  
+    ).
+      
+    Add ::= n1 = Int (
+      '+' n2 = Add { n1 + n2 } |
+      '-' n2 = Add { n1 - n2 } |
+      { n1 } 
+    ).
+      
+  end;
+    
+context Root
+  @Operation calc()
+    let state = State(Calculator,stdin)
+    in state.run("Calc")
+    end
+  end

@@ -1,0 +1,76 @@
+parserImport XOCL;
+
+import XSync;
+import OCL;
+import Syntax;
+
+context Syntax
+
+  @Class Gamma
+    
+    @Attribute name       : String      (?) end
+    @Attribute precedence : Integer     (?) end
+    @Attribute body       : Performable (?) end
+    @Attribute node       : Node        (?) end
+    
+    @Constructor(name,precedence,body,node) ! end
+    
+    @Operation bindValues(vars:Set(String),varEnv:Env,body:Performable):Performable
+      if vars->isEmpty
+      then body
+      else 
+        let name = vars->sel then
+            value = varEnv.lookup(name) then
+            locationExp = value.code(varEnv)
+        in [| let <name> = <locationExp> in <self.bindValues(vars->excluding(name),varEnv,body)> end |]
+        end
+      end
+    end
+    
+    @Operation bodyExp():Performable
+      let varEnv = node.exportedVarEnv()then
+          body = self.refValues(varEnv.dom(),varEnv,body) then
+          operation = 
+            [| @Operation(token) 
+                 let timestamp = 
+                       @Operation(o,s) 
+                         token.timestamp(o,s.asSymbol())
+                       end 
+                 in <body> 
+                 end 
+               end |]
+      in self.bindValues(varEnv.dom(),varEnv,operation)
+      end
+    end
+    
+    @Operation code(net:Performable):Performable
+      let code = node.code(net);
+          nameExp = StrExp(name);
+          precExp = IntExp(precedence)
+      in [| <code>.add(Gamma(<nameExp>,<precExp>,<self.bodyExp()>)) |]
+      end
+    end
+    
+    @Operation moveConstraints()
+      node.moveConstraints(Set{})
+    end
+    
+    @Operation refValues(vars:Set(String),varEnv:Env,body:Performable):Performable
+      if vars->isEmpty
+      then body
+      else 
+        let name = vars->sel 
+        in [| let <name> = <OCL::Var(name)>.value(token) in <self.refValues(vars->excluding(name),varEnv,body)> end |]
+        end
+      end
+    end
+    
+    @Operation setConstraints()
+      node.setConstraints()
+    end
+    
+    @Operation setVars()
+      node.setVars(Set{})
+    end
+    
+  end

@@ -1,0 +1,21 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Manifests
+  @File Manifests       end
+  @File LoadTime        end
+  @File ManifestEntry   end
+  @File ManifestBinding end
+  @File ManifestAction  end
+  @File Ref             end
+  @File ManifestClass   end
+  @File File            end
+  @File XTD             end
+  @File XML             end
+  @File ManifestManager end
+  @File XMF             end
+  @File BuildError      end
+do
+  Project(Manifests,dir,self)
+end;  

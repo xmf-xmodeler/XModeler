@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import IO;
+
+context Comms
+
+@Class Server
+
+    @Doc
+      This class implements a server interface for the host XMF. Clients
+      connect to XMF by attempting to connect to a socket connection via
+      the port number that is defined in the XMF startup file. Once connected,
+      a client must supply the name that XMF will use as the clients index.
+      The name must be a series of chars terminated by 0. After se-nding the
+      name, the client should read a return value that is 1 if the
+      name was successfully registered. Once registered, a server connection
+      (an instance of this class) can be created. The input and output slots
+      will ne initialised to the appropriate communcation channels for
+      sen-ding and receiving information to and from the client.
+    end
+  
+    @Attribute name   : String       (?) end  // The client will have supplied this.
+    @Attribute input  : InputChannel (?) end  // The channel to read once connected.
+    @Attribute output : OutputChannel(?) end  // The channel to write once connected.
+    
+    @Constructor(name) !
+      let rawIn = Kernel_clientInputChannel(name);
+          rawOut = Kernel_clientOutputChannel(name)
+      in self.input := StandardInputChannel(rawIn);
+         self.output := StandardOutputChannel(rawOut);
+         self
+      end
+    end
+    
+  end

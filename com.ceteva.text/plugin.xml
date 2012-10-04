@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+    <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="XMF Text editor"
+            icon="icons/XCore/class.gif"
+            class="com.ceteva.text.texteditor.TextEditor"
+            id="com.ceteva.text.TextEditor"
+            contributorClass="com.ceteva.text.actions.TextWorkbenchContribution">
+      </editor>
+   </extension>
+  
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="XMF HTML viewer"
+            icon="icons/XCore/class.gif"
+            class="com.ceteva.text.htmlviewer.HTMLViewer"
+            id="com.ceteva.text.HTMLViewer">
+      </editor>
+   </extension>
+   
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="XMF OLE viewer"
+            icon="icons/XCore/class.gif"
+            class="com.ceteva.text.oleviewer.OLEViewer"
+            id="com.ceteva.text.OLEViewer">
+      </editor>
+   </extension>   
+   
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="Text Editor"
+            class="com.ceteva.text.preferences.TextPreferencePage"
+            id="com.ceteva.text.preferences.textPreferences">
+      </page>
+   </extension>
+
+   
+   <extension
+         point="org.eclipse.ui.startup">
+         <startup class="com.ceteva.text.TextStartup"/>
+   </extension>
+
+</plugin>

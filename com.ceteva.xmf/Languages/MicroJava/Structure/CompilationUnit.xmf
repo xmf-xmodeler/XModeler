@@ -1,0 +1,66 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import IO;
+
+context Structure
+
+  @Class CompilationUnit 
+  
+    @Attribute imports : Seq(Import) (?)   end
+    @Attribute def     : UnitDef     (?)   end
+    @Attribute owner   : Element     (?,!) end
+    
+    @Constructor(imports,def) ! 
+      def.setOwner(self)
+    end
+    
+    @Operation delete()
+      owner.delete(self)
+    end
+    
+    @Operation delete(def)
+      owner.delete(self)
+    end
+    
+    @Operation export(dir:String,package:String)
+    
+      // Exports the unit as a java source file in the
+      // supplied directory.
+      
+      try 
+        let out = FileOutputChannel(dir + "/" + self.name().toString() + ".java")
+        in format(out,"package ~S;~%~%",Seq{package});
+           format(out,"import Values.*;~%~%");
+           @For i in imports do
+             i.pprint(out,0);
+             format(out,"~%")
+           end;
+           format(out,"~%");
+           def.pprint(out,0);
+           format(out,"~%");
+           out.close()
+        end
+      catch(exception)
+        format(stdout,"Error exporting unit ~S.~%",Seq{self.name()});
+        xmf.raise(exception)
+      end
+    end
+    
+    @Operation name():String
+      def.name()
+    end
+    
+    @Operation pprint(out,indent)
+      @For i in imports do
+        i.pprint(out,indent);
+        format(out,"~%~V",Seq{indent})
+      end;
+      format(out,"~%~V",Seq{indent});
+      def.pprint(out,indent)
+    end
+    
+  end

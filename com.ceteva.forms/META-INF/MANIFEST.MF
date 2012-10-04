@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Forms Plug-in
+Bundle-SymbolicName: com.ceteva.forms;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.forms.FormsPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Export-Package: com.ceteva.forms,
+ com.ceteva.forms.actions,
+ com.ceteva.forms.docs,
+ com.ceteva.forms.views
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.jface.text,
+ org.eclipse.ui,
+ org.eclipse.draw2d,
+ com.ceteva.client,
+ com.ceteva.menus,
+ com.ceteva.xmf
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

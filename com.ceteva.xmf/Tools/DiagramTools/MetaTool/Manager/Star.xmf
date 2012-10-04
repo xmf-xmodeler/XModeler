@@ -1,0 +1,30 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler "Add_To_NodeType_nodeBox_(x=(.*))StarType"(x)
+    let starType = Star("S")
+    in if x = ""
+       then find(event.root()).add(starType)
+       else find(event.value().owner()).add(starType)
+       end;
+       register(event.value(),starType);
+       register(event.value().ref1(Seq{"starAttribute","name"}),starType)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)StarType_starAttribute_name_Changed"()
+    let starType = find(event.value())
+    in starType.setName(event.new())
+    end
+  end

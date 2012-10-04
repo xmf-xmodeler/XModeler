@@ -1,0 +1,96 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import XML::PrintXML;
+
+context XML::PrintXML
+
+// Class deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Class XML extends Sugar
+
+  @Attribute out : Root::XCore::Performable end
+  @Attribute nodes : Seq(Node) end
+  
+  @Constructor(out,nodes) end
+  
+  @Grammar extends OCL::OCL.grammar
+  
+    // An XML pattern is an output channel 
+    // followed by some element patterns.
+  
+    XML ::= out = Out E = Element* {
+      XML(out,E)
+    }.
+    
+    // An output channel defaults to the 
+    // standard output...
+    
+    Out ::= 
+      '(' e = Exp ')' { e } | 
+      { [| stdout |] }.
+    
+    // An element is either an XML element, 
+    // some text or some arbitrary
+    // code...
+    
+    Element ::= 
+      AtomicElement | 
+      StructuredElement | 
+      Text | 
+      Call.
+    
+    // Elements specify tags, attributes and 
+    // child elements...
+    
+    AtomicElement ::= '<' t = Tag A = Att* '/>' {
+      Element(t,A,Seq{})
+    }.
+    
+    StructuredElement ::= 
+      '<' t1 = Tag A = Att* '>' 
+        E = Element* 
+      '</' t2 = Tag '>'  {
+        Element(t1,A,E)
+    }.
+    
+    // A tag can be a literal name, a string, a string with a ":" or a "." 
+    // or an expression in parentheses...
+    
+    Tag ::= 
+      n = Name { OCL::StrExp(n) } | 
+      n = Name ('.' m = Name n = { OCL::StrExp(n + "." + m) } | ':' m = Name n = { OCL::StrExp(n + ":" + m) })* {n} |
+      s = Str { OCL::StrExp(s) } | 
+      '(' e = Exp ')' { e }.
+    
+    // Attributes are name = value where names 
+    // are literals or expressions in 
+    // parentheses and values are expressions...
+    
+    Att ::= 
+      n = AttName '=' v = AttValue { Attribute(n,v) }.
+    
+    AttName ::= 
+      n = Name { OCL::StrExp(n) } | 
+      n = Name ('.' m = Name n = { OCL::StrExp(n + "." + m) } | ':' m = Name n = { OCL::StrExp(n + ":" + m) })* {n} |
+      s = Str { OCL::StrExp(s) } | 
+      '(' e = Exp ')' { e }.
+    
+    AttValue ::= Exp.
+    
+    // Text is just a string valued expression...
+    
+    Text ::= 'Text' '(' e = Exp ')' { Text(e) }.
+    
+    // Calls are just expressions...
+    
+    Call ::= e = Exp { Call(e) }.
+    
+  end
+  
+  @Operation desugar()
+    nodes->iterate(n e = [| null |] | [| <e>; <n.desugar(out)> |])
+  end
+  
+end

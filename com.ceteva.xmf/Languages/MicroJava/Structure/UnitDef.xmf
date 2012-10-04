@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+
+context Structure
+
+  @Class UnitDef isabstract
+  
+    @Attribute name       : String    (?) end
+    @Attribute parent     : Path      (?) end
+    @Attribute implements : Seq(Path) (?) end
+    @Attribute owner      : Element (?,!) end
+    
+    @Operation delete()
+      owner.delete(self)
+    end
+    
+  end

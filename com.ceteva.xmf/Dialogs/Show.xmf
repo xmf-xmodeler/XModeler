@@ -1,0 +1,35 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Show extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Show ::= label = Exp value = Exp { Show(label,value) }.
+      
+    end 
+    
+    @Attribute label : Performable end
+    @Attribute value : Performable end
+    
+    @Constructor(label,value) end 
+    
+    @Operation desugar()  
+      [| @Operation(c) @Operation(d) d.show(<label>,<value>,c) end end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Show~%~V",Seq{indent+2});
+      label.pprint(out,indent+2);
+      format(out,"~%~V",Seq{indent+2});
+      value.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

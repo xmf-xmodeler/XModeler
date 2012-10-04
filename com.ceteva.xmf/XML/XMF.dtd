@@ -1,0 +1,39 @@
+<!DEFINE Value (Boolean | Integer | String | Object | IdRef | Set | Seq | Null | Operation EmptySeq)>
+
+<!ELEMENT Boolean ()>
+<!ATTLIST Boolean value PCDATA #REQUIRED> 
+
+<!ELEMENT EmptySeq ()>
+
+<!ELEMENT IdRef ()>
+<!ATTLIST IdRef id ID #REQUIRED> 
+
+<!ELEMENT Integer ()>
+<!ATTLIST Integer value PCDATA #REQUIRED> 
+
+<!ELEMENT NameSpaceRef ()>
+<!ATTLIST NameSpaceRef name PCDATA #REQUIRED> 
+
+<!ELEMENT Null ()>
+
+<!ELEMENT Object (Ref Slot*)>
+<!ATTLIST Object id ID #REQUIRED> 
+
+<!ELEMENT Operation ()>
+<!ATTLIST Operation name PCDATA #REQUIRED> 
+
+<!ELEMENT Ref (NameSpaceRef*)>
+<!ATTLIST Ref root PCDATA #REQUIRED> 
+
+<!ELEMENT Set (Value)*>
+
+<!ELEMENT Seq (Value Value)>
+
+<!ELEMENT Slot (Value)>
+<!ATTLIST Slot name PCDATA #REQUIRED> 
+
+<!ELEMENT String ()>
+<!ATTLIST String value PCDATA #REQUIRED> 
+
+
+

@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler XOCL::Sugar in PPrint(sugared,out,seen)
+  self.dispatch(sugared.desugar(),out)
+end;

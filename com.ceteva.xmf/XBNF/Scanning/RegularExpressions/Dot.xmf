@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import XBNF::Scanning::RegularExpressions;
+
+context ! XBNF::Scanning::RegularExpressions
+
+  @Class Dot extends RegularExpression
+    
+  end

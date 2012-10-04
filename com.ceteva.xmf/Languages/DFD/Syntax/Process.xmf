@@ -1,0 +1,218 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+    
+  @Class Process extends Classifier, ProcessComponent
+
+    // A process definition consists of component definitions for
+    // sub-processes and data stores, and a body action. A process
+    // has a single 'argument' that it uses to refer to input messages.
+    // The body action of the process provides its output message.
+    // A process has the form:
+    // @Process <NAME> (<NAME>)
+    //   <COMPONENT>*
+    // end
+    // where a <COMPONENT> is a data store, process or an action.
+    //
+    // A process is a classifier and can therefore define:
+    //   o 'new' creating a new instance of the process.
+    //   o constraints defining well-formedness constraints on processes.
+
+    @Attribute input : String = "x" end
+    @Attribute processes : Set(Process) end
+    @Attribute dataStores : Set(DFD::Syntax::DataStore) end
+    // @Attribute body : DFD::Syntax::ProcessBody end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Process ::= name = Name '(' input = Name ')' body = Exp*
+      {
+        [| Languages::DFD::Syntax::Process(<name>,<input>,<body>) |]
+      }.
+    
+    end
+
+    @Constructor(name,input,body) 
+      // self.body := Languages::DFD::Syntax::NullAction.new().owner := self
+    end 
+
+    // Well-formedness constraints..............
+
+    @Constraint AllProcessesHaveUniqueNames
+      processes->forAll(p1 |
+        processes->forAll(p2 |
+          p1.name = p2.name implies p1 = p2))
+    end
+
+    @Constraint AllDataStoresHaveUniqueNames
+      dataStores->forAll(p1 |
+        dataStores->forAll(p2 |
+          p1.name = p2.name implies p1 = p2))
+    end
+      
+    @Operation code(indent:Integer):String
+      "@Process " + name + "(" + input + ")" + 
+        processes->iterate(p code = "" |
+          code + "\n" + " ".repeat(indent + 2) + p.code(indent + 2)) + 
+            dataStores->iterate(d code = "" | 
+              code + "\n" + " ".repeat(indent + 2) + d.code(indent + 2)) +
+              "\n" + " ".repeat(indent + 2) + body.code(indent + 2) + "\n" +
+              " ".repeat(indent + 2) + "@Resource \"" + resourceName + "\" end\n" +
+              " ".repeat(indent) + "end"
+    end
+      
+    @Operation contextCode():String
+      "import DFD::Syntax;\n\n" +
+      if owner = null then "context Root" else "context " + owner.path() end + "\n  " +
+      self.code(2)
+    end 
+      
+    @Operation updateResource(name:String)
+      self.setResourceName(name);
+      @For process in processes do
+        process.updateResource(name)
+      end
+    end
+      
+    @Operation add(component:ProcessComponent)
+      if component.of() = Resource
+      then self.resourceName := component.resourceName
+      else component.addTo(self)
+      end
+    end
+      
+    @Operation remove(component:ProcessComponent)
+      component.removeFrom(self)
+    end
+
+    @Operation addTo(p:Process)
+      p.addProcess(self)
+    end
+      
+    @Operation removeFrom(p:Process)
+      p.removeProcess(self)
+    end
+
+    @Operation addStore(store)
+      store.owner := self;
+      if self.hasDataStore(store.name) 
+      then self.getDataStore(store.name).fields := store.fields
+      else self.dataStores := dataStores->including(store)
+      end
+    end
+      
+    @Operation removeStore(store)
+      self.dataStores := dataStores->excluding(store)
+    end
+
+    @Operation addProcess(p:Process)
+      p.owner := self;
+      if self.hasProcess(name) 
+      then self.removeProcess(self.getProcess(name)) 
+      else self
+      end; 
+      self.processes := processes->including(p)
+    end 
+      
+    @Operation removeProcess(p:Process)
+      self.processes := processes->excluding(p)
+    end
+      
+    @Operation allProcesses():Set(Process)
+      processes->iterate(p processes = Set{self} | processes->union(p.allProcesses()))
+    end
+      
+    @Operation allSubProcesses():Set(Process)
+      self.allProcesses()->excluding(self)
+    end
+      
+    @Operation getElement(name:String):ProcessComponent
+      // A namespace should implement this operation in order to
+      // allow name lookup (the '::' operator).
+      if self.hasProcess(name)
+      then self.getProcess(name)
+      elseif self.hasDataStore(name)
+      then self.getDataStore(name)
+      else self.error("No element named " + name)
+      end
+    end
+      
+    @Operation hasProcess(name:String):Boolean
+      self.getProcess(name) <> null
+    end
+      
+    @Operation getProcess(name:String):Process
+      if processes->exists(p | p.name = name)
+      then processes->select(p | p.name = name)->sel
+      else null
+      end
+    end
+      
+    @Operation hasDataStore(name:String):Boolean
+      self.getDataStore(name) <> null
+    end
+      
+    @Operation getDataStore(name:String):Process
+      if dataStores->exists(p | p.name = name)
+      then dataStores->select(p | p.name = name)->sel
+      else null
+      end
+    end
+      
+    @Operation newSubProcess():Process
+      // Called when we want to generate a new sub-process
+      // and set the name to a default.
+      let name = self.generateUniqueProcessName(processes->size)
+      in let newProcess = Process.new().name := name
+         in self.add(newProcess);
+            newProcess
+         end
+      end
+    end
+      
+    @Operation generateUniqueProcessName(count:Integer):String
+      let name = "process" + count
+      in if processes->exists(p | p.name = name)
+         then self.generateUniqueProcessName(count + 1)
+         else name
+         end
+      end
+    end
+      
+    @Operation newStore():DataStore
+      // Called when we want to generate a new store
+      // and set the name to a default.
+      let name = self.generateUniqueStoreName(processes->size)
+      in let newStore = DataStore.new().name := name
+         in self.add(newStore);
+            newStore
+         end
+      end
+    end
+      
+    @Operation generateUniqueStoreName(count:Integer):String
+      let name = "store" + count
+      in if dataStores->exists(p | p.name = name)
+         then self.generateUniqueStoreName(count + 1)
+         else name
+         end
+      end
+    end
+           
+    @Operation new()
+      // 'new' is used to create a new instance of a process.
+      // A new instance will have storage allocated for the data store
+      // definitions. In addition, each process instance manages the
+      // scope of names by creating environment structures that bind sub-process
+      // names to instances of the sub-process definitions and bind data store
+      // names to instances of data store definitions. Naming schemes are lexical
+      // therefore we can allocate all environment structures when the instance is
+      // created.
+      self.nestedNew(Seq{})
+    end
+  end

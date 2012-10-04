@@ -1,0 +1,164 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XRules;
+
+context ! Root::XRules 
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Rule extends XOCL::Syntax
+  
+    @Attribute name     : String       (?)   end
+    @Attribute ruleDefs : Set(RuleDef) (+,?) end
+    
+    @Constructor(name,ruleDefs) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Rule ::= n = Name args = RuleArgs actions = Action* {
+      
+        Rule(n,Set{RuleDef(args->size,Seq{Clause(args,actions)})})
+        
+      }.
+      
+      RuleArgs ::= '(' (
+      
+        ')' { Seq{} }
+        
+      | t = Term ts = (',' Term)* ')' { Seq{t | ts} }
+      
+      ).
+      
+      RulePath ::= n = Name ns = ('::' Name)* { Seq{n | ns} }.
+      
+      Term ::= 
+        i = Num { Const(i) }
+      | s = Str { Const(s) }
+      | 'true' { Const(true) }
+      | 'false' { Const(false) }
+      | 'null' { Const(null) }
+      | NamedTerm
+      | Terms
+      | '<' e = Exp '>' { Const(OCL::Drop(e)) }.
+      
+      Num ::= n1 = Int ('.' n2 = Int t = Token { (XCore.getElement("Float"))(n1.toString(),t.chars) } | {n1}).
+      
+      NamedTerm ::= n = Name (
+      
+        ':' t = RulePath { Var(n,t) } 
+        
+      | ns = ('::' Name)* '[' fields = Fields ']' { Record(Seq{n|ns},fields) }
+        
+      | { Var(n) }
+      
+      ).
+      
+      Fields ::= f = Field fs = (';' Field)* { Seq{f|fs} } | { Seq{} }.
+      
+      Field ::= n = Name '=' t = Term { Field(n,t) }.
+      
+      Terms ::= Name '{' ( '}' { Const(Seq{}) }
+        
+      | h = Term ( '}' { Terms(h,Const(Seq{})) }
+        
+        | '|' t = Term '}' { Terms(h,t) }
+        
+        | ts = (',' Term)* '}' { Seq{h|ts}->reverse->iterate(t ts = Const(Seq{}) | Terms(t,ts)) }
+        
+        )
+      
+      ).
+      
+      Action ::= TryGoal | ClauseEl | ThrowTerm | IfGoal.
+      
+      IfGoal ::= 'if' test = Action* 'then' conseq = Action* ('else' alt = Action* 'end' { If(test,conseq,alt) } | 'end' { If(test,conseq,Seq{Fail()}) }).
+      
+      ThrowTerm ::= 'throw' t = Term { Throw(t) }.
+      
+      TryGoal ::= 'try' as = Action* cs = CatchClause* ('else' e = Action 'end' { Try(as,cs,e) } | 'end' { Try(as,cs) }).
+      
+      CatchClause ::= 'catch' '(' t = Term ')' as = Action* { Catch(t,as) }.
+      
+      Cut ::= '!' { Cut() }.
+      
+      Fail ::= 'fail' { Fail() }.
+      
+      ClauseEl ::= r = ClauseRel { Rule::processClauseElement(r) } | Cut | Fail.
+      
+      ClauseRel ::= a1 = ClauseExp (o = RelOp a2 = ClauseExp { Seq{"REL",a1,o,a2} } | { a1 }).
+      
+      ClauseExp ::= a1 = ClauseAtom (o = ArithOp a2 = ClauseExp { Seq{"EXP",a1,o,a2} } | {a1} ) | EvalExp.
+        
+      EvalExp ::= 'eval' e = Exp args = RuleArgs { EvalCall(XOCL::Exp(e),args) }.
+      
+      ClauseAtom ::= RuleCall | FunCall | s = Str { Const(s) } | i = Num { Const(i) } | ClauseBool | '(' a = ClauseExp ')' { a }.
+      
+      RuleCall ::= n = Name (args = RuleArgs { Call(n,args) } | { Var(n) }).
+      
+      FunCall ::= 'call' e = Exp args = RuleArgs { FunCall(XOCL::Exp(e),args) }.
+      
+      ClauseBool ::= 'true' { Const(true) } | 'false' { Const(false) }.
+      
+      ArithOp ::= '+' { "+" } | '-' { "-" } | '*' { "*" } | '/' { "/" }.
+      
+      RelOp ::= '=' { "=" } | '<' { "<" } | '>' { ">" } | '<>' { "<>" } | 
+             
+                '>=' { ">=" } | '<=' { "<=" }. 
+      
+    end 
+    
+    @Operation add(element)
+      @TypeCase(element)
+        RuleDef do
+          @Find(ruleDef,ruleDefs)
+            when ruleDef.arity() = element.arity()
+            do @For clause in element.clauses() do
+                 ruleDef.add(clause)
+               end
+            else self.addToRuleDefs(element)
+          end
+        end
+      end
+    end
+    
+    @Operation processClauseElement(e)
+    
+      // Expressing the translation of elements to the AST is
+      // fiddly in the XBNF so we encode the types and perform
+      // post-processing...
+      
+      @Case e of
+        Seq{"REL",e1,o,e2} do
+          Relation(Rule::processClauseExp(e1),o,Rule::processClauseExp(e2))
+        end
+        Call(name,args) do
+          e
+        end
+        FunCall(exp,args) do
+          e
+        end
+        Cut() do
+          e
+        end
+        else self.error("Illegal clause element: " + e.toString())
+      end
+    end
+    
+    @Operation processClauseExp(e)
+      @Case e of
+        Seq{"EXP",e1,o,e2} do
+          BinExp(Rule::processClauseExp(e1),o,Rule::processClauseExp(e2))
+        end
+        else e
+      end
+    end
+
+  end

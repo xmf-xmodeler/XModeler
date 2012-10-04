@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+ 
+Root::type :=  
+
+@ToolType StateEditor
+  @NodeType Source end
+  @NodeType Target end
+  @NodeType Start(OVERLAY,hasport) extends Source
+    @Ellipse border(CENTRE,nofill) width = 30 height = 30 end
+    @Ellipse shape(CENTRE)  width = 20 height = 20 end
+  end
+  @NodeType End(hasport) extends Target
+    @Ellipse shape(CENTRE)  width = 30 height = 30 end
+  end
+  @EdgeType Transition Source -> Target targetHead = arrow 
+    @Label name(end,10,10) "name" end
+    @LabelExp guard(end,0-10,0-10) "true" end
+  end
+  @NodeType State(hasport) extends Source,Target
+    @Box box
+      cornerCurve = 30
+      minWidth = 50
+      minHeight = 50
+      @PaddedText name(CENTRE) "State Name" pad = 3 end
+      @Exp entryAction(CENTRE) "null" end
+      @Menu
+        @MenuAction Delete self.owner().delete(true) end
+      end
+    end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton State             icon = "Tools/State.gif" end
+      @ToolButton Start             icon = "Start.gif" end
+      @ToolButton End               icon = "End.gif"   end
+      @ToolButton Transition isEdge icon = "Tools/Transition.gif"  end
+    end
+  end
+end;
+
+Root::manager :=
+@ElementManager StateManager
+end;
+
+Root::tool := Tool(type,"State Editor",manager,null);

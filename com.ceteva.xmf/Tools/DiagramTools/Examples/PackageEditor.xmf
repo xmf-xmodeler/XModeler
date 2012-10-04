@@ -1,0 +1,193 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+
+context Root
+  @ToolType PackageEditor
+    // Class nodes can be connected using inheritance and attribute edges...
+    @NodeType Class(hasport)
+      // Place a box round the contents of the class node...
+      @Box nodeBox minWidth = 100
+        // Place a box round the name of the class...
+        @Box nameBox
+          // Display the name of the class...
+          @PaddedText name(CENTRE) "Class Name" pad = 3 end
+        end
+        // The body of the class is a sequence of simple valued attributes...
+        @Box bodyBox
+          // There can be any number of attributes in the box (starting with 0)...
+          @Star
+            // An attribute consists of a name, ':', then the type of the attribute...
+           @PaddedBox attribute(HORIZONTAL,ALIGN,hideLeft,hideRight,hideTop,hideBottom) pad = 1
+              @PaddedText name(LEFT)  "name"    pad = 2 end
+              @Text sep(CENTRE)       ":"               end
+              @PaddedText type(RIGHT) "Element" pad = 2 end
+              // Attributes can be deleted, node layout is performed after a delete...
+              @Menu @MenuAction Delete self.delete(true) end end
+            end
+          end
+        end
+      end
+      @Menu
+        @MenuAction Delete self.delete()                                           end
+        // Adding a new attribute to the class class via its box...
+        @MenuAction AddAtt self.ref1(Seq{"nodeBox","bodyBox"}).addNew("attribute") end
+      end
+    end
+    // Inheritance arrows go from child to parent...
+    @EdgeType Inheritance Class -> Class targetHead = whiteArrow
+      @Menu @MenuAction Delete self.delete() end end
+    end
+    // Attribute arrows go from owner to type. The label is the name of the attribute...
+    @EdgeType Attribute Class -> Class targetHead = arrow
+      @Label name(end,10,10) "name" end
+      @Menu @MenuAction Delete self.delete() end end
+    end
+    // A single group offers the creation buttons for the diagram components...
+    @ToolBar 
+      @ToolGroup Operations
+        @ToolButton Class              icon = "XCore/Class.gif"          end 
+        @ToolButton Inheritance isEdge icon = "XCore/Generalization.gif" end
+        @ToolButton Attribute isEdge   icon = "XCore/Attribute.gif"      end
+      end
+    end
+  end
+
+Root::package := XCore::Package("P");
+
+context Root
+
+@ElementManager PackageManager !
+  @EventHandler New_Class()
+    let classNode = event.node() then
+        nameBox = classNode.ref1(Seq{"nodeBox","nameBox","name"});
+        className = package.newName("Class") then
+        class = XCore::Class(className)
+    in register(classNode,class);
+       package.add(class);
+       nameBox.setText(className)
+    end
+  end
+  @EventHandler Class_Removed()
+    package.remove(find(event.node()))
+  end
+  @EventHandler Class_nodeBox_nameBox_name_Changed()
+    let class = find(event.root())
+    in class.setName(event.new())
+    end
+  end
+  @EventHandler New_Inheritance()
+    let parent = find(event.target());
+        child = find(event.source())
+    in child.addParent(parent);
+       register(event.edge(),Seq{child,parent})
+    end
+  end
+  @EventHandler Inheritance_Removed()
+    let parent = find(event.target());
+        child = find(event.source())
+    in child.removeParent(parent);
+       deregister(event.edge())
+    end
+  end
+  @EventHandler Inheritance_Target_Changed()
+    let child = find(event.edge())->at(0);
+        parent = find(event.new())
+    in child.removeParent(find(event.old()));
+       child.addParent(parent);
+       register(event.edge(),Seq{child,parent})
+    end
+  end
+  @EventHandler Inheritance_Source_Changed()
+    let child = find(event.old());
+        parent = find(event.edge())->at(1);
+        newChild = find(event.new())
+    in child.removeParent(parent);
+       newChild.addParent(parent);
+       register(event.edge(),Seq{newChild,parent})
+    end
+  end
+  @EventHandler New_Attribute()
+    let class = find(event.source());
+        type = find(event.target()) then 
+        name = event.edge().ref("name");
+        attributeName = class.newName("att") then
+        attribute = XCore::Attribute(attributeName,type)
+    in register(event.edge(),attribute);
+       register(name,attribute);
+       class.add(attribute);
+       name.textChanged(attributeName)
+    end
+  end
+  @EventHandler Attribute_Removed()
+    let class = find(event.source());
+        attribute = find(event.edge())
+    in class.remove(attribute)
+    end
+  end
+  @EventHandler Attribute_name_Changed()
+    let attribute = find(event.value())
+    in attribute.setName(event.new())
+    end
+  end
+  @EventHandler Attribute_Target_Changed()
+    let newType = find(event.new());
+        attribute = find(event.edge())
+    in attribute.type := newType
+    end
+  end
+  @EventHandler Attribute_Source_Changed()
+    let attribute = find(event.edge())
+    in attribute.owner().remove(attribute);
+       find(event.new()).add(attribute)
+    end
+  end
+  @EventHandler Add_To_Class_nodeBox_bodyBox_attribute()
+    let class = find(event.root()) then
+        name = event.value().ref1(Seq{"name"});
+        type = event.value().ref1(Seq{"type"});
+        attributeName = class.newName("att") then
+        attribute = XCore::Attribute(attributeName,Element)
+    in class.add(attribute);
+       register(name,attribute);
+       register(type,attribute);
+       name.setText(attributeName)
+    end
+  end
+  @EventHandler Class_nodeBox_bodyBox_attribute_Removed()
+    let attribute = find(event.display().ref1(Seq{"name"}))
+    in attribute.owner().remove(attribute)
+    end
+  end
+  @EventHandler Class_nodeBox_bodyBox_attribute_name_Changed()
+    let attribute = find(event.value())
+    in attribute.setName(event.new())
+    end
+  end
+  @EventHandler Class_nodeBox_bodyBox_attribute_type_Changed()
+    let attribute = find(event.value());
+        typeName = event.new()
+    in @Case typeName of 
+         "Element" do attribute.type := Element end
+         "String"  do attribute.type := String  end
+         "Integer" do attribute.type := Integer end
+         "Boolean" do attribute.type := Boolean end
+         "Float"   do attribute.type := Float   end
+         else 
+           xmf.warning("Unknown type for attribute: " + typeName);
+           event.value().setText(event.old())
+       end
+    end
+  end
+end
+
+Root::tool := Tool(PackageEditor,"Package Editor",PackageManager,null);

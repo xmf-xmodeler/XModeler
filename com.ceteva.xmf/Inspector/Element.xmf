@@ -1,0 +1,36 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import Env;
+
+context AllAspects::Inspect
+
+  @Class Element
+  
+    @Operation inspect()
+      @StandardDialog
+        self.inspectDialog(1)
+      end
+    end
+    
+    @Operation inspectDialog(level)
+      @Commands
+        @Separator end
+        @Show "Inspect[" + level + "]" self end
+        @Separator end
+        @Options
+          @Option("Return") @Skip end end
+          @Option("Quit") @Quit self end end
+          @Option("Command Loop")
+            format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+            Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+            self.inspectDialog(level)
+          end
+        end
+      end
+    end
+    
+  end 

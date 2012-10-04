@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+
+context Menus
+
+  @Class MenuItem isabstract
+  
+    @Attribute name : String (?,!) end
+    
+    @Constructor(name) ! end
+    
+    @AbstractOp new(this,tool,path)
+    end
+  
+  end

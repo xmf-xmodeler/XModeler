@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context DialogBoxes
+  @Class ColorDialog extends ContainedClientElement
+  
+    @Attribute message : String end
+    @Attribute default : Color end
+    
+    @Constructor(message,default)
+    end
+    
+    @Operation new()
+      let choosen = self.commandInterpreter().newColorDialog(self).asSeq()
+      in
+        Color(choosen.at(0),choosen.at(1),choosen.at(2))
+      end
+    end
+  
+  end

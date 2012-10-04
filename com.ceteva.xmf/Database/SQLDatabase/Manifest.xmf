@@ -1,0 +1,13 @@
+parserImport Manifests;
+
+@Manifest Database
+  @File SQL		            end
+  @File DatabaseConnection  end
+  @File QueryResult         end
+  @File SQLQueryResult      end
+  @File QueryProcessor      end
+  @File SQLDatabase         end
+  @File DatabaseUtilities   end
+  @File DBObject			end
+  @File DBClass				end
+end;

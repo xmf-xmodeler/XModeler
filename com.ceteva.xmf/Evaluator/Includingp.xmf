@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Includingp in Eval(aIncludingp,arg,seen)
+  if seen
+  then aIncludingp
+  else
+    let element = self.dispatch(aIncludingp.element,arg);
+        set = self.dispatch(aIncludingp.set,arg)
+    in aIncludingp
+    end
+  end
+end;

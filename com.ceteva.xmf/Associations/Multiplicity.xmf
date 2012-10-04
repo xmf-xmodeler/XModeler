@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Multiplicity isabstract extends XCore::Multiplicity
+  
+    // *** THESE ARE KEPT FOR LEGACY ONLY ***
+  
+    @Doc
+      The multiplicity of attribute en-ds is represented as an instance
+      of a concrete sub-class of this class. Ends may have multiplicity
+      1, 0-1, * or a range n to m. The multiplicity of both en-ds defines 
+      the invariant constraint that holds between the classes and the
+      attributes corresponding to the en-ds.
+    end
+    
+    @Operation check(value)
+      // *** TO BE IMPLEMENTED ***
+      true
+    end
+   
+    @AbstractOp convertToStandardMult() : XCore::Multiplicity
+      @Doc
+        The association-specific multiplicities are being replaced by XCore
+        multiplicities - this operation provides an equivalent instance
+      end
+    end
+
+    @AbstractOp typeExp(type):Performable
+      @Doc 
+        Association en-d types are specified without collection constructors.
+        This operation wraps a collection type constructor if required.
+      end
+    end
+
+  end

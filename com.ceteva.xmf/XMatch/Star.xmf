@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Star extends Pattern
+  
+    @Doc
+      Matches when 0 or more occurrences of pattern matches. The occurrences
+      are concatenated on the stack.
+    end
+  
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      Or(And(pattern,Star(pattern)),Empty()).match(chars,env,stack,succ,fail)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      // Cannot bind in a * pattern.
+      Set{}
+    end
+    
+  end

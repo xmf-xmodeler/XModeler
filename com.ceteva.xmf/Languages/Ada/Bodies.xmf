@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+  @Package Bodies 
+    @Class PkgBody extends Units::Unit
+      @Attribute declPart : Seq(Bodies::DeclPart) end
+      @Attribute name : String end
+      @Attribute statements : Seq(Statements::Statement) end
+      @Attribute exceptionHandlers : Seq(Statements::ExceptionHandler) end
+      @Constructor(name) ! end
+      @Operation code(indent:Element):Element
+        "package body " + name + " is\n" + " ".repeat(indent + 2) + declPart->collect(p |
+          p.code(indent + 2))->separateWith("\n" + " ".repeat(indent + 2)) + "\n" + " ".repeat(indent + 2) + statements->collect(s |
+          s.code(indent + 2))->separateWith("\n" + " ".repeat(indent + 2))
+      end
+    end
+    @Class DeclPart isabstract extends AdaObject
+    end
+    @Class DeclPartItem extends Bodies::DeclPart
+      @Attribute declItem : Decls::DeclItem end
+      @Operation code(indent:Element):Element
+        declItem.code(indent)
+      end
+    end
+    @Class DeclPartBody extends Bodies::DeclPart
+      @Attribute body : Bodies::Body end
+      @Operation code(indent:Element):Element
+        body.code(indent)
+      end
+    end
+    @Class Body isabstract extends AdaObject
+    end
+    @Class SubprogramBody extends Units::Unit,Bodies::Body
+      @Attribute subprogramSpec : Specs::SubprogramSpec end
+      @Attribute blockBody : Seq(Statements::Statement) end
+      @Attribute declPart : Seq(Bodies::DeclPart) end
+      @Operation code(indent:Element):Element
+        subprogramSpec.code(indent) + " is\n" + " ".repeat(indent + 2) + declPart->collect(d |
+          d.code(indent + 2))->separateWith("\n" + " ".repeat(indent + 2)) + "\n" + " ".repeat(indent + 2) + if blockBody->isEmpty
+        then ""
+        else "begin\n" + " ".repeat(indent + 4) + blockBody->collect(s |
+               s.code(indent + 4))->separateWith("\n" + " ".repeat(indent + 4)) + "\n" + " ".repeat(indent + 2) + "end\n" + " ".repeat(indent)
+        end + "end"
+      end
+    end
+  end
+ 
+  
+  
+  

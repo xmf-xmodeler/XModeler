@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class NodeType extends Tools::DiagramTools::Types::NodeType,EventHandler
+    
+  end

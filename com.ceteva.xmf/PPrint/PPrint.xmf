@@ -1,0 +1,168 @@
+parserImport XOCL;
+
+import Walkers;
+import IO;
+
+context Root::OCL
+
+  @Class PPrint metaclass Dispatcher extends DispatchingObject, OutputChannel
+  
+    // A pretty printing walker. Acts as an output channel in 
+    // order to keep track of the line position so that the
+    // current position can be marked for newlines in nested
+    // expressions. Keeps track of the tab position for newlines.
+    // Sends output to an underlying output channel. The output
+    // is sent to the supplied output channel.
+  
+    @Attribute tab        : Integer                 end
+    @Attribute selections : Table = Table(10) (?,!) end
+    @Attribute out        : OutputChannel     (?,!) end
+    @Attribute linePos    : Integer           (?,!) end
+    
+    @Constructor(out) ! end
+    
+    @Operation channel()
+      out.channel()
+    end
+    
+    @Operation close()
+      out.close()
+    end
+    
+    @Operation deselect(element,key)
+      if selections.hasKey(element)
+      then
+        if selections.get(element).hasKey(key)
+        then selections.get(element).remove(key)
+        end
+      end
+    end
+    
+    @Operation dispatch(element)
+    
+      // Entry point for clients..
+      
+      self.dispatch(element,self)
+    end
+    
+    @Operation dispatch(element,arg)
+    
+      // Marks the current selection..
+      
+      if self.isSelected(element)
+      then 
+        self.dispatchOnSelected(element,arg,
+          @Operation dispatch() 
+            super(element,arg)
+          end)
+      else super(element,self)
+      end
+    end
+    
+    @Operation dispatchFails(element,arg)
+    
+      // If there is no handler registered for the 
+      // element type then try sending the element
+      // a pprint message...
+      
+      element.pprint(out,tab)
+    end
+    
+    @Operation dispatchOnSelected(element,arg,cont)
+    
+      // The element has been marked as selected.
+      // The table has handlers that accept (out,e,a,c)
+      // where c is a 0-arity continuation for output.
+      
+      @Letrec
+        handlers = selections.get(element).values()->asSeq;
+        dispatch = 
+          @Operation(handlers)
+            if handlers->isEmpty
+            then cont()
+            else
+              let cont = @Operation() dispatch(handlers->tail) end
+              in handlers->head.invoke(self,Seq{self,element,arg,cont})
+              end
+            end
+          end
+      in dispatch(handlers)
+      end
+    end
+    
+    @Operation flush()
+      out.flush()
+    end
+    
+    @Operation indent(fun)
+    
+      // Performs commands in fun after increasing
+      // the indent. Ensures that the indent is 
+      // decreased even if an error occurs.
+      
+      try
+        self.tab := tab + 2;
+        fun();
+        self.tab := tab - 2
+      catch(exception)
+        self.tab := tab - 2;
+        throw exception
+      end
+    end
+    
+    @Operation isSelected(element):Boolean
+      selections.hasKey(element) andthen
+      selections.get(element).keys()->size >0
+    end
+    
+    @Operation mark(fun)
+    
+      // Mark the current line position as the tab
+      // position for the actions in the body of the
+      // function. Ensure that all is reset after
+      // the actions are performed.
+      
+      let tab = tab
+      in try
+           self.tab := linePos;
+           fun();
+           self.tab := tab
+         catch(exception)
+           self.tab := tab;
+           throw exception
+         end
+      end
+    end
+    
+    @Operation newLine()
+      self.linePos := tab;
+      format(out,"~%~V",Seq{tab})
+    end
+    
+    @Operation reset()
+      self.tab := 0;
+      self.linePos := 0
+    end
+    
+    @Operation setChannel(c)
+      out.setChannel(c)
+    end
+    
+    @Operation select(element,key,handler)
+      if selections.hasKey(element)
+      then selections.get(element).put(key,handler)
+      else 
+        selections.put(element,Table(5));
+        selections.get(element).put(key,handler)
+      end
+    end
+    
+    @Operation write(char)
+      if char = "\n"->at(0)
+      then self.linePos := 0
+      else self.linePos := linePos + 1
+      end;
+      out.write(char)
+    end
+    
+  end

@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Enum in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::Enum
+  @Operation lift():Performable
+    XOCL::Enum(name,SetExp("Seq",names->collect(n | StrExp(n))),Seq{})
+  end

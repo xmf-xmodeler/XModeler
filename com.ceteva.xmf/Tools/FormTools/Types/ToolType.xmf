@@ -1,0 +1,99 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+import FormContainer;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class ToolType extends FormContainer, Basic::ToolType
+
+  @Constructor(name,parents)
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+    
+      ToolType ::= sig = ToolSig parents = Extends patts = PosAtts defs = Exp* {
+      
+        ToolType::expand(sig,parents,patts,defs)
+        
+      }.
+      
+      ToolSig ::= n = ToolSigName ns = ('::' ToolSigName)* { Seq{n | ns} }.
+      
+      ToolSigName ::= Name | Str.
+      
+      Extends ::= 'extends' e = Exp es = (',' Exp)* { OCL::SetExp("Seq",Seq{e|es}) } | { OCL::SetExp("Seq",Seq{}) }.
+      
+  end
+  
+  @Operation addMenuItems(tool)
+    
+    // Called when the menu items are to be added to the 
+    // form for the tool. Note that this should be done
+    // prior to performing new on the form.
+    
+    menu.setGlobalMenu(tool.form(),tool,tool,Seq{},Set{self,tool})
+      
+  end
+  
+  @Operation expand(sig,parents,patts,defs)
+      let name = sig->last then
+          body =
+           [| let toolType = <defs->iterate(def exp = [| Tools::FormTools::Types::ToolType(<OCL::StrExp(name)>,<parents>) |] |
+                              [| <exp>.add(<def>) |])>
+              in toolType.setContentLayout(<OCL::StrExp(filterContentLayout(patts))>);
+                 toolType.mergeParents();
+                 toolType
+              end |];
+          path = 
+            if sig->size = 1 
+            then null 
+            else 
+              let sig = sig->butLast then
+                  toolType = OCL::StrExp(sig->last) then
+                  sig = sig->butLast then
+                  class = OCL::Path::toPath(sig)
+              in [| xmf.toolManager().toolDescriptor(<class>,<toolType>) |]
+              end
+            end
+      in if sig->size = 1
+         then body
+         else OCL::ContextDef(path,body)
+         end
+      end
+    end
+  
+  @Operation mergeParents()
+  
+    // The definitions provided by parents are merged into the
+    // elements of the form tool.
+    
+    @For parent in parents do
+      @For inheritedElement in parent.elements() do
+        @Find(localElement,self.elements())
+          when localElement.name().toString() = inheritedElement.name().toString()
+          do localElement.merge(inheritedElement)
+          else self.add(inheritedElement)
+        end
+      end
+    end
+  end
+
+  @Operation new(tool)
+  
+    // Create instances of each of the contents.
+    let env = elements->iterate(e env = Env::NullEnv() | e.bind(env))
+    in @For element in elements do
+         element.new(tool.form(),Seq{self.name().toString()},env,tool)
+       end
+    end
+    
+  end
+  
+end

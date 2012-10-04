@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Ada
+  Ada = @File Ada end
+        @File Names end
+        @File Expressions end
+        @File Types end
+        @File Units end
+        @File Decls end
+        @File Specs end
+        @File Statements end
+        @File Bodies end
+        @File Generics end
+        @File XMLParser/ADAXML end
+        @File XMLParser/ADAXMLOps end
+        @File AdaTools/Queries/AdaQueries end
+        @File ResolveRefs end
+do
+  Root::Languages::Ada::resolveRefs();
+  Ada
+end;

@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+  @Operation test()
+    @WithOpenFile(fin <- "c:/test.xml")
+      DOMInputChannel(fin).parse()
+    end
+  end

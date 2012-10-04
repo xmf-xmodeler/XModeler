@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class ZipFile
+  
+    @Attribute path : String (?) end
+    
+    @Constructor(path) ! end
+    
+    @Operation close()
+      Kernel_closeZipInputChannel(path)
+    end
+    
+    @Operation inputChannel(label:String):InputChannel
+      let channel = Kernel_zipInputChannel(path,label)
+      in StandardInputChannel(channel)
+      end
+    end
+    
+  end

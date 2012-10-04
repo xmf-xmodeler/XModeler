@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import Exceptions;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class SelfNode extends TreeNode, RightClickableWithElement
+  
+    @Attribute target : Element end
+    
+    @Constructor(target)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false;
+      self.element := target;
+      self
+    end
+  
+    @Operation addContents()
+      null
+    end
+    
+    @Operation doubleSelected()
+      target.edit()
+    end
+    
+    @Operation setReportText()
+      self.text := target.toString()
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Self.gif"
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        node.pprint(out,indent+2)
+      end
+    end
+
+  end

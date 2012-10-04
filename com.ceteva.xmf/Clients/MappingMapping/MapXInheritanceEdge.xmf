@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import ClassMapping;
+import MappingMapping;
+
+context MappingMapping
+
+  @Class MapXInheritanceEdge extends ClassifierXInheritanceEdge
+  
+    // This class is used as a marker to show that the
+    // parent and child of the association are both classes.
+    
+  end

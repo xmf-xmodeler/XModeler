@@ -1,0 +1,762 @@
+parserImport XOCL;
+parserImport XMap;
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+import Clients;
+import Tools;
+
+// This file contains the definition of a tool definition tool in terms of itself.
+// A meta-tool is used to display a collection of tool component buttons and their
+// diagramming counterparts. As a meta-tool is constructed, the underlying model 
+// element managed by the tool is built up. The resulting element is an instance of
+// ToolType and can therefore be instantiated to produce a tool that manages its
+// own elements.
+
+context Tools
+  @Operation addAtt(attType,attName,type)
+    @Case attType of
+       "Text" do
+         type.add(attName,TextType("<empty>"))
+       end
+       "Ellipse" do
+         type.add(attName,Ellipse(0,0,20,20))
+       end
+       "Exp" do
+         type.add(attName,ExpType("null"))
+       end
+       "Image" do
+         type.add(attName,ImageType("unknown.gif",0,0,30,30))
+       end
+       else xmf.message("Unknown type for attribute: " + attType)
+    end
+  end
+  
+context Tools
+  @Operation setAtt(newType,att)
+    @Case newType of
+      "Text" do
+        att.setType(TextType("<empty>"))
+      end
+      "Ellipse" do
+        att.setType(EllipseType(0,0,30,30))
+      end
+      "Exp" do
+        att.setType(ExpType("null"))
+      end
+      "Image" do
+        att.setType(ImageType("unknown.gif",0,0,30,30))
+      end
+      else xmf.message("Unknown type for a attribute: " + newType)
+    end
+  end
+  
+context Tools
+  @Operation nodeAttributeType()
+    let attributeType = BoxType()
+          .add("name",false,TextType("att"),"CENTRE")
+          .add("type",false,TextType("Text"),"CENTRE") then
+        delete = MenuAction("Delete",
+           @Operation delete(object,tool) 
+             let attributeObject = tool.objectFor(object.element.owner);
+                 nodeObject = tool.objectFor(object.element.owner.owner) 
+              in tool.removeObject(attributeObject);
+                 nodeObject.layout();
+                 tool.raise("Delete(Node::atts)",nodeObject,attributeObject)
+              end
+           end)
+    in attributeType.layout := "HORIZONTAL";
+       attributeType.attNamed("name").type.menuType.addToItems(delete);
+       attributeType
+    end
+  end        
+
+context Tools
+      
+  let toolType = ToolType("MetaTool");
+      
+      displayGroup = ToolGroup("Displays");
+      diagramGroup = ToolGroup("Types");
+      toolBarGroup = ToolGroup("Tool Bar");
+      
+      newBoxType = NodeCreationButton("Box","Tools/Box.gif");
+      newBarType = NodeCreationButton("Bar","Tools/Bar.gif");
+      newImageType = NodeCreationButton("Image","Tools/Image.gif");
+      newEllipseType = NodeCreationButton("Ellipse","Tools/Ellipse.gif");
+      newTextType = NodeCreationButton("Text","Tools/Text.gif");
+      newExpType = NodeCreationButton("Exp","Tools/Exp.gif");
+      newNodeType = NodeCreationButton("Node","Tools/Node.gif");
+      newToolBarButton = NodeCreationButton("Button","Tools/Button.gif");
+      newToolBarGroup = NodeCreationButton("Group","Tools/Group.gif");
+      newMenuType = NodeCreationButton("Menu","Tools/Menu.gif");
+      
+      groupButton = EdgeCreationButton("GroupButton","Tools/Edge.gif");
+      inheritButton = EdgeCreationButton("Inherit","Tools/Inherit.gif");
+      attributeButton = EdgeCreationButton("Attribute","Tools/Edge.gif");
+      nodeCreationButton = EdgeCreationButton("Create","Tools/Edge.gif");
+      menuButton = EdgeCreationButton("AddMenu","Tools/Edge.gif");
+      edgeButton = EdgeCreationButton("Edge","Tools/Edge.gif");
+      
+      attributeSourceNodeType = NodeType("AttributeSource");
+      attributeTargetNodeType = NodeType("AttributeTarget") then
+      rightClickable = NodeType("RightClickable") then
+      displayNodeType = NodeType("Display",Seq{rightClickable,attributeSourceNodeType,attributeTargetNodeType}) then
+      boxNodeType = NodeType("Box",Set{displayNodeType});
+      groupNodeType = NodeType("Displays",Set{displayNodeType});
+      barNodeType = NodeType("Bar",Set{displayNodeType});
+      imageNodeType = NodeType("Image",Set{displayNodeType});
+      ellipseNodeType = NodeType("Ellipse",Set{displayNodeType});
+      textNodeType = NodeType("Text",Set{displayNodeType});
+      expNodeType = NodeType("Exp",Set{displayNodeType});
+      diagramType = NodeType("DiagramElement") then
+      nodeNodeType = NodeType("Node",Seq{rightClickable,attributeSourceNodeType,diagramType}) then
+      buttonNode = NodeType("Button") then
+      groupNode = NodeType("Group") then
+      menuNode = NodeType("Menu") then
+      
+      buttonEdge = EdgeType("GroupButton",groupNode,buttonNode,0,1);
+      nodeCreationEdge = EdgeType("Create",groupNode,diagramType,0,1);
+      inheritEdge = EdgeType("Inherit",nodeNodeType,nodeNodeType,0,Diagrams::Edge::whiteArrow);
+      menuEdge = EdgeType("AddMenu",rightClickable,menuNode,0,1);
+      edge = EdgeType("Edge",nodeNodeType,nodeNodeType,1,1);
+      menuLabel = LabelType("menu","end",0,0,true);
+      attributeEdge = EdgeType("Attribute",attributeSourceNodeType,attributeTargetNodeType,0,1);
+      attributeNameLabel = LabelType("att","end",0,0,true);
+      
+      boxTypeLabel = TextType("    Box    ");
+      imageTypeLabel = TextType("Tools/Image.gif");
+      textTypeLabel = TextType("    Text    ");
+      buttonName = TextType("  Button  ");
+      groupName = TextType("  Group  ");
+      actionType = BoxType() then
+      
+      delete = MenuAction("Delete",@Operation delete(object,tool) tool.removeObject(object) end);
+      edit = MenuAction("Edit",@Operation edit(object,tool) tool.associatedModel(object).edit() end);
+      
+      addAction = MenuAction("Add Action",
+        @Operation(object,tool) 
+          let menuType = tool.associatedModel(object) then
+              menuItem = menuType.addMenuItem() then
+              action = actionType.new(tool,object.element,0,0,0,0,"name") then
+              text = action.slotValue("name").element
+          in object.addTo(action,"actions");
+             object.layout();
+             @SlotValueChanged ! actionNameChanged(text,"text",newText,oldText)
+               if menuItem.name <> newText
+               then menuItem.setName(newText)
+               end
+             end
+          end
+        end);
+      
+      handleNewBoxType = Handler("New(Box)",
+        @Operation(object,tool)
+          let boxType = BoxType()
+          in tool.associate(boxType,object)
+          end
+        end);
+        
+      handleNewSimpleBoxAtt = Handler("Add(Box::atts)",
+         @Operation(boxObject,attObject)
+           let boxType = self.associatedModel(boxObject);
+               attName = attObject.slotValue("name").element.text;
+               attType = attObject.slotValue("type").element.text
+           in addAtt(attType,attName,boxType)
+           end
+         end);
+         
+       handleDeleteSimpleBoxAtt = Handler("Delete(Box::atts)",
+         @Operation(boxObject,attObject)
+           let boxType = self.associatedModel(boxObject);
+               name = attObject.slotValue("name").element.text
+           in boxType.deleteAttributeNamed(name)
+           end
+         end);
+         
+       handleChangeSimpleBoxAttName = Handler("Changed(Box::atts::name)",
+         @Operation(attObject,newName,oldName)
+           let boxObject = self.rootFor(attObject) then
+               boxType = self.associatedModel(boxObject) then
+               att = boxType.attNamed(oldName)
+           in att.setName(newName)
+           end
+         end);
+           
+       handleChangeSimpleBoxAttType = Handler("Changed(Box::atts::type)",
+         @Operation(typeObject,newType,oldType)
+           let boxObject = self.rootFor(typeObject);
+               attObject = self.objectFor(typeObject.element.owner) then
+               boxType = self.associatedModel(boxObject) then
+               att = boxType.attNamed(attObject.slotValue("name").element.text)
+           in setAtt(newType,att)
+           end
+         end);
+        
+        
+      handleNewBarType = Handler("New(Bar)",
+        @Operation(object,tool)
+          let barType = BarType()
+          in tool.associate(barType,object)
+          end
+        end);
+      handleNewImageType = Handler("New(Image)",
+        @Operation(object,tool)
+          let imageType = ImageType("Tools/Image.gif",0,0,30,30)
+          in tool.associate(imageType,object)
+          end
+        end);
+      handleNewEllipseType = Handler("New(Ellipse)",
+        @Operation(object,tool)
+          let ellipseType = EllipseType(0,0,30,30)
+          in tool.associate(ellipseType,object)
+          end
+        end);
+      handleImageNameChanged = Handler("Changed(Image::display::name)",
+        @Operation(imageObject,newName,oldName)
+          // self is the tool..
+          let object = self.rootFor(imageObject) then
+              image = self.associatedModel(object)
+          in if image.fileName <> newName
+             then image.fileName := newName
+             end
+          end
+        end);
+      handleNewButton = Handler("New(Button)",
+        @Operation(object,tool)
+          let button = ToolButton("Button","Tools/Button.gif",false,@Operation(tool,x,y) format(stdout,"No Action~%") end)
+          in tool.associate(button,object)
+          end
+        end);
+      handleNewMenu = Handler("New(Menu)",
+        @Operation(object,tool)
+          let menu = MenuType()
+          in tool.associate(menu,object)
+          end
+        end);
+      handleNewAddMenu = Handler("New(AddMenu)",
+        @Operation(edge,sourceObject,targetObject,tool)
+          let rightClickable = tool.associatedModel(sourceObject);
+          menu = tool.associatedModel(targetObject)
+          in rightClickable.setMenuType(menu)
+          end
+        end);
+      handleNewGroupButton = Handler("New(GroupButton)",
+        @Operation(edge,sourceObject,targetObject,tool)
+          let group = tool.associatedModel(sourceObject);
+              button = tool.associatedModel(targetObject)
+          in if not group.buttons->includes(button)
+             then group.addToButtons(button)
+             end
+          end
+        end);
+      handleNewInherit = Handler("New(Inherit)",
+        @Operation(edge,sourceObject,targetObject,tool)
+          let sourceType = tool.associatedModel(sourceObject);
+              targetType = tool.associatedModel(targetObject)
+          in if not sourceType.parents->includes(targetType)
+             then sourceType.addToParents(targetType)
+             end
+          end
+        end);
+      handleDeleteInherit = Handler("Delete(Inherit)",
+        @Operation(object)
+          let source = object.source;
+              target = object.target then
+              sourceType = self.associatedModel(source);
+              targetType = self.associatedModel(target)
+          in sourceType.deleteFromParents(targetType)
+          end
+        end);
+      handleNewCreateNode = Handler("New(Create)",
+        @Operation(edge,sourceObject,targetObject,tool)
+          let group = tool.associatedModel(sourceObject);
+              type = tool.associatedModel(targetObject)
+          in @TypeCase(type)
+               NodeType do
+                 let creationButton = NodeCreationButton(type.name,"")
+                 in group.addToButtons(creationButton);
+                    @SlotValueChanged ! creationButtonName(type,"name",newName,oldName)
+                      if creationButton.name <> newName
+                      then creationButton.setName(newName)
+                      end
+                    end
+                 end
+              end
+              EdgeType do
+                 let creationButton = EdgeCreationButton(type.name,"")
+                 in group.addToButtons(creationButton);
+                    @SlotValueChanged ! creationButtonName(type,"name",newName,oldName)
+                      if creationButton.name <> newName
+                      then creationButton.setName(newName)
+                      end
+                    end
+                 end
+              end
+            end
+          end
+        end);
+      handleNewEdge = Handler("New(Edge)",
+        @Operation(object,sourceObject,targetObject,tool)
+          let sourceType = tool.associatedModel(sourceObject);
+              targetType = tool.associatedModel(targetObject);
+              name = object.slotValue("name").element.text then
+              edgeType = EdgeType(name,sourceType,targetType)
+          in tool.associate(edgeType,object);
+             tool.element.addToEdgeTypes(edgeType)
+          end
+        end);
+        
+      handleEdgeNameChanged = Handler("Changed(Edge::name)",
+        @Operation(nameObject,newName,oldName)
+          let edgeObject = self.rootFor(nameObject) then
+              edgeType = self.associatedModel(edgeObject)
+          in edgeType.setName(newName)
+          end
+        end);
+        
+      handleNewAttribute = Handler("New(Attribute)",
+        @Operation(object,sourceObject,targetObject,tool)
+          let sourceType = tool.associatedModel(sourceObject);
+              targetType = tool.associatedModel(targetObject);
+              name = object.slotValue("name") then
+              attribute = ToolComponentAttribute(name.sendMessage("text"),false,targetType)
+          in sourceType.addToAttributes(attribute);
+             @SlotValueChanged ! attNameChanged(attribute,"name",newName,oldName)
+               if name.sendMessage("text") <> newName
+               then name.sendMessage("setText",newName)
+               end
+             end;
+             @SlotValueChanged ! labelChanged(name.element,"text",newText,oldText)
+               if attribute.name <> newText
+               then attribute.setName(newText)
+               end
+             end
+          end
+        end);
+      handleDeleteAttribute = Handler("Delete(Attribute)",
+        @Operation(object)
+          let source = object.source then
+              sourceModel = self.associatedModel(source);
+              name = object.slotValue("name")
+          in sourceModel.deleteAttributeNamed(name.element.text)
+          end
+        end);
+        
+      handleNewGroup = Handler("New(Group)",
+        @Operation(object,tool)
+          let group = ToolGroup()
+          in tool.associate(group,object);
+             tool.element.toolBar.addToGroups(group)
+          end
+        end);
+        
+        handleNewSimpleGroupAtt = Handler("Add(Group::atts)",
+         @Operation(groupObject,attObject)
+           let groupType = self.associatedModel(groupObject);
+               attName = attObject.slotValue("name").element.text;
+               attType = attObject.slotValue("type").element.text
+           in addAtt(attType,attName,groupType)
+           end
+         end);
+         
+       handleDeleteSimpleGroupAtt = Handler("Delete(Group::atts)",
+         @Operation(groupObject,attObject)
+           let groupType = self.associatedModel(groupObject);
+               name = attObject.slotValue("name").element.text
+           in groupType.deleteAttributeNamed(name)
+           end
+         end);
+         
+       handleChangeSimpleGroupAttName = Handler("Changed(Group::atts::name)",
+         @Operation(attObject,newName,oldName)
+           let groupObject = self.rootFor(attObject) then
+               groupType = self.associatedModel(groupObject) then
+               att = groupType.attNamed(oldName)
+           in att.setName(newName)
+           end
+         end);
+           
+       handleChangeSimpleGroupAttType = Handler("Changed(Group::atts::type)",
+         @Operation(typeObject,newType,oldType)
+           let groupObject = self.rootFor(typeObject);
+               attObject = self.objectFor(typeObject.element.owner) then
+               groupType = self.associatedModel(groupObject) then
+               att = groupType.attNamed(attObject.slotValue("name").element.text)
+           in setAtt(newType,att)
+           end
+         end);
+        
+        
+      handleNewNodeType = Handler("New(Node)",
+        @Operation(object,tool)
+          let nodeType = NodeType() then
+              handler = Handler("",@Operation defaultNewNodeEventHandler(object,tool) format(stdout,"No handler for New(~S)~%",Seq{nodeType.name}) end)
+          in tool.associate(nodeType,object);
+             tool.element.addToNodeTypes(nodeType);
+             tool.element.addToHandlers(handler);
+             @SlotValueChanged ! nodeNameChange(nodeType,"name",newName,oldName)
+               handler.setEvent("New(" + newName + ")")
+             end
+          end
+        end);
+        
+       handleNewSimpleNodeAtt = Handler("Add(Node::atts)",
+         @Operation(nodeObject,attObject)
+           let nodeType = self.associatedModel(nodeObject);
+               attName = attObject.slotValue("name").element.text;
+               attType = attObject.slotValue("type").element.text
+           in addAtt(attType,attName,nodeType)
+           end
+         end);
+         
+       handleDeleteSimpleNodeAtt = Handler("Delete(Node::atts)",
+         @Operation(nodeObject,attObject)
+           let nodeType = self.associatedModel(nodeObject);
+               name = attObject.slotValue("name").element.text
+           in nodeType.deleteAttributeNamed(name)
+           end
+         end);
+         
+       handleChangeSimpleNodeAttName = Handler("Changed(Node::atts::name)",
+         @Operation(attObject,newName,oldName)
+           let nodeObject = self.rootFor(attObject) then
+               nodeType = self.associatedModel(nodeObject) then
+               att = nodeType.attNamed(oldName)
+           in att.setName(newName)
+           end
+         end);
+           
+       handleChangeSimpleNodeAttType = Handler("Changed(Node::atts::type)",
+         @Operation(typeObject,newType,oldType)
+           let nodeObject = self.rootFor(typeObject);
+               attObject = self.objectFor(typeObject.element.owner) then
+               nodeType = self.associatedModel(nodeObject) then
+               att = nodeType.attNamed(attObject.slotValue("name").element.text)
+           in setAtt(newType,att)
+           end
+         end);
+           
+           
+       handleDeleteNodeType = Handler("Delete(Node)",
+         @Operation(object)
+           let nodeType = self.associatedModel(object)
+           in self.element.deleteFromNodeTypes(nodeType)
+           end
+         end);
+       handleChangeNodeTypeName = Handler("Changed(Node::nodeName::name)",
+        @Operation(textObject,newName,oldName)
+          let object = self.rootFor(textObject) then
+              nodeType = self.associatedModel(object)
+          in if nodeType.name <> newName
+         then nodeType.setName(newName)
+         else self.error("Cannot find node type for " + object.toString())
+         end
+          end
+        end);
+     handleChangeButtonName = Handler("Changed(Button::display::name)",
+        @Operation(textObject,newName,oldName)
+          let object = self.rootFor(textObject) then
+              button = self.associatedModel(object)
+          in if button.name <> newName
+             then button.setName(newName)
+             else self.error("Cannot find button for " + object.toString())
+             end
+          end
+        end);
+     handleChangeGroupName = Handler("Changed(Group::display::name)",
+        @Operation(textObject,newName,oldName)
+          let object = self.rootFor(textObject) then
+              group = self.associatedModel(object)
+          in if group.name <> newName
+             then group.setName(newName)
+             else self.error("Cannot find group for " + object.toString())
+             end
+          end
+        end);
+      handleNewTextType = Handler("New(Text)",
+        @Operation(object,tool)
+          let textType = TextType()
+          in tool.associate(textType,object);
+             @SlotValueChanged ! textTypeChanged(textType,"text",newText,oldtext)
+               if object.slotValue("label").element.text <> newText
+               then object.slotValue("label").element.setText(newText)
+               end
+             end;
+            @SlotValueChanged ! textChanged(object.slotValue("label").element,"text",newText,oldText)
+              if textType.text <> newText
+              then textType.setText(newText)
+              end
+            end
+         end
+       end);
+        
+      handleNewExpType = Handler("New(Exp)",
+        @Operation(object,tool)
+          let expType = ExpType()
+          in tool.associate(expType,object)
+          end
+        end)
+        
+        
+      in toolType.toolBar.addToGroups(displayGroup);
+         toolType.toolBar.addToGroups(diagramGroup);
+         toolType.toolBar.addToGroups(toolBarGroup);
+        
+         toolType.addToHandlers(handleNewBoxType);
+         toolType.addToHandlers(handleNewSimpleBoxAtt);
+         toolType.addToHandlers(handleDeleteSimpleBoxAtt);
+         toolType.addToHandlers(handleChangeSimpleBoxAttName);
+         toolType.addToHandlers(handleChangeSimpleBoxAttType);
+         toolType.addToHandlers(handleNewBarType);
+         toolType.addToHandlers(handleNewImageType);
+         toolType.addToHandlers(handleNewEllipseType);
+         toolType.addToHandlers(handleImageNameChanged);
+         toolType.addToHandlers(handleNewTextType);
+         toolType.addToHandlers(handleNewExpType);
+         toolType.addToHandlers(handleNewNodeType);
+         toolType.addToHandlers(handleNewSimpleNodeAtt);
+         toolType.addToHandlers(handleDeleteSimpleNodeAtt);
+         toolType.addToHandlers(handleChangeSimpleNodeAttName);
+         toolType.addToHandlers(handleChangeSimpleNodeAttType);
+         toolType.addToHandlers(handleDeleteNodeType);
+         toolType.addToHandlers(handleChangeNodeTypeName);
+         toolType.addToHandlers(handleChangeButtonName);
+         toolType.addToHandlers(handleChangeGroupName);
+         toolType.addToHandlers(handleNewButton);
+         toolType.addToHandlers(handleNewGroup);
+         toolType.addToHandlers(handleNewSimpleGroupAtt);
+         toolType.addToHandlers(handleDeleteSimpleGroupAtt);
+         toolType.addToHandlers(handleChangeSimpleGroupAttName);
+         toolType.addToHandlers(handleChangeSimpleGroupAttType);
+         toolType.addToHandlers(handleNewGroupButton);
+         toolType.addToHandlers(handleNewInherit);
+         toolType.addToHandlers(handleDeleteInherit);
+         toolType.addToHandlers(handleNewAttribute);
+         toolType.addToHandlers(handleDeleteAttribute);
+         toolType.addToHandlers(handleNewCreateNode);
+         toolType.addToHandlers(handleNewMenu);
+         toolType.addToHandlers(handleNewAddMenu);
+         toolType.addToHandlers(handleNewEdge);
+         toolType.addToHandlers(handleEdgeNameChanged);
+         
+         barNodeType.addToAttributes(ToolComponentAttribute("bar",false,ImageType("Bar.gif",0,0,30,30)));
+         ellipseNodeType.addToAttributes(ToolComponentAttribute("ellipse",false,ImageType("Ellipse.gif",0,0,30,30)));
+         expNodeType.addToAttributes(ToolComponentAttribute("exp",false,ImageType("Exp.gif",0,0,30,30)));
+         textNodeType.addToAttributes(ToolComponentAttribute("label",false,textTypeLabel));
+         menuNode.addToAttributes(ToolComponentAttribute("actions",true,actionType));
+         menuNode.addToAttributes(ToolComponentAttribute("label",false,TextType("Menu"),"CENTRE"));
+         
+         // Set up the type for Node....
+         
+         let nodeName = BoxType().add("name",false,TextType("Node"),"CENTRE");
+             attributeType = nodeAttributeType() then
+             add = MenuAction("New Att",
+              @Operation addAtt(object,tool) 
+                let attObject = attributeType.new(tool,object.element,0,0,50,50,"Node::atts")
+                in object.addTo(attObject,"atts");
+                   object.layout();
+                   tool.raise("Add(Node::atts)",object,attObject) 
+                end
+              end);
+            create = MenuAction("Add Create",
+              @Operation addCreate(object,tool)
+                let toolType = tool.element then
+                    groupNames = toolType.groupNames()->asSeq->including("New Group") then
+                    group = xmf.select("Add creation button","Select a group",groupNames,null,null);
+                    name = object.slotValue("nodeName").slotValue("name").element.text
+                in if group <> ""
+                   then 
+                     if group = "New Group"
+                     then 
+                       let newName = xmf.getString("New Group","Type the name of the new group","")
+                       in if newName <> null
+                          then 
+                            toolType.newGroup(newName);
+                            toolType.addNodeCreationButton(newName,name)
+                          end
+                       end
+                     else
+                       toolType.addNodeCreationButton(group,name)
+                     end
+                   end
+                end
+              end)
+          in nodeNodeType.layout := "VERTICAL";
+             nodeNodeType.add("nodeName",nodeName);
+             nodeNodeType.add("atts",true,attributeType);
+             nodeNodeType.menuType.addToItems(add);
+             nodeNodeType.menuType.addToItems(create)
+         end;
+         
+         // Set up the type for Box....
+         
+         let attributeType = BoxType().add("name",false,TextType("att"),"CENTRE").add("type",false,TextType("Text"),"CENTRE") then
+             delete = MenuAction("Delete",
+               @Operation delete(object,tool) 
+                 let attributeObject = tool.objectFor(object.element.owner);
+                     boxObject = tool.objectFor(object.element.owner.owner) 
+                 in tool.removeObject(attributeObject);
+                    boxObject.layout();
+                    tool.raise("Delete(Box::atts)",boxObject,attributeObject)
+                 end
+               end);
+            add = MenuAction("New Att",
+              @Operation addAtt(object,tool) 
+                let attObject = attributeType.new(tool,tool.rootFor(object).element,0,0,50,50,"Box::atts")
+                in tool.rootFor(object).addTo(attObject,"atts");
+                   tool.rootFor(object).layout();
+                   tool.raise("Add(Box::atts)",tool.rootFor(object),attObject) 
+                end
+              end)
+          in attributeType.layout := "HORIZONTAL";
+             attributeType.attNamed("name").type.menuType.addToItems(delete);
+             boxNodeType.layout := "VERTICAL";
+             boxNodeType.add("icon",ImageType("Box.gif",0,0,30,30));
+             boxNodeType.add("atts",true,attributeType);
+             boxNodeType.attNamed("icon").type.menuType.addToItems(add)
+         end;
+          
+         // Set up the type for Group ....
+         
+         let attributeType = GroupType().add("name",false,TextType("att"),"CENTRE").add("type",false,TextType("Text"),"CENTRE") then
+             delete = MenuAction("Delete",
+               @Operation delete(object,tool) 
+                 let attributeObject = tool.objectFor(object.element.owner);
+                     groupObject = tool.objectFor(object.element.owner.owner) 
+                 in tool.removeObject(attributeObject);
+                    groupObject.layout();
+                    tool.raise("Delete(Group::atts)",groupObject,attributeObject)
+                 end
+               end);
+            add = MenuAction("New Att",
+              @Operation addAtt(object,tool) 
+                let attObject = attributeType.new(tool,tool.rootFor(object).element,0,0,50,50,"Group::atts")
+                in tool.rootFor(object).addTo(attObject,"atts");
+                   tool.rootFor(object).layout();
+                   tool.raise("Add(Group::atts)",tool.rootFor(object),attObject) 
+                end
+              end)
+          in attributeType.layout := "HORIZONTAL";
+             attributeType.attNamed("name").type.menuType.addToItems(delete);
+             groupNodeType.layout := "VERTICAL";
+             groupNodeType.add("icon",ImageType("Group.gif",0,0,30,30));
+             groupNodeType.add("atts",true,attributeType);
+             groupNodeType.attNamed("icon").type.menuType.addToItems(add)
+         end;
+         
+         // Set up the edge type....
+         
+         let sourceLabel = LabelType("source","start",10,10,false);
+             targetLabel = LabelType("target","end",0-20,0-20,false);
+             name = LabelType("Edge","middle",10,10,true);
+             create = MenuAction("Add Create",
+              @Operation addCreate(object,tool)
+                let toolType = tool.element then
+                    groupNames = toolType.groupNames()->asSeq->including("New Group") then
+                    group = xmf.select("Add creation button","Select a group",groupNames,null,null);
+                    name = object.slotValue("name").element.text
+                in if group <> ""
+                   then 
+                     if group = "New Group"
+                     then 
+                       let newName = xmf.getString("New Group","Type the name of the new group","")
+                       in if newName <> ""
+                          then 
+                            toolType.newGroup(newName);
+                            toolType.addEdgeCreationButton(newName,name)
+                          end
+                       end
+                     else
+                       toolType.addEdgeCreationButton(group,name)
+                     end
+                   end
+                end
+              end)
+         in edge.add("source",sourceLabel);
+            edge.add("target",targetLabel);
+            edge.add("name",name);
+            edge.menuType.addToItems(create)
+         end;
+         
+         imageBox(buttonNode,"Button.gif","Button");
+         imageBox(imageNodeType,"Image.gif","Image.gif");
+         attributeEdge.addToAttributes(ToolComponentAttribute("name",false,attributeNameLabel));
+         menuEdge.addToAttributes(ToolComponentAttribute("label",false,menuLabel));
+         actionType.addToAttributes(ToolComponentAttribute("name",false,TextType("Action"),"CENTRE"));
+                
+         boxNodeType.menuType.addToItems(delete);
+         barNodeType.menuType.addToItems(delete);
+         imageNodeType.menuType.addToItems(delete);
+         ellipseNodeType.menuType.addToItems(delete);
+         textNodeType.menuType.addToItems(delete);
+         expNodeType.menuType.addToItems(delete);
+         nodeNodeType.menuType.addToItems(delete);
+         buttonNode.menuType.addToItems(delete);
+         groupNode.menuType.addToItems(delete);
+         menuNode.menuType.addToItems(delete);
+         menuNode.menuType.addToItems(addAction);
+         
+         boxNodeType.menuType.addToItems(edit);
+         barNodeType.menuType.addToItems(edit);
+         imageNodeType.menuType.addToItems(edit);
+         ellipseNodeType.menuType.addToItems(edit);
+         textNodeType.menuType.addToItems(edit);
+         expNodeType.menuType.addToItems(edit);
+         nodeNodeType.menuType.addToItems(edit);
+         buttonNode.menuType.addToItems(edit);
+         groupNode.menuType.addToItems(edit);
+         menuNode.menuType.addToItems(edit);
+         
+         toolType.addToNodeTypes(attributeSourceNodeType);
+         toolType.addToNodeTypes(attributeTargetNodeType);
+         toolType.addToNodeTypes(rightClickable);
+         toolType.addToNodeTypes(displayNodeType);
+         toolType.addToNodeTypes(diagramType);
+         toolType.addToNodeTypes(boxNodeType);
+         toolType.addToNodeTypes(groupNodeType);
+         toolType.addToNodeTypes(barNodeType);
+         toolType.addToNodeTypes(imageNodeType);
+         toolType.addToNodeTypes(ellipseNodeType);
+         toolType.addToNodeTypes(textNodeType);
+         toolType.addToNodeTypes(expNodeType);
+         toolType.addToNodeTypes(nodeNodeType);
+         toolType.addToNodeTypes(buttonNode);
+         toolType.addToNodeTypes(groupNode);
+         toolType.addToNodeTypes(menuNode);
+         
+         toolType.addToEdgeTypes(buttonEdge);
+         toolType.addToEdgeTypes(inheritEdge);
+         toolType.addToEdgeTypes(attributeEdge);
+         toolType.addToEdgeTypes(nodeCreationEdge);
+         toolType.addToEdgeTypes(menuEdge);
+         toolType.addToEdgeTypes(edge);
+         
+         displayGroup.addToButtons(newBoxType);
+         displayGroup.addToButtons(newBarType);
+         displayGroup.addToButtons(newImageType);
+         displayGroup.addToButtons(newEllipseType);
+         displayGroup.addToButtons(newTextType);
+         displayGroup.addToButtons(newExpType);
+         displayGroup.addToButtons(newMenuType);
+         displayGroup.addToButtons(menuButton);
+         
+         diagramGroup.addToButtons(newNodeType);
+         diagramGroup.addToButtons(edgeButton);
+         diagramGroup.addToButtons(inheritButton);
+         diagramGroup.addToButtons(attributeButton);
+         diagramGroup.addToButtons(newMenuType);
+         diagramGroup.addToButtons(menuButton);
+         
+         toolBarGroup.addToButtons(newToolBarButton);
+         toolBarGroup.addToButtons(newToolBarGroup);
+         toolBarGroup.addToButtons(groupButton);
+         toolBarGroup.addToButtons(nodeCreationButton);
+         
+         @Handler toolType in Lift(o,arg,encountered)
+           [| self.error("Cannot lift a meta-tool") |]
+         end; 
+         
+         @Operation metaTool() toolType end
+      end
+      

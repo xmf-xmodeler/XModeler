@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class MkSlot extends XarInstr
+  
+    @Operation labelString():String
+      let name = contents->at(0);
+          value = contents->at(1)
+      in if name.isKindOf(MkSymbol)
+         then 
+           if value.isKindOf(Const)
+           then name.name + " = " + value.value.toString()
+           else name.name
+           end
+         else super()
+         end
+      end
+    end
+    
+    @Operation getChildren():Set(Element)
+       let name = contents->at(0);
+          value = contents->at(1)
+      in if name.isKindOf(MkSymbol)
+         then 
+           if value.isKindOf(Const)
+           then Set{}
+           else Set{value}
+           end
+         else Set{name,value}
+         end
+      end
+    end
+      
+  end

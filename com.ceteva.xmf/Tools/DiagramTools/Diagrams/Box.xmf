@@ -1,0 +1,82 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Box extends Clients::Diagrams::Box, Display, Container
+  
+    @Attribute fill : Boolean (!,?) end
+  
+    @Operation types()
+      type.contents()->iterate(t T = Seq{} | T + t.underlyingTypes())
+    end
+    
+    @Operation contents()
+      displays
+    end
+    
+    @Operation initDiagrams(tool)
+      @For display in displays do
+        display.initDiagrams(tool)
+      end
+    end
+    
+    @Operation layout()
+      self.type().layout(self,x,y,width,height)
+    end
+    
+    @Operation needsBaseAbutt()
+      showBottom
+    end
+    
+    @Operation needsLeftAbutt()
+      showLeft
+    end
+    
+    @Operation needsRightAbutt()
+      showRight
+    end
+    
+    @Operation needsTopAbutt()
+      showTop
+    end
+    
+    @Operation new(parent,setMenu)
+    
+      // It is not possible to send the fill state as part of the creation
+      // of a box on the diagram for a standard Box. This specialization
+      // gets round this.
+      
+      let result = super(parent,setMenu)
+      in self.showFill(fill);
+         result
+      end
+    end
+
+    @Operation renew(parent)
+
+      let result = super(parent)
+      in self.showFill(fill);
+         result
+      end
+    end
+    
+    @Operation setTextFocus()
+    
+      // Find any text components and select one if the focus
+      // is to be set to that text...
+      
+      @For d in self.contents() do
+        d.setTextFocus()
+      end
+    end
+
+    @Operation toString()
+      self.type().name() + "(" + displays->map("toString")->separateWith(",") + ")"
+    end
+    
+  end

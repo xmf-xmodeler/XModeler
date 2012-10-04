@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import <NAMESPACE>;
+
+context <NAMESPACE>
+
+  @Class <NAME> extends <PARENT>
+  
+    @Attribute <NAME> : <TYPE> end
+    
+    @Constructor(<NAMES>) ! end
+    
+    @Operation <NAME>(<ARGS>)
+      <BODY>
+    end
+    
+  end

@@ -1,0 +1,25 @@
+parserImport Languages::MicroJava;
+parserImport XOCL;
+
+context Root
+  @Operation test()
+    [| @Java 
+         package P { 
+           import a.b.c;
+           import java.lang.*;
+           class A {
+             public int x;
+             public B b;
+             public int m1(int x,int y) {
+               return x + y;
+             }
+           }
+           class B {
+           }
+           class C {
+           }
+            
+         } 
+       end 
+    |].browse()
+  end

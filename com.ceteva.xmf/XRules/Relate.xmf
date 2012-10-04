@@ -1,0 +1,48 @@
+parserImport XOCL;
+parserImport XRules;
+parserImport Parser::BNF;
+
+import XRules;
+import OCL;
+
+context Root::XRules
+
+  @Class Relate extends XOCL::Sugar
+
+    @Attribute name     : String      (?) end
+    @Attribute value1   : String      (?) end
+    @Attribute type1    : Performable (?) end
+    @Attribute conv1    : Performable (?) end
+    @Attribute value2   : String      (?) end
+    @Attribute type2    : Performable (?) end
+    @Attribute conv2    : Performable (?) end 
+    
+    @Constructor(name,value1,type1,conv1,value2,type2,conv2) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Relate ::= name = Name value1 = Name ':' type1 = Exp '=' conv1 = Exp value2 = Name ':' type2 = Exp '=' conv2 = Exp {
+        Relate(name,value1,type1,conv1,value2,type2,conv2)
+      }.
+        
+    end
+        
+    @Operation desugar()
+      [| @Builtin <name> (<value1>,<value2>) [rules,indent,env,succ,fail,exception]
+           <Var(value1)> := deref(<Var(value1)>,env);
+           <Var(value2)> := deref(<Var(value2)>,env);
+           if <Var(value1)>.isKindOf(<type1>)
+           then env := unify(<conv2>,<Var(value2)>,env)
+           end;
+           if env <> null and <Var(value2)>.isKindOf(<type2>)
+           then env := unify(<Var(value1)>,<conv1>,env)
+           end;
+           if env = null
+           then fail()
+           else succ(env,fail)
+           end
+         end
+      |]
+    end
+    
+  end

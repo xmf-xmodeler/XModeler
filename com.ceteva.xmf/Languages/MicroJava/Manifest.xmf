@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Compiler;
+import Projects;
+
+@Manifest MicroJava
+  MicroJava = @File MicroJava        end
+              @Ref  Expressions      end
+              @Ref  Statements       end
+              @Ref  Structure        end
+              @Ref  Mappings         end
+              @Ref  J2EE             end
+              @File Java             end
+              @File RegistryContributions end
+do
+  MicroJava
+end;

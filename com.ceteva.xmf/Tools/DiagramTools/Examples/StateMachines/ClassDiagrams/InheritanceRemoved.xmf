@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Inheritance_Removed()
+    let parent = find(event.target());
+        child = find(event.source())
+    in child.removeParent(parent);
+       deregister(event.edge())
+    end
+  end
+  

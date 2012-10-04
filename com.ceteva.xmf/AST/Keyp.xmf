@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Keyp in AST(aKeyp,arg,seen)
+  let pattern = self.dispatch(aKeyp.pattern,arg)
+  in ASTNode(aKeyp,Seq{pattern})
+  end
+end;

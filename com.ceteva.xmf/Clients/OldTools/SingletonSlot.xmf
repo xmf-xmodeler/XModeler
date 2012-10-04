@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class SingletonSlot extends ToolSlot
+  
+    @Attribute value : ToolObject (?) end
+    
+    @Constructor(type,value) ! end
+    
+    @Operation add(object)
+      self.value := object
+    end
+    
+    @Operation containsObject(object)
+      value = object or value.containsObject(object)
+    end
+    
+    @Operation layout(x,y,width,height)
+      let minWidth = value.minWidth();
+          minHeight = value.minHeight()
+      in value.type.layout(value,x,y,width.max(minWidth),height);
+         y + value.height()
+      end
+    end
+    
+    @Operation minHeight()
+      value.minHeight()
+    end
+    
+    @Operation minWidth()
+      value.minWidth()
+    end
+    
+  end

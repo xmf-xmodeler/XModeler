@@ -1,0 +1,105 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Structure;
+
+context Element
+  @Operation createTool(toolType)
+  
+    // Get the diagram tool descriptors for the receiver...
+    let descriptors = xmf.toolManager().toolDescriptors(self.of());
+        toolTypeString = toolType.toString()
+    in
+      // Find a tool descriptor that matches the provided tool type name...
+      @Find(descriptor,descriptors)
+        when descriptor.name.toString() = toolTypeString
+        do
+          // If the manager has been initialised then we can create a new tool.
+          // The tool is added to the descriptor and is displayed.
+          let type = descriptor.type();
+              manager = descriptor.manager()
+          in if type <> null and manager <> null
+             then
+               let tool = descriptor.tool(self,self.toString()) 
+               in tool.createToolDiagram();
+                  //descriptor.add(tool);
+                  xmf.toolManager().addTool(tool);
+                  tool.registerWithDiagram(tool.diagram);
+                  tool
+               end
+             else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+          end
+        end
+      end
+    end
+  end
+
+context Element
+  @Operation showDiagram()
+  
+    // Get the diagram tool descriptors for the receiver...
+    let descriptors = xmf.toolManager().toolDescriptors(self.of()) then
+        descriptors = descriptors->select(d | d.isKindOf(Structure::ToolDescriptor))
+    in // If there are none then we might mean get an extant class
+       // diagram, try to select it...
+       if descriptors->isEmpty
+       then self.oldShowDiagram()
+       else
+         // If there is one then use it otherwise
+         // offer up a list...
+         let descriptor =
+               if descriptors->size = 1
+               then descriptors->sel
+               else xmf.select("Diagram Type","Choose a diagram type",descriptors->asSeq,null,null)
+               end
+         in if descriptor <> null
+            then
+              // If the manager has been initialised then we can
+              // create a new tool. The tool is added to the
+              // descriptor and is displayed. Must always return the
+              // tool so that extensions of show diagram can populate
+              // it.
+              let type = descriptor.type();
+                  manager = descriptor.manager()
+              in if type <> null and manager <> null
+                 then
+                   let tool = descriptor.tool(self,self.toString()) 
+                   in tool.showDiagram();
+                      descriptor.add(tool);
+                      tool
+                   end
+                 else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+                 end
+              end
+            end
+         end
+       end
+    end
+  end
+  
+context Element
+  @Operation oldShowDiagram()
+    // Legacy. Tool descriptors should no longer be added to
+    // the class. They should be managed by the xmf object.
+    // Remove this when everything has moved over....
+    let descriptors = self.of().diagramToolDescriptors()
+    in if descriptors->isEmpty
+       then self.selectDiagram()
+       else 
+         let descriptor = descriptors->sel then
+             type = descriptor.type();
+             manager = descriptor.manager()
+         in if type <> null and manager <> null
+            then
+              let tool = descriptor.tool(self,self.toString()) 
+              in tool.showDiagram();
+                 descriptor.add(tool);
+                 tool
+              end
+            else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+            end
+         end
+       end
+    end
+  end

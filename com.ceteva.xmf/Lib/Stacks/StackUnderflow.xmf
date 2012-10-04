@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Stacks;
+
+context Stacks
+
+  @Class StackUnderflow extends Exception
+  
+    @Attribute stack : Stack end
+    
+    @Constructor(stack) !
+      self.setBacktrace();
+      self.message := "Stack underflow."
+    end
+    
+  end

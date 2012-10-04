@@ -1,0 +1,16 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Add_To_StateMachine_nodeBox_bodyBox_attribute()
+    let class = find(event.root()) then
+        name = event.value().ref1(Seq{"name"});
+        type = event.value().ref1(Seq{"type"});
+        attributeName = class.newName("att") then
+        attribute = XCore::Attribute(attributeName,Element)
+    in class.add(attribute);
+       register(name,attribute);
+       register(type,attribute);
+       name.setText(attributeName)
+    end
+  end
+  

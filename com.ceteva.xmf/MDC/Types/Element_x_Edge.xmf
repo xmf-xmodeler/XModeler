@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import MDC::Types;
+
+context ! Types
+
+  @Class Element_x_Edge extends AbstractMappingType
+
+    @Attribute edgeType  : Root::Tools::DiagramTools::Types::EdgeType (?,!) end
+    @Attribute labels    : Seq(Label_x_Label)                         (?,!,+,-) end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For l in self.labels do
+          T := l.allMappingTypes(T)
+        end
+      end;
+      T
+    end
+    
+    @Operation raise(event)
+      null
+    end
+
+  end

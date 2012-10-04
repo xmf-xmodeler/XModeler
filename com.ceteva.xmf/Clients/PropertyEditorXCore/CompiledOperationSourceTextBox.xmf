@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class CompiledOperationSourceTextBox extends CodeboxDisplayTextBox, Parsable
+
+    @Operation codeboxEditorType()
+      CompiledOperationSourceEditor
+    end
+
+    @Operation legalCheck(name):Boolean
+      let nameSymbol = Symbol(name) in
+        if nameSymbol = contex.name()
+        then
+          true
+        else
+          contex.legalNameChangeCheck(nameSymbol,contex.name())
+        end
+      end
+    end
+
+    @Operation setTextIn(text:String)
+      let newName = text.splitBy("()",0,0)->head.subst("","@Operation ",false)
+      in
+        if self.legalCheck(newName)
+        then
+          if Clients::checkParsable(contex,text)
+          then
+            Clients::setSource(contex,text)
+          else
+            self.commandInterpreter().forceFocusCommand(self)
+          end
+        else
+          let source = contex.source()
+          in self.setText(source)
+          end
+        end
+      end
+    end
+
+  end

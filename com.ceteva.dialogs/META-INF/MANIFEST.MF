@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Dialogs Plug-in
+Bundle-SymbolicName: com.ceteva.dialogs;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.dialogs.DialogsPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ com.ceteva.client,
+ com.ceteva.xmf
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class Mul extends Instr
+  
+     @Doc
+       A machine instruction. Expects two elements at the head
+       of the stack. Pops the elements and performs a * operation.
+       Many * operations are builtin to the machine. If the machine
+       does not understand the operand types then 'mul/1' is sent
+       to the left hand operand. The result is left at the head of the
+       stack.
+    end
+     
+    @Operation toString():String
+      "<Mul>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

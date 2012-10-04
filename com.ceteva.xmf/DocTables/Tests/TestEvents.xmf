@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+import EventHandlers;
+
+context Root
+  @Operation test1()
+    let page = 
+      Page("Test",Seq{
+        EventForm(Seq{
+          FormCheckBox("isTrue",true),
+          FormComboBox("choice",Seq{1,2,3},Seq{1,2,3}),
+          EventButton(
+            "Button1",
+            @Operation(isTrue,choice)
+              xmf.message("Button1: " + isTrue + " value = " + choice)
+            end
+          ),
+          EventButton(
+            "Button2",
+            @Operation()
+              xmf.message("Button2")
+            end
+          )
+        })
+      })
+    in InternalDisplayEngine().display(page)
+    end
+  end
+              

@@ -1,0 +1,22 @@
+parserImport Manifests;
+
+@Manifest MyProjects
+  @File Projects end
+  @File StateMachines end
+  @File Types end
+  @File Snapshots end
+  @File Filmstrips end
+  @File UseCases end
+  @File Requirements end
+  @File Models end
+  @File Project end
+  @File Editors end
+  @File Guards end
+do
+  xmf.toolManager().loadXTD(dir + "/UseCases.xtd");
+  xmf.toolManager().loadXTD(dir + "/PackageDiagram.xtd");
+  xmf.toolManager().loadXTD(dir + "/Snapshots.xtd");
+  xmf.toolManager().loadXTD(dir + "/Filmstrips.xtd");
+  xmf.toolManager().loadXTD(dir + "/StateMachines.xtd");
+  MyProjects::Project("X").browse()
+end;

@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Arrays;
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class Array2DEditorTable extends FormTable
+
+    @Attribute element : Simple2DArray end
+
+    @Constructor(element,x,y)
+      self.init(Seq{x,y,(0-1),(0-1),element.cols(),element.rows()})
+    end
+
+    @Operation addContents()
+      let startRow =
+        if element.firstRowHeader() then 1 else 0 end
+      in
+        @Count row from startRow to rows do
+          let record = element.getRow(row)
+          in
+            @Count col from 0 to cols do
+              let item = record->asSeq->at(col) then
+                  text = FormTextField(0,0,0,0,item.toString(),false)
+              in
+                self.put(col,row-startRow,text)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation initialiseColumns()
+      let colWidth = (720/cols).floor()
+      in
+        if element.firstRowHeader()
+        then
+          let headerRow = element.getRow(0)
+          in
+            @Count col from 0 to cols do
+              self.setColumnWidth(col,colWidth);
+              self.setColumnTitle(col,headerRow->asSeq->at(col).toString())
+            end
+          end
+        else
+          @Count col from 0 to cols do
+            self.setColumnWidth(col,colWidth);
+            self.setColumnTitle(col,"")
+          end
+        end
+      end
+    end
+
+    @Operation new(parent)
+      super(parent);
+      self.maximise()
+    end
+
+  end

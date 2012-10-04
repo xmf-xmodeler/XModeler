@@ -1,0 +1,48 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class GUI
+  
+    @Attribute id           : String end
+    @Attribute name         : String end
+    @Attribute forms        : Seq(Form) end
+    @Attribute trees        : Seq(Tree) end
+    @Attribute menus        : Seq(PullDownMenu) end
+    @Attribute toolBars     : Seq(ToolBar) end
+    @Attribute formName     : String end
+    @Attribute iconFilePath : String end
+    @Attribute xmlns        : String end
+     
+    @Constructor(forms,trees,menus,toolBars) 
+      self.xmlns := "http://tempuri.org/GenericGuiSchema.xsd"
+    end
+    
+    @Constructor(id,name,iconFilePath,forms,trees,menus,toolBars) 
+      self.xmlns := "http://tempuri.org/GenericGuiSchema.xsd"
+    end
+    
+    @ToXML(GenericGuiSchema)[xmlns]
+      forms*
+      trees* 
+      menus*
+      toolBars*
+    end 
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else 
+        @Find(x,forms + trees + menus + toolBars)
+          when x.find(id) <> null
+          do x.find(id)
+          else null
+        end
+      end
+    end
+       
+  end

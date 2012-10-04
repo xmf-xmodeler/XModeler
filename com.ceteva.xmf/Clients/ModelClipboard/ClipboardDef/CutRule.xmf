@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class CutRule extends ClipboardRule
+
+    @Attribute parentVar : String end
+    @Attribute parentType : Classifier end
+    @Attribute action : Exp end
+    
+    @Constructor(parentVar,elementVar,widgetVar,description,parentType,condition,action)
+    end
+
+    @Operation desugar():Performable
+	  [|
+	    let 
+  		   registry = xmf.registry();
+  		   id = "com.ceteva.xmf.clipboard.cut"
+		 in
+	      registry.addContribution(id,
+	        Clients::ExtensionPoints::Contribution(
+	          <parentType>,
+	          Seq{
+	            <description>,
+	            @Operation cutCondition(<parentVar>,<elementVar>,<widgetVar>) <condition> end,
+	            @Operation cutAction(<parentVar>,<elementVar>,<widgetVar>) <action> end	            
+	          }))
+	    end
+	  |]
+    end
+
+  end

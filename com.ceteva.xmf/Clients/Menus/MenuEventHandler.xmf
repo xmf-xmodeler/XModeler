@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuEventHandler extends EventHandler
+
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "menuSelected"           do self.readMenuSelected(parameters) end
+        "rightClickMenuSelected" do self.readRightClickMenuSelected(parameters) end
+      end
+    end
+    
+    @Operation menuSelected(menuId)
+      self.debug("menuSelected[~S]~%",Seq{menuId});
+      self.find(menuId).selected()
+    end
+
+    @Operation readMenuSelected(parameters)
+      let menuId = parameters.at(0)
+      in
+        self.menuSelected(menuId)
+      end
+    end
+
+    @Operation readRightClickMenuSelected(parameters)
+      self.rightClickMenuSelected(parameters.at(0))
+    end
+
+    @Operation rightClickMenuSelected(ids)
+      self.debug("rightClickMenuSelected[~S]~%",ids.asSeq());
+      let menuPairs = Seq{}
+      in
+        @Count index from 0 to ids->size-1 do
+          let menu = self.find(ids->at(index));
+              target = self.find(ids->at(index+1))
+          in menuPairs := menuPairs->including(Seq{menu | target});
+             index := index+1
+          end
+        end;
+        xmf.menuManager().handleMenuSelection(menuPairs)
+      end
+    end 
+  
+ end
+ 

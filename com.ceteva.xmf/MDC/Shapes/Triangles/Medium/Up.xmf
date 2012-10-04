@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+@Shape Up
+  minWidth = 30
+  minHeight = 27
+  @Point(0,26) end
+  @Point(30,26) end
+  @Point(15,0) end
+end; 

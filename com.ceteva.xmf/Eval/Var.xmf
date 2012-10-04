@@ -1,0 +1,21 @@
+import OCL;
+import Exceptions;
+
+context Var
+  @Operation eval(target,env,imports)
+    // Look the variable up in the local environment first...
+    if env.binds(name)
+    then env.lookup(name)
+    // Otherwise try the slots of the target (if defined and legal)...
+    elseif target.isReallyKindOf(Object) andthen target.hasSlot(name)
+    then target.get(name)
+    else 
+      // Otherwise try the imported name spaces in turn...
+      let nameSpaces = imports->select(nameSpace | nameSpace.hasElement(Symbol(name)))
+      in if nameSpaces->isEmpty
+         then throw UnboundVar(name,lineCount,charCount)
+         else nameSpaces->sel.getElement(Symbol(name))
+         end
+      end
+    end
+  end

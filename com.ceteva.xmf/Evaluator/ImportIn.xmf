@@ -1,0 +1,28 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler ImportIn in Eval(aImportIn,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aImportIn.nameSpace,
+       @Operation(next,result,call,return)
+         self.eval(aImportIn.nameSpace,env,target,imports,next,result,call,return,
+           @Operation(nameSpace)
+             next(aImportIn.body,
+               @Operation(next,result,call,return)
+                 self.eval(aImportIn.body,env,target,Seq{nameSpace|imports},next,result,call,return,
+                   @Operation(value)
+                     self.imports := imports;
+                     result(aImportIn,value,cont)
+                   end)
+               end)
+           end)
+       end)
+  end
+end;

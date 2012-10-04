@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Expressions;
+import Values;
+import Instrs;
+
+context Expressions
+
+  @Class New extends Exp
+  
+    @Attribute type : String end
+  
+    @Constructor(type) ! end
+    
+    @Operation compile(typeEnv,valueEnv):Performable
+      if typeEnv.binds(type)
+      then
+        let type = typeEnv.lookup(type)
+        in type.names->collect(name | 
+             Seq{PushString(name),Null(),Cons()})
+           ->flatten + 
+           Seq{MkSeq(type.names->size)}
+        end
+      else self.error("Unknown type " + type)
+      end
+    end
+    
+    @Operation desugar1():Performable
+      [| <OCL::Var(type)>.new() |]
+    end
+    
+    @Operation desugar2(typeEnv):Performable
+      if typeEnv.binds(type)
+      then
+        let type = typeEnv.lookup(type)
+        in type.names->iterate(name exp = [| Seq{} |] | [| <exp>->bind(<StrExp(name)>,null) |])
+        end
+      else self.error("Unknown type " + type)
+      end
+    end
+    
+    @Operation eval(target,env,imports)
+      env.lookup(type).new()
+    end
+    
+    @Operation pprint(out)
+      format(out,"new ~S",Seq{type})
+    end
+    
+  end

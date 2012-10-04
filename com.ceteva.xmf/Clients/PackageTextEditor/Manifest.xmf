@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest PackageTextEditor
+  PackageTextEditor = @File PackageTextEditor end
+  @File PackageEditor end
+do Project(PackageTextEditor,dir,self)
+end;

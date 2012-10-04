@@ -1,0 +1,70 @@
+parserImport XOCL;
+
+import Comms;
+import TopLevel;
+import IO;
+
+context XMF
+  @Operation bootTextEditor()
+    try 
+      let 
+        textClient = Clients::TextEditor::TextEditorClient("com.ceteva.text")
+      in 
+        xmf.clientManager().add(textClient);
+    
+        // display the welcome message
+       
+        // textClient.showWelcomePage();
+           
+        @Fork(Text)
+          textClient.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end
+
+context XMF
+  @Operation textClient()
+    self.findClient(Clients::TextEditor::TextEditorClient)
+  end
+  
+context XMF
+  @Operation browse(url:String)
+    let textClient = self.textClient() in
+      if textClient <> null
+      then
+        let browser = Clients::TextEditor::HTMLViewer(url) in
+          textClient.newBrowser(browser)
+        end
+      end
+    end
+  end
+  
+context XMF
+  @Operation browse(url:String,title:String)
+    let textClient = self.textClient()
+    in
+      if textClient <> null
+      then
+        if textClient.hasBrowserForName(title)
+        then
+          let browser = textClient.getBrowserForName(title)
+          in
+            browser.setURL(url);
+            browser.setFocus()
+          end
+        else
+          let browser = self.browse(url)
+          in
+            if browser <> null
+            then
+              browser.setName(title)
+            end;
+            browser
+          end
+        end
+      end
+    end
+  end

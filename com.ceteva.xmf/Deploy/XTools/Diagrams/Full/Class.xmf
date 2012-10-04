@@ -1,0 +1,127 @@
+// This file defines a default mapping from a package and a class in the package
+// to a complete XTool definition for a diagram editor. The intention is that
+// the source code that is produced is used as the first cut for a domain specific
+// language editor for the package. The editor will create an instance of the
+// supplied class and the associated classes in the package.
+
+parserImport XOCL;
+
+import IO;
+
+context Class
+  @Operation writeDiagramToolHeader(out:OutputChannel)
+    format(out,"parserImport XOCL;~%");
+    format(out,"parserImport Tools::Basic;~%");
+    format(out,"parserImport Tools::DiagramTools::Types;~%");
+    format(out,"parserImport Tools::DiagramTools::Structure;~%");
+    format(out,"parserImport Tools::Menus;~%");
+    format(out,"parserImport Tools::Events;~%");
+    format(out,"parserImport Tools::DiagramTools::Types::DisplayTypes;~%~%");
+    format(out,"import Tools;~%");
+    format(out,"import DiagramTools;~%");
+    format(out,"import Structure;~%");
+    format(out,"import Graphs;~%");
+    format(out,"import DiagramEvents;~%~%")
+  end
+
+context Class
+  @Operation writeNewNodeHandler(dir:String,nameSpace:String,slotName:String,type:Classifier,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/New_" + name + ".xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler New_~S()~%",Seq{name});
+      format(out,"    let node = ~S()~%",Seq{self.path()});
+      format(out,"    in register(event.node(),node);~%");
+      format(out,"       register(node,event.node());~%");
+      @For a in self.allAttributes()->select(a | a.type = String) do
+        format(out,"       register(event.node().ref1(Seq{\"box\",\"~S\"}),node);~%",Seq{a.name})
+      end;
+      format(out,"       node.observeBy(event.tool())");
+      if slotName <> ""
+      then 
+        @CaseObj type of
+          Set[ ] do
+            format(out,";~%       event.tool().element().~S := event.tool().element().~S->including(node)~%",Seq{slotName,slotName})
+          end
+          Seq[ ] do
+            format(out," ;~%      event.tool().element().~S := event.tool().element().~S->including(node)~%",Seq{slotName,slotName})
+          end
+          else format(out,";~%       event.tool().element().~S := node~%",Seq{slotName})
+        end
+      else format(out,"~%")
+      end;
+      format(out,"     end~%");
+      format(out,"  end~%");
+      manifest.add("New_" + name)
+    end
+  end
+  
+context Class
+  @Operation writeRemoveNodeHandler(dir:String,nameSpace:String,slotName:String,type:Classifier,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/" + name + "_Removed.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_Removed()~%",Seq{name});
+      if slotName <> ""
+      then 
+        @CaseObj type of
+          Set[ ] do
+            format(out,"    event.tool().element().~S := event.tool().element().~S->excluding(find(event.node()));~%",Seq{slotName,slotName})
+          end
+          Seq[ ] do
+            format(out,"    event.tool().element().~S := event.tool().element().~S->excluding(find(event.node()));~%",Seq{slotName,slotName})
+          end
+          else format(out,"    event.tool().element().~S := null;~%",Seq{slotName})
+        end
+      else format(out,"~%")
+      end;
+      format(out,"    deregister(find(event.node()));~%");
+      format(out,"    deregister(event.node())~%");
+      format(out,"  end~%");
+      manifest.add(name+"_Removed")
+    end
+  end
+  
+context Class 
+  @Operation writeBasicHandler(dir:String,nameSpace:String,a:Attribute,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/" + name + "_box_" + a.name + "_Changed.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_box_~S_Changed()~%",Seq{name,a.name});
+      format(out,"    find(event.value()).~S := event.new()~%",Seq{a.name});
+      format(out,"  end~%");
+      manifest.add(name + "_box_" + a.name + "_Changed")
+    end
+  end
+  
+  
+context Class
+  @Operation writeNodeType(out:OutputChannel,package:Package)
+    format(out,"    @NodeType ~S(hasport)",Seq{name});
+    format(out,"      @Box box(VERTICAL) ~%");
+    format(out,"        @Image image(CENTRE) \"Activity.gif\" width = 30 height = 30 end~%");
+    
+    // Turn each simple valued attribute into a text field in the box...
+    
+    @For a in self.allAttributes()->select(a | a.type = String) do
+      format(out,"        @PaddedText ~S(CENTRE) \"~S\" pad=5 end~%",Seq{a.name,a.name})
+    end;
+    
+    format(out,"      end~%");
+    format(out,"      @Menu~%");
+    format(out,"        @MenuAction Delete self.delete() end~%");
+    format(out,"        @MenuAction Edit tool.find(self).edit() end~%");
+    format(out,"      end~%");
+    format(out,"    end~%")
+  end
+  
+context Class
+  @Operation writeNodeButton(out:OutputChannel,package:Package)
+    format(out,"        @ToolButton ~S icon = \"XCore/Object.gif\" end~%",Seq{name})
+  end
+  
+context Class
+  @Operation writeEdgeButton(out:OutputChannel,attribute:Attribute)
+    format(out,"        @ToolButton ~S isEdge icon = \"Tools/CurlEdge.gif\" end~%",Seq{attribute.name()})
+  end
+  

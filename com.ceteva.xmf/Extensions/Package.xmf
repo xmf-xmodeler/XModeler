@@ -1,0 +1,128 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+
+context XOCL
+
+  @Class Package extends Def
+  
+    @Doc
+      A package definition is represented as an instance of this class.
+      When the instance is performed it creates a new kernel package.
+    end
+     
+     @Attribute meta        : Performable end      // Null if not specified.
+     @Attribute metaPackage : Performable end      // Null if not specified.
+     @Attribute parents     : Seq(Performable) end
+     @Attribute defs        : Seq(Performable) end
+     
+     @Constructor(name,meta,metaPackage,parents,defs) end
+     
+     @Constructor(name,meta,parents,defs) end
+     
+     @Operation compile(env,frame,isLast,saveSource)
+       let elementNames = defs->select(e | e.isKindOf(Def)).name then
+           env = elementNames->iterate(name env = env.incNameSpaceRefs().consNameSpaceRef(name,1) | env.consNameSpaceRef(name,0))
+       in self.desugar().compile(env,frame,isLast,saveSource)
+       end
+     end
+     
+     @Operation desugar():Performable
+       let parents = 
+             if parents->isEmpty
+             then [| @Operation() newPackage.defaultParents() end |]
+             else [| @Operation() <parents->iterate(p e = [| Set{} |] | [| <e>->including(<p>) |])> end |]
+             end
+       in [| let newPackage = <defs->iterate(e exp = self.newPackageExp() | [| <exp>.add(<e>) |])> then
+                 parents = <parents>
+             in parents.setOwner(newPackage);
+                newPackage.parents := parents;
+                newPackage
+             end
+          |]
+       end 
+     end
+     
+     @Operation eval(target,env,imports)
+       let package = self.newPackageExp().eval(target,env,imports)
+       in @For def in defs do
+            package.add(def.eval(target,env,imports))
+          end;
+          @For parent in parents do
+            package.addParent(parent.eval(target,env,imports))
+          end;
+          package
+       end
+     end
+     
+     @Operation maxLocals()
+       self.desugar().maxLocals()
+     end
+     
+     @Operation metaExp():Performable
+     
+       // Returns an expression for the class. This
+       // defaults to XCore::Package .
+      
+       if meta = null
+       then [| XCore::Package |]
+       else meta
+       end
+    
+      end
+    
+      @Operation metaPackageExp():Performable
+     
+       // Returns an expression for the meta package. This
+       // defaults to XCore.
+      
+       if metaPackage = null
+       then [| XCore |]
+       else metaPackage
+       end
+     end
+     
+     @Operation newPackageExp()
+     
+       // This is provided so that sub-classes of this class can
+       // tailor the class that is instantiated and the basic
+       // initialisation of the new instance.
+       
+       [| @Imports(imports)
+            <self.metaExp()>.new()
+              .set("name",XCore::Symbol(<StrExp(name)>))
+              .set("imports",imports)
+              .set("metaPackage",<self.metaPackageExp()>)
+          end
+       |]
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@Package ~S",Seq{name});
+       if meta <> null
+       then 
+         format(out," metapackage ");
+         meta.pprint(out,indent)
+       end;
+       if not parents->isEmpty
+       then
+         format(out," extends ");
+         @For parent in parents do
+           parent.pprint(out,indent);
+           if not isLast then format(out,",") end
+         end
+       end;
+       format(out,"~%~V",Seq{indent+2});
+       if defs.isKindOf(Seq(Element))
+       then
+         @For def in defs do
+           def.pprint(out,indent+2);
+           if not isLast then format(out,"~%~V",Seq{indent+2}) end
+         end
+       else defs.pprint(out,indent) 
+       end;
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+   end 

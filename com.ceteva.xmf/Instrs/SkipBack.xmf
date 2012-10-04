@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SkipBack extends Instr
+  
+    @Attribute offset : Integer (?,!) end
+    @Attribute targetLabel : String (?,!) end
+    
+    @Constructor(targetLabel) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+    @Operation toString():String
+      "<SkipBack " + targetLabel + ">"
+    end
+    
+  end
+
+ 

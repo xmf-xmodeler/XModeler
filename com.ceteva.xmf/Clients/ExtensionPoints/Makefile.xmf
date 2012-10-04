@@ -1,0 +1,13 @@
+import Compiler;
+
+compileFile("Clients/ExtensionPoints/Boot",true,true);
+compileFile("Clients/ExtensionPoints/Manifest",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/Contribution",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/TypeLessContribution",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/StringContribution",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/ExtensionPoint",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/ExtensionPoints",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/InheritanceExtensionPoint",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/MultipleExtensionPoint",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/TypeLessExtensionPoint",true,true);
+Compiler::compileFile("Clients/ExtensionPoints/ExtensionPointListener",true,true);

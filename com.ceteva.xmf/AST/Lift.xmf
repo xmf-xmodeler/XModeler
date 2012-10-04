@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Lift in AST(aLift,arg,seen)
+  let exp = self.dispatch(aLift.exp,arg)
+  in ASTNode(aLift,Seq{exp})
+  end
+end;

@@ -1,0 +1,86 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class AttributeXText extends ElementMap, RightClickableProxy
+  
+    @Attribute attribute : XCore::Attribute end
+    @Attribute text : AttributeText end
+    
+    @Constructor(attribute,text) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      let textName = text.name
+      in
+        self.setGlobalMenu(textName,Set{attribute.of(),textName.of()})
+      end
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = attribute.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  AttributeXText::proxyElementTarget);
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).attribute
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once AttributeXText::nameChanged_classDiagramDaemon(attribute,"name") end;
+      @SlotValueChanged multi once AttributeXText::nameChangedDaemon(text.name,"text")              end
+    end
+    
+    @Operation hotLoaded()
+      self.checkDaemons();
+      let textName = text.name
+      in
+        self.setGlobalMenu(textName,Set{attribute.of(),textName.of()},false)
+      end
+    end
+    
+    @Operation nameChanged_classDiagramDaemon(attribute,slot,newName,oldName)
+      if text.name() <> newName.toString()
+      then text.setName(newName.toString())
+      end
+    end
+    
+    @Operation nameChangedDaemon(obj,slot,newName,oldName)
+      if attribute.name.toString() <> newName
+      then 
+        attribute.setName(newName)
+      end
+    end
+    
+    @Operation removeDaemons()
+    
+      // Called to tidy up when the mapping is no longer valid.
+      
+      attribute.removeDaemonsWithTarget(self,true);
+      text.name.removeDaemonsWithTarget(self,true)
+
+    end
+
+    @Operation element()
+      attribute
+    end
+
+    @Operation diagramElement()
+      text
+    end
+
+  end

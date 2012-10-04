@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Enterprise;
+
+context Enterprise
+
+  @Class ApplicationFactory
+  
+    // An ApplicationFactory creates new web applications based on initial
+    // url requests.
+    
+    @AbstractOp handles(request):Boolean
+    end
+    
+    // It is the responsbility of createApplication to ensure that
+    // EnterpriseClient::registerHandler is called before it returns
+    
+    @AbstractOp create(sessionId):Element
+    end
+  
+  end

@@ -1,0 +1,824 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+
+import Parser::BNF;
+import XML;
+import IO; 
+
+ // Defines a grammar for the XML exported from the ADA XML tool
+ // Adds an operation loadAdaXM() to Project operations
+context Root
+
+@Package AdaParser
+
+  @Operation dataFilter(data,type,attName):Element
+  data->select(v | (v->tail.isKindOf(type) and 
+    if v->head <> "" then 
+      v->head = attName 
+    else true 
+    end))->collect(pair | pair->tail)
+  end
+
+  @Operation valueFilter(data,type,attName)
+    let values = data->select(v | (v->tail.isKindOf(Root::Languages::Ada::Node) and v->head = attName) or v->tail.isKindOf(type) and if v->head <> "" then v->head = attName else true end) in
+      if values->isEmpty then 
+        self.error("Missing XML element for attribute " + attName + " of " + type) 
+      else values->head->tail 
+      end 
+    end
+  end
+end
+
+context Root
+ 
+@Grammar AdaXML
+
+AdaXML ::= AdaSystem.
+
+Block ::= 
+<Block  endName = endName > 
+data = (ExceptionHandler | Node | DeclPart | Label | Statement)*
+</Block>
+{Root::AdaParser::BlockBody(data,endName)}.
+
+PackageSpec ::= 
+<PackageSpec  endName = endName name = name > 
+data = (DeclItem | Node | Pragma | GenericFormal | PrivatePart)*
+</PackageSpec>
+{Root::AdaParser::PackageSpecBody(data,endName,name)}.
+
+Exit ::= 
+<Exit  endName = endName > 
+data = (Node | Name | Label | Expression)*
+</Exit>
+{Root::AdaParser::ExitBody(data,endName)}.
+
+Assignment ::= 
+<Assignment  endName = endName > 
+data = (Node | Name | Label | Expression)*
+</Assignment>
+{Root::AdaParser::AssignmentBody(data,endName)}.
+
+ContextSpec ::= 
+<ContextSpec  endName = endName > 
+data = (Node | WithClause | UseClause)*
+</ContextSpec>
+{Root::AdaParser::ContextSpecBody(data,endName)}.
+
+TypeDef ::= RealType | AccessType | RecordType | PrivateType | DerivedType | EnumerationType | ArrayType | IntegerType.
+
+Case ::= 
+<Case  endName = endName > 
+data = (CaseAlt | Node | Pragma | Label | Expression)*
+</Case>
+{Root::AdaParser::CaseBody(data,endName)}.
+
+SimpleLoop ::= 
+<SimpleLoop  endName = endName > 
+data = (Node | Designator | Label | Statement)*
+</SimpleLoop>
+{Root::AdaParser::SimpleLoopBody(data,endName)}.
+
+Goto ::= 
+<Goto  endName = endName > 
+data = (Node | Label | Name)*
+</Goto>
+{Root::AdaParser::GotoBody(data,endName)}.
+
+ReQueue ::= 
+<ReQueue  endName = endName withAbort = withAbort > 
+data = (Node | Label | Name)*
+</ReQueue>
+{Root::AdaParser::ReQueueBody(data,endName,withAbort)}.
+
+Designator ::= 
+<Designator  endName = endName name = name > 
+</Designator>
+{Root::AdaParser::DesignatorBody(data,endName,name)}.
+
+ProcedureSpec ::= 
+<ProcedureSpec  endName = endName abstract = abstract name = name > 
+data = (Parameter | Node)*
+</ProcedureSpec>
+{Root::AdaParser::ProcedureSpecBody(data,endName,abstract,name)}.
+
+ProcedureCall ::= 
+<ProcedureCall  endName = endName > 
+data = (Node | Label | Name)*
+</ProcedureCall>
+{Root::AdaParser::ProcedureCallBody(data,endName)}.
+
+Label ::= 
+<Label  endName = endName name = name > 
+</Label>
+{Root::AdaParser::LabelBody(data,endName,name)}.
+
+Constraint ::= RangeConstraint.
+
+SubprogramSpec ::= ProcedureSpec | FunctionSpec.
+
+If ::= 
+<If  endName = endName > 
+data = (Node | CondClause | Label | Statement)*
+</If>
+{Root::AdaParser::IfBody(data,endName)}.
+
+Code ::= 
+<Code  endName = endName > 
+data = (Node | Label | Qualified)*
+</Code>
+{Root::AdaParser::CodeBody(data,endName)}.
+
+CondClause ::= 
+<CondClause  endName = endName > 
+data = (Node | Expression | Statement)*
+</CondClause>
+{Root::AdaParser::CondClauseBody(data,endName)}.
+
+FunctionSpec ::= 
+<FunctionSpec  endName = endName abstract = abstract name = name > 
+data = (Node | Parameter | Name)*
+</FunctionSpec>
+{Root::AdaParser::FunctionSpecBody(data,endName,abstract,name)}.
+
+IntegerType ::= 
+<IntegerType  endName = endName > 
+data = (RangeConstraint | Node)*
+</IntegerType>
+{Root::AdaParser::IntegerTypeBody(data,endName)}.
+
+WhileLoop ::= 
+<WhileLoop  endName = endName > 
+data = (Expression | Designator | Node | Label | Statement)*
+</WhileLoop>
+{Root::AdaParser::WhileLoopBody(data,endName)}.
+
+CaseAlt ::= 
+<CaseAlt  endName = endName > 
+data = (Node | Statement | Label | Choice)*
+</CaseAlt>
+{Root::AdaParser::CaseAltBody(data,endName)}.
+
+DiscrimSpec ::= 
+<DiscrimSpec  endName = endName isAccess = isAccess > 
+data = (Expression | Name | DiscrimName)*
+</DiscrimSpec>
+{Root::AdaParser::DiscrimSpecBody(data,endName,isAccess)}.
+
+EnumerationType ::= 
+<EnumerationType  endName = endName > 
+data = (EnumId | Node)*
+</EnumerationType>
+{Root::AdaParser::EnumerationTypeBody(data,endName)}.
+
+ForLoop ::= 
+<ForLoop  endName = endName id = id isReversed = isReversed > 
+data = (Designator | Statement | Node | DiscreteRange | Label)*
+</ForLoop>
+{Root::AdaParser::ForLoopBody(data,endName,id,isReversed)}.
+
+Loop ::= WhileLoop | SimpleLoop | ForLoop.
+
+RepSpec ::= 
+<RepSpec  endName = endName > 
+data = (Node)*
+</RepSpec>
+{Root::AdaParser::RepSpecBody(data,endName)}.
+
+PrivateType ::= 
+<PrivateType  endName = endName tagged = tagged isLimited = isLimited > 
+data = (Node)*
+</PrivateType>
+{Root::AdaParser::PrivateTypeBody(data,endName,tagged,isLimited)}.
+
+// Added PPExpWithValues
+ParenthesizedPrimary ::= PPCompAssoc | PPValues | PPExp | PPExpWithValues | PPNullRecord.
+
+ExceptChoiceOthers ::= 
+<ExceptChoiceOthers  endName = endName > 
+</ExceptChoiceOthers>
+{Root::AdaParser::ExceptChoiceOthersBody(data,endName)}.
+
+Parameter ::= 
+<Parameter  endName = endName name = name mode = mode > 
+data = (Node | TypeRef)*
+</Parameter>
+{Root::AdaParser::ParameterBody(data,endName,name,mode)}.
+
+FixedType ::= 
+<FixedType  endName = endName > 
+data = (Range | Node)*
+</FixedType>
+{Root::AdaParser::FixedTypeBody(data,endName)}.
+
+ChoiceDiscreteWithRange ::= 
+<ChoiceDiscreteWithRange  endName = endName > 
+data = (DiscreteWithRange | Statement)*
+</ChoiceDiscreteWithRange>
+{Root::AdaParser::ChoiceDiscreteWithRangeBody(data,endName)}.
+
+Null ::= 
+<Null  endName = endName > 
+data = (Label | Node)*
+</Null>
+{Root::AdaParser::NullBody(data,endName)}.
+
+PrivatePart ::= 
+<PrivatePart  endName = endName > 
+data = (Node | DeclItem | Pragma)*
+</PrivatePart>
+{Root::AdaParser::PrivatePartBody(data,endName)}.
+
+AccessType ::= AccessTypeSubTypeInd.
+
+ChoiceExp ::= 
+<ChoiceExp  endName = endName > 
+data = (Expression | Statement)*
+</ChoiceExp>
+{Root::AdaParser::ChoiceExpBody(data,endName)}.
+
+ExceptChoice ::= ExceptChoiceName | ExceptChoiceOthers.
+
+FloatType ::= 
+<FloatType  endName = endName > 
+data = (Range | Node)*
+</FloatType>
+{Root::AdaParser::FloatTypeBody(data,endName)}.
+
+ChoiceOthers ::= 
+<ChoiceOthers  endName = endName > 
+data = (Statement)*
+</ChoiceOthers>
+{Root::AdaParser::ChoiceOthersBody(data,endName)}.
+
+Delay ::= 
+<Delay  endName = endName isUntil = isUntil > 
+data = (Node | Label | Expression)*
+</Delay>
+{Root::AdaParser::DelayBody(data,endName,isUntil)}.
+
+RealType ::= FloatType | FixedType.
+
+PPExp ::= PPExpWithValues | PPExpWithNullRecord.
+
+ExceptChoiceName ::= 
+<ExceptChoiceName  endName = endName > 
+data = (Name)*
+</ExceptChoiceName>
+{Root::AdaParser::ExceptChoiceNameBody(data,endName)}.
+
+GenericDecl ::= GenericDeclPackageSpec | PackageSpec | GenericDeclSubprogram.
+
+AccessTypeSubTypeInd ::= 
+<AccessTypeSubTypeInd  endName = endName constant = constant all = all > 
+data = (Node | SubTypeInd)*
+</AccessTypeSubTypeInd>
+{Root::AdaParser::AccessTypeSubTypeIndBody(data,endName,constant,all)}.
+
+Expression ::= ExpressionName | Binary | Literal | QualifiedExpression | Allocator | ParenthesizedPrimary | Unary.
+
+Return ::= 
+<Return  endName = endName > 
+data = (Node | Label | Expression)*
+</Return>
+{Root::AdaParser::ReturnBody(data,endName)}.
+
+BodyStubTaskDecl ::= 
+<BodyStubTaskDecl  endName = endName name = name > 
+data = (Node)*
+</BodyStubTaskDecl>
+{Root::AdaParser::BodyStubTaskDeclBody(data,endName,name)}.
+
+EnumId ::= 
+<EnumId  endName = endName name = name > 
+data = (Node)*
+</EnumId>
+{Root::AdaParser::EnumIdBody(data,endName,name)}.
+
+PPCompAssoc ::= 
+<PPCompAssoc  endName = endName > 
+data = (Node | Expression | Choice)*
+</PPCompAssoc>
+{Root::AdaParser::PPCompAssocBody(data,endName)}.
+
+ExceptionHandler ::= ExceptionHandlerName.
+
+TypeDecl ::= 
+<TypeDecl  endName = endName name = name > 
+data = (TypeDef | Node | DiscrimPart)*
+</TypeDecl>
+{Root::AdaParser::TypeDeclBody(data,endName,name)}.
+
+TypeRef ::= SubTypeInd | SubTypeMark.
+
+PPExpWithValues ::= 
+<PPExpWithValues  endName = endName > 
+data = (Node | Value | Expression)*
+</PPExpWithValues>
+{Root::AdaParser::PPExpWithValuesBody(data,endName)}.
+
+PPValues ::= 
+<PPValues  endName = endName > 
+data = (Node | Value)*
+</PPValues>
+{Root::AdaParser::PPValuesBody(data,endName)}.
+
+Abort ::= 
+<Abort  endName = endName > 
+data = (Node | Label | Name)*
+</Abort>
+{Root::AdaParser::AbortBody(data,endName)}.
+
+NumberDecl ::= 
+<NumberDecl  endName = endName > 
+data = (Node)*
+</NumberDecl>
+{Root::AdaParser::NumberDeclBody(data,endName)}.
+
+SubTypeMark ::= 
+<SubTypeMark  n=name := "" endName = endName > 
+data = (Name | Node)*
+</SubTypeMark>
+{Root::AdaParser::SubTypeMarkBody(data,n,endName)}.
+
+//PPValues ::= PPExpWithValues.
+
+ExceptionHandlerName ::= 
+<ExceptionHandler  endName = endName> 
+data = (Node | ExceptChoice | Statement)*
+</ExceptionHandler>
+{Root::AdaParser::ExceptionHandlerNameBody(data,endName,name)}.
+
+BodyStubPackageDecl ::= 
+<BodyStubPackageDecl  endName = endName name = name > 
+data = (Node)*
+</BodyStubPackageDecl>
+{Root::AdaParser::BodyStubPackageDeclBody(data,endName,name)}.
+
+SubTypeInd ::= 
+<SubTypeInd  endName = endName > 
+data = (Node | Name | Constraint)*
+</SubTypeInd>
+{Root::AdaParser::SubTypeIndBody(data,endName)}.
+
+Choice ::= ChoiceExp | ChoiceDiscreteWithRange | ChoiceOthers.
+
+Statement ::= If | ProcedureCall | CaseAlt | Goto | Loop | Assignment | Null | Block | Delay | Exit | Return | Case | Abort | ReQueue | Raise | Code.
+
+DiscrimSpecs ::= 
+<DiscrimSpecs  endName = endName > 
+data = (DiscrimSpec)*
+</DiscrimSpecs>
+{Root::AdaParser::DiscrimSpecsBody(data,endName)}.
+
+Range ::= RangeExpr | RangeName | RangeNameExpr.
+
+QualifiedExpression ::= 
+<QualifiedExpression  endName = endName > 
+data = (Qualified | Node)*
+</QualifiedExpression>
+{Root::AdaParser::QualifiedExpressionBody(data,endName)}.
+
+Raise ::= 
+<Raise  endName = endName > 
+data = (Node | Label | Name)*
+</Raise>
+{Root::AdaParser::RaiseBody(data,endName)}.
+
+SubtypeDecl ::= 
+<SubtypeDecl  endName = endName name = name > 
+data = (Node | Name | Constraint)*
+</SubtypeDecl>
+{Root::AdaParser::SubtypeDeclBody(data,endName,name)}.
+
+DiscreteRangeName ::= 
+<DiscreteRangeName  endName = endName > 
+data = (Node | Name | Range)*
+</DiscreteRangeName>
+{Root::AdaParser::DiscreteRangeNameBody(data,endName)}.
+
+Binary ::= 
+<Binary  endName = endName op = op > 
+data = (Node | Expression)*
+</Binary>
+{Root::AdaParser::BinaryBody(data,endName,op)}.
+
+GenericPackageInstance ::= 
+<GenericPackageInstance  endName = endName > 
+data = (Node)*
+</GenericPackageInstance>
+{Root::AdaParser::GenericPackageInstanceBody(data,endName)}.
+
+DiscrimBox ::= 
+<DiscrimBox  endName = endName > 
+</DiscrimBox>
+{Root::AdaParser::DiscrimBoxBody(data,endName)}.
+
+RangeConstraint ::= SimpleRangeConstraint.
+
+Qualified ::= 
+<Qualified  endName = endName > 
+data = (ParenthesizedPrimary | Name)*
+</Qualified>
+{Root::AdaParser::QualifiedBody(data,endName)}.
+
+SimpleName ::= 
+<SimpleName  endName = endName name = name > 
+data = (Node)*
+</SimpleName>
+{Root::AdaParser::SimpleNameBody(data,endName,name)}.
+
+SubprogramRenameDecl ::= 
+<SubprogramRenameDecl  endName = endName > 
+data = (Node | Name | SubprogramDecl)*
+</SubprogramRenameDecl>
+{Root::AdaParser::SubprogramRenameDeclBody(data,endName)}.
+
+DiscreteRangeRange ::= 
+<DiscreteRangeRange  endName = endName > 
+data = (Range | Node)*
+</DiscreteRangeRange>
+{Root::AdaParser::DiscreteRangeRangeBody(data,endName)}.
+
+PPExpWithNullRecord ::= 
+<PPExpWithNullRecord  endName = endName > 
+data = (Expression | Node)*
+</PPExpWithNullRecord>
+{Root::AdaParser::PPExpWithNullRecordBody(data,endName)}.
+
+Name ::= Attribute | IndexedComp | SelectedComp | SimpleName.
+
+BodyStubDecl ::= BodyStubPackageDecl | BodyStubSubProgDecl | BodyStubTaskDecl | BodyStubSubBodyDecl.
+
+DiscreteRange ::= DiscreteRangeRange | DiscreteRangeName.
+
+AllocatorQualified ::= 
+<AllocatorQualified  endName = endName > 
+data = (Qualified | Node)*
+</AllocatorQualified>
+{Root::AdaParser::AllocatorQualifiedBody(data,endName)}.
+
+IndexedComp ::= 
+<IndexedComp  endName = endName > 
+data = (Node | Name | Value)*
+</IndexedComp>
+{Root::AdaParser::IndexedCompBody(data,endName)}.
+
+BodyStubSubProgDecl ::= 
+<BodyStubSubProgDecl  endName = endName > 
+data = (SubprogramSpec | Node)*
+</BodyStubSubProgDecl>
+{Root::AdaParser::BodyStubSubProgDeclBody(data,endName)}.
+
+SimpleRangeConstraint ::= 
+<SimpleRangeConstraint  endName = endName > 
+data = (Range | Node)*
+</SimpleRangeConstraint>
+{Root::AdaParser::SimpleRangeConstraintBody(data,endName)}.
+
+ExpressionName ::= 
+<ExpressionName  endName = endName > 
+data = (Name | Node)*
+</ExpressionName>
+{Root::AdaParser::ExpressionNameBody(data,endName)}.
+
+Attribute ::= 
+<Attribute  endName = endName attribute = attribute > 
+data = (Node | Name)*
+</Attribute>
+{Root::AdaParser::AttributeBody(data,endName,attribute)}.
+
+RenameDecl ::= PackageRenameDecl | SubprogramRenameDecl | ExceptionRenameDecl.
+
+RangeNameExpr ::= 
+<RangeNameExpr  endName = endName > 
+data = (Node | Name | Expression)*
+</RangeNameExpr>
+{Root::AdaParser::RangeNameExprBody(data,endName)}.
+
+Literal ::= NullLiteral | UsedChar | NumericLiteral.
+
+SelectedComp ::= 
+<SelectedComp  endName = endName scname = scname > 
+data = (Name | Node)*
+</SelectedComp>
+{Root::AdaParser::SelectedCompBody(data,endName,scname)}.
+
+DeclItem ::= RepSpec | Decl | UseClause | DeclItemPragma.
+
+RangeExpr ::= 
+<RangeExpr  endName = endName > 
+data = (Node | Expression)*
+</RangeExpr>
+{Root::AdaParser::RangeExprBody(data,endName)}.
+
+DiscreteWithRange ::= 
+<DiscreteWithRange  endName = endName > 
+data = (Range | Name)*
+</DiscreteWithRange>
+{Root::AdaParser::DiscreteWithRangeBody(data,endName)}.
+
+PkgBody ::= 
+<PkgBody  endName = endName name = name > 
+data = (Node | ExceptionHandler | DeclPart | Statement)*
+</PkgBody>
+{Root::AdaParser::PkgBodyBody(data,endName,name)}.
+
+Decl ::= BodyStubDecl | SubtypeDecl | RenameDecl | NumberDecl | ObjectDecl | TypeDecl | ExceptionDecl | GenericDecl | SubprogramDecl.
+
+RangeName ::= 
+<RangeName  endName = endName > 
+data = (Name | Node)*
+</RangeName>
+{Root::AdaParser::RangeNameBody(data,endName)}.
+
+AllocatorName ::= 
+<AllocatorName  endName = endName > 
+data = (Name | Node)*
+</AllocatorName>
+{Root::AdaParser::AllocatorNameBody(data,endName)}.
+
+DeclPart ::= DeclPartBody | DeclPartItem.
+
+PackageRenameDecl ::= 
+<PackageRenameDecl  endName = endName packageName = packageName > 
+data = (Name | Node)*
+</PackageRenameDecl>
+{Root::AdaParser::PackageRenameDeclBody(data,endName,packageName)}.
+
+CompDecl ::= 
+<CompDecl  endName = endName name = name > 
+data = (ComponentSubType | Node | Expression)*
+</CompDecl>
+{Root::AdaParser::CompDeclBody(data,endName,name)}.
+
+PPNullRecord ::= 
+<PPNullRecord  endName = endName > 
+data = (Node)*
+</PPNullRecord>
+{Root::AdaParser::PPNullRecordBody(data,endName)}.
+
+DeclPartItem ::= 
+<DeclPartItem  endName = endName > 
+data = (DeclItem | Node)*
+</DeclPartItem>
+{Root::AdaParser::DeclPartItemBody(data,endName)}.
+
+ObjectDeclSubType ::= 
+<ObjectDeclSubType  endName = endName qualifier = qualifier name = name > 
+data = (SubTypeInd | Node | Expression)*
+</ObjectDeclSubType>
+{Root::AdaParser::ObjectDeclSubTypeBody(data,endName,qualifier,name)}.
+
+ComponentSubType ::= 
+<ComponentSubType  endName = endName aliased = aliased > 
+data = (Node | SubTypeInd)*
+</ComponentSubType>
+{Root::AdaParser::ComponentSubTypeBody(data,endName,aliased)}.
+
+Allocator ::= AllocatorQualified | AllocatorName.
+
+Body ::= SubprogramBody.
+
+BodyStubSubBodyDecl ::= 
+<BodyStubSubBodyDecl  endName = endName name = name > 
+data = (Node)*
+</BodyStubSubBodyDecl>
+{Root::AdaParser::BodyStubSubBodyDeclBody(data,endName,name)}.
+
+RecordType ::= 
+<RecordType  endName = endName limited = limited null = null tagged = tagged > 
+data = (CompDecl | Node | Pragma)*
+</RecordType>
+{Root::AdaParser::RecordTypeBody(data,endName,limited,null,tagged)}.
+
+Value ::= ValueExpr | ValueDiscreteWithRange | ValueCompAssoc.
+
+DeclPartBody ::= 
+<DeclPartBody  endName = endName > 
+data = (Body | Node)*
+</DeclPartBody>
+{Root::AdaParser::DeclPartBodyBody(data,endName)}.
+
+DiscrimSpec ::= 
+<DiscrimSpec  endName = endName isAccess = isAccess > 
+data = (Name | Expression | DiscrimName)*
+</DiscrimSpec>
+{Root::AdaParser::DiscrimSpecBody(data,endName,isAccess)}.
+
+DerivedType ::= 
+<DerivedType  endName = endName new = new abstract = abstract private = private > 
+data = (SubTypeInd | Node | RecordType)*
+</DerivedType>
+{Root::AdaParser::DerivedTypeBody(data,endName,new,abstract,private)}.
+
+UsedChar ::= 
+<UsedChar  endName = endName charLiteral = charLiteral > 
+data = (Node)*
+</UsedChar>
+{Root::AdaParser::UsedCharBody(data,endName,charLiteral)}.
+
+SubprogramBody ::= 
+<SubprogramBody  endName = endName > 
+data = (Node | Statement | SubprogramSpec | DeclPart)*
+</SubprogramBody>
+{Root::AdaParser::SubprogramBodyBody(data,endName)}.
+
+ObjectDecl ::= ObjectDeclSubType.
+
+UnconstrainedArrayType ::= 
+<UnconstrainedArrayType  endName = endName > 
+data = (Node | ComponentSubType | Name)*
+</UnconstrainedArrayType>
+{Root::AdaParser::UnconstrainedArrayTypeBody(data,endName)}.
+
+Unary ::= 
+<Unary  endName = endName op = op > 
+data = (Node | Expression)*
+</Unary>
+{Root::AdaParser::UnaryBody(data,endName,op)}.
+
+ConstrainedArrayType ::= 
+<ConstrainedArrayType  endName = endName > 
+data = (Node | ComponentSubType | DiscreteRange)*
+</ConstrainedArrayType>
+{Root::AdaParser::ConstrainedArrayTypeBody(data,endName)}.
+
+DeclItemPragma ::= 
+<DeclItemPragma  endName = endName > 
+data = (Pragma | Node)*
+</DeclItemPragma>
+{Root::AdaParser::DeclItemPragmaBody(data,endName)}.
+
+AdaName ::= 
+<AdaName  endName = endName name = name > 
+data = (Node)*
+</AdaName>
+{Root::AdaParser::AdaNameBody(data,endName,name)}.
+
+ValueDiscreteWithRange ::= 
+<ValueDiscreteWithRange  endName = endName > 
+data = (DiscreteWithRange)*
+</ValueDiscreteWithRange>
+{Root::AdaParser::ValueDiscreteWithRangeBody(data,endName)}.
+
+ArrayType ::= ConstrainedArrayType | UnconstrainedArrayType.
+
+ExceptionDecl ::= 
+<ExceptionDecl  endName = endName name = name > 
+data = (Node)*
+</ExceptionDecl>
+{Root::AdaParser::ExceptionDeclBody(data,endName,name)}.
+
+Pragma ::= 
+<Pragma  endName = endName name = name val = val > 
+data = (Node)*
+</Pragma>
+{Root::AdaParser::PragmaBody(data,endName,name,val)}.
+
+ValueExpr ::= 
+<ValueExpr  endName = endName > 
+data = (Expression)*
+</ValueExpr>
+{Root::AdaParser::ValueExprBody(data,endName)}.
+
+CompilationUnit ::= 
+<CompilationUnit  endName = endName private = private > 
+data = (ContextSpec | Node | Unit)*
+</CompilationUnit>
+{Root::AdaParser::CompilationUnitBody(data,endName,private)}.
+
+SubprogramDecl ::= SubprogramSpec.
+
+AdaProgram ::= 
+<AdaProgram  endName = endName resourceName = resourceName > 
+data = (CompilationUnit | Node | Pragma)*
+</AdaProgram>
+{Root::AdaParser::AdaProgramBody(data,endName,resourceName)}.
+
+NullLiteral ::= 
+<NullLiteral  endName = endName > 
+data = (Node)*
+</NullLiteral>
+{Root::AdaParser::NullLiteralBody(data,endName)}.
+
+WithClause ::= 
+<WithClause  n = name := "" endName = endName > 
+data = (Name | Node)*
+</WithClause>
+{Root::AdaParser::WithClauseBody(data,n,endName)}.
+
+GenericFormal ::= 
+<GenericFormal  endName = endName > 
+data = (Node)*
+</GenericFormal>
+{Root::AdaParser::GenericFormalBody(data,endName)}.
+
+Unit ::= SubprogramBody | SubUnit | PkgBody | PackageBody | GenericDecl | RenameUnit | PackageDecl.
+
+NumericLiteral ::= 
+<NumericLiteral  endName = endName value = value > 
+data = (Node)*
+</NumericLiteral>
+{Root::AdaParser::NumericLiteralBody(data,endName,value)}.
+
+Node ::= 
+<Node  endName = endName name = name val = val > 
+data = (Node)*
+</Node>
+{Root::AdaParser::NodeBody(data,endName,name,val)}.
+
+GenericDeclPackageSpec ::= 
+<GenericDeclPackageSpec  endName = endName > 
+data = (Node | PackageSpec | GenericFormal)*
+</GenericDeclPackageSpec>
+{Root::AdaParser::GenericDeclPackageSpecBody(data,endName)}.
+
+UseClause ::= 
+<UseClause  endName = endName type = type > 
+data = (Node | Name)*
+</UseClause>
+{Root::AdaParser::UseClauseBody(data,endName,type)}.
+
+ValueCompAssoc ::= 
+<ValueCompAssoc  endName = endName > 
+data = (Choice | Expression)*
+</ValueCompAssoc>
+{Root::AdaParser::ValueCompAssocBody(data,endName)}.
+
+// Modified so that it returns just the AdaSystem
+AdaSystem ::= 
+<AdaSystem  endName = endName > 
+data = (AdaProgram | Node)*
+</AdaSystem>
+{Root::AdaParser::AdaSystemBody(data,endName)}.
+
+ExceptionRenameDecl ::= 
+<ExceptionRenameDecl  endName = endName > 
+data = (Node | Name)*
+</ExceptionRenameDecl>
+{Root::AdaParser::ExceptionRenameDeclBody(data,endName)}.
+
+AdaObject ::= Name | Range | DiscreteRange | Statement | DeclPart | TypeRef | CompDecl | ExceptionHandler | ComponentSubType | EnumId | Body | CondClause | AdaName | Constraint | Pragma | TypeDef | CompilationUnit | ContextSpec | AdaProgram | Parameter | WithClause | PrivatePart | Unit | Expression | Node | DeclItem | AdaSystem | GenericFormal.
+
+GenericDeclSubprogram ::= 
+<GenericDeclSubprogram  endName = endName > 
+data = (Node | SubprogramSpec | GenericFormal)*
+</GenericDeclSubprogram>
+{Root::AdaParser::GenericDeclSubprogramBody(data,endName)}.
+
+SubUnit ::= 
+<SubUnit  endName = endName > 
+data = (Node)*
+</SubUnit>
+{Root::AdaParser::SubUnitBody(data,endName)}.
+
+DiscrimPart ::= DiscrimSpecs | DiscrimBox.
+
+PackageBody ::= 
+<PackageBody  endName = endName > 
+data = (Node)*
+</PackageBody>
+{Root::AdaParser::PackageBodyBody(data,endName)}.
+
+DiscrimName ::= 
+<DiscrimName  endName = endName name = name > 
+</DiscrimName>
+{Root::AdaParser::DiscrimNameBody(data,endName,name)}.
+
+RenameUnit ::= 
+<RenameUnit  endName = endName > 
+data = (Node)*
+</RenameUnit>
+{Root::AdaParser::RenameUnitBody(data,endName)}.
+
+PackageDecl ::= GenericPackageInstance | PackageSpec.
+
+
+end
+
+//AdaXML.debug := true; 
+    
+/*context Projects::ProjectManager
+  @Operation loadAdaXML()
+    Root::p := self.loadAdaXML()
+  end    
+*/
+
+// Load the Ada model, edit it, and set its value to be Root::p for use in the console
+context Projects::ProjectManager
+  @Operation loadAdaXML()
+    let file = xmf.openFile(xmf.homeDir(),"*.xml")
+    in if file.fileExists()
+       then 
+         let i = XMLInputChannel(FileInputChannel(file)) then
+             models = AdaXML.parse(Seq{i.read().stripWhiteSpace().root},"AdaXML")
+         in Root::p := models; models
+         end
+       end
+     end
+   end
+ 

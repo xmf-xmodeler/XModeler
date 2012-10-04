@@ -1,0 +1,38 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler If in Eval(aIf,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aIf.test,
+       @Operation(nextTest,resultTest,call,return)
+         self.eval(aIf.test,env,target,imports,nextTest,resultTest,call,return,
+           @Operation(test)
+             if test
+             then 
+               next(aIf.get("then"),
+                 @Operation(nextThen,resultThen,call,return)
+                   self.eval(aIf.get("then"),env,target,imports,nextTest,resultTest,call,return,
+                     @Operation(value)
+                       result(aIf,value,cont)
+                     end)
+                 end)
+             else
+               next(aIf.get("else"),
+                 @Operation(nextElse,resultElse,call,return)
+                   self.eval(aIf.get("else"),env,target,imports,nextTest,resultTest,call,return,
+                     @Operation(value)
+                       result(aIf,value,cont)
+                     end)
+                 end)
+             end
+           end)
+         end)
+   end
+end;

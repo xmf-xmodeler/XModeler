@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ClassMapping
+  ClassMapping = @File ClassMapping end
+  @File AttributeXText end
+  @File OperationXText end
+  @File MetaslotXText end
+  @File DocXNote end
+  @File ClassXNode end
+  @File ElementXNode end
+  @File PackageXNode end
+  @File AssociationXAssociationEdge end
+  @File AttributeXAttributeEdge end
+  @File ClassifierXInheritanceEdge end
+  @File ClassXInheritanceEdge end
+  @File ContainerXContainsEdge end
+  @File DependencyXDependencyEdge end
+  @File DependencyNameXText end
+  @File PackageXInheritanceEdge end
+  @File PackageXClassDiagram end
+  @File MappingClient end
+  @File NamedElementXNode end
+do Project(ClassMapping,dir,self)
+end;

@@ -1,0 +1,7 @@
+parserImport XOCL;
+
+context Element
+  @Constraint TypeCheck
+    self.isKindOf(classifier)
+    fail self.toString() + " is not of type " + classifier.path()
+  end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Entry isabstract
+  
+    @Operation bind(vEnv,fEnv)
+      vEnv
+    end
+  
+    @AbstractOp contents():Seq(Entry)
+    end
+    
+  end

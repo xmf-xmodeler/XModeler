@@ -1,0 +1,181 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Group extends Display, DisplayContainer
+    
+    @Constructor(x,y,width,height) end
+    
+    @Constructor() end
+    
+    @Constructor(displays) ! end
+
+    @Operation commandInterpreter()
+      // over-written as groups are not stored in idManager's idTable
+      if owner <> null
+      then owner.commandInterpreter()
+      else self.error(
+        self.of().nameString() +
+        ": CommandInterpreter cannot be found as " + self.nameString() + " has no owner.")
+      end
+    end
+
+    @Operation delete()
+      @For display in displays do
+        display.delete()
+      end;
+      self.removeFromOwner()
+    end
+
+    @Operation dispose()
+      self.disposeCollection(displays);
+      super()
+    end
+    
+    @Operation disposeId(disposeChildren)
+      if disposeChildren
+      then
+        self.disposeIdCollection(displays,disposeChildren)
+      end;
+      super(disposeChildren)
+    end
+
+    @Operation expandHeight()
+    
+      // Called to expand (if necessary) the display element
+      // along the y-axis.
+      
+      @For display in displays do
+        display.expandHeight()
+      end
+    
+    end
+    
+    @Operation expandWidth()
+    
+      // Called to expand (if necessary) the display element
+      // along the x-axis.
+      
+      @For display in displays do
+        display.expandWidth()
+      end
+    
+    end
+    
+    @Operation packHeight()
+    
+      // Called to shrink/expand the display element
+      // along the y-axis.
+      
+      @For display in displays do
+        display.packHeight()
+      end
+    
+    end
+    
+    @Operation packWidth()
+    
+      // Called to shrink/expand the display element
+      // along the x-axis.
+      
+      @For display in displays do
+        display.packWidth()
+      end
+    
+    end
+    
+    @Operation preferenceChange()
+      @For display in displays do
+        display.preferenceChange()
+      end
+    end
+    
+    @Operation maxHeight()
+    
+      // Calculates the maximum height for the component.
+      // This must take into account the relative positioning
+      // of the component with respect to its container.
+      
+      let maxHeight = 0
+      in @For display in displays do
+           maxHeight := maxHeight.max(display.maxHeight() + display.y())
+         end;
+         maxHeight
+      end
+      
+    end
+
+    @Operation maxWidth()
+    
+      // Calculates the maximum width for the component.
+      // This must take into account the relative positioning
+      // of the component with respect to its container.
+      
+      let maxWidth = 0
+      in @For display in displays do
+           maxWidth := maxWidth.max(display.maxWidth() + display.x())
+         end;
+         maxWidth
+      end
+      
+    end
+    
+    @Operation new(parent,setMenu)
+    
+      // Called when the display element is created in order
+      // to inform the client.
+      
+      self.setOwner(parent);
+      self.addDisplays();
+      self.newDisplays(parent,setMenu);
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation newDisplays(parent,setMenu)
+      @For display in displays do
+        display.new(parent,setMenu);
+        display.setOwner(self)
+      end
+    end
+    
+    @Operation renew(parent)
+    
+      // Called when the display is re-initialized after loading
+      // from a save archive.
+      
+      self.renewDisplays(parent);
+      self.setRightClickMenu();
+      self
+    end
+    
+    @Operation resize(width,height)
+      @For display in displays do
+        display.resize(width,height)
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden} then
+        attributes = Seq{x,y,width,height,hidden}
+      in
+        @Command(self) startElement("group",attributes) end;
+        @For display in displays
+        do
+          display.synchronise()
+        end;
+        @Command(self) endElement("group") end
+      end
+    end
+  
+  end

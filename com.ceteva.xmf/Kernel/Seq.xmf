@@ -1,0 +1,48 @@
+context Seq
+  @Operation inheritsFrom(c:Classifier):Boolean
+    if c.isKindOf(Seq)
+    then elementType.inheritsFrom(c.elementType)
+    else c = Element
+    end
+  end
+
+context Seq
+  @Operation equals(other):Boolean
+    if other.isKindOf(Seq)
+    then elementType.equals(other.elementType)
+    else false
+    end
+  end
+
+context Seq
+  // Create a new seq type by applying the class Seq to a type.
+  @Operation init(args)
+    let type = args->at(0)
+    in if type = Element
+       then SeqOfElement
+       else
+         self.setElementType(type);
+         self.parents := Set{SeqOfElement};
+         self.default := Seq{}
+       end
+    end
+  end
+  
+context Seq
+  @Operation setElementType(type)
+    self.elementType := type;
+    if type.hasSlot("name")
+    then self.name := "Seq(" + type.name.toString() + ")"
+    else self.name := "Seq(" + type.toString() + ")"
+    end;
+    self
+  end
+  
+context Seq
+  // Create a new seq type by sending an existing seq type
+  // a message with the element type.
+  @Operation seqType(type:Classifier)
+    let seqType = Seq.new()
+    in seqType.setElementType(type)
+    end
+  end

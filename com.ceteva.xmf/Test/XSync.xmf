@@ -1,0 +1,132 @@
+parserImport XOCL;
+
+parserImport Parser::BNF;
+parserImport XSync::Syntax;
+
+parserImport Associations;
+
+import OCL;
+import Instrs;
+import IO;
+import Parser::Tokens;
+import XOCL;
+
+context Root
+  @Package Manufacturing
+    @Class Clock
+      @Attribute time : Integer end
+      @Constructor(time) ! end
+      @Operation tick() self.time := time + 1 end
+    end
+ 
+    @Class ProductType
+      @Attribute name : String end
+      @Attribute process : Integer end
+      @Attribute components : Set(ProductType) (+) end
+      @Constructor(name,process) ! end
+    end
+  
+    @Class Product
+      @Attribute type : ProductType end
+      @Attribute components : Seq(Product) (+) end
+      @Attribute status : String = "WAITING" end
+      @Attribute start : Integer end
+      @Attribute completion : Integer end
+      @Constructor(type) end
+      @Constructor(type,components) end
+      @Constructor(type,status,start,completion,components) ! end
+      @Operation completed()
+        self.status := "COMPLETED"
+      end
+      @Operation start(time:Integer):Integer
+        self.status := "PROCESSING";
+        @For c in components do
+          time := c.start(time)
+        end;
+        self.start := time;
+        self.completion := time + type.process;
+        time + type.process
+      end
+    end
+    
+    @Class Department
+      @Attribute type : ProductType end
+      @Attribute queue : Seq(Product) (+,-) end
+      @Constructor(type) end
+      @Constructor(type,queue) ! end
+      @Operation processOrder(o:Order)
+        if o.type = type
+        then self.addToQueue(o)
+        end
+      end
+    end
+ 
+    @Class Factory
+      @Attribute orders : Seq(Product) (+,-) end
+      @Attribute completed : Seq(Product) (+,-) end
+      @Attribute departments : Set(Department) end
+      @Attribute clock : Clock = Clock(0) end
+      @Constructor(clock,orders,departments,completed) ! end
+      @Constructor(departments) end
+      @Operation processOrders()
+        @For o in orders do
+          self.deleteFromOrders(o);
+          @For d in departments do
+            d.processOrder(o)
+          end
+        end
+      end
+    end
+    
+  end
+  
+
+context Root
+  import Manufacturing in
+    @Package FactorySync 
+      @XSync ManuSync
+        @Scope 
+          type + Factory,Department,Clock,Product
+        end
+        @Rule r1 1
+           f = Factory[orders = O] when not O->isEmpty
+        do f.processOrders()
+        end
+        @Rule r2 2
+          Clock[time=t];
+          p = Product[completion=t,status="PROCESSING"]
+        do p.completed()
+        end
+        @Rule r3 1
+          Factory[orders = O] when O->isEmpty;
+                Product[status="PROCESSING"];
+          c = Clock[ ] 
+        do c.tick()
+        end
+        @Rule r4 1
+          f = Factory[ ];
+          d = Department[queue=Q] when not Q->isEmpty;
+          p = Product[status="COMPLETED"] when Q->includes(p)
+        do
+          f.addToCompleted(p);
+          d.deleteFromQueue(p) 
+        end
+        @Rule r5 1
+          Department[queue=Q] when not Q->isEmpty;
+          p = Product[status="WAITING"];
+          Clock[time=t]
+        do if p = Q->head then p.start(t) end
+        end
+      end
+    
+      @Operation test()
+        let X = ProductType("X",10);
+            Y = ProductType("Y",20);
+            Z = ProductType("Z",15)
+        in Root::f := Factory(Set{Department(X),Department(Y),Department(Z)});
+           f.addToOrders(Product(X,Seq{Product(X,Seq{Product(Y)})}));
+           f.addToOrders(Product(X,Seq{Product(Z)}))
+        end
+      end
+    end
+  end

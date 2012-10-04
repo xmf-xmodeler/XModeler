@@ -1,0 +1,31 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+
+context Basic
+
+  @Class WithEvents 
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      WithEvents ::= '(' t = Exp ')' b = Exp {
+      
+        [| let withEventsTool = <t> then
+               withEventsState = withEventsTool.handleEvents()
+           in withEventsTool.setHandleEvents(true);
+              try 
+                let withEventsResult = <b>
+                in withEventsTool.setHandleEvents(withEventsState);
+                   withEventsResult
+                end
+              catch(exception)
+                withEventsTool.setHandleEvents(withEventsState);
+                throw exception
+              end
+           end
+         |]
+       }.
+       
+     end
+   end

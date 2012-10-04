@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class EmptyBox extends Box
+  
+    @Operation init(values)
+      self.fill := false;
+      super(values)
+    end
+    
+  end

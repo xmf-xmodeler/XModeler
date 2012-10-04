@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class Position
+  
+    @Attribute line : Integer end
+    @Attribute char : Integer end
+    
+    @Constructor(line,char) ! end
+  
+  end

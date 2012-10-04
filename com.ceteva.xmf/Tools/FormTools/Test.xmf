@@ -1,0 +1,74 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+
+import Tools;
+import FormTools;
+import Types;
+import Structure;
+import Events;
+
+context Root
+  @Operation test()
+    let type = 
+          @ToolType "Test"(HORIZONTAL) 
+            @CheckBox "Check" true end
+            @Box "Atts"(VERTICAL)
+              @Star 
+                @Box "Att"(HORIZONTAL)
+                  @Label "name" Name minWidth = 50 end
+                  @TextField "value" Value minWidth = 50 end
+                end
+              end
+            end
+            @Tree "Tree" 
+              minWidth = 400
+              minHeight = 400
+              @TreeNode "NodeA"(readonly) "A Node" 
+                icon = "Exceptions/Exception.gif"
+                @Ref "NodeA" end
+                @Menu
+                  @MenuAction Delete self.delete() end
+                  @MenuAction NewA self.newNode("NodeA") end
+                end
+              end
+              @TreeNode "NodeB" "A Node" 
+                icon = "Exceptions/Self.gif"
+                @Menu
+                  @MenuAction Delete self.delete() end
+                end
+              end
+            end
+            @Box "Box"(VERTICAL) 
+              @Button "NewAtt"
+                do self.owner().ref1(Seq{"Atts"}).addNew("Att")
+              end
+              @Button "NewA"
+                minWidth = 100 
+                minHeight = 30
+                do self.owner().ref1(Seq{"Tree"}).newNode("NodeA")
+              end
+              @Button "NewB"
+                minWidth = 100 
+                minHeight = 30
+                do self.owner().ref1(Seq{"Tree"}).newNode("NodeB")
+              end
+            end
+            @ComboBox "combo"
+              "Option1"
+              "Option2"
+              "Option3"
+            end
+            @List "list"
+              "Option1"
+              "Option2"
+              "Option3"
+            end
+          end
+    in let tool = Tool(type,"tool",ElementManager(),null)
+       in tool.showForm();
+          tool.form().layout(0,0);
+          tool
+       end
+    end
+  end

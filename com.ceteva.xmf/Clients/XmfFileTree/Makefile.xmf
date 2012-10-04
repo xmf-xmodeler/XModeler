@@ -1,0 +1,12 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/Boot",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/XmfFileTree",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/AdaFile",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/XmfFile",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/JavaFile",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/XMLFile",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/XmfManifest",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/Extensions",true,true);
+compileFile(xmf.homeDir() + "/Clients/XmfFileTree/RegistryContributions",true,true);

@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class For extends Statement
+  
+    @Attribute dec : Dec end
+    @Attribute test : JExp end
+    @Attribute control : Statement end
+    @Attribute body : Statement end
+    
+    @Constructor(dec,test,control,body) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"for(");
+      dec.pprint(out,indent);
+      test.pprint(out);
+      format(out,";");
+      control.pprint(out,indent);
+      format(out,")~%~V",Seq{indent+2});
+      body.pprint(out,indent+2)
+    end
+    
+  end

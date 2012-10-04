@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftWord;
+
+let word = Word()
+in
+  word
+end;
+
+let 
+  word1 = Word() then
+  word2 = Word() then
+  document1 = word1.newDocument();
+  document2 = word2.newDocument()
+in
+  word1.show();
+  word2.show();
+  document1.writeTitle1("This is a heading");
+  document1.writePara("This is a paragraph");
+  document1.writeTitle2("This is another heading");
+  document1.writePara("This is another paragraph");
+  
+  document2.writePara("BOB");
+  document1.saveAs("c:/test.doc");
+  document.close();
+  self
+end;

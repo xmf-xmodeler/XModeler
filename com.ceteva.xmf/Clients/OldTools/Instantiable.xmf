@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class Instantiable isabstract 
+  
+    @Attribute attributes : Seq(ToolComponentAttribute) (+,-) end
+    
+    @Operation add(name,type) 
+      self.addToAttributes(ToolComponentAttribute(name,type))
+    end
+    
+    @Operation add(name,isSeq,type) 
+      self.addToAttributes(ToolComponentAttribute(name,isSeq,type))
+    end
+    
+    @Operation add(name,isSeq,type,layout) 
+      self.addToAttributes(ToolComponentAttribute(name,isSeq,type,layout))
+    end
+    
+    @Operation attNamed(name:String)
+      @Find(att,attributes)
+        when att.name = name
+        else null
+      end
+    end
+    
+    @Operation deleteAttributeNamed(name:String)
+      @Find(att,attributes)
+        when att.name = name
+        do self.deleteFromAttributes(att)
+      end
+    end
+    
+    @Operation orderAttributes()
+      attributes
+    end
+    
+  end
+  

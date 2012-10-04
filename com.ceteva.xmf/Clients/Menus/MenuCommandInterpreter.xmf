@@ -1,0 +1,89 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuCommandInterpreter extends CommandInterpreter
+  
+    @Operation delete(menu)
+      @SendCommand(self)
+        delete(menu.id())
+      end
+    end
+
+    @Operation deleteGlobalMenu(menu)
+      @SendCommand(self) 
+        deleteGlobalMenu(menu.id())
+      end
+    end
+
+    @Operation deleteMenuItem(parent,menuItem:MenuItem)
+      @SendCommand(self) 
+        deleteMenuItem(parent.id(),menuItem.id())
+      end
+    end
+
+    @Operation newGlobalMenuCommand(menu:GlobalMenu)
+      let menuId = self.allocateId(menu) in
+        @SendCommand(self) 
+          newGlobalMenu(menuId)
+        end;
+        menuId
+      end
+    end
+
+    @Operation newMenu(parent,menu)
+      // this command is for drop-down menus
+      let menuId = self.allocateId(menu)
+      in 
+         @SendCommand(self)
+           newMenu(parent.id(),menuId,menu.name())
+         end;
+         menuId
+      end
+    end
+    
+    @Operation newGroupMarker(parent,menu)
+      // this command is for drop-down menus
+      let groupId = self.allocateId(menu)
+      in
+        @SendCommand(self)
+          newGroupMarker(parent.id(),groupId)
+        end;
+        groupId
+      end
+    end
+  
+    @Operation newMenuItem(parent,menu)
+      // this command is for drop-down menus
+      // should probably be conflated with 'newRightClickMenuCommand'
+      let menuId = self.allocateId(menu)
+      in 
+         @SendCommand(self)
+           newMenuItem(parent.id(),menuId,menu.name())
+         end;
+         menuId
+      end
+    end
+
+    @Operation newRightClickMenuCommand(parent,menuItem:MenuItem)
+      // should probably be conflated with 'newMenuItem'
+      let menuItemId = self.allocateId(menuItem) then
+          handlerPointId = menuItem.getHandlerPoint().id()
+      in
+        @SendCommand(self) 
+          addMenuItem(parent.id(),menuItemId,menuItem.name(),menuItem.keybinding(),menuItem.supportsMulti(),handlerPointId)
+        end;
+        menuItemId
+      end
+    end
+
+    @Operation setGlobalMenuCommand(menu:GlobalMenu, ce:ClientElement)
+      @SendCommand(self) 
+        setGlobalMenu(menu.id(), ce.id())
+      end
+    end
+
+  end

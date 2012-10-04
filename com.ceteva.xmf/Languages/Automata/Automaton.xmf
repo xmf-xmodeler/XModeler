@@ -1,0 +1,97 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import Automata;
+import Parser::BNF;
+
+context Automata
+
+  @Class Automaton
+  
+    @Attribute startName : String end
+    @Attribute states : Set(State) (+,-) end
+    @Attribute transitions : Set(Transition) (+,-) end
+    
+    @Constructor(startName) end
+    
+    @Constructor(startName,states,transitions) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Automaton ::= '(' startName = Name ')' elements = Exp*
+      
+        { import OCL 
+          in elements->iterate(element exp = 
+               [| import Languages::Automata in Automaton(<StrExp(startName)>) end |] |
+               [| <exp>.add(<element>) |])
+          end
+        }.
+        
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        State do
+          self.addState(element)
+        end
+        Transition do
+          self.addTransition(element)
+        end
+      end
+    end
+    
+    @Operation addState(state)
+      state.setOwner(self);
+      self.addToStates(state);
+      self
+    end
+    
+    @Operation addTransition(transition)
+      transition.setOwner(self);
+      self.addToTransitions(transition);
+      self
+    end
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        State do self.deleteFromStates(element) end
+        Transition do self.deleteFromTransitions(element) end
+      end
+    end 
+    
+    @Operation run(element)
+      let state = self.startingState()
+      in @While state <> null do
+           let result = state.activate(element) then
+               transitions = self.transitionsFrom(state) then
+               enabledTransitions = transitions->select(t | t.isEnabled(element,result))
+           in if enabledTransitions->isEmpty
+              then state := null
+              else 
+                let transition = enabledTransitions->sel
+                in transition.activate(element,result);
+                   state := transition.target()
+                end
+              end
+           end
+         end
+       end
+     end
+    
+    @Operation startingState()
+      self.stateNamed(startName)
+    end
+    
+    @Operation stateNamed(name)
+      @Find(state,states)
+        when state.name = name
+        else self.error("Cannot find starting state: " + startName)
+      end
+    end
+    
+    @Operation transitionsFrom(state)
+      transitions->select(t | t.source() = state)
+    end
+  
+  end

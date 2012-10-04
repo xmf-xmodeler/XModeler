@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+ @Operation test(package)
+   @WithOpenFile(fout -> "c:/tmp.xml")
+     let out = XMLPackageOutputChannel(fout)
+     in out.writePackage(package);
+        out.close()
+     end
+   end
+ end

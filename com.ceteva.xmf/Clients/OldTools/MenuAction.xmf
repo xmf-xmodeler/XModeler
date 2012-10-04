@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Menus;
+
+context Tools
+
+  @Class MenuAction extends MenuItem, RightClickableProxy
+  
+    @Attribute handler : Operation end
+    @Attribute object : Object end
+    @Attribute tool : Element end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,handler) end
+    
+    @Operation new(object,tool)
+      // Gets round the lack of args in addRightClickMenuItems...
+      self.object := object;
+      self.tool := tool;
+      //self.addRightClickMenuItems()
+      let objElement = object.element
+      in
+        self.setGlobalMenu(objElement,Set{tool,objElement.of()})
+      end
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          proxyTarget = RightClickableProxy::proxyTarget
+      in
+        globalMenu.add(Menus::MenuAction(name,proxyTarget,Seq{},@Operation() handler(object,tool) end));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    //@Operation addRightClickMenuItems()
+    //  object.element.addRightClickMenuItem(Menus::MenuAction(name,self,Seq{},@Operation() handler(object,tool) end));
+    //  self
+    //end
+    
+  end

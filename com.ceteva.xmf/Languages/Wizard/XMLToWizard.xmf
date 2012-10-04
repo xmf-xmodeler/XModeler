@@ -1,0 +1,268 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+import IO;
+
+context Wizard
+
+  @Operation mapButton(xml)
+     Button(xml.getAtt("Id"),
+            xml.getAtt("Text"),
+            xml.getAtt("Icon_Filepath"),
+            xml.getAtt("Icon_Alignment"),
+            xml.getAtt("Is_Readonly"),
+            xml.getAtt("Gives_Report"),
+            xml.getAtt("X_Position"),
+            xml.getAtt("Y_Position"),
+            xml.getAtt("X_Size"),
+            xml.getAtt("Y_Size"))
+  end
+  
+context Wizard
+  
+  @Operation mapCheckBox(xml)
+    CheckBox(xml.getAtt("Id"),
+             xml.getAtt("Text"),
+             xml.getAtt("Value"),
+             xml.getAtt("Is_Readonly"),
+             xml.getAtt("Tooltip"),
+             xml.getAtt("Gives_Report"),
+             xml.getAtt("X_Position"),
+             xml.getAtt("Y_Position"),
+             xml.getAtt("X_Size"),
+             xml.getAtt("Y_Size"))
+  end
+  
+context Wizard
+
+  @Operation mapDropDown(xml)
+    DropDown(xml.getAtt("Id"),
+             xml.getAtt("Value"),
+             xml.getAtt("Is_Readonly"),
+             xml.getAtt("Tooltip"),
+             xml.getAtt("Gives_Report"),
+             xml.getAtt("X_Position"),
+             xml.getAtt("Y_Position"),
+             xml.getAtt("X_Size"),
+             xml.getAtt("Y_Size"),
+             XMLToWizard(xml.filter("DROPDOWN_OPTION")))
+  end
+  
+context Wizard
+
+  @Operation mapDropDownOption(xml)
+    DropDownOption(xml.getAtt("Id"),
+                   xml.getAtt("Display_Member"),
+                   xml.getAtt("Value_Member"))
+  end
+  
+context Wizard
+
+  @Operation mapForm(xml)
+    Form(xml.getAtt("Id"),
+         xml.getAtt("Name"),
+         XMLToWizard(xml.filter("TABLE")),
+         XMLToWizard(xml.filter("TEXTBOX")),
+         XMLToWizard(xml.filter("DROPDOWN")),
+         XMLToWizard(xml.filter("CHECKBOX")),
+         XMLToWizard(xml.filter("RADIO_BUTTON")),
+         XMLToWizard(xml.filter("BUTTON")),
+         XMLToWizard(xml.filter("LABEL")))
+  end
+   
+context Wizard
+  
+  @Operation mapGUI(xml)
+  
+    GUI(XMLToWizard(xml.filter("FORM")),
+        XMLToWizard(xml.filter("TREE")),
+        Seq{},
+        Seq{})
+  end
+  
+context Wizard
+
+  @Operation mapTreeNode(xml)
+     TreeNode(xml.getAtt("Id"),
+              xml.getAtt("Text"),
+              xml.getAtt("Icon_Filepath"),
+              xml.getAtt("Is_Expanded"),
+              xml.getAtt("Gives_Report"),
+              if xml.hasAtt("ref_Tree_Node")
+              then xml.getAtt("ref_Tree_Node")
+              else ""
+              end)
+  end
+  
+context Wizard
+
+  @Operation mapLabel(xml)
+    Label(xml.getAtt("Id"),
+            xml.getAtt("Text"),
+            if xml.hasAtt("Icon_Filepath") then xml.getAtt("Icon_Filepath") else "" end,
+            if xml.hasAtt("Icon_Alignment") then xml.getAtt("Icon_Alignment") else "" end,
+            xml.getAtt("X_Position"),
+            xml.getAtt("Y_Position"),
+            xml.getAtt("X_Size"),
+            xml.getAtt("Y_Size"))
+  end
+  
+context Wizard
+
+  @Operation mapPullDownMenu(xml)
+  
+    PullDownMenu(xml.getAtt("Id"),
+                 XMLToWizard(xml.filter("PULLDOWN_MENU_ITEM")),
+                 XMLToWizard(xml.filter("PULLDOWN_MENU_DIVIDER")))
+  end
+  
+context Wizard
+ 
+  @Operation mapPullDownMenuItem(xml)
+    PullDownMenuItem(xml.getAtt("Id"),
+                     xml.getAtt("Text"),
+                     xml.getAtt("Is_Readonly"),
+                     xml.getAtt("Gives_Report"),
+                     xml.getAtt("ref_PULLDOWN_MENU_ITEM"))
+  end
+  
+context Wizard
+
+  @Operation mapRadioButton(xml)
+    RadioButton(xml.getAtt("Id"),
+               xml.getAtt("Text"),
+               xml.getAtt("Is_Readonly"),
+               xml.getAtt("Tooltip"),
+               xml.getAtt("Gives_Report"),
+               xml.getAtt("Value"),
+               xml.getAtt("X_Position"),
+               xml.getAtt("Y_Position"),
+               xml.getAtt("X_Size"),
+               xml.getAtt("Y_Size"))
+   end
+   
+context Wizard
+ 
+   @Operation mapTable(xml)
+     Table(xml.getAtt("Id"),
+           xml.getAtt("Name"),
+           xml.getAtt("Is_Readonly"),
+           xml.getAtt("X_Position"),
+           xml.getAtt("Y_Position"),
+           xml.getAtt("X_Size"),
+           xml.getAtt("Y_Size"),
+           XMLToWizard(xml.filter("TABLE_COLUMN")))
+   end
+   
+context Wizard
+
+  @Operation mapTableColumn(xml)
+    TableColumn(xml.getAtt("Id"),
+                xml.getAtt("Name"),
+                xml.getAtt("Width"),
+                xml.getAtt("Is_Readonly"),
+                xml.getAtt("Gives_Report"),
+                XMLToWizard(xml.filter("TABLE_COLUMN_CELL")),
+                XMLToWizard(xml.filter("TABLE_DROPDOWN_OPTION")))
+  end
+  
+context Wizard
+
+  @Operation mapTableColumnCell(xml)
+    TableColumnCell(xml.getAtt("Id"),
+                    xml.getAtt("Value"))
+  end
+  
+context Wizard
+
+  @Operation mapTableDropDownOption(xml)
+     TableDropDownOption(xml.getAtt("Id"),
+                         xml.getAtt("Display_Member"),
+                         xml.getAtt("Value_Member"))
+  end
+  
+context Wizard
+
+  @Operation mapTextBox(xml)
+    TextBox(xml.getAtt("Id"),
+            xml.getAtt("STYLE"),
+            xml.getAtt("Is_Readonly"),
+            xml.getAtt("Tooltip"),
+            xml.getAtt("Gives_Report"),
+            xml.getAtt("Value"),
+            xml.getAtt("X_Position"),
+            xml.getAtt("Y_Position"),
+            xml.getAtt("X_Size"),
+            xml.getAtt("Y_Size"))
+  end
+  
+context Wizard
+
+  @Operation readXML(path)
+    let fin = FileInputChannel(path) then
+        xin = XMLInputChannel(fin) then
+        doc = xin.read()
+    in xin.close();
+       XMLToWizard(doc.root)
+    end
+  end
+ 
+context Wizard
+
+  @Operation XMLToWizard(xml)
+  
+    @Doc 
+      Translates an XML element to a Wizard model element.
+      Also handles sequences of XML elements. Sequences are
+      translated element by element.
+    end
+    
+    if xml.isKindOf(Seq(Element))
+    then xml->collect(x | XMLToWizard(x))
+    else
+    
+      @Case xml.tag of
+    
+        "BUTTON" do mapButton(xml) end
+      
+        "CHECKBOX" do mapCheckBox(xml) end
+   
+        "DROPDOWN" do mapDropDown(xml) end
+        
+        "DROPDOWN_OPTION" do mapDropDownOption(xml) end
+        
+        "FORM" do mapForm(xml) end
+        
+        "GenericGuiSchema" do mapGUI(xml) end
+    
+        "LABEL" do mapLabel(xml) end
+        
+        "PULLDOWN_MENU" do mapPullDownMenu(xml) end
+        
+        "PULLDOWN_MENU_ITEM" do mapPullDownMenuItem(xml) end
+        
+        "RADIO_BUTTON" do mapRadioButton(xml) end
+        
+        "TABLE" do mapTable(xml) end
+        
+        "TABLE_COLUMN" do mapTableColumn(xml) end
+   
+        "TABLE_COLUMN_CELL" do mapTableColumnCell(xml) end
+        
+        "TABLE_DROPDOWN_OPTION" do mapTableDropDownOption(xml) end
+        
+        "TEXTBOX" do mapTextBox(xml) end
+   
+        "TREE" do
+          Tree(xml.getAtt("Id"),XMLToWizard(xml.filter("TREE_NODE")))
+        end
+      
+        "TREE_NODE" do mapTreeNode(xml) end
+      
+      end
+      
+    end
+    
+  end

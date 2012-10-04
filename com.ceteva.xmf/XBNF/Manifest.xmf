@@ -1,0 +1,13 @@
+parserImport Manifests;
+
+@Manifest XBNF
+  XBNF = @File XBNF end
+  @Ref Exceptions end
+  @Ref Scanning end
+  @Ref Tokens end
+  @Ref Grammars end
+do XBNF.init();
+   @Manifest Examples
+     //@Ref Examples/XOCL end
+   end
+end;

@@ -1,0 +1,89 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+import XOCL;
+
+context IO
+
+  @Class ExpEditor extends StatefulEditor
+  
+    // A text editor that controls an underlying expression.
+    // the editor offers a commit menu option that compiles
+    // the contained text and updates the expression.
+    
+    // The instructions are a newline separated sequence of
+    // sub-strings that are printed out as comments. They are
+    // used to give instructions to the user of the expression
+    // editor.
+    
+    @Attribute instructions : String (?,!) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      // The format of edited expressions is controlled here...
+    
+      TextExp ::= e = Exp EOF { e }.
+      
+    end
+  
+    @Constructor(element,name,tooltip,instructions) 
+    
+      // The element must be an instance of XOCL::Exp
+      
+      self.editable := true;
+      if element.isReallyKindOf(Exp)
+      then
+        self.onChangeTo("Commit",ExpEditor::commit);
+        self
+      else self.error("An expression editor cannot edit " + element.toString())
+      end
+      
+    end
+    
+    @Operation commit(state:String)
+    
+      // When the user selects the 'Commit' menu item then
+      // try to parse and compile the text in the editor.
+      // If this succeeds then the edited XOCL expression
+      // is updated witht he expression (the source) and the
+      // operation (the binary).
+      
+      let text = self.getText() then
+          e = try 
+                ExpEditor.grammar.parseString(text,"TextExp",Seq{XOCL})
+              catch(exception)
+                @TypeCase(exception)
+                  Parser::BNF::ParseError do
+                    xmf.warning("Parse error. Commit failed.");
+                    null
+                  end
+                  else throw exception
+                end
+              end
+      in if e <> null
+         then
+           self.setClean();
+           element.setExp(e);
+           element.expChanged()
+         end
+      end
+    end
+    
+    @Operation show()
+    
+      // Display the expression including the comments as
+      // a header.
+      
+      super();
+      let comments = instructions->splitBy("\n",0,0)->iterate(c s = "" | s + "// " + c + "\n")
+      in self.setText(comments + "\n" + element.exp().pprint() + "\n");
+         self
+      end
+    end
+           
+    
+  end

@@ -1,0 +1,16 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ImportIn in PPrint(aImportIn,out,seen)
+  format(out,"import ");
+  self.dispatch(aImportIn.nameSpace,out);
+  self.newLine();
+  format(out,"in ");
+  self.indent(
+    @Operation()
+      self.dispatch(aImportIn.body,out)
+    end);
+  self.newLine();
+  format(out,"end")
+end;

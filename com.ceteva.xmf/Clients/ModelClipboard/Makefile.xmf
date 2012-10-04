@@ -1,0 +1,22 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/ModelClipboard",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/Boot",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/CutCopyHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/PasteHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DragHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DropHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/ClipboardSource",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/ClipboardTarget",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/Clipboard",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DraggableClientElement",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DroppableClientElement",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DropEvent",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/DroppableEventHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/XMF",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/Extensions",true,true);
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/RegistryExtensionPoints",true,true);
+
+compileFile(xmf.homeDir() + "/Clients/ModelClipboard/ClipboardDef/Makefile",true,true);
+(xmf.homeDir() + "/Clients/ModelClipboard/ClipboardDef/Makefile.o").loadBin(false);

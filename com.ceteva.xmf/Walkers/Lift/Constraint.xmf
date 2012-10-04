@@ -1,0 +1,17 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Constraint in Lift(o,arg,encountered)
+  try
+    let body = OCL::OCL.grammar.parseString(o.body.source(),"Exp",Seq{XOCL}).performable;
+        success = OCL::OCL.grammar.parseString(o.success().source(),"Exp",Seq{XOCL}).performable;
+        fail = OCL::OCL.grammar.parseString(o.fail().source(),"Exp",Seq{XOCL}).performable
+    in XOCL::Constraint(o.name,body,success,fail)
+    end
+  catch(exception)
+    format(stdout,"Error ~S lifing constraint ~S",Seq{exception,o});
+    [| self.error(<StrExp("Missing constraint " + o.name().toString())>) |]
+  end
+end;

@@ -1,0 +1,19 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+/*
+
+@Handler ParserImport in Eval(aParserImport,arg,seen)
+  if seen
+  then aParserImport
+  else
+    let exp = self.dispatch(aParserImport.exp,arg);
+        names = aParserImport.names->collect(x | self.dispatch(x,arg))
+    in aParserImport
+    end
+  end
+end;
+
+*/

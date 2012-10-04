@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class And extends Recognizer
+  
+    @Attribute left : Recognizer end
+    @Attribute right : Recognizer end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      left.CNF(grammar,BV,
+        @Operation(left,BV,newClauses1)
+          right.CNF(grammar,BV,
+            @Operation(right,BV,newClauses2)
+              handler(left + right,BV,newClauses1 + newClauses2)
+            end)
+        end)
+    end
+    
+    @Operation FV():Set(String)
+      left.FV()->union(right.FV())
+    end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      format(out," ");
+      right.pprint(out,indent)
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      left.setLocals(locals,
+        @Operation(locals)
+          right.setLocals(locals,next)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals() + right.terminals()
+    end
+     
+  end

@@ -1,0 +1,86 @@
+parserImport XOCL;
+parserImport XMap;
+
+import IO;
+import Clients;
+import TextEditor;
+
+context TextEditor
+  
+  @Class FileEditor isabstract
+  
+    // A text editor which has an underlying file should implement this
+    // interface and can therefore be managed by the FileEditorManager
+  
+    @Attribute file 	 : File 		end
+    @Attribute listeners : Seq(Element) end
+    
+    @Constructor(file)
+      self.checkDaemons()
+    end
+    
+    @Operation addListener(listener:FileEditorManager)
+      self.listeners := listeners->prepend(listener)
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once FileEditor::nameChanged(file,"name") end;
+      @SlotValueChanged multi once FileEditor::fileRemoved(file,"owner") end
+    end
+    
+    @Operation closeEvent()
+      @For listener in listeners
+      do listener.handleEditorCloseEvent(self)
+      end
+    end
+    
+    // these must be implemented by a sub class
+    
+    /* @AbstractOp closeOpenEditor()
+    end */
+    
+    @Operation fileRemoved(element,slot,newValue,oldValue)
+      if newValue = null then
+        self.closeOpenEditor()
+      end
+    end
+    
+    @Operation focusGained()
+      file.selectModelBrowserNode(true)
+    end
+    
+    @Operation focusLost()
+      file.selectModelBrowserNode(false)
+    end
+    
+    @Operation nameChanged(element,slot,newName,oldName)
+      self.nameChangedEvent(file)
+    end
+    
+    @Operation nameChangedEvent(file:File)
+      @For listener in listeners
+      do listener.fileNameChangedEvent(self,file)
+      end
+    end
+    
+    @Operation removeDaemons()
+      file.removeDaemonsWithTarget(self,true);
+      self
+    end
+    
+    @Operation removeListener(listener:FileEditorManager)
+      self.listeners := listeners.excluding(listener)
+    end
+    
+    // these must be implemented by a sub class
+    
+    /* @AbstractOp setName(name:String)
+    end
+    
+    @AbstractOp setTooltip(tooltip:String)
+    end 
+    
+    @AbstractOp setText(text:String)
+    end */
+  
+  end

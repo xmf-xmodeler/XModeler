@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Compiler
+
+  @Class Var extends NamedElement
+  
+     // The compiler maintains information on variables that occur in source
+     // code as it compiles. Variables occur in different categories.
+     
+     @Constructor(name) ! end
+     
+   end

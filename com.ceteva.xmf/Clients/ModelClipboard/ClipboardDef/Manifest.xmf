@@ -1,0 +1,9 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest ClipboardDef
+  @File ClipboardRule end
+  @File CutRule end
+  @File CopyRule end
+  @File PasteRule end
+end;

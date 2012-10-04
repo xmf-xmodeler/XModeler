@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable 
+
+  @Class EventClause extends Syntax
+ 
+     @Attribute event     : Event end 
+     @Attribute condition : Condition end 
+     @Attribute bindings  : Seq(Binding) end 
+     
+     @Constructor(event,condition,bindings) ! end
+     
+     @Operation addCreationListener(class)
+     
+       // If the condition is a creation condition then add a 
+       // new listener to the class so that the event is raised whenever
+       // a new instance of the class is created.
+       
+       if condition.isKindOf(Creation)
+       then 
+         let listener = @Operation(o) event.raise(o,self.env()) end
+         in listener.newListenerFor(class)
+         end
+       end
+     end
+         
+     @Operation env()
+     
+       // Create an environment of DYNAMIC bindings from the
+       // bindings in the event clause.
+       
+       bindings->collect(b | Seq{1 | Seq{b.name | b.exp.perform()}})
+     end
+     
+     @Operation generateEvents(daemon,object,slot,new,old)
+       let env = self.env()
+       in if condition.perform(env,object,slot,new,old)
+          then event.raise(object,env)
+          end
+       end
+     end
+       
+     
+  end

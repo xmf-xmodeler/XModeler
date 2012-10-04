@@ -1,0 +1,93 @@
+parserImport XOCL;
+
+context Walkers
+
+  @Class DispatchingObject
+  
+    // This class is the default super-class of all dispatching
+    // classes. It defines the basic features of a dispatcher.
+    // Dispatching classes can extend the attributes of this class
+    // that support the operations of the dispatcher.
+  
+    @Attribute table   : Table = Table(100)    end
+    @Attribute visited : Integer         (?)   end
+    @Attribute debug   : Boolean         (?,!) end
+    @Attribute indent  : Integer               end
+    
+    @Operation debug(element,arg,encountered)
+    
+      // The dispatching object is being traced.
+      // Print out diagnostics...
+      
+      try 
+        format(stdout,"~VDISPATCH on ~S arg = ~S ~S~%",Seq{
+          indent,
+          element,
+          arg,
+          if encountered
+          then "another time"
+          else "for the first time"
+          end
+        });
+        self.indent := indent + 2;
+        let value = self.of().dispatch(element,arg,self,encountered)
+        in self.indent := indent - 2;
+           format(stdout,"~VDISPATCH on ~S returns ~S~%",Seq{
+             indent,
+             element,
+             value
+           });
+           value
+        end
+      catch(exception)
+        self.indent := indent - 2;
+        throw exception
+      end
+    end
+    
+    @Operation dispatch(element,arg)
+    
+      // Called at the user level to dispatch on the element
+      // with the supplied arg.
+      
+      let encountered = self.encountered(element)
+      in self.encounter(element);
+         self.visited := visited + 1;
+         if debug
+         then self.debug(element,arg,encountered)
+         else self.of().dispatch(element,arg,self,encountered)
+         end
+      end
+    end 
+    
+    @Operation dispatchFails(element,arg)
+    
+      // Subclasses of this class are dispatchers. They
+      // can redefine this operation to handle the case where
+      // there is no handler for the type of the element.
+      // The default is to raise an exception.
+      
+      let exception = Walkers::DispatchError("No handler for element " + element.toString())
+      in
+        exception.edit();
+        throw exception
+      end
+    end  
+     
+    @Operation encounter(e:Element)
+      table.put(e,e)
+    end
+     
+    @Operation encountered(e:Element):Boolean
+      // Returns true when we have already walked e.
+      table.hasKey(e)
+    end
+     
+    @Operation reset()
+      table.clear();
+      self.visited := 0
+    end
+     
+  end
+     
+     

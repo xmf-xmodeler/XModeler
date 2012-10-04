@@ -1,0 +1,100 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import DiagramTools;
+import Types;
+
+context Types
+
+  @Class ToolBar
+  
+    @Attribute groups : Seq(ToolGroup) (+,-,?) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      ToolBar ::= defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::DiagramTools::Types::ToolBar() |] |
+        
+          [| <exp>.add(<def>) |])
+          
+        }.
+        
+      end
+      
+    @Operation add(element)
+      @TypeCase(element)
+        ToolGroup do
+          self.addToGroups(element)
+        end
+      end
+    end
+    
+    @Operation merge(inherited)
+      @For inheritedGroup in inherited.groups() do
+        @Find(localGroup,groups)
+          when localGroup.name().toString() = inheritedGroup.name().toString()
+          do localGroup.merge(inheritedGroup)
+          else self.add(inheritedGroup)
+        end
+      end
+    end
+      
+    @Operation new(diagram,tool:Tool)
+      @For group in groups do
+        group.new(diagram,tool)
+      end
+    end
+
+    @Operation reorder(group)
+      let options = self.groups->excluding(group) + Seq{"end"};
+          stringOp = 
+            @Operation(e)
+              if e = "end"
+              then "- End of Sequence -"
+              else e.name()
+              end
+            end;
+          message = "Select the tool group that you want to insert '"
+                    + group.name() + "' before" then
+          beforeGroup = xmf.select("Move Tool Group",
+                                   message,
+                                   options,
+                                   null,
+                                   stringOp)
+      in
+        if beforeGroup <> null
+        then
+          self.groups := groups->excluding(group);
+          if beforeGroup = "end"
+          then
+            self.groups := groups + Seq{group}
+          else
+            let newPos = groups.indexOf(beforeGroup)
+            in  self.groups := groups.insertAt(group,newPos)
+            end
+          end;
+          // return moved group for further processing if necessary...
+          group
+        else null
+        end
+      end
+    end
+
+    @Operation reorder()
+      let stringOp = @Operation(e) e.name() end then
+          group = xmf.select("Reorder Tool Groups",
+                            "Choose a tool group to move",
+                            self.groups,
+                            null,
+                            stringOp)
+      in
+        if group <> null
+        then
+          self.reorder(group)
+        end
+      end
+    end
+
+  end

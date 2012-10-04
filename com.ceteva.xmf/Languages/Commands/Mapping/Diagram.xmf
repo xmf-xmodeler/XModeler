@@ -1,0 +1,241 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Languages;
+import Commands;
+import Statements;
+import Expressions;
+import Diagrams;
+import IO;
+import Graphs;
+
+context Mapping
+
+  @Class Diagram extends CommandDiagram
+
+    @Constructor(name)
+      super(name);
+      self.setMenuKey(Set{Element,self.of()})
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("AsGraph",target,Seq{true},CommandDiagram::map));
+        globalMenu
+      end
+    end
+
+    @Operation asGraph():Graph
+      let nodes = graph.nodes->collect(n | Node(n)) then
+          nodeFor = @Operation(n) @Find(node,nodes) when node.data() = n end end then
+          edges = graph.edges->collect(e | Edge(e,nodeFor(e.sourceNode()),nodeFor(e.targetNode())))
+      in Graph(nodes,edges)
+      end
+    end
+    
+    @Operation map()
+      let G = self.asGraph();
+          changed = true;
+          isIf = 
+            @Operation(G)
+              if G.roots()->size = 1 and G.nodes()->size = 4
+              then
+                if G.roots()->sel.data().isKindOf(GuardNode)
+                then G.paths()->collect(p | p->last)->size = 1
+                else false
+                end
+              else false
+              end
+            end;
+          isPn =
+            @Operation(G)
+              @Operation(path)
+                path->size > 1 and
+                path->forAll(n | n.data().isKindOf(Statement)) and
+                path->butLast->forAll(n | G.outDegree(n) = 1) and
+                path->tail->forAll(n | G.inDegree(n) = 1)
+              end
+            end
+       in @While changed do
+            let paths = G.paths() 
+            in @Find(path,paths)
+                 when isPn(G)(path)
+                 do format(stdout,"Pn~%");
+                    let N = path->asSet then
+                        E = G.edges()->select(e | N->includes(e.source()) and N->includes(e.target())) then
+                        subG = Graph(N,E)
+                    in G := G.reduce(Node(Pn(path)),subG);
+                       changed := true
+                    end
+                 else changed := false
+               end
+            end;
+            @Find(whileNodes,G.nodes()->power)
+              when
+                whileNodes->size = 3 and
+                whileNodes->exists(test |
+                  test.data().isKindOf(GuardNode) and
+                  G.outDegree(test) = 2 and
+                  let S = whileNodes->excluding(test) 
+                  in S->size = 2 and
+                     S->forAll(n | n.data().isKindOf(Statement)) and
+                     S->exists(body |
+                       G.inDegree(body) = 1 and
+                       G.outDegree(body) = 1 and
+                       G.edges()->exists(trueEdge |
+                         trueEdge.source() = test and
+                         trueEdge.target() = body) and
+                       G.edges()->exists(loopEdge |
+                         body = loopEdge.source() and
+                         test = loopEdge.target())) and
+                     S->exists(next |
+                       G.edges()->exists(falseEdge |
+                         falseEdge.data().isKindOf(FalseEdge) and
+                         falseEdge.source() = test and
+                         falseEdge.target() = next))
+                  end)
+             do format(stdout,"W~%");
+                let N = whileNodes then
+                    E = G.edges()->select(e | 
+                      N->includes(e.source()) and 
+                      N->includes(e.target())) then
+                    testNode = 
+                      @Find(n,N)
+                        when
+                          Graph(N,E).outDegree(n) = 2
+                      end;
+                    bodyNode =
+                      @Find(n,N)
+                        when 
+                          E->exists(e | 
+                            e.data().isKindOf(TrueEdge) and 
+                            e.target() = n) 
+                      end;
+                    exitNode = 
+                      @Find(n,N) 
+                        when 
+                          E->exists(e | 
+                            e.data().isKindOf(FalseEdge) and 
+                            e.target() = n) 
+                      end then
+                    subG = Graph(N->excluding(exitNode),E) then
+                    whileNode = Node(W(testNode,bodyNode))
+                 in G := G.reduce(whileNode,subG);
+                    G.addEdge(Edge(NextEdge(),whileNode,exitNode));
+                    changed := true
+                 end
+            end;      
+            @Find(ifNodes,G.nodes()->power)
+              when
+                ifNodes->size = 4 and
+                ifNodes->exists(test | 
+                  test.data().isKindOf(GuardNode) and
+                  G.outDegree(test) = 2 and
+                  let S = ifNodes->excluding(test)
+                  in S->size = 3 and
+                     S->exists(sink |
+                       G.inDegree(sink) = 2 and
+                       let thenElse = S->excluding(sink)
+                       in thenElse->size = 2 and
+                          thenElse->forAll(n | n.data().isKindOf(Statement)) and
+                          thenElse->forAll(n | 
+                            G.inDegree(n) = 1 and G.outDegree(n) = 1) and
+                          G.edges()->exists(e | 
+                            e.source() = test and 
+                            thenElse->includes(e.target()) and
+                            e.data().isKindOf(TrueEdge)) and
+                          G.edges()->exists(e | 
+                            e.source() = test and 
+                            thenElse->includes(e.target()) and
+                            e.data().isKindOf(FalseEdge)) and
+                          G.edges()->exists(e1 | 
+                            G.edges()->exists(e2 |
+                              e1.target() = sink and 
+                              e2.target() = sink and
+                              thenElse->includes(e1.source()) and
+                              thenElse->includes(e2.source())))
+                       end)
+                  end)
+              do format(stdout,"C~%");
+                 let N = ifNodes then
+                     E = G.edges()->select(e | 
+                       N->includes(e.source()) and 
+                       N->includes(e.target())) then
+                     testNode =
+                       @Find(n,N)
+                         when
+                           Graph(N,E).outDegree(n) = 2
+                       end;
+                     exitNode = 
+                       @Find(n,N) 
+                         when 
+                           Graph(N,E).inDegree(n) = 2 
+                       end;
+                     thenNode =
+                       @Find(n,N)
+                         when
+                           E->exists(e | e.data().isKindOf(TrueEdge) and e.target() = n)
+                       end;
+                     elseNode =
+                       @Find(n,N)
+                         when
+                           E->exists(e | e.data().isKindOf(FalseEdge) and e.target() = n)
+                       end then
+                     subG =  Graph(N->excluding(exitNode),E) then
+                     ifNode = Node(C(testNode,thenNode,elseNode))
+                 in G := G.reduce(ifNode,subG);
+                    G.addEdge(Edge(NextEdge(),ifNode,exitNode));
+                    changed := true
+                 end
+            end
+          end;
+          self.transform(G).pprint(stdout,0);
+          format(stdout,"~%")
+       end
+    end
+    
+    @Operation transform(x)
+      @Case x of
+        Graph(N,E) do 
+          Block(self.transform(N))
+        end
+        Node[data = (d = ValueDecNode[ ])] do
+          Seq{Statements::Statement.grammar.parseString(d.dec().text(),"ValueDeclaration",Seq{})}
+        end
+        Node[data = (d = TypeDecNode[ ])] do
+          Seq{Statements::Statement.grammar.parseString(d.dec().text(),"TypeDeclaration",Seq{})}
+        end
+        Node[data = Pn(path)] do
+          self.transform(path)
+        end
+        Node[data = C(Node[data=GuardNode[exp=e] ],thenNode,elseNode)] do
+          Seq{If(Exp.grammar.parseString(e.text(),"Exp",Seq{}),
+                 Block(self.transform(thenNode)),
+                 Block(self.transform(elseNode)))}
+        end
+        Node[data = SkipNode()] do
+          Seq{}
+        end
+        Node[data = W(Node[data=GuardNode[exp=e] ],bodyNode)] do
+          Seq{While(Exp.grammar.parseString(e.text(),"Exp",Seq{}),
+                    Block(self.transform(bodyNode)))}
+        end
+        S->including(n) do
+          self->transform(S) + self.transform(n)
+        end
+        Seq{n | ns} do
+          self.transform(n) + 
+          self.transform(ns)
+        end
+        Set{} do Seq{} end
+        Seq{} do Seq{} end
+        else Seq{Block(Seq{x})}
+      end
+    end
+        
+    
+  end

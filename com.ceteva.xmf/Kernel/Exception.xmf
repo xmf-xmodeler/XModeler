@@ -1,0 +1,143 @@
+parserImport XOCL;
+
+context Exception
+  @Constructor()
+    self.setBacktrace()
+  end
+  
+context Exception
+  @Constructor(message)
+    self.setBacktrace()
+  end
+  
+context Exception
+  @Operation display()
+    @Doc
+      Call this operation to display an exception to the user.
+      If Mosaic is in full swing then the stack trace will be
+      displayed as a tree. Otheriwse the stack trace is printed 
+      in text.
+    end
+
+    // uncomment the following section if you need a backtrace
+    // following a machine error that causes xmf to crash
+/*    if self.isKindOf(MachineException)
+    then Exception::backtraceLimit := 30;
+         self.printBacktrace()
+    end; */
+
+    if Root.hasElement("Clients")
+    then
+      if Root::Clients.hasElement("ExceptionReport")
+      then
+        self.edit()
+      else
+        self.printBacktrace()
+      end
+    else 
+      self.printBacktrace()
+    end
+  end
+  
+context Exception
+  @Bind backtraceLimit = 10 end
+  
+context Exception
+  @Operation printBacktrace()
+    format(stdout,"~S~%~%",Seq{self}); 
+    let frames = backtrace;
+        index = 0;
+        unlimited = Exception::backtraceLimit < 0
+    in @While not frames->isEmpty and (index < Exception::backtraceLimit or unlimited) do
+         let frame = frames->head
+         in self.printFrame(frame);
+            format(stdout,"~%----------------------------------~%~%",Seq{});
+            frames := frames->tail;
+            index := index + 1
+         end
+       end;
+       if not frames->isEmpty
+       then format(stdout,"~%...more frames (increase Exception::backtraceLimit).~%")
+       end
+    end
+  end
+    
+context Exception
+  @Operation printFrame(frame)
+    let codeBox = frame->at(0);
+        codeIndex = frame->at(1);
+        globals = frame->at(2);
+        dynamics = frame->at(3);
+        locals = frame->at(4);
+        target = frame->at(5);
+        supers = frame->at(6);
+        handler = frame->at(7);
+        values = frame->at(8);
+        lineCount = frame->at(9);
+        charCount = frame->at(10) then
+        fun = if supers = null then null else if supers->isEmpty then null else supers->head end end then
+        paramNames = if fun = null then Seq{} else fun.paramNames() end then
+        arity = paramNames->size
+    in let owner = 
+         if fun = null 
+         then "?" 
+         else 
+           if fun.owner <> null
+           then fun.owner.name 
+           else "?"
+           end
+         end 
+       in try
+            format(stdout,"~S::~S(~{,~;~S~}) line = ~S char = ~S~%",Seq{owner,Kernel_codeBoxName(codeBox),paramNames,lineCount,charCount});
+            @For name in paramNames do
+              format(stdout,"  ~S = ~S~%",Seq{name,if values->isEmpty then "?" else values->head end});     
+              if not values->isEmpty then values := values->tail end
+            end;
+            format(stdout,"  self = ~S~%",Seq{target});
+            if not values->isEmpty 
+            then 
+              let local = arity
+              in @For value in values do
+                    format(stdout,"  local(~S) = ~S~%",Seq{local,value});
+                    local := local + 1
+                 end
+              end
+            end
+          catch(exception)
+            format(stdout,"Error printing stack frame ~S~%",Seq{exception})
+          end
+       end
+    end
+  end
+  
+context Exception
+
+  @Operation setBacktrace()
+  
+    // Used to set the backtrack for an exception when the exception
+    // is created. Drops any stackframes that represent the construction
+    // of the exception so that we are left with just the frames
+    // leading back from the point at which the exception is constructed.
+    
+    let frames = Kernel_stackFrames() then
+        target = @Operation(frame) frame->at(5) end then
+        skipSelf = @Operation(frame) target(frame) = self end then
+        xcnstr = 
+          @Operation(element) 
+            element.isReallyKindOf(Constructor) andthen 
+            element.owner().isReallyKindOf(Class) andthen 
+            element.owner().inheritsFrom(Exception) 
+          end then
+        skipConstructor = @Operation(frame) xcnstr(target(frame)) end then
+        skip = @Operation(frame) skipSelf(frame) or skipConstructor(frame) end
+    in @While not frames->isEmpty andthen skip(frames->head) do
+         frames := frames->tail
+       end;
+       self.backtrace := frames
+    end
+  end
+  
+context Exception
+  @Operation toString():String
+    "<Exception " + message + ">"
+  end

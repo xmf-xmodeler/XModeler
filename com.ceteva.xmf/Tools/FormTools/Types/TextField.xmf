@@ -1,0 +1,64 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import FormEvents;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class TextField extends FormElement
+
+  @Attribute isEditable : Boolean (!,?) end
+  @Attribute text       : String  (!,?) end
+  
+  @Constructor(name,text,isEditable) 
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+  
+    TextField ::= name = EName patts = PosAtts text = Text natts = NamedAtts defs = Exp* {
+    
+      [| let textFieldType = <defs->iterate(t e = [| Tools::FormTools::Types::TextField(<name>) |] | [| <e>.add(<t>) |])>
+         in textFieldType.setText(<text>);
+            textFieldType.setIsEditable(not <OCL::BoolExp(patts->includes("readonly"))>);
+            textFieldType.setMinWidth(<OCL::IntExp(FormElement::lookup(natts,"minWidth",0))>);
+            textFieldType.setMaxWidth(<OCL::IntExp(FormElement::lookup(natts,"maxWidth",9999))>);
+            textFieldType.setMinHeight(<OCL::IntExp(FormElement::lookup(natts,"minHeight",0))>);
+            textFieldType.setMaxHeight(<OCL::IntExp(FormElement::lookup(natts,"maxHeight",9999))>);
+            textFieldType.setPadLeft(<OCL::IntExp(FormElement::lookup(natts,"padLeft",0))>);
+            textFieldType.setPadRight(<OCL::IntExp(FormElement::lookup(natts,"padRight",0))>);
+            textFieldType.setPadTop(<OCL::IntExp(FormElement::lookup(natts,"padTop",0))>);
+            textFieldType.setPadBottom(<OCL::IntExp(FormElement::lookup(natts,"padBottom",0))>);
+            textFieldType.setLayout(<OCL::StrExp(FormElement::filterLayout(patts))>);
+            textFieldType
+         end
+      |]
+    }.
+    
+    Text ::= n = Name { OCL::StrExp(n) } | s = Str { OCL::StrExp(s) } | '<' e = Exp '>' { e }.
+    
+  end
+  
+  @Operation new(parent,path,env,tool)
+  
+    // Create but do not new the text box since the parent may not have
+    // been newed yet.
+    
+    let textField = Forms::TextField(0,0,0,0,text,isEditable)
+    in textField.setType(self);
+       textField.setTextChangedHandler(
+         @Operation(text,new,old) 
+           tool.raise(TextFieldChanged(path + Seq{name.toString()},textField,new,old))
+         end);
+       parent.add(textField);
+       menu.setGlobalMenu(textField,textField,tool,path + Seq{name.toString()},Set{self,tool});
+       textField
+    end
+  end
+  
+end

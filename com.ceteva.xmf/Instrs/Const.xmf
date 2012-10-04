@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Const extends Instr
+  
+    @Doc
+      A constant to be pushed onto the stack. The constant is
+      found in the constants area of the executing code box.
+    end
+   
+    @Attribute value : Element end
+    @Attribute offset : Integer end
+    
+    @Constructor(value) ! end
+  
+    @Operation toString():String
+      "<Const " + value.toString() + " >"
+    end
+    
+    @Operation assemble(codeBox)
+      self.offset := codeBox.constOffset(value);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands()
+      offset
+    end
+
+  end

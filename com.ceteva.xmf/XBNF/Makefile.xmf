@@ -1,0 +1,8 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XBNF/Boot",true,true);
+compileFile(xmf.homeDir() + "/XBNF/XBNF",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Tokens/Makefile",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Makefile",true,true);
+(xmf.homeDir() + "/XBNF/Tokens/Makefile.o").loadBin(false);
+(xmf.homeDir() + "/XBNF/Grammars/Makefile.o").loadBin(false);

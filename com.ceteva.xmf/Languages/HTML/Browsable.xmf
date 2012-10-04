@@ -1,0 +1,94 @@
+parserImport XOCL;
+
+
+// *** Browsable ***
+// This is a utility class that provides simple model browser support for the
+// Basal metamodel classes. Use this facility by invoking "obj.browse()" on any object
+// 'obj'.
+
+context Root
+
+  @Class Browsable isabstract extends OrderedContainer
+
+    // browse : This is the standard way to invoke a model browser.
+    // Do not override in subclasses.
+
+    @Operation browse() // this does not need extending
+      xmf.findClient(Clients::ModelBrowserXCore::MappingClient).showModelBrowser(self)
+    end
+  
+    // browserChildren : override this operation in subclasses to determine which elements
+    // will be represented as child nodes in the browser (needs to be a sequence).
+
+    @Operation browserChildren() : Seq(Element)
+      contents
+    end
+
+    // getChildren : this is the operation that the browser will actually call to get
+    // the child nodes - for this we remove the nulls from the browserChildren set.
+    // Do not override in subclasses.
+
+    @Operation getChildren()
+      self.removeNulls(self.browserChildren())
+    end
+
+    // labelString : override this operation in subclasses to determine the label
+    // provided for the node in the browser. The default is the name of the class.
+
+    @Operation labelString()
+      self.of().name().toString()
+    end
+
+    // contents : this is needed because we extend the OrderedContainer class.
+    // Do not override in subclasses.
+
+    @Operation contents()
+      self.getChildren()
+    end
+    
+    // removeNulls : this removes all nulls from a sequence - needed as we shouldn't
+    // create a browser node for null, and is an easier route to filter out nulls
+    // than testing for every metamodel class.
+    
+    @Operation removeNulls(seq : Seq(Element))
+      let newSeq = Seq{}
+      in
+        @For e in seq do
+          if e<>null then newSeq := newSeq + Seq{e} end
+        end;
+        newSeq
+      end
+    end
+  
+  end
+
+
+
+// *** ModelBrowserNode extension ***
+// The default behaviour for the model browser is to alpha sort the nodes at any 
+// level, in line with most modelling tools. However, in the case of browsing the
+// Basal objects, we want to retain the ordering defined by the code. The following
+// extension to the ModelBrowserNode class prevents the alpha sorting for instances
+// of the Browsable class (which all the Basal metamodel classes inherit from) defined
+// above.
+
+context Clients::ModelBrowsers::ModelBrowserNode
+
+  @Operation calcNodePosition(targetNode)
+    let
+      index = nodes.size();
+      found = false
+    in
+      if not element.isKindOf(Browsable)
+      then
+        @For node inSeq self.nodes do
+          if targetNode.lessThan(node) and not found then
+            index := nodes.indexOf(node);
+            found := true
+          end
+        end
+      end;
+      index
+    end
+  end
+  

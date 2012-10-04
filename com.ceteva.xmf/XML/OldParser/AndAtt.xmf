@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class AndAtt extends Attribute
+  
+    @Doc
+      Succeeds when both the left and the right pattern succeeds.
+      Binds any names bound by the left and right and returns the
+      value of the right hand pattern.
+    end
+    
+    @Attribute left : Attribute end
+    @Attribute right : Attribute end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::AndAtt(<left.desugar()>,<right.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      left.parse(grammar,env,element,
+        @Operation(env,ignore,fail) 
+          right.parse(grammar,env,element,succ,fail,indent)
+        end,
+        fail,
+        indent)
+    end
+    
+  end

@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+let f = @Operation(n) @Operation() ("in thread " + n).println() end end
+in Kernel_fork(f(1)); 
+   Kernel_fork(f(2));
+   Kernel_fork(f(3));
+   Kernel_fork(f(4))
+end;
+
+let loop = @Operation(n) @Operation() @For x in 0.to(n) do x.println(); Kernel_yield() end end end
+in Kernel_fork(loop(10));
+   Kernel_fork(loop(20))
+end;

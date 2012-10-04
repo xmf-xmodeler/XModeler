@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Condp in AST(aCondp,arg,seen)
+  let condition = self.dispatch(aCondp.condition,arg);
+      pattern = self.dispatch(aCondp.pattern,arg)
+  in ASTNode(aCondp,Seq{pattern,condition})
+  end
+end;

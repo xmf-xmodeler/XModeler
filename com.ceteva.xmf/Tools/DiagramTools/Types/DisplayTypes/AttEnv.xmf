@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import Env;
+
+context DisplayTypes
+
+  @Class AttEnv
+  
+    // Used to maintain attribute information during a parse.
+    
+    @Attribute env : Env::Env = NullEnv() end
+    
+    @Constructor(env) end
+    
+    @Operation add(attEnv)
+      AttEnv(env + attEnv.env)
+    end
+    
+    @Operation bind(key,value)
+      self.env := env.bind(key,value);
+      self
+    end
+    
+    @Operation lookup(key,default)
+      if env.binds(key)
+      then env.lookup(key)
+      else default
+      end
+    end
+    
+  end

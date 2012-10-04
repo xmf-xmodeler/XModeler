@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Comms;
+import Clients;
+
+context Clients
+
+  @Class ExternalClient extends Client
+  
+    @Attribute command : String end
+    @Attribute args : Seq(String) end
+    
+    @Constructor(port,command,args) ! end
+    
+    @Operation connect() 
+      try
+        let server = Server(port);
+            args = self.args;
+            command = self.command
+        in
+          @Fork(ExternalClient)
+            try 
+              command.exec(args); 
+              self.yield()
+            catch(exception)
+              format(stdout,"Problem executing command: ~S~%",Seq{command})
+            end 
+          end;
+          self.yield();
+          server.accept();
+          self.input := server.input;
+          self.output := server.output
+        end
+      catch(exception)
+        format(stdout,"Error connecting to ~S: ~S~%",Seq{self,exception.message})
+      end
+    end
+    
+  end

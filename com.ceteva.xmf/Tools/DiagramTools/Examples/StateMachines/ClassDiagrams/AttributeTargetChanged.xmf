@@ -1,0 +1,10 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Attribute_Target_Changed()
+    let newType = find(event.new());
+        attribute = find(event.edge())
+    in attribute.type := newType
+    end
+  end
+  

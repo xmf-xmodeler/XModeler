@@ -1,0 +1,271 @@
+parserImport XOCL;
+parserImport Aspects;
+
+import Clients;
+import Diagrams;
+import IO;
+
+@Aspect ToSVG
+
+  @Class Box
+  
+    @Operation toSVG(parentx,parenty,out)
+      if self.shown() then
+        format(out,"<rect x=\"~S\" y=\"~S\" width=\"~S\" height=\"~S\" fill =\"#DBD5D5\" stroke=\"black\" stroke-width=\"1\"/>~%",Seq{parentx+x,parenty+y,width,height});
+        @For display in displays do
+          display.toSVG(parentx+x,parenty+y,out)
+        end
+      end
+    end
+    
+  end
+
+  @Class Diagram
+  
+    @Operation exportSVG(file:String)
+      let fout = FileOutputChannel(file)
+      in graph.toSVG(fout);
+         fout.close()
+      end
+    end
+    
+  end
+  
+  @Class Display
+  
+    @AbstractOp toSVG(parentx,parenty,out) end
+  
+  end
+
+  @Class Graph
+  
+    @Operation svgEdgeDecorators(out)
+      // no decorator
+
+      format(out,"<marker id=\"decorator_0\"/>~%");
+      
+      // attribute arrow
+      
+      format(out,"<marker id=\"decorator_1\" viewBox=\"-20 -10 20 20\"
+                   markerUnits=\"userSpaceOnUse\" refX=\"0\" refY=\"0\"
+                   markerWidth=\"10\" markerHeight=\"10\" orient=\"auto\"
+                   style=\"fill:none;stroke:black;stroke-width:2\">~%");
+      format(out,"<path d=\"M-20,-10 L0,0 -20,10\"/>~%");
+      format(out,"</marker>~%");      
+
+      // inheritance arrow
+      
+      format(out,"<marker id=\"decorator_5\" viewBox=\"-20 -10 20 20\"
+                   markerUnits=\"userSpaceOnUse\" refX=\"0\" refY=\"0\"
+                   markerWidth=\"10\" markerHeight=\"10\" orient=\"auto\"
+                   style=\"fill:white;stroke:black;stroke-width:2\">~%");
+      format(out,"<path d=\"M-20,-10 L0,0 -20,10 z\"/>~%");
+      format(out,"</marker>~%")
+    end
+  
+    @Operation svgFooter(out)
+      format(out,"</svg>~%")
+    end
+  
+    @Operation svgHeader(out)
+      let x = 10000;
+          y = 10000;
+          width = 0;
+          height = 0 
+      in 
+        @For node in nodes do
+          x := x.min(node.x);
+          y := y.min(node.y);
+          width := width.max(node.x+node.width);
+ 		  height := height.max(node.y+node.height)
+        end;
+        @For edge in edges do
+          @For waypoint in edge.wayPoints do
+            x := x.min(waypoint.x);
+            y := y.min(waypoint.y);
+            width := width.max(waypoint.x);
+ 		    height := height.max(waypoint.y)
+          end
+        end;
+        x := x-5;
+        y := y-5;
+        width := (width-x)+5;
+        height := (height-y)+5;
+        format(out,"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>~%<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\" \"http://www.w3.org/2000/svg10-20000303-stylable\">~%<svg width=\"~S\" height=\"~S\" viewBox=\"~S ~S ~S ~S\">~%",Seq{width,height,x,y,width,height}) 
+      end
+    end
+      
+    @Operation toSVG(out)
+      self.svgHeader(out);
+      self.svgEdgeDecorators(out);
+      @For node in nodes do
+        node.toSVG(out)
+      end;
+      @For edge in edges do
+        edge.toSVG(out)
+      end;
+      self.svgFooter(out)
+    end
+  
+  end
+  
+  @Class Group
+  
+    @Operation toSVG(parentx,parenty,out)
+      @For display in displays do
+        display.toSVG(parentx,parenty,out)
+      end
+    end
+    
+  end
+  
+  @Class Line
+  
+    @Operation toSVG(parentx,parenty,out)      
+      format(out,"<line x1=\"~S\" y1=\"~S\" x2=\"~S\" y2=\"~S\" stroke=\"black\" stroke-width=\"1\" />~%",Seq{x+parentx,y+parenty,x2+parentx,y2+parenty})
+    end
+    
+  end
+  
+  @Class Node
+  
+    @Operation toSVG(out)
+      if not self.hidden()
+      then
+        @For display in displays do
+          display.toSVG(x,y,out)
+        end
+      end
+    end
+    
+  end
+  
+  @Class Text
+  
+    @Operation toSVG(parentx,parenty,out)
+      // Text is printed from the baseline up. So add the height of the text minus a bit (14).
+      
+      let string = text in 
+        string := string.subst("<","\<",true).subst(">","\>",true);
+        if self.italicise() then
+          format(out,"<text x=\"~S\" y=\"~S\" style=\"font-style:italic\">~%~S~%</text>~%",Seq{parentx+x,parenty+y+12,string})
+        else
+          format(out,"<text x=\"~S\" y=\"~S\">~%~S~%</text>~%",Seq{parentx+x,parenty+y+12,string})
+        end
+      end
+    end
+    
+  end
+  
+@Class Edge
+  
+    @Operation toSVG(out)
+      if not self.hidden() 
+      then
+        let style = "0" in
+          if self.lineStyle = Line::dashLine then
+            style := "15 5"
+          end;
+          if wayPoints.size() > 0 then
+            let waypoints = wayPoints->asSeq->sort(@Operation(x,y) x.index < y.index end) in  
+              let firstWaypoint = waypoints->at(0) in
+                let lineEnd = Point(firstWaypoint.x,firstWaypoint.y) in
+                  let lineStart = self.findEdgeConnection(source,lineEnd) in
+                    self.printEdgeLabels(lineStart,"start",out);
+                    @For waypoint in waypoints do
+                      lineEnd := Point(waypoint.x,waypoint.y);
+                      self.printSVGLine(out,lineStart,lineEnd,0,0,style);
+                      lineStart := lineEnd
+                    end;
+                    lineEnd := self.findEdgeConnection(target,lineStart);
+                    self.printSVGLine(out,lineStart,lineEnd,sourceHead,targetHead,style);
+                    self.printEdgeLabels(lineEnd,"end",out)
+                  end
+                end
+              end
+            end
+          else
+            let point = Point(refx,refy) in
+              let lineStart = self.findEdgeConnection(source,point) in
+                let lineEnd = self.findEdgeConnection(target,point) in
+                  self.printEdgeLabels(lineStart,"start",out);
+                  self.printSVGLine(out,lineStart,lineEnd,sourceHead,targetHead,style);
+                  self.printEdgeLabels(lineEnd,"end",out)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation printEdgeLabels(point,attachedTo,out)
+      @For label in self.labels do
+        if label.attachedTo = attachedTo then
+          let x = point.x + label.relx in
+          let y = point.y + label.rely in
+            self.printSVGText(out,x,y,label.text)
+          end end
+        end
+      end
+    end
+    
+    @Operation findEdgeConnection(port,point)
+      let portOwner = port.owner in
+        let portPos = Point(portOwner.x+port.x,portOwner.y+port.y) in
+          let p = Point(point.x,point.y) in
+            if p.x < portPos.x then
+              p.x := portPos.x 
+            end;
+            if p.x > portPos.x + port.width then
+              p.x := portPos.x + port.width 
+            end;
+            if p.y < portPos.y then
+              p.y := portPos.y 
+            end;
+            if p.y > portPos.y + port.height then
+              p.y := portPos.y + port.height 
+            end;
+            p
+          end
+        end
+      end
+    end
+    
+    @Operation printSVGLine(out,p1,p2,d1,d2,style)
+      format(out,"<line x1=\"~S\" y1=\"~S\" x2=\"~S\" y2=\"~S\" stroke=\"black\" stroke-width=\"1\" style=\"stroke-dasharray:~S;\" marker-start=\"url(#decorator_~S)\" marker-end=\"url(#decorator_~S)\" />~%",Seq{p1.x,p1.y,p2.x,p2.y,style,d1,d2})
+    end
+    
+    @Operation printSVGText(out,x,y,text)
+      // Text is printed from the baseline up. So add the height of the text minus a bit (14).
+      format(out,"<text x=\"~S\" y=\"~S\">~%~S~%</text>~%",Seq{x,y+14,text})
+    end
+
+  end
+  
+  @Class Shape
+  
+    @Operation toSVG(parentx,parenty,out)
+      let pointsString = "" in
+        @For point in points do
+          let offsetPoint = Point(point.x + parentx,point.y + parenty) in
+            pointsString := pointsString + offsetPoint.x + "," + offsetPoint.y + " "
+          end
+        end;
+        if points.size() > 0 then
+          let first = points.head() then
+              firstOffset = Point(first.x + parentx,first.y + parenty) in
+            pointsString := pointsString + firstOffset.x + "," + firstOffset.y
+          end
+        end;    
+        if outline then
+          format(out,"<polyline points=\"~S\" fill =\"#DBD5D5\" stroke=\"black\" stroke-width=\"1\"/>~%",Seq{pointsString})
+        else
+          format(out,"<polyline points=\"~S\" fill = \"none\" stroke=\"black\" stroke-width=\"1\"/>~%",Seq{pointsString})            
+        end
+      end
+    end
+    
+  end
+
+end;

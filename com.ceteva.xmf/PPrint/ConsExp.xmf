@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ConsExp in PPrint(aConsExp,out,seen)
+  format(out,"Seq{");
+  self.dispatch(aConsExp.head,out);
+  format(out," | ");
+  self.dispatch(aConsExp.tail,out);
+  format(out,"}")
+end;

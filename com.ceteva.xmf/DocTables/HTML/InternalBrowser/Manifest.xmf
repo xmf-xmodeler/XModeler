@@ -1,0 +1,7 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest InternalBrowser
+  @File InternalBrowser end
+  @File InternalDisplayEngine end
+end;

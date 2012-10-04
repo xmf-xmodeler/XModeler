@@ -1,0 +1,99 @@
+parserImport XOCL;
+
+import XBNF::Scanning::Automata;
+import Graphs;
+
+context ! XBNF::Scanning::Automata
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Tadpole extends Automaton
+  
+    @Attribute head : Node (?,!) end
+    @Attribute tail : Edge (?,!) end
+    
+    @Constructor(head,tail)
+      self.add(head)
+    end
+    
+    @Operation mergeOr(other)
+      let newHead = Node(NodeDecoration());
+          mergeNode = Node(NodeDecoration()) then
+          newTail = Edge(Epsilon(),null,mergeNode) then
+          new = Tadpole(newHead,newTail)
+      in @For node in self.nodes() + other.nodes() do
+           new.add(node)
+         end;
+         @For edge in self.edges()->excluding(self.tail()) + other.edges() do
+           new.add(edge)
+         end;
+         new.add(Edge(Epsilon(),self.head(),newHead));
+         new.add(Edge(Epsilon(),other.head(),newHead));
+         new.add(mergeNode);
+         new.add(Edge(self.tail().data(),mergeNode,self.tail().target()));
+         new.add(Edge(other.tail().data(),mergeNode,other.tail().target()));
+         new
+      end
+    end
+    
+    @Operation mergeAnd(other)
+      let new = Tadpole(other.head(),self.tail())
+      in @For node in self.nodes() + other.nodes() do
+           new.add(node)
+         end;
+         @For edge in self.edges() + other.edges() do
+           new.add(edge)
+         end;
+         new.add(Edge(other.tail().data(),self.head(),other.tail().target()));
+         new
+      end
+    end
+    
+    @Operation pprint(out)
+      super(out);
+      format(out,"Tail:~%  ");
+      tail.pprint(out)
+    end
+    
+    @Operation star()
+      let newHead = Node(NodeDecoration()) then
+          newTail = Edge(Epsilon(),null,newHead) then
+          new = Tadpole(newHead,newTail)
+      in @For node in self.nodes() do
+           new.add(node)
+         end;
+         @For edge in self.edges() do
+           new.add(edge)
+         end;
+         new.add(Edge(Epsilon(),self.head(),newHead));
+         new.add(Edge(self.tail().data(),newHead,self.tail().target()));
+         new
+      end
+    end
+    
+    @Operation tadpoles(T:Seq(Tadpole))
+      // Merge with a single empty tail...
+      let newNode = Node(NodeDecoration()) then
+          automaton = Automaton()
+      in @For t in T do
+           @For n in t.nodes() do
+             automaton.add(n)
+           end;
+           @For e in t.edges() do
+             automaton.add(e)
+           end;
+           automaton.add(Edge(t.tail().data(),newNode,t.tail().target()))
+         end;
+         automaton.add(newNode);
+         automaton
+      end
+    end
+    
+  end

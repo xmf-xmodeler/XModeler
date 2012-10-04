@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Walkers;
+import TypeCheck;
+
+context TypeCheck
+
+  @Class Report isabstract extends LockableFormWithHistory
+  
+    @Attribute typeCheck : TypeCheckReport end
+    
+    @Constructor(typeCheck) !
+      self.typeName := "Type Check";
+      self.itemName := typeCheck.element().labelString();
+      self.initialize()
+    end
+  
+    @Operation addContents()
+      self.addElement(FormLabel(10,9,"Type Check for " + itemName));
+      let tree = ReportTree(10,30,640,400,typeCheck) in
+        self.addElement(tree)
+      end;
+      self.addElement(FormLabel(0,440," "))
+    end
+
+    @Operation historyDialogMessage():String
+      "Select a type check report to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Type Check History"
+    end
+
+  end 

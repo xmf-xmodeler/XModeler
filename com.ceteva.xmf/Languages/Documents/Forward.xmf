@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import DocTables;
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  @Class Forward metaclass BrowsedClass extends ElementRef
+
+  end

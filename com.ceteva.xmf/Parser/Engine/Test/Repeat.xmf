@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context Repeat
+
+  @Grammar extends O
+     
+       Repeat ::= body = Exp 'until' test = Exp 'end' {
+       
+         Repeat(body,test)
+         
+       }.
+       
+    end
+    
+    

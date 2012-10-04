@@ -1,0 +1,125 @@
+parserImport XOCL;
+
+context Root
+
+@Package Instrs
+
+  @Doc
+    The package Instrs contains the definition of all XMF machine
+    instructions. Each machine instruction has an 8-bit code used by 
+    the XMF machine. The codes are defined in the operation Instr::code/0.
+    Each instruction defines a collection of operations that are used by 
+    the compiler and assembler.
+  end
+  
+  @Operation disassemble(out,address,instr,operands,constants)
+    @CaseInt[256] instr of
+      1    do format(out,"[~<4>N] ADD          ~%",Seq{address}) end
+      2    do format(out,"[~<4>N] AND          ~%",Seq{address}) end
+      3    do format(out,"[~<4>N] CONS         ~%",Seq{address}) end
+      4    do format(out,"[~<4>N] DIV          ~%",Seq{address}) end
+      5    do format(out,"[~<4>N] DOT          ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      6    do format(out,"[~<4>N] DYNAMIC      ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      7    do format(out,"[~<4>N] ENTER        ~S~%",Seq{address,operands.byte(1) or operands.byte(0)}) end
+      8    do format(out,"[~<4>N] EQL          ~%",Seq{address}) end
+      9    do format(out,"[~<4>N] GLOBALREF    ~<4>S ~S~%",Seq{address,operands.byte(2),operands.byte(3).lsh(8) or operands.byte(1)}) end
+      10   do format(out,"[~<4>N] GREATER      ~%",Seq{address}) end
+      11   do format(out,"[~<4>N] HEAD         ~%",Seq{address}) end
+      12   do format(out,"[~<4>N] TAIL         ~%",Seq{address}) end
+      13   do format(out,"[~<4>N] IMPLIES      ~%",Seq{address}) end
+      14   do format(out,"[~<4>N] LESS         ~%",Seq{address}) end
+      15   do format(out,"[~<4>N] LOCALREF     ~S ~%",Seq{address,operands}) end
+      16   do format(out,"[~<4>N] MKOP         ~<4>S ~<4>S ~S~%",Seq{address,operands.byte(3),operands.byte(2),operands.byte(1)}) end
+      17   do format(out,"[~<4>N] MKSEQ        ~S ~%",Seq{address,operands}) end
+      18   do format(out,"[~<4>N] MKSET        ~S ~%",Seq{address,operands}) end
+      19   do format(out,"[~<4>N] MUL          ~%",Seq{address}) end
+      20   do format(out,"[~<4>N] NAMESPACEREF ~<4>S ~S ~%",Seq{address,operands.byte(3),operands.byte(1) or operands.byte(2).lsh(8)}) end
+      21   do format(out,"[~<4>N] NEGATE       ~%",Seq{address}) end
+      22   do format(out,"[~<4>N] OR           ~%",Seq{address}) end
+      23   do format(out,"[~<4>N] POP          ~%",Seq{address}) end
+      24   do format(out,"[~<4>N] PUSHFALSE    ~%",Seq{address}) end
+      25   do format(out,"[~<4>N] PUSHINT      ~S~%",Seq{address,operands}) end
+      26   do format(out,"[~<4>N] PUSHSTRING   ~S~%",Seq{address,constants.ref(operands)}) end
+      27   do format(out,"[~<4>N] PUSHTRUE     ~%",Seq{address}) end
+      28   do format(out,"[~<4>N] RETURN       ~%",Seq{address}) end
+      29   do format(out,"[~<4>N] STARTCALL    ~%",Seq{address}) end
+      30   do format(out,"[~<4>N] SELF         ~%",Seq{address}) end
+      31   do format(out,"[~<4>N] SEND         ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      32   do format(out,"[~<4>N] SETLOCAL     ~S~%",Seq{address,operands}) end
+      33   do format(out,"[~<4>N] SETSLOT      ~S~%",Seq{address,constants.ref(operands)}) end
+      34   do format(out,"[~<4>N] SKIP         ~S~%",Seq{address,operands}) end
+      35   do format(out,"[~<4>N] SKIPFALSE    ~S~%",Seq{address,operands}) end
+      36   do format(out,"[~<4>N] SUB          ~%",Seq{address}) end
+      37   do format(out,"[~<4>N] SUPER        ~S~%",Seq{address,operands}) end
+      38   do format(out,"[~<4>N] TAILENTER    ~S~%",Seq{address,operands}) end
+      39   do format(out,"[~<4>N] TAILSEND     ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      40   do format(out,"[~<4>N] TAILSUPER    ~S~%",Seq{address,operands}) end
+      41   do format(out,"[~<4>N] SIZE         ~%",Seq{address}) end
+      42   do format(out,"[~<4>N] DROP         ~%",Seq{address}) end
+      43   do format(out,"[~<4>N] ISEMPTY      ~%",Seq{address}) end
+      44   do format(out,"[~<4>N] INCLUDES     ~%",Seq{address}) end
+      45   do format(out,"[~<4>N] EXCLUDING    ~%",Seq{address}) end
+      46   do format(out,"[~<4>N] INCLUDING    ~%",Seq{address}) end
+      47   do format(out,"[~<4>N] SEL          ~%",Seq{address}) end
+      48   do format(out,"[~<4>N] UNION        ~%",Seq{address}) end
+      49   do format(out,"[~<4>N] ASSEQ        ~%",Seq{address}) end
+      50   do format(out,"[~<4>N] AT           ~%",Seq{address}) end
+      51   do format(out,"[~<4>N] SKIPBACK     ~S~%",Seq{address,operands}) end
+      54   do format(out,"[~<4>N] NULL         ~%",Seq{address}) end
+      55   do format(out,"[~<4>N] OF           ~%",Seq{address}) end
+      56   do format(out,"[~<4>N] SETGLOBAL    ~%",Seq{address,operands.byte(2),operands.byte(1)}) end
+      57   do format(out,"[~<4>N] THROW        ~%",Seq{address}) end
+      58   do format(out,"[~<4>N] TRY          ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      59   do format(out,"[~<4>N] ISKINDOF     ~%",Seq{address}) end
+      60   do format(out,"[~<4>N] SOURCEPOS    ~<4>S ~S~%",Seq{address,operands.byte(2),operands.byte(1)}) end
+      61   do format(out,"[~<4>N] GETELEMENT   ~S~%",Seq{address,constants.ref(operands)}) end
+      62   do format(out,"[~<4>N] SETHEAD       ~%",Seq{address}) end
+      63   do format(out,"[~<4>N] SETTAIL       ~%",Seq{address}) end
+      64   do format(out,"[~<4>N] READ         ~%",Seq{address}) end
+      65   do format(out,"[~<4>N] ACCEPT       ~%",Seq{address}) end
+      66   do format(out,"[~<4>N] ARRAYREF     ~%",Seq{address}) end
+      67   do format(out,"[~<4>N] ARRAYSET     ~%",Seq{address}) end
+      68   do format(out,"[~<4>N] TABLEGET     ~%",Seq{address}) end
+      69   do format(out,"[~<4>N] TABLEPUT     ~%",Seq{address}) end
+      70   do format(out,"[~<4>N] MKOPE        ~<4>S ~S~%",Seq{address,operands.byte(3),operands.byte(2)}) end
+      71   do format(out,"[~<4>N] NOOP         ~%",Seq{address}) end
+      72   do format(out,"[~<4>N] SLEEP        ~%",Seq{address}) end
+      73   do format(out,"[~<4>N] SENDSELF     ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      74   do format(out,"[~<4>N] SENDLOCAL    ~<4>S ~S ~S~%",Seq{address,operands.byte(3),constants.ref(operands.byte(2)),operands.byte(1)}) end
+      75   do format(out,"[~<4>N] DOTSELF      ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      76   do format(out,"[~<4>N] DOTLOCAL     ~<4>S ~S~%",Seq{address,operands.byte(3),constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      77   do format(out,"[~<4>N] SETSELFSLOT  ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      78   do format(out,"[~<4>N] SETLOCALSLOT ~<4>S ~S~%",Seq{address,operands.byte(3),constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      79   do format(out,"[~<4>N] CONST        ~S~%",Seq{address,constants.ref(operands)}) end
+      80   do format(out,"[~<4>N] SYMBOLVALUE  ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      81   do format(out,"[~<4>N] SETLOCPOP    ~S~%",Seq{address,operands}) end
+      82   do format(out,"[~<4>N] DISPATCH     ~%",Seq{address}) end
+      83   do format(out,"[~<4>N] INCSELFSLOT  ~S~%",Seq{address,constants.ref(operands)}) end
+      84   do format(out,"[~<4>N] DECSELFSLOT  ~S~%",Seq{address,constants.ref(operands)}) end
+      85   do format(out,"[~<4>N] INCLOCAL     ~S~%",Seq{address,operands}) end
+      86   do format(out,"[~<4>N] DECLOCAL     ~S~%",Seq{address,operands}) end
+      87   do format(out,"[~<4>N] ADDLOCAL     ~S~%",Seq{address,operands}) end
+      88   do format(out,"[~<4>N] SUBLOCAL     ~S~%",Seq{address,operands}) end
+      89   do format(out,"[~<4>N] PREPEND      ~%",Seq{address}) end
+      90   do format(out,"[~<4>N] ENTERDYN     ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      91   do format(out,"[~<4>N] ISNOTEMPTY   ~%",Seq{address}) end
+      92   do format(out,"[~<4>N] LOCALHEAD    ~S ~%",Seq{address,operands}) end
+      93   do format(out,"[~<4>N] LOCALTAIL    ~S ~%",Seq{address,operands}) end
+      94   do format(out,"[~<4>N] LOCALASSEQ   ~S ~%",Seq{address,operands}) end
+      95   do format(out,"[~<4>N] LOCALISEMPTY ~S ~%",Seq{address,operands}) end
+      96   do format(out,"[~<4>N] LOCALREFPOS  ~<4>S ~S~%",Seq{address,operands.byte(3),operands.byte(2).lsh(8) or operands.byte(1)}) end
+      97   do format(out,"[~<4>N] TAILENTERDYN ~<4>S ~S~%",Seq{address,operands.byte(2),constants.ref(operands.byte(3).lsh(8) or operands.byte(1))}) end
+      98   do format(out,"[~<4>N] ASSOC        ~%",Seq{address}) end
+      99   do format(out,"[~<4>N] DYNREFPOS    ~<4>S ~S~%",Seq{address,constants.ref(operands.byte(3)),operands.byte(2).lsh(8) or operands.byte(1)}) end
+      100  do format(out,"[~<4>N] RETDOTSELF   ~S~%",Seq{address,constants.ref(operands.byte(2).lsh(8) or operands.byte(1))}) end
+      101  do format(out,"[~<4>N] TOSTRING     ~%",Seq{address}) end
+      102  do format(out,"[~<4>N] ARITY        ~%",Seq{address}) end
+      103  do format(out,"[~<4>N] STRINGEQUAL  ~%",Seq{address}) end
+      104  do format(out,"[~<4>N] GET          ~%",Seq{address}) end
+      105  do format(out,"[~<4>N] PUT          ~%",Seq{address}) end
+      106  do format(out,"[~<4>N] HASKEY       ~%",Seq{address}) end
+      else    format(out,"[~<4>N] ~<13>S~S~%",Seq{address,instr,operands})
+    end
+  end
+  
+end

@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+  @Class Event
+    @Attribute name : String end
+    @Attribute args : Seq(EventArg) end
+    @Constructor(name,args) end
+  end
+  

@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Apply in TypeChecker(exp,env,encountered)
+  let opType = self.dispatch(exp.operator,env);
+      argTypes = exp.args->collect(arg | self.dispatch(arg,env))
+  in TypeCheckExp(exp,Element,Seq{opType | argTypes})
+  end
+end;

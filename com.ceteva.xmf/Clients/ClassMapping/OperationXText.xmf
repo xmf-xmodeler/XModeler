@@ -1,0 +1,99 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class OperationXText extends ElementMap, RightClickableProxy
+  
+    @Attribute operation : XCore::Operation end
+    @Attribute text      : OperationGroup end
+    @Attribute nameChangedDaemon : CompiledOperation end
+    
+    @Constructor(operation,text) !
+      
+      // we need to rethink this the diagram
+      // should not be coupled to the model in
+      // this way
+   
+      self.setHotLoad(true);
+      text.setOperation(operation);
+      self.checkDaemons();
+      let textName = text.name
+      in
+        self.setGlobalMenu(textName,Set{operation.of(),textName.of()})
+      end
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = operation.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  OperationXText::proxyElementTarget);
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).operation
+    end
+
+    @Operation checkDaemons()
+      @SlotValueChanged multi once OperationXText::slotNameChanged_OperationXText(operation,"name") end;
+      @SlotValueChanged multi once OperationXText::textNameChanged_OperationXText(text.name,"text") end
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      let textName = text.name
+      in
+        self.setGlobalMenu(textName,Set{operation.of(),textName.of()},false)
+      end
+    end
+
+    @Operation removeDaemons()
+    
+      // Called to tidy up when the mapping is no longer valid.
+      
+      operation.removeDaemonsWithTarget(self,true);
+      text.name.removeDaemonsWithTarget(self,true)
+
+    end
+    
+    @Operation slotNameChanged_OperationXText(attribute,slot,newName,oldName)
+      if text.name.opName <> newName.toString() 
+      then 
+        text.name.setName(newName.toString())
+      end
+    end
+    
+    @Operation textNameChanged_OperationXText(attribute,slot,newName,oldName)
+      if (operation.name().toString()+"()") <> newName
+      then 
+        operation.setName(text.name.strippedText());
+        text.setName(self.stripText(newName))
+      end
+    end
+
+    @Operation stripText(string)
+      string.subst("","()",false)
+    end
+
+    @Operation element()
+      operation
+    end
+
+    @Operation diagramElement()
+      text
+    end
+
+  end

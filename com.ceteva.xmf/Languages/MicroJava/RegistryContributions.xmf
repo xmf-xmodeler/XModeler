@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Languages;
+import MicroJava;
+import Structure;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(PackageNameSpace,Seq{"Java/Package"}));
+  registry.addContribution(id,Contribution(ClassNameSpace,Seq{"Java/Class"}));
+  registry.addContribution(id,Contribution(FieldNamedElement,Seq{"Java/Field"}));
+  registry.addContribution(id,Contribution(MethodNamedElement,Seq{"Java/Method"}));
+  self
+end;
+
+
+// *** MENUS ***
+
+let 
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.menus"
+in
+  registry.addContribution(id,
+    Contribution(ClassNameSpace,Seq{
+      Seq{},
+      ClassNameSpace::source,
+      Seq{"Source"},"",false
+  }));
+  registry.addContribution(id,
+    Contribution(MethodNamedElement,Seq{
+      Seq{},
+      MethodNamedElement::source,
+      Seq{"Source"},"",false
+  }));
+  self
+end;

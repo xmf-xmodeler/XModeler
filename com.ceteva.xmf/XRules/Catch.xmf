@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class Catch extends XOCL::Syntax
+  
+    // This class implements a handler for a try clause. When
+    // it is performed, it is supplied with a term. If the
+    // term unifies with the head of the handler then the body
+    // is performed.
+
+    @Attribute head      : Term        (?) end
+    @Attribute body      : Seq(Action) (?) end
+    
+    @Constructor(head,body) ! end
+    
+    @Operation perform(term,rules,vars,indent,env,succ,fail,cut,exception)
+      let env = unify(recons(head.build(rules,vars),env),term,env)
+      in if env = null
+         then fail()
+         else 
+           rules.performs(body,vars,indent,env,succ,fail,cut,exception)
+         end
+      end
+    end
+    
+    @Operation vars(vars)
+      vars := head.vars(vars);
+      @For action in body do
+        vars := action.vars(vars)
+      end;
+      vars
+    end
+
+  end

@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import XRules;
+import Syntax;
+
+context Syntax
+
+  @Class Pattern extends Condition
+  
+    @Doc
+      A pattern consists of a path and a sequence of variable names.
+      The pattern is satisfied by an object whose class is defined by 
+      the path. The class should define a constructor with the same
+      form as the pattern. The variable names are matched against the 
+      slots defined by the constructor. A pattern may optionally define
+      a self name in which case the name is associated with the 
+      matching object.
+    end
+    
+    @Attribute path  : Seq(String) end
+    @Attribute name  : String end
+    @Attribute names : Seq(String) end
+    
+    @Constructor(name,path,names) end
+    
+  end

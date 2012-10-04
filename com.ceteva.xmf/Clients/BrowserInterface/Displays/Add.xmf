@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients::BrowserInterface::Displays;
+
+context Displays
+
+  @Class Add extends Display
+  
+    @Attribute left : Display end
+    @Attribute right : Display end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation map(object)
+      let S = Seq{}
+      in @For l in left.map(object) do
+           @For r in right.map(object) do
+             S := S->including(l.toString()+r.toString())
+           end
+         end;
+         S
+      end
+    end
+    
+  end

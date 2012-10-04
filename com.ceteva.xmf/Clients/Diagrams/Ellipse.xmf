@@ -1,0 +1,121 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Ellipse extends Display
+  
+    @Attribute showOutline 		: Boolean (?) 			       end
+    @Attribute lineColor 		: Color = static Color() (?,!) end
+    @Attribute fillColor 		: Color = static Color() (?,!) end
+    @Attribute themeLineColor 	: Color 				       end
+    @Attribute themeFillColor	: Color					       end
+    
+    @Constructor(x,y,width,height,showOutline,lineColor,fillColor) end
+    
+    @Constructor(id,x,y,width,height,showOutline,lineColor,fillColor) ! end
+    
+    @Operation expandHeight()
+      self
+    end
+    
+    @Operation expandWidth()
+      self
+    end
+    
+    @Operation maxHeight()
+      height
+    end
+    
+    @Operation maxWidth()
+      width
+    end
+    
+    @Operation minHeight()
+      height
+    end
+    
+    @Operation minWidth()
+      width
+    end
+    
+    @Operation new(parent,setMenu) 
+      self.setOwner(parent);
+      @Command(self) newEllipseCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation packHeight()
+      self
+    end
+    
+    @Operation packWidth()
+      self
+    end
+    
+    @Operation renew(parent) 
+      @Command(self) newEllipseCommand(parent,self) end;
+      self.setRightClickMenu();
+      self
+    end
+    
+    @Operation removeTheme()
+      @Command(self) setFillColor(self,fillColor) end;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+    
+    @Operation resize(width,height)
+      @Command(self) resizeCommand(self,width,height) end;
+      self.width := width;
+      self.height := height
+    end
+    
+    @Operation setFillColor(fillColor:Color)
+      self.fillColor := fillColor;
+      @Command(self) setFillColor(self,fillColor) end
+    end
+    
+    @Operation setLineColor(lineColor:Color)
+      self.lineColor := lineColor;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+    
+    @Operation setThemeFillColor(fillColor:Color)
+      self.themeFillColor := fillColor;
+      @Command(self) setFillColor(self,fillColor) end
+    end
+    
+    @Operation setThemeLineColor(lineColor:Color)
+      self.themeLineColor := lineColor;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+    
+    @Operation showFill(fill)
+      @Command(self) setFill(self,fill) end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden};
+        shown = Seq{"shown",shown};
+        showOutline = Seq{"showOutline",showOutline} then
+        attributes = Seq{id,x,y,width,height,hidden,shown,showOutline}
+      in
+        // colors not yet synchronised
+        
+        @Command(self) startElement("ellipse",attributes) end;
+        @Command(self) endElement("ellipse") end
+      end
+    end
+  
+  end

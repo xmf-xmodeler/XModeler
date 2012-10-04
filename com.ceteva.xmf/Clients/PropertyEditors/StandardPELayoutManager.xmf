@@ -1,0 +1,313 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class StandardPELayoutManager extends PropertyEditorLayoutManager
+
+    @Attribute labelWidth : Integer = 100 (?,!) end
+    @Attribute separatorHeight : Integer = 20 (?,!) end
+    @Attribute singletonWidth : Integer = 180 (?,!) end
+    @Attribute singletonHeight : Integer = 14 (?,!) end
+    @Attribute singletonColumns : Integer = 1 (?,!) end
+    @Attribute enumerationHeight : Integer = 16 (?,!) end
+    @Attribute collectionWidth : Integer = 260 (?,!) end
+    @Attribute collectionHeight : Integer = 160 (?,!) end
+    @Attribute documentationHeight : Integer = 120 (?,!) end
+    @Attribute collectionColumns : Integer = 3 (?,!) end
+    @Attribute codeboxWidth : Integer = 630 (?,!) end
+    @Attribute codeboxHeight : Integer = 200 (?,!) end
+    @Attribute comboHeight : Integer = 300 (?,!) end
+    @Attribute buttonWidth : Integer = 100 (?,!) end
+    @Attribute buttonHeight : Integer = 16 (?,!) end
+    @Attribute buttonGap : Integer = 0 (?,!) end
+    @Attribute xGap : Integer = 29 (?,!) end
+    @Attribute yGap : Integer = 8 (?,!) end
+    @Attribute maxY : Integer = 0 (?,!) end
+    @Attribute yReset : Boolean = false end
+
+    @Constructor(owner)
+      self.displayCollections := Seq{};
+      self.x := self.xGap;
+      self.y := self.yGap
+    end
+
+    @Operation layoutContents()
+      @For displays inSeq displayCollections do
+        @TypeCase(displays)
+
+          Seq(SingletonDisplay) do
+            self.setY(self.layoutSingletons(displays,x,y))
+          end
+
+          Seq(BooleanDisplay) do
+            self.setY(self.layoutBooleans(displays,x,y))
+          end
+          
+          Seq(EnumerationDisplay) do
+            self.setY(self.layoutEnumerations(displays,x,y))
+          end
+
+          Seq(CodeboxDisplay) do
+            self.x := xGap;
+            //self.x := (2*xGap) + self.singletonColumns*(labelWidth + singletonWidth + 2*xGap);
+            self.y := maxY;
+            //if not yReset then self.resetY() end;
+            self.setY(self.layoutCodeboxes(displays,x,y))
+          end          
+
+          Seq(CollectionDisplay) do
+            self.x := (2*xGap) + self.singletonColumns*(labelWidth + singletonWidth + 2*xGap);
+            if not yReset then self.resetY() end;
+            self.setY(self.layoutCollections(displays,x,y))
+          end
+
+          Seq(CollectionButtonDisplay) do
+            self.x := (2*xGap) + self.singletonColumns*(labelWidth + singletonWidth + 2*xGap);
+            if not yReset then self.resetY() end;
+            self.setY(self.layoutCollectionButtonDisplays(displays,x,y))
+          end
+
+          Seq(CollectionComboBoxDisplay) do
+            self.x := (2*xGap) + self.singletonColumns*(labelWidth + singletonWidth + 2*xGap);
+            if not yReset then self.resetY() end;
+            self.setY(self.layoutCollectionComboBoxDisplays(displays,x,y))
+          end
+          
+          Seq(CodeComboBoxDisplay) do
+            self.x := xGap;
+            self.y := maxY;
+            self.setY(self.layoutCodeComboBoxDisplays(displays,x,y))
+          end
+
+          String do
+            if displays="separator" then
+              owner.addElement(FormLabel(x,y," "));
+              self.setY(y + separatorHeight)
+            end
+          end
+
+          else self.error("I don't know how to add " + displays.toString() + " to a PropertyEditorLayoutManager.")
+        end
+      end
+    end
+
+    @Operation layoutSingletons(displays:Seq(SingletonDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let displayCount = displays->size()
+        then rows = displayCount.div(singletonColumns) + displayCount.mod(singletonColumns)
+        then finalY = startY + rows*(singletonHeight + yGap)
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              col = loop.div(rows);
+              row = loop.mod(rows)
+            then
+              x = startX + col*(singletonWidth + labelWidth + xGap);
+              y = startY + row*(singletonHeight + yGap)
+            in
+              displays.at(loop).addToForm(owner,x,y,labelWidth,singletonWidth,singletonHeight)
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutEnumerations(displays:Seq(EnumerationDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let displayCount = displays->size()
+        then rows = displayCount.div(singletonColumns) + displayCount.mod(singletonColumns)
+        then finalY = startY + rows*(enumerationHeight + yGap)
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              col = loop.div(rows);
+              row = loop.mod(rows)
+            then
+              x = startX + col*(singletonWidth + labelWidth + xGap);
+              y = startY + row*(enumerationHeight + yGap)
+            in
+              displays.at(loop).addToForm(owner,x,y,labelWidth,singletonWidth,enumerationHeight)
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutBooleans(displays:Seq(BooleanDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let displayCount = displays->size()
+        then rows = displayCount.div(singletonColumns) + displayCount.mod(singletonColumns)
+        then finalY = startY + rows*(singletonHeight + yGap)
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              col = loop.div(rows);
+              row = loop.mod(rows)
+            then
+              x = startX + col*(singletonWidth + labelWidth + xGap);
+              y = startY + row*(singletonHeight + yGap)
+            in
+              displays.at(loop).addToForm(owner,x,y,labelWidth)
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+  @Operation layoutCodeboxes(displays:Seq(CodeboxDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let
+          displayCount = displays->size() then
+          finalY = startY
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              disp = displays.at(loop) then
+              actualCodeboxHeight = if disp.label.text.toString() = "documentation" then documentationHeight else codeboxHeight end then
+              x = startX;
+              y = finalY
+              //y = startY + loop*(actualCodeboxHeight + singletonHeight + yGap)
+            in
+              disp.addToForm(owner,x,y,singletonHeight,yGap,codeboxWidth,actualCodeboxHeight);
+              finalY := finalY + actualCodeboxHeight + singletonHeight + 4*yGap
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+  @Operation layoutCollections(displays:Seq(CollectionDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let displayCount = displays->size() then
+            rows = displayCount.div(collectionColumns) + displayCount.mod(collectionColumns) then
+            finalY = startY + rows*(collectionHeight + singletonHeight + yGap)
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              col = loop.mod(collectionColumns);
+              row = loop.div(collectionColumns)
+            then
+              x = startX + col*(collectionWidth + xGap);
+              y = startY + row*(collectionHeight + singletonHeight + yGap)
+            in
+              displays.at(loop).addToForm(owner,x,y,singletonHeight,collectionWidth,collectionHeight)
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutCollectionButtonDisplays(displays:CollectionButtonDisplay,startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let display = displays.last()
+        then buttonCount = display.buttons->size()
+        in
+          if buttonCount>0 then 
+
+            let
+              labelOffset = singletonHeight + 2;
+              actualCollectionHeight = collectionHeight.max(buttonCount*(buttonHeight + buttonGap))
+            then
+              finalY = startY + labelOffset + actualCollectionHeight
+            in
+              display.addLabelToForm(owner,startX,startY);
+              display.addListToForm(owner,(startX+buttonWidth+xGap),(startY+labelOffset),collectionWidth,actualCollectionHeight);
+              @For loop in 0.to(buttonCount-1) do
+                let
+                  button = displays.buttons.at(loop);
+                  x = startX;
+                  y = startY + labelOffset + loop*(buttonHeight + buttonGap)
+                in
+                  button.setX(x); button.setY(y);
+                  button.setWidth(buttonWidth); button.setHeight(buttonHeight);
+                  owner.addElement(button)
+                end
+              end;
+              finalY
+            end
+
+          else
+            startY
+          end
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutCollectionComboBoxDisplays(displays:CollectionComboBoxDisplay,startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let
+          displayCount = displays->size() then
+          finalY = startY
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              disp = displays.at(loop) then
+              x = startX;
+              y = finalY
+            in
+              disp.addToForm(owner,x,y,singletonHeight,collectionWidth,collectionHeight,comboHeight,yGap);
+              finalY := finalY + collectionHeight + 2*singletonHeight + 3*yGap
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutCodeComboBoxDisplays(displays:CodeComboBoxDisplay,startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let
+          displayCount = displays->size() then
+          finalY = startY
+        in
+          @For loop in 0.to(displayCount-1) do
+            let
+              disp = displays.at(loop) then
+              x = startX;
+              y = finalY
+            in
+              disp.addToForm(owner,x,y,singletonHeight,codeboxWidth,codeboxHeight,comboHeight,yGap);
+              finalY := finalY + codeboxHeight + 2*singletonHeight + 3*yGap
+            end
+          end;
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation setY(newY:Integer)
+      self.y := newY;
+      self.maxY := maxY.max(newY)
+    end
+
+    @Operation resetY()
+      self.y := yGap;
+      self.yReset := true
+    end
+
+  end

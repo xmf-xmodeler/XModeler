@@ -1,0 +1,42 @@
+context Contained
+  @Operation addTo(container)
+    self.owner := container;
+    container
+  end
+  
+context Contained
+  @Operation allOwners():Seq(Container)
+    @Doc
+      Returns the sequence of containers found by continually
+      traversing the owner slots starting with the receiver.
+    end
+    if self.owner().isReallyKindOf(Container) and 
+       self.owner().isKindOf(Contained)
+    then 
+      if self.owner().owner() = self.owner()
+      then Seq{self.owner()}
+      else Seq{self.owner() | self.owner().allOwners()}
+      end
+    else Seq{self.owner()}
+    end
+  end
+
+context Contained
+  // Recursively delete self and all contents
+  @Operation deleteRecursive()
+    if self.owner.isReallyKindOf(Container)
+    then
+      self.owner.remove(self)
+    end;
+    self
+  end
+
+context Contained
+  @Operation owner():Element
+    @Doc
+      Provides access to the container of the contained
+      element. Use this in preference to the attribute
+      with the same name.
+    end
+    self.owner 
+  end

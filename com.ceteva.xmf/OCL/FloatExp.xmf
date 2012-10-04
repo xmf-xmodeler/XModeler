@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class FloatExp extends OCL::OCL
+  
+    @Doc
+       A floating point constant.
+    end
+  
+    @Attribute prePoint : String end
+    @Attribute postPoint : String end
+    
+    @Constructor(prePoint,postPoint) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S.~S",Seq{prePoint,postPoint})
+    end
+    
+  end

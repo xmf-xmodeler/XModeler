@@ -1,0 +1,55 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+
+  @Package OCL
+    
+    @Doc
+      The OCL package contains the concrete and abstract syntax definitions for
+      the OCL language as supplied by XMF. The OCL package is inten-ded to be consistent
+      with the OCL standard where this is practical. OCL is not the only language supported
+      by XMF but it is used as the basis for the implementation of XMF. As such it has a
+      number of differences from and extensions to standard OCL. Each of the classes in OCL 
+      define how they are compiled and interpreted on the XMF VM. The OCL package provides
+      many of the features that are useful for a wide variety of domain specific languages.
+      It is recommen-ded that you base new languages on OCL either as extensions or as
+      the target of a desugaring.
+    end
+   
+    @Class OCL isabstract extends Performable
+    
+      @Doc
+        The OCL class is the root of the OCL AST class hierarchy. Note
+        that this class is not the root of the XMF class hierarchy for
+        abstract syntax constructs (i.e. things that can be performed).
+        That class is XCore::Performable; OCL is a sub-class of Performable.
+      end 
+    
+      @Operation pprint()
+        self.pprint(0)
+      end
+    
+      @Operation pprint(indent)
+        // Pretty prints the receiver to a string.
+        let out = StringOutputChannel()
+        in self.pprint(out,indent);
+           out.getString()
+        end
+      end
+    
+      @AbstractOp pprint(out,indent):Element
+      
+        @Doc
+          To pprint an OCL expression produces its concrete source code representation
+          in the output channel. The indent argument is used to control the current 
+          level of indentation. It is the column to tab to after a newline while
+          pprinting the receiver.
+        end
+        
+      end
+      
+    end
+    
+  end

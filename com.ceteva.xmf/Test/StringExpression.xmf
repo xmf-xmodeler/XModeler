@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a StringExpression within the context of the namespace Frames
+context Frames
+
+    @Class StringExpression extends FrameExpression
+		@Constructor(theString) end
+		@Grammar extends OCL::OCL.grammar
+			StringExpression ::= doc = (Not('end') Char)* { import OCL in [| Frames::StringExpression(<StrExp(doc->asString)>) |] end }.
+		end
+		@Attribute theString : String end
+		
+		// query operation
+		@Operation isStringExpression():Boolean
+			true
+		end
+		
+		// return the string representation of the object
+		@Operation asStringSequence():Seq(String)
+			Seq{self.theString}
+		end
+	end
+

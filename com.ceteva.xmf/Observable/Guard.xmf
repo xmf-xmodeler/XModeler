@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class Guard extends Condition
+ 
+     @Attribute guard     : Exp       end 
+     @Attribute condition : Condition end
+     
+     @Constructor(guard,condition) ! end
+     
+     @Operation perform(env,target,slot,new,old)
+       if guard.perform(target,env,Seq{})
+       then condition.perform(env,target,slot,new,old)
+       end
+     end
+     
+  end 

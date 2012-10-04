@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Let in AST(aLet,arg,seen)
+  let body = self.dispatch(aLet.body,arg);
+      bindings = aLet.bindings->collect(x | self.dispatch(x,arg))
+  in ASTNode(aLet,bindings + Seq{body})
+  end
+end;

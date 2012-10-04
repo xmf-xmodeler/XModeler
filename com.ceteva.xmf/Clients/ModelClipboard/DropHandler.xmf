@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DropHandler isabstract extends PasteHandler
+
+    @Operation acceptDrop(dragSource:DragHandler,mode:Boolean)
+      // Over-ride this in subclasses
+      false
+    end
+    
+    @Operation acceptMultipleDrop(dragSources:Set(DragHandler),mode:Boolean)
+      let accept = true
+      in
+        @For dragSource in dragSources do
+          if not self.acceptDrop(dragSource,mode)
+          then accept := false
+          end
+        end;
+        accept
+      end
+    end
+
+    @Operation drop()
+      self.pasteFromClipboard()
+    end
+
+  end

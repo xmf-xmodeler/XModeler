@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provide the menu
+// manager property and associated helper operations.
+
+let menuManager = Clients::Menus::MenuManager() then
+    menuRegistryHandler = Clients::Menus::MenuRegistryHandler(menuManager)
+in
+  xmf.setProperty("menuManager",menuManager);
+  xmf.setProperty("menuRegistryHandler",menuRegistryHandler)
+end;
+
+context XMF
+  @Operation menuManager()
+    self.property("menuManager")
+  end
+
+context XMF
+  @Operation menuRegistryHandler()
+    self.property("menuRegistryHandler")
+  end

@@ -1,0 +1,159 @@
+parserImport XOCL;
+
+import Root::Instrs;
+
+context Root::Instrs 
+
+  @Class Instr isabstract
+  
+    @Doc
+      A machine instruction is an instance of the abstract class Instr.
+      Each machine instruction has a code in the range 1 - 255. Machine
+      instructions are of the form:
+      LABEL CODE DATA1 DATA2 DATA3
+      where each element is an 8 bit value. The high byte is the machine
+      byte code. The rest of the machine instruction word may contain up to
+      3 operands encoded as bytes. Typically these may be constants or
+      indices into parts of the current machine stack frame. The class Instr
+      allocates the instruction byte codes. These should correspond to the
+      byte codes used by the underlying machine implementation. The optional
+      labal is a string that can be used as the target of a SKIP instruction.
+    end
+    
+    @Attribute label : String (!,?) end
+     
+    @Operation code():Integer
+      let name = self.of().name.name;
+          instrs = 
+            Seq{"Add"        , //  1 
+            "And"            , //  2 
+            "Cons"           , //  3 
+            "Div"            , //  4 
+            "Dot"            , //  5 
+            "Dynamic"        , //  6 
+            "Enter"          , //  7 
+            "Eql"            , //  8 
+            "GlobalRef"      , //  9 
+            "Greater"        , //  10 
+            "Head"           , //  11 
+            "Tail"           , //  12 
+            "Implies"        , //  13 
+            "Less"           , //  14 
+            "LocalRef"       , //  15 
+            "MkOp"           , //  16 
+            "MkSeq"          , //  17 
+            "MkSet"          , //  18 
+            "Mul"            , //  19 
+            "NameSpaceRef"   , //  20 
+            "Negate"         , //  21 
+            "Or"             , //  22 
+	        "Pop"            , //  23 
+            "PushFalse"      , //  24 
+            "PushInteger"    , //  25 
+            "PushString"     , //  26 
+            "PushTrue"       , //  27 
+            "Return"         , //  28 
+            "StartCall"      , //  29 
+            "Self"           , //  30 
+            "Send"           , //  31 
+            "SetLocal"       , //  32 
+            "SetSlot"        , //  33 
+            "Skip"           , //  34 
+            "SkipFalse"      , //  35 
+            "Sub"            , //  36 
+            "Super"          , //  37 
+            "TailEnter"      , //  38 
+            "TailSend"       , //  39 
+            "TailSuper"      , //  40
+            "Size"           , //  41 
+            "Drop"           , //  42 
+            "IsEmpty"        , //  43 
+            "Includes"       , //  44 
+            "Excluding"      , //  45 
+            "Including"      , //  46 
+            "Sel"            , //  47 
+            "Union"          , //  48 
+            "AsSeq"          , //  49 
+            "At"             , //  50 
+            "SkipBack"       , //  51 
+            ""               , //  52
+            ""               , //  53
+            "Null"           , //  54
+            "Of"             , //  55
+            "SetGlobal"      , //  56
+            "Throw"          , //  57
+            "Try"            , //  58
+            "IsKindOf"       , //  59
+            "SourcePos"      , //  60
+            "GetElement"     , //  61
+            "SetHead"        , //  62
+            "SetTail"        , //  63
+            "Read"           , //  64
+            "Accept"         , //  65
+            "ArrayRef"       , //  66
+            "ArraySet"       , //  67
+            "TableGet"       , //  68
+            "TablePut"       , //  69
+            "MkOpE"          , //  70
+            "NoOp"           , //  71
+            "Sleep"          , //  72
+            "SendSelf"       , //  73
+            "SendLocal"      , //  74
+            "DotSelf"        , //  75
+            "DotLocal"       , //  76
+            "SetSelfSlot"    , //  77
+            "SetLocalSlot"   , //  78
+            "Const"          , //  79
+            "SymbolValue"    , //  80
+            "SetLocPop"      , //  81
+            "Dispatch"       , //  82
+            "IncSelfSlot"    , //  83
+            "DecSelfSlot"    , //  84
+            "IncLocal"       , //  85
+            "DecLocal"       , //  86
+            "AddLocal"       , //  87
+            "SubLocal"       , //  88
+            "Prepend"        , //  89
+            "EnterDyn"       , //  90
+            "IsNotEmpty"     , //  91
+            "LocalHead"      , //  92
+            "LocalTail"      , //  93
+            "LocalAsSeq"     , //  94
+            "LocalIsEmpty"   , //  95
+            "LocalRefPos"    , //  96
+            "TailEnterDyn"   , //  97
+            "Assoc"          , //  98
+            "DynRefPos"      , //  99
+            "RetDotSelf"     , //  100
+            "ToString"       , //  101
+            "Arity"          , //  102
+            "StringEqual"    , //  103
+            "Get"            , //  104
+            "Put"            , //  105
+            "HasKey"}          //  106
+        in if instrs->includes(name)
+           then instrs->indexOf(name) + 1
+           else self.error("I don't know the code for " + self.toString())
+           end
+        end
+    end
+    
+    @Operation operands():Integer
+      @Doc
+        Return the operands of the instruction encoded as a 24 bit integer.
+        The assembler uses this operation to translate an instruction object
+        to a 32 bit integer.
+      end
+      0
+    end
+    
+    @Operation assemble(codeBox)
+      @Doc
+        The target adds itself to the code box. The operands of the instruction
+        may require calculation in the context of the code box. This operation
+        performs calculations such as working out offsets into the code box
+        constant area.
+      end
+      self.error("I don't know how to assemble " + self)
+    end
+  end

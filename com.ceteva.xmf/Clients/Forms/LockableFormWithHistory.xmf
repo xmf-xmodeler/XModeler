@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class LockableFormWithHistory isabstract extends FormWithHistory,LockableForm
+
+    @Operation addTools()
+      super();
+      self.commandInterpreter().setFormTool(self,"lock",isLocked);
+      self
+    end
+
+    @Operation focusGained()
+      super();
+      self.updateTools()
+    end
+
+    @Operation handleClientNewForm(client:FormClient)
+      self.client := client;
+      client.addToHistory(self);
+      let oldForm =
+        @Find(form,client.forms)
+          when form.isKindOf(LockableFormWithHistory) andthen form.formHistoryType() = self.formHistoryType() andthen not form.isLocked
+          else null
+        end
+      in
+        if oldForm <> null
+        then
+          client.replaceForm(oldForm,self,true)
+        else
+          client.newFormDefinitely(self)
+        end
+      end
+    end
+
+    @Operation handleFormUpdate(newForm)
+      if client.forms->includes(newForm)
+      then
+        self.commandInterpreter().setVisible(newForm)
+      elseif not self.isLocked
+      then
+        client.replaceForm(self,newForm,true)
+      else
+        let oldForm =
+          @Find(form,client.forms)
+            when form.isKindOf(LockableFormWithHistory) andthen form.formHistoryType() = self.formHistoryType() andthen not form.isLocked
+            else null
+          end
+        in
+          if oldForm <> null
+          then
+            client.replaceForm(oldForm,newForm,true)
+          else
+            client.newFormDefinitely(newForm)
+          end
+        end
+      end
+    end
+
+    @Operation updateTools()
+      let history = self.getHistory() then
+          currentIndex = self.getCurrentHistoryIndex();
+          topIndex = history->size - 1 then
+          nextEnabled = currentIndex > 0;
+          previousEnabled = currentIndex < topIndex
+      in
+        self.commandInterpreter().setFormTool(self,"previousInHistory",previousEnabled);
+        self.commandInterpreter().setFormTool(self,"nextInHistory",nextEnabled);
+        self.commandInterpreter().setFormTool(self,"lock",isLocked)
+      end;
+      self
+    end
+
+  end

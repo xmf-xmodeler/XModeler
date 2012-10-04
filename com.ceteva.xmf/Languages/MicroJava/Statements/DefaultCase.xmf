@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class DefaultCase extends Statement
+  
+    @Attribute statements : Seq(Statement) (?) end
+    
+    @Constructor(statements) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"default:");
+      @For s in statements do
+        format(out,"~%~V",Seq{indent+2});
+        s.pprint(out,indent+2)
+      end
+    end
+    
+  end

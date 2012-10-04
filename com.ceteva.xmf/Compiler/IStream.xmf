@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Compiler
+
+  @Class IStream
+  
+    @Attribute instructions : Seq(Instr) end
+    @Attribute label        : String     end
+    
+    @Operation code():Seq(Instr)
+      instructions->reverse
+    end
+    
+    @Operation emit(instr:Instr)
+      if label <> ""
+      then 
+        instr.label := label;
+        self.label := ""
+      end;
+      self.instructions := seq{instr | instructions}
+    end
+    
+    @Operation label(label:String)
+      self.label := label
+    end
+    
+  end

@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import MDC;
+
+context Displays
+
+  @Class EventHandler isabstract
+  
+    // This class defines the state necessary to be an event
+    // handling type...
+    
+    @Attribute clickHandler : Operation = Displays::EventHandler::mkClickHandler() (?,!) end
+    
+    @Attribute moveHandler : Operation = Displays::EventHandler::mkMoveHandler() (?,!) end
+    
+    @Attribute resizeHandler : Operation = Displays::EventHandler::mkResizeHandler() (?,!) end
+    
+    @Attribute selectionHandler : Operation = Displays::EventHandler::mkSelectionHandler() (?,!) end
+    
+    @Operation mkClickHandler()
+      @Operation[closure="MDC::Displays::EventHandler::mkClickHandler"](tool,display,clicks) 
+        null 
+      end.setOwner(null)
+    end
+    
+    @Operation defaultClickHandler(tool,display,clicks) 
+      null
+    end
+    
+    @Operation mkMoveHandler()
+      @Operation[closure="MDC::Displays::EventHandler::mkMoveHandler"](tool,display,newx,newy,oldx,oldy) 
+        null
+      end.setOwner(null)
+    end
+    
+    @Operation defaultMoveHandler(tool,display,newx,newy,oldx,oldy) 
+      null
+    end
+    
+    @Operation mkResizeHandler()
+      @Operation[closure="MDC::Displays::EventHandler::mkResizeHandler"](tool,display,newWidth,newHeight,oldWidth,oldHeight) 
+        null 
+      end.setOwner(null)
+    end
+    
+    @Operation defaultResizeHandler(tool,display,newWidth,newHeight,oldWidth,oldHeight) 
+      null
+    end
+    
+    @Operation mkSelectionHandler()
+      @Operation[closure="MDC::Displays::EventHandler::mkSelectionHandler"](tool,display,selected)
+        tool.findElement(display).selectModelBrowserNode(selected)
+      end.setOwner(null)
+    end
+    
+    @Operation defaultSelectionHandler(tool,display,selected)
+      tool.findElement(display).selectModelBrowserNode(selected)
+    end
+      
+    @Operation handleClicks(tool,display,clicks)
+      clickHandler(tool,display,clicks)
+    end
+    
+    @Operation handleMove(tool,display,newx,newy,oldx,oldy)
+      moveHandler(tool,display,newx,newy,oldx,oldy)
+    end
+    
+    @Operation handleResize(tool,display,newWidth,newHeight,oldWidth,oldHeight)
+      resizeHandler(tool,display,newWidth,newHeight,oldWidth,oldHeight)
+    end
+    
+    @Operation handleSelection(tool,display,selected)
+      selectionHandler(tool,display,selected)
+    end
+    
+  end
+    
+    

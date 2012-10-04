@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Varp in AST(aVarp,arg,seen)
+  let type = self.dispatch(aVarp.type,arg);
+      pattern = self.dispatch(aVarp.pattern,arg)
+  in ASTNode(aVarp,Seq{pattern,type})
+  end
+end;

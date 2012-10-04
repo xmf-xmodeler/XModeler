@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import MyProjects;
+import Types;
+
+context Root
+  @Operation test()
+    let p = Project("X") then
+        m = p.model;
+        P = Package("P")
+    in m.addToPackages(P);
+       @Count c from 0 to 50 do
+         let c = Class("C" + c)
+         in P.model().addToClasses(c);
+            @Count a from 0 to 3 do
+              c.addToAttributes(Attribute("a" + a));
+              c.addToOps(Op("o" + a))
+            end
+         end
+       end;
+       p.browse()
+    end
+  end

@@ -1,0 +1,184 @@
+parserImport XOCL;
+parserImport XML::PrintXML;
+
+import MDC;
+import Types;
+import IO;
+
+// This file contains definitions to print out information
+// about an XTD in an XML format. 
+
+context Types
+  @Class XTDFormatter extends NameSpaceXMLFormatter
+    @Operation write(object,out)
+      @TypeCase(object)
+        Attribute_x_Display do
+          @XML(out)
+            <Attribute_x_Display attribute=object.attribute.path() containerType=object.containerType.name()>
+              out.writeValue(object.type)
+              out.writeValue(object.filter)
+            </Attribute_x_Display>
+          end
+        end
+        Attribute_x_Edge do
+          @XML(out)
+            <Attribute_x_Edge attribute=object.attribute.path() type=object.edgeType.name()>
+              out.writeValue(object.edgeType)
+              out.writeValue(object.source)
+              out.writeValue(object.target)
+              @For l in object.labels do
+                out.writeValue(l)
+              end
+              out.writeValue(object.creationHandler)
+              out.writeValue(object.deletionHandler)
+              out.writeValue(object.sourceReconnectHandler)
+              out.writeValue(object.targetReconnectHandler)
+            </Attribute_x_Edge>
+          end
+        end
+        Attribute_x_Label do
+          @XML(out)
+            <Attribute_x_Edge attributes=object.attribute->map("path")->separateWith(",")>
+              @For l in object.listeners do
+                out.writeValue(l)
+              end
+            </Attribute_x_Label>
+          end
+        end
+        Box_x_Box do
+          @XML(out)
+            <Box_x_Box type=object.displayType.name()>
+              out.writeValue(object.displayType)
+              @For c in object.contents do
+                out.writeValue(c)
+              end
+              out.writeValue(object.filter)
+            </Box_x_Box>
+          end
+        end
+        Class_x_Edge do
+          @XML(out)
+            <Class_x_Edge type=object.edgeType.name() attribute=object.attribute.path() source=object.sourceAtt->map("path")->separateWith(",") target=object.targetAtt->map("path").separateWith(",")>
+              out.writeValue(object.edgeType)
+              out.writeValue(object.targetNode)
+              out.writeValue(object.sourceNode)
+              @For a in object.attributes do
+                out.writeValue(a)
+              end
+              @For l in object.labels do
+                out.writeValue(l)
+              end
+              out.writeValue(object.creationHandler)
+              out.writeValue(object.deletionHandler)
+              out.writeValue(object.sourceReconnectHandler)
+              out.writeValue(object.targetReconnectHandler)
+            </Class_x_Edge>
+          end
+        end
+        Classifier_x_Node do
+          @XML(out)
+            <Classifier_x_Node type=object.nodeType.name() classifier=object.classifier.path()>
+              out.writeValue(object.nodeType)
+              @For p in object.parents do
+                out.writeValue(p)
+              end
+              @For d in object.displays do
+                out.writeValue(d)
+              end
+            </Classifier_x_Node>
+          end
+        end
+        Root_x_Node do
+          @XML(out)
+            <Root_x_Node attribute=object.attribute.path()>
+              out.writeValue(object.type)
+            </Root_x_Node>
+          end
+        end   
+        Free_x_Node do
+          @XML(out)
+            <Free_x_Node>
+              out.writeValue(object.type)
+            </Free_x_Node>
+          end
+        end
+        Label_x_Label do
+          @XML(out)
+            <Label_x_Label label=object.label.name()>
+            @For l in object.listeners do
+              out.writeValue(l)
+            end
+            </Label_x_Label>
+          end
+        end
+        Ref_x_Display do
+          @XML(out)
+            <Ref_x_Display/>
+          end
+        end
+        RootElementType do
+          @XML(out)
+            <RootElementType classifier=object.classifier.path() type=object.displayType.name()>
+               out.writeValue(object.displayType)
+               @For n in object.nodes do
+                 out.writeValue(n)
+               end
+               @For e in object.edges do
+                 out.writeValue(e)
+               end
+               @For c in object.classEdges do
+                 out.writeValue(c)
+               end
+               @For s in object.slotMonitors do
+                 out.writeValue(s)
+               end
+               @For c in object.creationMonitors do
+                 out.writeValue(c)
+               end
+               out.writeValue(object.diagramInit)
+               out.writeValue(object.filter)
+             </RootElementType>
+           end
+        end
+        Classifier_x_Display do
+          @XML(out)
+            <Classifier_x_Display classifier=object.classifier.path()>
+              out.writeValue(object.display)
+            </Classifier_x_Display>
+          end
+        end
+        Display_x_Display do
+          @XML(out)
+            <Display_x_Display type=object.displayType.name()>
+              out.writeValue(object.displayType)
+              out.writeValue(object.filter)
+            </Display_x_Display>
+          end
+        end
+        else super(object,out)
+      end
+    end
+  end 
+  
+context RootElementType
+  @Operation writeXML()
+    let file = xmf.openFile("XTD in XML",xmf.projDir(),"*.xml")
+    in if file <> ""
+       then self.writeXML(file)
+       end
+    end
+  end
+  
+context RootElementType
+  @Operation writeXML(file)
+    let fout = FileOutputChannel(file);
+        formatter = XTDFormatter() then
+        out = XMLOutputChannel(fout)
+    in out.formatter := formatter;
+       out.writeValue(self)
+    end
+  end
+        
+        
+     
+      

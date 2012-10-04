@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Enum extends Sugar
+  
+    // Create an enumerated type. These are actually classes so
+    // we allow extra content expressions, but they are probably
+    // not needed.
+  
+    @Attribute name  : String           end
+    @Attribute names : SetExp           end
+    @Attribute exps  : Seq(Performable) end
+    
+    @Constructor(name,names,exps) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Enum ::= n = Name ns = Names es = Exp* {
+      
+        Enum(n,ns,es)
+        
+      }.
+      
+      Names ::= '(' n = StrExp ns = (',' StrExp)* ')' { SetExp("Seq",Seq{n | ns}) }.
+      
+      StrExp ::= n = Name { StrExp(n) }.
+      
+    end
+    
+    @Operation desugar() 
+      exps->iterate(e x = [| XCore::Enum(<StrExp(name)>,<names>) |] | [| <x>.add(<e>) |])
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Enum ~S(~{,~;~S~})~%~V",Seq{name,names.elements.value,indent+2});
+      @For exp in exps do
+        exp.pprint(out,indent+2);
+        if not isLast 
+        then format(out,"~%~V",Seq{indent+2})
+        end
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

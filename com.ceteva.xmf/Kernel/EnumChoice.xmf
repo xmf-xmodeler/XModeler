@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class EnumChoice isabstract extends NamedElement
+
+    @Doc
+      A valid choice from an enumeration. Constructed automatically
+      via the add(String) operation in Enum.
+    end
+
+    @Operation deleteRecursive()
+      owner.remove(self.name());
+      self
+    end
+
+    @Operation setName(name)
+      let oldName = self.name().toString()
+      in
+        NamedElement::setName.invoke(self,Seq{name});
+        owner.names := owner.names->excluding(oldName);
+        owner.names := owner.names->including(name)
+      end
+    end
+
+  end

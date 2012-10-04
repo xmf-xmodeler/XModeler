@@ -1,0 +1,26 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler SlotUpdate in TypeChecker(exp,env,encountered)
+  let tType = self.dispatch(exp.target,env);
+      vType = self.dispatch(exp.value,env)
+  in if tType.type().isKindOf(XCore::Class)
+     then 
+       @Find(att,tType.type().allAttributes())
+         when att.name().toString() = exp.name.toString()
+         do if vType.type().inheritsFrom(att.type)
+            then TypeCheckExp(exp,tType.type(),Seq{tType,vType})
+            else 
+              let message = "value type (" + vType.type().toString() + ") is incompatible with declared type (" + att.type.toString() + ") for slot " + exp.name.toString()
+              in TypeCheckFails(message,TypeCheckExp(exp,Element,Seq{tType,vType}))
+              end
+            end
+         else TypeCheckFails("update to undefined slot " + exp.name.toString(),TypeCheckExp(exp,Element,Seq{tType,vType}))
+       end
+     else TypeCheckFails("update to non-object",TypeCheckExp(exp,Element,Seq{tType,vType}))
+     end
+  end
+end;

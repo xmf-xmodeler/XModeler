@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Condp in PPrint(aCondp,out,seen)
+  self.dispatch(aCondp.pattern,out);
+  format(out," when ");
+  self.dispatch(aCondp.condition,out)
+end;

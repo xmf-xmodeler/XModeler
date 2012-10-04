@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import ReportConstraint;
+
+context ReportConstraint
+
+  @Class ReportTree extends FormTree
+  
+    @Attribute report : ConstraintReport end
+    
+    @Constructor(x,y,width,height,report)
+      self.editable := false
+    end
+    
+    @Operation addContents()
+      self.addItem(ReportNode(report))
+    end
+  
+  end

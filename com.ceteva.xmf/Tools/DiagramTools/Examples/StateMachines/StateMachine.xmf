@@ -1,0 +1,152 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import StateMachines;
+import IO;
+
+context StateMachines
+
+  @Class StateMachine extends Class
+    
+      // A state machine is a specialization of Class that manages
+      // a collection of states and transitions between them. A class
+      // is a container; the add operation is extended to allow
+      // states and transitions to be added. The grammar synthesizes
+      // a sequence of calls to the add operation.
+    
+      @Grammar extends OCL::OCL.grammar
+      
+        StateMachine ::= n = Name es = Exp* { 
+          es->iterate(e m = [| StateMachines::StateMachine(<StrExp(n)>) |] |
+               [| <m>.add(<e>) |])
+        }.
+        
+      end
+      
+      @Attribute states      : Set(State)      (+,-,?) end
+      @Attribute transitions : Set(Transition) (+,-,?) end
+      
+      @Operation add(element)
+        // Extend Class::add to support the addition of states
+        // and transitions.
+        @TypeCase(element)
+          StateMachines::State do
+            self.addToStates(element)
+          end
+          StateMachines::Transition do
+            self.addToTransitions(element)
+          end
+          else super(element)
+        end
+      end
+      
+      @Operation deployJavaHook(out:OutputChannel,package:Package,pname:String)
+       
+         // Deploy the extra information required by a state machine...
+         
+         self.deployStates(out);
+         format(out,"~%");
+         self.deployMessageHandler(out,package);
+         format(out,"~%");
+         self.deployOperations(out,package);
+         format(out,"~%")
+      end
+      
+      @Operation deployOperations(out:OutputChannel,package:Package)
+        @For op in operations do
+          let exp = OCL::OCL.grammar.parseString(op.source(),"Exp",Seq{StateMachines}) then
+              body = exp.performable
+          in format(out,"  public ~S ~S(",Seq{op.type().javaTypeName(package),op.name()});
+             @For arg,type in op.paramNames(),op.paramTypes() do
+                format(out,"~S ~S",Seq{type.javaTypeName(package),arg});
+                if not isLast then format(out,",") end
+             end;
+             format(out,") {~%");
+             Transition().deployAction(out,body,self,package);
+             format(out,"  }~%");
+             if not isLast then format(out,"~%") end
+          end
+        end
+      end
+      
+      @Operation deployJavaImplementsHook(out:OutputChannel,package:Package,pname:String)
+        format(out,"implements messages.StateMachine ")
+      end
+      
+      @Operation deployStates(out:OutputChannel)
+      
+        // Add a static definition for each of the state names. Each
+        // state name has a numeric value. Add a state variable initialized
+        // to the initial state of the machine...
+        
+        format(out,"  // State information...~%~%");
+        @For state,index in states,0.to(states->size) do
+          format(out,"  public static final int ~S = ~S;~%",Seq{state.name(),index})
+        end;
+        format(out,"~%"); 
+        format(out,"  private int _s_ = ~S;~%",Seq{self.initialState().name()})
+      end
+      
+      @Operation deployMessageHandler(out:OutputChannel,package:Package)
+        format(out,"// Handler for messages...~%~%");
+        format(out,"  public void send(messages.Message message) {~%");
+        @For transition in transitions do
+          transition.deployMessageHandler(out,self,package)
+        end;
+        format(out,"    if(message.name().equals(\"trace\")) {~%");
+        format(out,"      String s = message.arg(0).valueToString();~%");
+        format(out,"      System.out.println(s);~%");
+        format(out,"    }~%");
+        format(out,"  }~%")
+      end
+      
+      @Operation init()
+      
+        // All classes should be initialised. This occurs aurtomaticaly
+        // via a 'context' definition. Class::init is extended to
+        // ensure that a state machine class inherits from the class
+        // ObjectWithState.
+        
+        @For a in attributes do
+          if a.type.isKindOf(CompiledOperation)
+          then a.type.importNameSpace(owner)
+          end
+        end;
+        super();
+        if  not self.allParents()->includes(StateMachines::ObjectWithState)
+        then self.addParent(StateMachines::ObjectWithState)
+        end;
+        self
+      end
+      
+      @Operation initialState():State
+        // Calculate the initial state of the receiver.
+        @Find(state,states)
+          when state.isKindOf(StateMachines::InitialState)
+          else null
+        end
+      end
+      
+      @Operation sendInstance(target:ObjectWithState,name:String,args:Seq(Element))
+      
+        // Transitions with names and arguments act as operation definitions.
+        // If no transition is enabled then run super to look for operations
+        // as usual.
+        
+        @Find(transition,transitions)
+          when transition.source() = target.state andthen
+               transition.name() = name.toString() andthen
+               args->size = transition.args()->size andthen
+               transition.pred().perform(target,args)
+          do transition.action().perform(target,args)
+          else super(target,name,args)
+        end
+      end
+      
+      @Operation transitionsFrom(state:String):Set(Transition)
+        // Calculate the set of transitions from the supplied state.
+        transitions->select(t | t.source() = state)
+      end
+      
+    end

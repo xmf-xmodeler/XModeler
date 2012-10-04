@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+context Object
+
+  @Operation orderSequence()
+    let sequenceAttributes = Seq{}
+    in
+      @For attribute in self.of().allAttributes()
+      do
+        if attribute.type.of() = Seq andthen self.get(attribute.name).size() > 1
+        then sequenceAttributes := sequenceAttributes->prepend(attribute.name)
+        end
+      end;
+      if sequenceAttributes.size() > 1
+      then
+        let 
+          message = "Select a sequence to order (note only sequences with more than one element are shown)" then
+          choice = xmf.select("Select sequence",message,sequenceAttributes,null,null)
+        in
+          if choice <> ""
+          then self.orderSequence(choice)
+          end
+        end
+      elseif sequenceAttributes.size() = 1
+      then self.orderSequence(sequenceAttributes.head())
+      else xmf.message("Object " + self + " has no sequence slots with more than one value")
+      end
+    end
+  end
+  
+context Object
+
+  @Operation orderSequence(name:String)
+    let 
+      sequence = self.get(name) then
+      neworder = xmf.order2("Order " + name + " sequence",sequence)
+    in
+      if neworder <> ""
+      then
+        sequence->head := neworder->head;
+        sequence->tail := neworder->tail
+      end
+    end
+  end

@@ -1,0 +1,170 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Manifests;
+import LoadTime;
+import Exceptions;
+import Env;
+import Compiler;
+import IO;
+
+context Manifests
+
+  @Class File extends ManifestAction
+  
+    // A file describes a manifest element that is required to build the
+    // resource. The file specifies a path relative to the current directory
+    // during a build or load.
+    
+    @Attribute stale : Boolean = false (?,!) end
+  
+    @Grammar extends ManifestAction.grammar
+    
+      File ::= guard = ActionGuard loadTime = LoadTime path = MPath loadAction = LoadAction {
+      
+        File(path,guard,loadTime,loadAction)
+        
+      }.
+       
+    end
+    
+    @Operation binFile(dir:String):String
+      dir->subst(xmf.homeDir(),"HOME",true) + "/" + path + ".o" 
+    end
+    
+    @Operation build(dir:String)
+      let sourceFile = self.sourceFile(dir)
+      in if sourceFile.fileExists()
+         then 
+           let errors = Compiler::errors
+           in compileFile(sourceFile,true,true);
+              if not Compiler::errors = errors
+              then 
+                let message = sourceFile + " compile failed.\n" then
+                    text = ""
+                in @For error in Compiler::errors do
+                     text := text + error.message
+                   end;
+                   throw BuildError(message,text)
+                end
+              end
+           end; 
+           @Case loadTime of
+             [CompileTime] do 
+               self.loadBinary(dir)
+             end
+             [Both] do
+               self.loadBinary(dir)
+             end
+             else null
+           end
+         else throw FileNotFound(sourceFile)
+         end
+      end
+    end
+    
+    @Operation deleteBinary(dir:String)
+      self.binFile(dir).deleteFile()
+    end
+    
+    @Operation deref(dir) 
+      self 
+    end
+    
+    @Operation getChildren()
+      Seq{}
+    end
+    
+    @Operation labelString()
+    
+      // Browser label...
+      
+      path
+      
+    end
+    
+    @Operation load(dir:String,loadSource:Boolean)
+      @Case loadTime of
+        [RunTime] do
+          self.loadFile(dir,loadSource)
+        end
+        [Both] do
+          self.loadFile(dir,loadSource)
+        end
+        else null
+      end
+    end
+    
+    @Operation loadFile(dir,loadSource)
+      if loadSource
+      then self.loadSource(dir)
+      else self.loadBinary(dir)
+      end
+    end
+    
+    @Operation loadBinary(dir:String)
+      if guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+      then 
+        let binFile = self.binFile(dir)
+        in if binFile.fileExists()
+           then 
+             let value = binFile.loadBin(true)
+             in if loadAction <> null
+                then loadAction.perform(self,Exp::mkEnv(Seq{"dir"},Seq{dir}),Seq{})
+                else null
+                end;
+                value
+             end
+           else throw FileNotFound(binFile)
+           end
+        end
+      end
+    end
+    
+    @Operation loadSource(dir:String)
+      if guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+      then 
+        Evaluator::loadFile(self.sourceFile(dir),self,NullEnv(),Seq{XCore,Root})
+      end
+    end
+    
+    @Operation refresh(dir)
+      let source = self.sourceFile(dir);
+          binary = self.binFile(dir)
+      in if not binary.fileExists() orelse 
+            binary.isOlder(source)
+         then self.setStale(true)
+         else self.setStale(false)
+         end
+      end
+    end
+    
+    @Operation sourceFile(dir:String):String
+      dir->subst(xmf.homeDir(),"HOME",true) + "/" + path + ".xmf"
+    end
+    
+    @Operation touch(dir:String,source:Boolean)
+      if source
+      then self.sourceFile(dir).setFileLastModified(Time())
+      else self.binFile(dir).setFileLastModified(Time())
+      end
+    end
+    
+    @Operation unxip(zipFile:ZipFile,prefix:String)
+      let inch = zipFile.inputChannel(prefix + "/" + path) then
+          binch = BinaryInputChannel(inch)
+      in binch.readBinary()
+      end
+    end
+    
+    @Operation xip(dir:String,prefix:String,zout:ZipOutputChannel)
+      zout.newEntry(prefix + "/" + path);
+      @WithOpenFile(fin <- self.binFile(dir))
+        @While not fin.eof() do
+          zout.write(fin.read())
+        end
+      end
+    end
+  
+  end

@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import XRules;
+import Syntax;
+
+context Syntax
+
+  @Class Or extends Condition
+  
+    @Doc
+      An or condition is satisfied when objects satisfy the left
+      or the right conditions.
+    end
+    
+    @Attribute left  : Condition end
+    @Attribute right : Condition end
+    
+    @Constructor(left,right) end
+    
+  end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class DisplayEngine
+  
+    // Tells the display engine to display the page.
+    // Sub-classes should override this operation to
+    // display the page in a technology specific way.
+  
+    @AbstractOp display(page:Page)
+    end
+  
+  end

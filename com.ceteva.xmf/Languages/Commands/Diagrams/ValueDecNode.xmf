@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Clients;
+import Diagrams;
+import Languages;
+import Commands;
+import Diagrams;
+
+context Diagrams
+
+  @Class ValueDecNode extends Statement
+  
+    @Attribute dec : Text (?) end
+  
+    @Constructor(x,y)
+       self.width := 150;
+       self.height := 16 + 10
+    end
+    
+    @Operation addDisplays()
+      self.dec := Text("value x is 0 end",5,5,true);
+      self.add(dec)
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation resize(width,height)
+      @For d in displays do
+        d.resize(width,height)
+      end;
+      super(width,height)
+    end
+    
+  end
+  
+  

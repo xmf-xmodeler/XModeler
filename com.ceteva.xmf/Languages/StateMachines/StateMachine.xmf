@@ -1,0 +1,76 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+  @Class StateMachine extends NamedElement
+   
+    //@Attribute name : String end
+    @Attribute startName : String end
+    @Attribute states : Set(State) (+,-) end
+    @Attribute transitions : Set(Transition) (+,-) end
+    @Attribute messages : Seq(Element) (+) end
+    
+    @Constructor(name,startName) end
+     
+    @Constructor(name,startName,states,transitions,messages) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      StateMachine ::= '(' stmname = Name ',' startName = Name ')' elements = Exp*
+      
+        { import OCL 
+          in elements->iterate(element exp = 
+               [| import Languages::StateMachines in StateMachine(<StrExp(stmname)>,<StrExp(startName)>) end |] |
+               [| <exp>.add(<element>) |])
+          end
+        }.
+        
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Languages::StateMachines::State do self.addState(element) end
+        Languages::StateMachines::Transition do self.addTransition(element) end
+      end
+    end
+    
+    @Operation addState(state)
+      self.addToStates(state);
+      state.setOwner(self);
+      self
+    end
+    
+    @Operation addTransition(transition)
+      self.addToTransitions(transition);
+      transition.setOwner(self);
+      self
+    end
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        State do self.deleteFromStates(element) end
+        Transition do self.deleteFromTransitions(element) end
+      end
+    end
+    
+    @Operation startingState()
+      self.stateNamed(startName)
+    end
+    
+    @Operation stateNamed(name)
+      @Find(state,states)
+        when state.name.stripWhiteSpace() = name.stripWhiteSpace()
+        else self.error("Cannot find starting state: " + name)
+      end
+    end
+    
+    @Operation transitionsFrom(state)
+      transitions->select(t | t.source() = state)
+    end
+  
+  end

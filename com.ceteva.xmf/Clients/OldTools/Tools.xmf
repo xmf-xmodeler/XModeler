@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Package Tools
+  
+    @Class Widgets extends XCore::NameSpace end
+    @Class Widget extends NamedElement end
+    
+    @Operation textBox(att:String,text:String)
+      let box = BoxType();
+          text = TextType(text)
+      in box.addToAttributes(ToolComponentAttribute(att,false,text));
+         box
+      end
+    end
+    
+    @Operation imageBox(type,image,name)
+      let groupType = GroupType()
+      in type.addToAttributes(ToolComponentAttribute("display",false,groupType));
+         groupType.addToAttributes(ToolComponentAttribute("image",false,ImageType(image,0,0,30,30)));
+         groupType.addToAttributes(ToolComponentAttribute("name",false,TextType(name),"CENTRE"))
+      end
+    end
+  
+  end

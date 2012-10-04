@@ -1,0 +1,32 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Tree
+  
+    @Attribute id        : String end
+    @Attribute treeNodes : Set(TreeNode) end
+    
+    @Constructor(id,treeNodes) end
+    
+    @ToXML(TREE)[ Id=id ]
+      treeNodes*
+    end 
+    
+    @Operation find(id)
+      if self.id = id 
+      then self
+      else 
+        @Find(node,treeNodes)
+          when node.find(id) <> null
+          do node.find(id)
+          else null
+        end
+      end
+    end
+    
+  end

@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import MappingDiagrams;
+import MappingMapping;
+import XMap;
+
+context MappingMapping
+
+  @Class RangeXRangeEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute map    : Map end
+    @Attribute target : Element end
+    @Attribute edge   : RangeEdge (?) end
+    
+    @Constructor(map,target,edge,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()})
+    end
+
+    @Operation checkDaemons()
+      self.checkEdgeDaemons()
+    end
+
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once RangeXRangeEdge::rangeSourceChangedDaemon(edge,"source") end;
+      @SlotValueChanged multi once RangeXRangeEdge::rangeTargetChangedDaemon(edge,"target") end
+    end
+
+    @Operation rangeSourceChangedDaemon(edge,slot,newPort,oldPort)
+      owner.rangeSourceChanged(self,newPort.owner)
+    end
+    
+    @Operation rangeTargetChangedDaemon(edge,slot,newPort,oldPort)
+      owner.rangeTargetChanged(self,newPort.owner)
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()},false)
+    end
+
+    @Operation removeDaemons()
+      edge.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation element()
+      Seq{map,target}
+    end
+
+  end  

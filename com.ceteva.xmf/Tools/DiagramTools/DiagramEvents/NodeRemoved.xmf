@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class NodeRemoved extends Removed
+  
+    @Attribute node : Node (?) end
+    
+    @Constructor(node) ! end
+    
+    @Operation raisedName():String
+      node.type().name() + "_Removed"
+    end
+    
+  end

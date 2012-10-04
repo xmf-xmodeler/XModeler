@@ -1,0 +1,16 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony on Mon Jun 12 12:35:43 BST 2006
+
+@Manifest Forms
+  p = @File Forms end
+  @File ActiveText end
+  @File Form end
+  @File FormButton end
+  @File FormCheckBox end
+  @File FormComboBox end
+  @File FormTextArea end
+  @File FormTextField end
+do p
+end;

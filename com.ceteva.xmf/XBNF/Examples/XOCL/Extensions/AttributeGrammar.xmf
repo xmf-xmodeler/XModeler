@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import XOCL;
+
+context Attribute
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      Attribute ::= name = AttName meta = MetaClass ':' path = Names b = { Seq{} } data = TestTail^(b) body = Exp* {
+        let att = Attribute(name,OCL::Path::toPath(path),null,AttributeModifiers()).add(body)
+        in @Letrec processData =
+             @Operation(data,state)
+               if not data->isEmpty
+               then
+                 @Case data->head of
+                   "args" do
+                     @Case state of
+                       "type" do
+                         att.type := OCL::Apply(att.type,data->at(1));
+                         processData(data->tail->tail,"")
+                       end
+                       "init" do
+                         att.init := OCL::Apply(att.init,data->at(1));
+                         processData(data->tail->tail,"")
+                       end
+                     end
+                   end
+                   "init" do
+                     att.init := data->at(1);
+                     processData(data->tail->tail,"init")
+                   end
+                   "mods" do
+                     att.modifiers := data->at(1)
+                   end
+                 end
+                end
+              end
+            in processData(data,"type");
+               att.meta := meta
+            end
+         end
+      }.
+      
+      AttName ::= Name | Str.
+    
+      MetaClass ::= 'metaclass' Exp | { null }.
+      
+      Names ::= n = Name ns = ('::' Name)* { Seq{n | ns} }.
+    
+      TestTail(data) ::= 
+      
+        a = Args x = { data + Seq{"args",a} } TestTail^(x) |
+        
+        '=' e = Atom x = { data + Seq{"init",e} } TestTail^(x) |
+        
+        '(' m = AttMods ')' { data + Seq{"mods",m} } |
+        
+        { data }.
+        
+      AttMods ::= m = AttMod ms = (',' AttMod)* { Seq{m | ms}->iterate(m mods = AttributeModifiers() | mods.defineModifier(m)) }.
+      
+      AttMod ::= '?' { "?" } | '!' { "!" } | '+' { "+" } | '-' { "-" } | GuardMod.
+      
+      GuardMod ::= '#' e = ( Exp | { null } ) { Seq{e} }.
+      
+    end

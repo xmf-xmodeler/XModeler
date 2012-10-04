@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XOCL;
+
+context StateMachines
+
+  @Class Type isabstract extends Syntax
+  
+    @AbstractOp javaTypeName():String
+    end
+    
+  end

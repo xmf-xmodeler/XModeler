@@ -1,0 +1,35 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Lift
+  @File Lift end
+  @File Attribute end
+  @File Boolean end
+  @File Class end
+  @File CompiledOperation end
+  @File Constraint end
+  @File Constructor end
+  @File Doc end
+  @File Enum end
+  @File EnumChoice end
+  @File Float end
+  @File Integer end
+  @File NameSpace end
+  @File Null end
+  @File Object end
+  @File Package end
+  @File SeqOfElement end
+  @File SetOfElement end
+  @File String end
+  @File Snapshot end
+  @File Table end
+  @File Vector end
+  @File Buffer end
+  @File Element end
+  
+do
+  Project(Walkers,dir,self)
+end;
+    

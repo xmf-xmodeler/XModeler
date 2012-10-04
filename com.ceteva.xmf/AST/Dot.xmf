@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Dot in AST(aDot,arg,seen)
+  let target = self.dispatch(aDot.target,arg)
+  in ASTNode(aDot,Seq{target})
+  end
+end;

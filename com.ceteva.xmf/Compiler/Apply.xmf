@@ -1,0 +1,135 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+
+context Apply
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if self.isSuper()
+    then self.compileSuper(env,frame,isLast,saveSource)
+    else
+      if self.isBuiltin()
+      then self.compileBuiltin(env,frame,isLast,saveSource)
+      else self.compileCall(env,frame,isLast,saveSource)
+      end
+    end
+  end
+   
+context Apply 
+  @Operation compileBuiltin(env,frame,isLast,saveSource) 
+    @Case operator.name of
+      "Kernel_arrayRef" do 
+        let array = args->at(0).compile(env,frame,false,saveSource);
+            index = args->at(1).compile(env,frame,false,saveSource)
+        in index + array + Seq{ArrayRef()} 
+        end
+      end
+      "Kernel_arraySet" do 
+        let array = args->at(0).compile(env,frame,false,saveSource);
+            index = args->at(1).compile(env,frame,false,saveSource);
+            value = args->at(2).compile(env,frame,false,saveSource)
+        in value + index + array + Seq{ArraySet()} 
+        end
+      end
+      "Kernel_nextToken" do args->head.compile(env,frame,false,saveSource) + Seq{Read()} end
+      "Kernel_read" do args->head.compile(env,frame,false,saveSource) + Seq{Read()} end
+      "Kernel_server_accept" do args->head.compile(env,frame,false,saveSource) + Seq{Accept()} end
+      "Kernel_tableGet" do 
+        let table = args->at(0).compile(env,frame,false,saveSource);
+            key = args->at(1).compile(env,frame,false,saveSource)
+        in key + table + Seq{TableGet()} 
+        end
+      end 
+      "Kernel_tablePut" do 
+        let table = args->at(0).compile(env,frame,false,saveSource);
+            key = args->at(1).compile(env,frame,false,saveSource);
+            value = args->at(2).compile(env,frame,false,saveSource)
+        in value + key + table + Seq{TablePut()} 
+        end
+      end
+      "Kernel_sleep" do
+        args->at(0).compile(env,frame,false,saveSource) + Seq{Sleep()}
+      end
+      else self.compileCall(env,frame,isLast,saveSource)
+    end
+  end
+ 
+context Apply
+  @Operation compileCall(env,frame,isLast,saveSource)
+    let argCode = args->asSeq->collect(arg | arg.compile(env,frame,false,saveSource))->flatten;
+        arity = args->size
+    in if self.isDynamicOperator(env)
+       then 
+         if isLast
+         then argCode + Seq{TailEnterDyn(Compiler::Symbol(operator.name),arity)}
+         else Seq{StartCall()} + argCode + Seq{EnterDyn(Compiler::Symbol(operator.name),arity)}
+         end
+       else
+         let funCode = operator.compile(env,frame,false,saveSource)
+         in if isLast
+            then argCode + funCode + Seq{TailEnter(arity)}
+            else Seq{StartCall() | argCode + funCode + Seq{Enter(arity)}}
+            end
+         end
+      end
+    end
+  end
+  
+context Root::OCL::Apply
+  @Operation compileSuper(env,frame,isLast,saveSource)
+    let argCode = args->collect(arg | arg.compile(env,frame,false,saveSource))->asSeq->flatten;
+        arity = args->size
+    in if isLast
+       then argCode + Seq{TailSuper(arity)}
+       else Seq{StartCall() | argCode + Seq{Super(arity)}}
+       end
+    end
+  end
+  
+context Apply
+  @Operation FV():Element
+    args->collect(arg | arg.FV())->asSet->flatten->union(operator.FV())
+  end
+  
+context Apply
+  @Operation isBuiltin():Boolean
+    if operator.isKindOf(Var)
+    then operator.name = "Kernel_read" or 
+         operator.name = "Kernel_nextToken" or 
+         operator.name = "Kernel_server_accept" or
+         operator.name = "Kernel_arrayRef" or
+         operator.name = "Kernel_arraySet" or
+         operator.name = "Kernel_tableGet" or
+         operator.name = "Kernel_tablePut" or
+         operator.name = "Kernel_sleep"
+    else false
+    end
+  end
+  
+context Apply
+  @Operation isDynamicOperator(env):Boolean
+    // Returns true when the operator will generate
+    // a dynamic lookup...
+    operator.isKindOf(Var) andthen
+    env.isDynamic(operator.name)
+  end
+  
+context Root::OCL::Apply
+  @Operation isSuper()
+    if operator.isKindOf(Var)
+    then operator.name = "super"
+    else false
+    end
+  end
+
+context Apply
+  @Operation maxLocals():Element
+    operator.maxLocals().max(args->collect(arg |
+      arg.maxLocals())->max)
+  end
+  
+context Apply
+  @Operation lift()
+    Apply(self.typeExp(),Seq{operator.lift(),SetExp("Seq",args->collect(arg | arg.lift()))})
+  end
+  

@@ -1,0 +1,35 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XRules;
+import Syntax;
+import OCL;
+import Parser::BNF;
+
+context XRules
+
+  @Class RuleBase
+  
+    @Grammar extends OCL::OCL.grammar import XRules::Syntax
+    
+      RuleBase ::= name = Name rules = (Exp:Rule)* { 
+        rules->iterate(rule exp = [| XRules::RuleBase(<StrExp(name)>) |] | 
+          [| <exp>.add(<rule.lift()>) |]) 
+      }.
+      
+    end
+    
+    @Attribute name  : String end
+    @Attribute rules : Seq(Rule) (+) end
+    
+    @Constructor(name) ! end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Rule do 
+          self.addToRules(element) 
+        end
+      end
+    end
+    
+  end

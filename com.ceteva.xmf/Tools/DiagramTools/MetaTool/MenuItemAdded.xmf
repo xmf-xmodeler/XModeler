@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+
+context MetaTool
+
+  @Class MenuItemAdded extends Change
+  
+    @Attribute value  : Display     (?) end
+    @Attribute path   : Seq(String) (?) end 
+    @Attribute name   : String      (?) end
+    @Attribute action : String      (?) end
+    
+    @Constructor(value,path,name,action) ! end   
+    
+    @Operation raisedName():String
+      "Menu_Item_Added_To_" + path->separateWith("_")
+    end
+  
+  end

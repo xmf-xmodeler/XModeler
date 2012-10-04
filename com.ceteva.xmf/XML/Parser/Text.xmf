@@ -1,0 +1,25 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Text extends Pattern
+  
+    @Doc
+      Succeeds when the next input element is text. The input element
+      is returned.
+    end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"TEXT")
+    end
+    
+  end

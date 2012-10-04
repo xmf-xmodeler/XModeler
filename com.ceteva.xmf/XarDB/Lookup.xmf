@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class Lookup extends IndexedInstr
+  
+    @Operation labelString():String
+      if self.isSimpleLookup()
+      then contents.name->separateWith("::")
+      else super()
+      end
+    end
+    
+    @Operation isSimpleLookup():Boolean
+      contents->forAll(x | x.isReallyKindOf(MkSymbol))
+    end
+    
+  end

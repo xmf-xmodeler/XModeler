@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Compiler;
+
+  context Compiler
+  
+    @Class Import extends OCL::OCL
+    
+      // An 'import' clause at the start of a compilation unit.
+      
+      @Attribute nameSpace : Performable end
+      
+      @Constructor(nameSpace) end
+      
+      @Operation desugar():Performable
+        [| let nameSpace = <nameSpace> 
+           in Kernel_import(nameSpace.contents);
+              Kernel_letVar(nameSpace.name,nameSpace) 
+           end 
+        |]
+      end
+      
+      @Operation compile(env,frame,isLast,saveSource)
+        self.desugar().compile(env,frame,isLast,saveSource)
+      end
+      
+      @Operation FV():Set(String)
+        self.desugar().FV()
+      end
+      
+      @Operation maxLocals():Integer
+        self.desugar().maxLocals()
+      end
+      
+      @Operation pprint(out,indent)
+        format(out,"import ");
+        nameSpace.pprint(out,indent)
+      end
+      
+    end
+  

@@ -1,0 +1,44 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation binExpToMicroJava(e1,op,e2,locals) 
+  
+    let jes1 = OCLtoMicroJava(e1,locals);
+        jes2 = OCLtoMicroJava(e2,locals)
+    in 
+       @Case op of
+    
+         "+"   do jes1 + jes2 + Seq{[| @Statement add();       end |]} end
+         "-"   do jes1 + jes2 + Seq{[| @Statement sub();       end |]} end
+         "*"   do jes1 + jes2 + Seq{[| @Statement mul();       end |]} end
+         "/"   do jes1 + jes2 + Seq{[| @Statement div();       end |]} end
+         "and" do jes1 + jes2 + Seq{[| @Statement boolAnd();   end |]} end
+         "or"  do jes1 + jes2 + Seq{[| @Statement boolOr();    end |]} end
+         "<"   do jes1 + jes2 + Seq{[| @Statement less();      end |]} end
+         "<="  do jes1 + jes2 + Seq{[| @Statement lessEq();    end |]} end
+         ">"   do jes1 + jes2 + Seq{[| @Statement greater();   end |]} end
+         ">="  do jes1 + jes2 + Seq{[| @Statement greaterEq(); end |]} end
+         "="   do jes1 + jes2 + Seq{[| @Statement eql();       end |]} end
+         "<>"  do jes1 + jes2 + Seq{[| @Statement neql();      end |]} end
+         
+         "implies" do 
+         
+           OCLtoMicroJava([| if <e1> then <e2> else true end |],locals) 
+           
+         end
+     
+       end
+    end
+    
+  end

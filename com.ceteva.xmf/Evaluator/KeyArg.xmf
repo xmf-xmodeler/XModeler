@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler KeyArg in Eval(aKeyArg,arg,seen)
+  if seen
+  then aKeyArg
+  else
+    let value = self.dispatch(aKeyArg.value,arg);
+        name = self.dispatch(aKeyArg.name,arg)
+    in aKeyArg
+    end
+  end
+end;

@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+  
+context PrePredicate
+    @Operation compiledBody(FV:Set(String))
+      let names = FV->asSeq.qsort(@Operation(x,y) x < y end)
+      in names->iterate(var exp = boolExp | 
+            [| let <var> = stack.ref(frame + 7 + <IntExp(names->indexOf(var))>) 
+              in <exp> 
+              end 
+            |])
+      end
+    end
+  
+context PrePredicate
+  @Operation toExp(FV:Set(String))
+    let args = Seq{Varp("env")};
+        cargs = Seq{Varp("stack"),Varp("frame")};
+        type = NamedType();
+        source = boolExp.pprint()
+    in [| let op = <Operation("anonymous",args,type,self.body(FV))>;
+              compiledOp = <Operation("anonymous",cargs,type,self.compiledBody(FV))>
+          in Root::Parser::BNF::CompiledPredicate(op,compiledOp,<StrExp(source)>) 
+          end |]
+    end
+  end

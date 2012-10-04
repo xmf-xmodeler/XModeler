@@ -1,0 +1,24 @@
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+
+context Attribute
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Attribute ::= name = AttName  meta = MetaClass ':' mult = AttMult type = Apply init = AttInit mods = AttMods body = Exp* { Attribute(name,mult,type,init,mods).add(body).meta := meta }.
+    AttInit ::= '=' Exp | '=' 'static' e = Exp { [| static(<e>) |] } | { null }.
+    AttMods ::= mods = { AttributeModifiers() } [ '(' mod = AttMod { mods.defineModifier(mod) } ( ',' mod = AttMod { mods.defineModifier(mod) } )* ')' ] { mods }.
+    AttMod ::= '?' { "?" } | '!' { "!" } | '+' { "+" } | '-' { "-" } | '^' { "^" } | GuardMod.
+    GuardMod ::= '#' e = ( Exp | { null } ) { Seq{e} }.
+    AttName ::= Name | Str.
+    MetaClass ::= 'metaclass' Exp | { null }.
+    AttMult ::= Mandatory | Collection | { "" }.
+    Mandatory ::= '!' { "!" }.
+    Collection ::= seq = Sequence range = Range { seq + range } | SeqWithoutRange.
+    Range ::= '*' { "*" } | n = Int '.''.' m = (Int | '*' { "*" }) { n + ".." + m } | {""}.
+    Sequence ::= ( '$' { "$" } | { "" } ).
+    SeqWithoutRange ::= '$' '*' { "$*" } | '$*' {"$*"}.
+  end
+  

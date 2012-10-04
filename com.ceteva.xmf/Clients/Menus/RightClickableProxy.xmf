@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class RightClickableProxy isabstract
+
+    @Operation buildGlobalMenu(rightClickable)
+      // must be overridden in subclasses
+      self
+    end
+
+    @Operation buildMenuTreeFromRegistry(element,rightClickable)
+      // legacy only
+      rightClickable.buildMenuTreeFromRegistry(element)
+    end
+
+    @Operation proxyTarget()
+      xmf.menuManager().getProxy(self)
+    end
+
+    @Operation setGlobalMenu(rightClickable,key)
+      self.setGlobalMenu(rightClickable,key,true)
+    end
+
+    @Operation setGlobalMenu(rightClickable,key,setMenu)
+      let menuManager = xmf.menuManager()
+      in
+        rightClickable.setMenuKey(key);
+        menuManager.addProxy(rightClickable,self);
+        if not menuManager.hasMenu(key)
+        then self.buildGlobalMenu(rightClickable)
+        end
+      end;
+      if setMenu
+      then rightClickable.setRightClickMenu()
+      end
+    end
+
+  end

@@ -1,0 +1,18 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Varp in PPrint(aVarp,out,seen)
+  format(out,"~S",Seq{aVarp.name});
+  if aVarp.pattern <> null
+  then 
+    format(out," = ");
+    self.dispatch(aVarp.pattern,out)
+  end;
+  if not aVarp.type.isReallyKindOf(NamedType) orelse
+     not aVarp.type.path.equals(Seq{"XCore","Element"})
+  then
+    format(out," : ");
+    self.dispatch(aVarp.type,out)
+  end
+end;

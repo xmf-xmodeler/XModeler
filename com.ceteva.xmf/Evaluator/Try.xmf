@@ -1,0 +1,31 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Try in Eval(aTry,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aTry.body,
+       @Operation(next,result,call,return)
+         try 
+           self.eval(aTry.body,env,target,imports,next,result,call,return,
+             @Operation(value)
+               result(aTry,value,cont)
+             end)
+         catch(exception)
+           next(aTry.handler,
+             @Operation(next,result,call,return)
+               self.eval(aTry.handler,env.bind(aTry.name,exception),target,imports,next,result,call,return,
+                 @Operation(value)
+                   result(aTry,value,cont)
+                 end)
+             end)
+         end
+       end)
+   end
+end;

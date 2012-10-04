@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+  @Package Generics 
+    @Class GenericPackageInstance extends Decls::PackageDecl
+    end
+  end
+ 

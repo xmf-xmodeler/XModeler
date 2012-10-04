@@ -1,0 +1,101 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Case extends Syntax
+  
+    // The body of an element is a case analysis on the attribute
+    // values.
+    
+    @Attribute clauses   : Seq(CaseClause) (+,?) end
+    @Attribute otherwise : Pattern         (?)   end
+    
+    @Constructor(clauses,otherwise) end
+    
+    @Operation addRefActions(actions)
+      // Occurs when the enclosing Element lifts bindings out.
+      // This can only occur when the clauses are empty since
+      // multiple clauses prevents bindings in the body of an 
+      // element.
+      Case(clauses,And(otherwise,actions))
+    end
+    
+    @Operation binds():Seq(String)
+      // The only thing we are allowed to bind in is the otherwise
+      // when there are no clauses.
+      if clauses->isEmpty
+      then otherwise.binds()
+      else Seq{}
+      end
+    end
+    
+    @Operation BNF():Pattern
+      Case(clauses->collect(c | c.BNF()),otherwise.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      @For clause in clauses do
+        clause.checkForMissingClauses(grammar)
+      end;
+      otherwise.checkForMissingClauses(grammar)
+    end
+    
+    @Operation NNF(handler:Operation)
+      self.NNFClauses(clauses,
+        @Operation(clauses,newClauses1)
+          let name = "C" + Grammar::clauseCounter
+          in Grammar::clauseCounter := Grammar::clauseCounter + 1;
+             otherwise.NNF(
+              @Operation(otherwise,newClauses2)
+                let clause = Clause(name,Seq{otherwise})
+                in handler(Case(clauses,Call(name)),(newClauses1 + newClauses2)->including(clause))
+                end
+              end)
+          end
+        end)
+    end
+    
+    @Operation NNFClauses(clauses,handler:Operation)
+      if clauses->isEmpty
+      then handler(Seq{},Seq{})
+      else
+        clauses->head.NNF(
+          @Operation(clause,newClauses1)
+            self.NNFClauses(clauses->tail,
+              @Operation(clauses,newClauses2)
+                handler(clauses->prepend(clause),newClauses1 + newClauses2)
+              end)
+          end)
+      end
+    end
+    
+    @Operation ONF():Pattern
+      Case(clauses->collect(c | c.ONF()),otherwise.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      if clauses->isEmpty
+      then otherwise.pprint(out,indent)
+      else
+        format(out,"case");
+        @For clause in clauses do
+          format(out,"~%~V",Seq{indent+2});
+          clause.pprint(out,indent+2)
+        end;
+        format(out,"~%~Velse ",Seq{indent+2});
+        otherwise.pprint(out,indent+2);
+        format(out,"~%~Vend",Seq{indent})
+      end
+     end
+     
+     @Operation terminals():Set(String)
+       clauses->iterate(c T = otherwise.terminals() | T + c.terminals())
+     end
+    
+  end

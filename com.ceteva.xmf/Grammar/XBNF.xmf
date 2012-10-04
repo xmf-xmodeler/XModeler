@@ -1,0 +1,147 @@
+import Compiler;
+import OCL;
+import Parser::BNF;
+import Parser::Machine;
+import IO;
+
+// This file contains a bootstrap for the XBNF grammar. It relies on the grammar for XOCL.
+// We define a grammar for XBNF by hand and then use that grammar to load in the same
+// grammar from XBNF.xbnf. The second grammar overwrites the first.
+ 
+context Grammar
+
+  let 
+    XBNF_Action =
+      Clause("XBNF_Action",
+        And(Terminal("{"),
+        And(Call("Exp"),
+        And(Bind("exp"),
+        And(Terminal("}"),
+        Action(
+          @Operation(env)
+            PreAction(env.lookup("exp"))
+          end))))));
+    XBNF_Atom =
+      Clause("XBNF_Atom",
+        Or(Call("XBNF_Action"),
+        Or(Call("XBNF_Literal"),
+        Or(Call("XBNF_Call"),
+        And(Terminal("("),And(Call("XBNF_Disjunction"),Terminal(")")))))));
+    XBNF_Binding =
+      Clause("XBNF_Binding",
+        And(Name(),
+        And(Bind("name"),
+        And(Terminal("="),
+        And(Call("XBNF_Sequence"),
+        And(Bind("atom"),
+        Action(
+          @Operation(env)
+            And(
+              env.lookup("atom"),
+              Bind(env.lookup("name")))
+          end)))))));
+    XBNF_Call =
+      Clause("XBNF_Call",
+        And(Name(),
+        And(Bind("name"),
+        Action(
+          @Operation(env)
+            Call(env.lookup("name"))
+          end))));
+    XBNF_Clause = 
+      Clause("XBNF_Clause",
+        And(Name(),
+        And(Bind("name"),
+        And(Terminal("::="),
+        And(Call("XBNF_Disjunction"),
+        And(Bind("body"),
+        And(Terminal("."),
+        Action(
+          @Operation(env)
+            Clause(env.lookup("name"),env.lookup("body"))
+          end))))))));
+    XBNF_Conjunction = 
+      Clause("XBNF_Conjunction",
+        And(PlusCons(Call("XBNF_Element")),
+        And(Bind("elements"),
+        Action(
+          @Operation(env) 
+            let elements = env.lookup("elements")
+            in elements->tail->iterate(e conj = elements->head |
+                 And(conj,e))
+            end
+          end))));
+    XBNF_Disjunction =
+      Clause("XBNF_Disjunction",
+        And(Call("XBNF_Conjunction"),
+        And(Bind("element"),
+        And(
+          Opt(
+            And(Terminal("|"),
+            And(Call("XBNF_Disjunction"),
+            And(Bind("rest"),
+            And(
+              Action(
+                @Operation(env)
+                  Or(env.lookup("element"),env.lookup("rest"))
+                end),
+              Bind("element")))))),
+          Action(@Operation(env) env.lookup("element") end)))));
+    XBNF_Element =
+      Clause("XBNF_Element",
+       Or(Call("XBNF_Optional"),
+       Or(Call("XBNF_Binding"),
+          Call("XBNF_Sequence"))));
+    Grammar = 
+      Clause("Grammar",
+        And(StarCons(Call("XBNF_Clause")),
+        And(Bind("clauses"),
+        And(EOF(),
+        Action(
+          @Operation(env) 
+            Grammar(Set{},env.lookup("clauses")->asSet,"",Seq{}) 
+          end)))));
+    XBNF_Literal =
+      Clause("XBNF_Literal",
+        Or(And(Terminal("Char"),Action(@Operation(env) Char() end)),
+        Or(And(Terminal("Str"),Action(@Operation(env) Str() end)),
+        Or(And(Terminal("Terminal"),Action(@Operation(env) Term() end)),
+        Or(And(Terminal("Int"),Action(@Operation(env) Int() end)),
+        Or(And(Terminal("Name"),Action(@Operation(env) Name() end)),
+        Or(And(Terminal("EOF"),Action(@Operation(env) EOF() end)),
+        Or(And(Terminal("!"),Action(@Operation(env) Cut() end)),
+           And(Term(),
+           And(Bind("terminal"),
+           Action(@Operation(env) Terminal(env.lookup("terminal")) end)))))))))));
+    XBNF_Optional =
+      Clause("XBNF_Optional",
+        And(Terminal("["),
+        And(Call("XBNF_Disjunction"),
+        And(Bind("element"),
+        And(Terminal("]"),
+        Action(@Operation(env) Opt(env.lookup("element")) end))))));
+    XBNF_Sequence = 
+      Clause("XBNF_Sequence",
+        And(Call("XBNF_Atom"),
+        And(Bind("element"),
+        Opt(Or(And(Terminal("*"),Action(@Operation(env) StarCons(env.lookup("element")) end)),
+               And(Terminal("+"),Action(@Operation(env) PlusCons(env.lookup("element")) end)))))))
+  in Parser::BNF::Grammar(Set{OCL::OCL.grammar},Set{XBNF_Action,XBNF_Atom,XBNF_Binding,XBNF_Call,XBNF_Clause,XBNF_Conjunction,XBNF_Disjunction,XBNF_Element,Grammar,XBNF_Literal,XBNF_Optional,XBNF_Sequence},"Grammar",Seq{})
+  end
+  
+// Now use the hand crafted grammar from above to load in the
+// definition of XBNF written in XBNF.
+  
+context Grammar
+  let grammar = Grammar.grammar;
+      input = FileInputChannel("Grammar/XBNF.xbnf")
+  in let state = State(grammar,input)
+     in //grammar.debug := true;
+        let XBNFGrammar = state.run()
+        in XBNFGrammar.parents := Set{OCL::OCL.grammar};
+           XBNFGrammar.dynamics := Seq{Seq{2|Root.contents},Seq{2|Parser::BNF.contents}};
+           XBNFGrammar.transform();
+           XBNFGrammar
+        end
+     end
+  end

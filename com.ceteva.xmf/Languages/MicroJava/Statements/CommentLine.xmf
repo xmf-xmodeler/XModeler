@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class CommentLine extends Statement
+  
+    @Attribute comment : String (?) end
+    
+    @Constructor(comment) ! end
+  
+    @Operation pprint(out,indent)
+      let pprintString = "// " + comment.subst(" ","\n",true) in
+        format(out,pprintString,Seq{})
+      end
+    end
+    
+  end

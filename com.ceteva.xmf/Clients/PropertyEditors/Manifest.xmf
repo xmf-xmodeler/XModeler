@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest PropertyEditors
+  PropertyEditors = @File PropertyEditors end
+  @File PropertyEditorLayoutManager end
+  @File StandardPELayoutManager end
+  @File ContextFormElement end
+  @File Parsable end
+  @File SingletonTextField end
+  @File SingletonDisplay end
+  @File ContextCheckBox end
+  @File BooleanDisplay end
+  @File CollectionListElement end
+  @File CollectionDisplay end
+  @File CollectionButtonDisplay end
+  @File CollectionComboBoxDisplay end
+  @File CodeboxDisplayTextBox end
+  @File CodeboxEditor end
+  @File CodeboxDisplay end
+  @File CodeComboBox end
+  @File CodeComboBoxDisplay end
+  @File PropertyEditor end
+do Project(PropertyEditors,dir,self)
+end;

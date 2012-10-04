@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Bold extends Entry
+
+    @Attribute entry : Entry (?,!,+,-) end
+    
+    @Constructor(entry) ! end
+    
+    @Operation contents()
+      Seq{entry}
+    end
+
+  end

@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Tools;
+import Events;
+import FormTools;
+
+context FormEvents
+
+  @Class Delete extends Event
+  
+    @Attribute path    : Seq(String) (?) end
+    @Attribute value   : Element     (?) end
+    
+    @Constructor(path,value) end
+    
+    @Operation raisedName():String
+      "Delete_" + path->separateWith("_")
+    end
+  
+  end

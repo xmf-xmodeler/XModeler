@@ -1,0 +1,30 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Table in Lift(t,arg,encountered)
+  if encountered
+  then
+    [| <arg>.ref(<IntExp(stack.indexOf(t))>) |]
+  else
+    stack.push(t);
+    let var = Var(self.newVar())
+    in [| <arg>.push(Table(<IntExp(t.size())>));
+          let <var.name> = <arg>.top()
+          in
+            <t.keys()->iterate(k exp = var |
+              let key = self.dispatch(k,arg) then
+                  value = self.dispatch(t.get(k),arg)
+              in [| <exp>;
+                   let key = <key> then
+                       value = <value>
+                   in <var>.put(key,value) 
+                   end
+                 |]
+              end)> 
+          end
+       |]
+    end
+  end
+end;

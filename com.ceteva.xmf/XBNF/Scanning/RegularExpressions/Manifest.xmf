@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+@Manifest RegularExpressions
+  p = @File RegularExpressions end
+  @File UnRE end
+  @File BinRE end
+  @File Range end
+  @File Alternation end
+  @File Dot end
+  @File Epsilon end
+  @File Paren end
+  @File Plus end
+  @File Star end
+  @File Optional end
+  @File And end
+  @File Or end
+  @File RegularExpression end
+do p
+end;

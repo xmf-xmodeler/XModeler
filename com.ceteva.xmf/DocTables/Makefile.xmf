@@ -1,0 +1,14 @@
+import Compiler;
+
+compileFile("DocTables/Boot",true,true);
+compileFile("DocTables/DocTables",true,true);
+compileFile("DocTables/Basic/Makefile",true,true);
+compileFile("DocTables/Forms/Makefile",true,true);
+compileFile("DocTables/EventHandlers/Makefile",true,true);
+compileFile("DocTables/EventHandlers/Makefile",true,true);
+compileFile("DocTables/HTML/Makefile",true,true);
+"DocTables/Basic/Makefile.o".loadBin(false);
+"DocTables/Forms/Makefile.o".loadBin(false);
+"DocTables/EventHandlers/Makefile.o".loadBin(false);
+"DocTables/EventHandlers/Makefile.o".loadBin(false);
+"DocTables/HTML/Makefile.o".loadBin(false);

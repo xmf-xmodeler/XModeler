@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+context IO
+
+  @Class MessageChannel
+  
+    @Attribute clientName : String end
+    
+    @Constructor(clientName) ! end
+    
+    @Operation readMessage():Vector
+      Kernel_read(clientName)
+    end
+    
+    @Operation writeMessage(v:Vector)
+      Kernel_write(clientName,v)
+    end
+    
+  end

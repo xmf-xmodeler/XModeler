@@ -1,0 +1,44 @@
+Start ::= 
+  XBNF_Grammar { "" }.
+
+XBNF_Action ::= 
+  '{' exp = Exp '}' 
+  { PreAction(exp) }.
+  
+XBNF_Atom ::= 
+  XBNF_Action    | 
+  XBNF_Literal   | 
+  XBNF_Call      | 
+  '(' XBNF_Disjunction ')'.
+  
+XBNF_Binding ::= 
+  name = Name '=' atom = XBNF_Sequence { 
+    And(atom,Bind(name)) 
+  }.
+  
+XBNF_Call ::= 
+  name = Name { Call(name) }.
+  
+XBNF_Clause ::= 
+  name = Name '::=' body = XBNF_Disjunction '.' { Clause(name,body) }. 
+  
+XBNF_Conjunction ::= 
+  elements = XBNF_Element+ { 
+   elements->tail->iterate(e conj = elements->head | 
+     And(conj,e)) 
+  }. 
+  
+XBNF_Disjunction ::= 
+  element = XBNF_Conjunction [ 
+    '|' rest = XBNF_Disjunction element = { Or(element,rest) } 
+  ] 
+  { element }.
+   
+XBNF_Element ::= 
+  XBNF_Optional  | 
+  XBNF_Binding   | 
+  XBNF_Sequence.
+  
+XBNF_Grammar ::= 
+  clauses = XBNF_Clause* EOF { Grammar(Set{},clauses->asSet,"") }.
+  

@@ -1,0 +1,9 @@
+Compiler::compileFile("XRules/Boot",true,true);
+Compiler::compileFile("XRules/XRules",true,true);
+Compiler::compileFile("XRules/RuleBase",true,true);
+Compiler::compileFile("XRules/Syntax/Makefile",true,true);
+Compiler::compileFile("XRules/Network/Makefile",true,true);
+Compiler::compileFile("XRules/Vars/Makefile",true,true);
+"XRules/Syntax/Makefile.o".loadBin(false); 
+"XRules/Network/Makefile.o".loadBin(false); 
+"XRules/Vars/Makefile.o".loadBin(false); 

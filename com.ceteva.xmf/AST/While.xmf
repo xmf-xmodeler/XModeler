@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler XOCL::While in AST(aWhile,arg,seen)
+  let test = self.dispatch(aWhile.test,arg);
+      body = self.dispatch(aWhile.body,arg)
+  in ASTNode(aWhile,Seq{test,body})
+  end
+end;

@@ -1,0 +1,179 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class DialogBoxClient extends Client
+  
+    @Constructor(name)
+      self.setCommandInterpreter(DialogCommandInterpreter());
+      self.setEventHandler(DialogEventHandler())
+    end
+    
+    @Operation newBusyDialog(title,minimize)
+      let dialog = BusyDialog(title,minimize) in
+        dialog.setOwner(self);
+        dialog.new();
+        dialog
+      end
+    end
+    
+    @Operation newColorDialog(message,default)
+      let dialog = ColorDialog(message,default) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newFontDialog(default)
+      let dialog = FontDialog(default) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newMessageDialog(message)
+      let dialog = MessageDialog(message) in
+        dialog.setOwner(self);
+        dialog.new()
+      end 
+    end
+    
+    @Operation newWarningDialog(warning)
+      let dialog = WarningDialog(warning) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newErrorDialog(warning)
+      let dialog = ErrorDialog(warning) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newInputDialog(title,question,value)
+      let dialog = InputDialog(title,question,value) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newQuestionDialog(question)
+      let dialog = QuestionDialog(question) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newConfirmDialog(confirm)
+      let dialog = ConfirmDialog(confirm) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    /*@Operation newMultioptionDialog(message,type,options)
+      let dialog = MultioptionDialog(message,type,options) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end*/
+    
+    @Operation newSaveFileDialog(directory,extension)
+      let dialog = FileDialog("save",directory,extension) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+
+    @Operation newSaveFileDialog(directory,extension,initName)
+      let dialog = FileDialog("save",directory,extension,initName) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newOpenFileDialog(directory,extension)
+      let dialog = FileDialog("open",directory,extension) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+
+    @Operation newOpenFileDialog(directory,extension,initName)
+      let dialog = FileDialog("open",directory,extension,initName) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+
+    @Operation newDirectoryDialog(directory)
+      let dialog = DirectoryDialog(directory) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newSelectionDialog(multi,title,message,options)
+      let dialog = SelectionDialog(multi,title,message,options) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newMultiSelectTreeDialog(title,tree)
+      let dialog = TreeDialog(title,tree,true) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newOrderingDialog(title,message,options)
+      let dialog = OrderingDialog(title,message,options) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newOrderingDialog2(title,options)
+      let dialog = OrderingDialog2(title,options) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newProgressDialog(workToBeDone)
+      let dialog = ProgressDialog(workToBeDone) in
+        dialog.setOwner(self);
+        dialog.new();
+        dialog
+      end
+    end
+    
+    @Operation newTextAreaDialog(type,message,text)
+      let dialog = TextAreaDialog(type,message,text) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation newTreeDialog(title,tree)
+      let dialog = TreeDialog(title,tree) in
+        dialog.setOwner(self);
+        dialog.new()
+      end
+    end
+    
+    @Operation preSave()
+      self
+    end
+    
+    @Operation postSave()
+      self
+    end
+  end

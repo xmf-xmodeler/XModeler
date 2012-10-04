@@ -1,0 +1,208 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Block extends Recognizer
+  
+    @Attribute locals        : Integer         (?,!)     end
+    @Attribute argMap        : Seq(Integer)    (?,!)     end
+    @Attribute instrs        : Seq(Recognizer) (?,!)     end
+    @Attribute namePredicts  : Boolean         (?,!)     end
+    @Attribute intPredicts   : Boolean         (?,!)     end
+    @Attribute floatPredicts : Boolean         (?,!)     end
+    @Attribute strPredicts   : Boolean         (?,!)     end
+    @Attribute charPredicts  : Boolean         (?,!)     end
+    @Attribute termPredicts  : Boolean         (?,!)     end
+    @Attribute EOFPredicts   : Boolean         (?,!)     end
+    @Attribute predicts      : Set(String)     (?,!,+,-) end
+    
+    @Constructor(locals,instrs) ! end
+    
+    @Operation calcArgMap(args,locals)
+      self.argMap := args->collect(a | locals->indexOf(a))
+    end
+    
+    @Operation calculateSets(grammar,clause):Boolean
+      let changed = false
+      in changed := self.calculateNullable(grammar,clause);
+         @Count i from 0 to instrs->size do
+           changed := changed or self.calculateFirst(grammar,clause,i);
+           changed := changed or self.checkCall(grammar,clause,i)
+         end;
+         changed
+      end
+    end
+           
+    @Operation calculateFirst(grammar,clause,i):Boolean
+    
+      // C ::= G H I X
+      // If G H I are all nullable then add the firsts of X
+      // to C...
+      
+      if instrs->take(i)->forAll(b | b.nullable(grammar))
+      then 
+        let first = instrs->at(i).first(grammar)
+        in if not first->forAll(n | clause.first()->includes(n))
+           then 
+             clause.setFirst(first + clause.first());
+             true
+           else false
+           end
+        end
+      else false
+      end
+    end
+                   
+    @Operation calculateNullable(grammar,clause):Boolean
+      if instrs->forAll(p | p.nullable(grammar))
+      then 
+        if not clause.nullable() 
+        then 
+          clause.setNullable(true);
+          true
+        else false
+        end
+      else false
+      end
+    end     
+    
+    @Operation calculateFollow(grammar,clause,i):Boolean
+      if instrs->drop(i + 1)->forAll(b | b.nullable(grammar))
+      then 
+        let follow = instrs->at(i).follow(grammar)
+        in if not clause.follow()->forAll(n | follow->includes(n))
+           then 
+             instrs->at(i).setFollow(grammar,follow + clause.follow());
+             true
+           else false
+           end
+        end
+      else false
+      end
+    end
+    
+    @Operation checkCall(grammar,clause,i):Boolean   
+    
+      // Given C ::= X Y Call(Z) G H I
+      // If G H I is nullable then add in follow(C) to follow(Z).
+      // If G H is nullable then add in first(I) to follow(Z)
+      
+      let changed = false
+      in if instrs->at(i).isKindOf(Call)
+         then 
+           changed := self.calculateFollow(grammar,clause,i);
+           let rest = instrs->drop(i+1)
+           in @Count j from 0 to rest->size do
+                if rest->take(j-1)->forAll(b | b.nullable(grammar))
+                then 
+                  let follow = instrs->at(i).follow(grammar);
+                      first = rest->at(j).first(grammar)
+                  in if not first->forAll(n | follow->includes(n))
+                     then changed := true
+                     end;
+                     instrs->at(i).setFollow(grammar,follow + first)
+                  end
+                end
+              end
+            end
+          end;
+          changed
+       end
+     end
+    
+    @Operation dprint()
+      format(stdout,"  ~{,~;~S~}:~%",Seq{instrs});
+      format(stdout,"    predict: ");
+      if namePredicts then format(stdout,"Name,") end;
+      if floatPredicts then format(stdout,"Float,") end;
+      if intPredicts then format(stdout,"Int,") end;
+      if strPredicts then format(stdout,"Str,") end;
+      if charPredicts then format(stdout,"Char,") end;
+      if termPredicts then format(stdout,"Term,") end;
+      if EOFPredicts then format(stdout,"EOF,") end;
+      format(stdout,"~{,~;~S~}~%",Seq{predicts->asSeq})
+    end
+    
+    @Operation equal(block)
+      locals = block.locals() and
+      (argMap * block.argMap())->forAll(pair | pair->at(0) = pair->at(1)) and
+      instrs->size = block.instrs()->size and
+      namePredicts = block.namePredicts() and
+      intPredicts = block.intPredicts() and
+      floatPredicts = block.floatPredicts() and
+      strPredicts = block.strPredicts() and
+      charPredicts = block.charPredicts() and
+      termPredicts = block.termPredicts() and
+      EOFPredicts = block.EOFPredicts() and
+      predicts = block.predicts()
+    end
+    
+    @Operation expected()
+      predicts + 
+      if namePredicts then Set{"Builtin(Name)"} else Set{} end +
+      if floatPredicts then Set{"Builtin(Float)"} else Set{} end +
+      if intPredicts then Set{"Builtin(Int)"} else Set{} end +
+      if strPredicts then Set{"Builtin(Str)"} else Set{} end +
+      if charPredicts then Set{"Builtin(Char)"} else Set{} end +
+      if termPredicts then Set{"Builtin(Term)"} else Set{} end +
+      if EOFPredicts then Set{"Builtin(EOF)"} else Set{} end 
+    end
+      
+    @Operation firsts(grammar,instrs)
+      if instrs->isEmpty
+      then Set{}
+      else 
+        if instrs->head.nullable(grammar)
+        then self.firsts(grammar,instrs->tail) + instrs->head.first(grammar)
+        else instrs->head.first(grammar)
+        end
+      end
+    end
+    
+    @Operation predict(clause,grammar)
+      let P = self.firsts(grammar,instrs)
+      in if instrs->forAll(i | i.nullable(grammar))
+         then
+           let F = clause.follow()
+           in self.predict((P+F)->including("Builtin(EOF)"))
+           end
+         else self.predict(P)
+         end
+      end
+    end
+    
+    @Operation predict(terminals:Set(String))
+      @For terminal in terminals do
+        @Case terminal of
+          "Builtin(EOF)" do
+            self.setEOFPredicts(true)
+          end
+          "Builtin(Float)" do
+            self.setFloatPredicts(true)
+          end
+          "Builtin(Int)" do
+            self.setIntPredicts(true)
+          end
+          "Builtin(Name)" do
+            self.setNamePredicts(true)
+          end
+          "Builtin(Str)" do
+            self.setStrPredicts(true)
+          end
+          "Builtin(Char)" do
+            self.setCharPredicts(true)
+          end
+          "Builtin(Line)" do
+            self.setCharPredicts(true)
+          end
+          "Builtin(Term)" do
+            self.setTermPredicts(true)
+          end
+          else self.addToPredicts(terminal)
+        end
+      end
+    end
+    
+  end

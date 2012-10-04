@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class Ref isabstract extends XarInstr
+  
+    @Attribute index : Integer end
+    @Attribute ref   : Element end
+    
+    @Constructor(index) ! end
+    
+    @AbstractOp doubleClick() end
+    
+    @Operation getChildren():Set(Element)
+      Set{ref}
+    end
+    
+  end

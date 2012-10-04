@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context XCore::Package
+
+  @Operation newTool()
+    let name = self.newName("Tool") then
+        tool = (metaTool())(name,ToolType(name))
+    in self.add(tool)
+    end
+  end
+  
+context XCore::Package
+  @Operation test()
+      metaTool().toTool("X")
+    end

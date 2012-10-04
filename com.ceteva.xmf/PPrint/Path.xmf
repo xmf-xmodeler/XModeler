@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Path in PPrint(aPath,out,seen)
+  self.dispatch(aPath.root,out);
+  format(out,"~{::~S~}",Seq{aPath.names})
+end;

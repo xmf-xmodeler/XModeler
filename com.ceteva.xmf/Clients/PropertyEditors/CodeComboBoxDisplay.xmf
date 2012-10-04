@@ -1,0 +1,88 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CodeComboBoxDisplay
+  
+    @Attribute comboBox : CodeComboBox end
+    @Attribute codeBox : FormTextBox end
+    @Attribute label : FormLabel end
+    @Attribute element : Element end
+    @Attribute selectionName : String end // used for daemon monitoring
+  
+    @Constructor(label,comboBox,codeBox,element)
+      let comboItems = comboBox.contents in
+        if not comboItems->isEmpty then
+          let comboSelection = comboItems.at(0) in
+            self.selectionName := comboSelection;
+            comboBox.selected := comboSelection
+          end
+        else
+          self.selectionName := null;
+          comboBox.selected := null
+        end
+      end
+    end
+
+    @Operation addToForm(form:Form,x,y,labelHeight,codeBoxWidth,codeBoxHeight,comboHeight,yGap)
+      self.addLabel(form,x,y);
+      self.addComboBox(form,x,y+labelHeight,codeBoxWidth,comboHeight);
+      self.addCodeBox(form,x,y+(2*labelHeight+yGap),codeBoxWidth,codeBoxHeight)
+    end
+
+    @Operation addLabel(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+
+    @Operation addComboBox(form,x,y,width,height)
+      self.comboBox.setX(x);
+      self.comboBox.setY(y);
+      self.comboBox.setWidth(width);
+      self.comboBox.setHeight(height);
+      form.addElement(self.comboBox)
+    end
+
+    @Operation addCodeBox(form,x,y,width,height)
+      self.codeBox.setX(x);
+      self.codeBox.setY(y);
+      self.codeBox.setWidth(width);
+      self.codeBox.setHeight(height);
+      form.addElement(self.codeBox)
+    end
+
+    @Operation resetCodeBox(codedElement)
+      self.resetCodeBox(codedElement,false)
+    end
+
+    @Operation resetCodeBox(codedElement,alwaysRefresh:Boolean)
+      let
+        newSelectionName = codedElement.name().toString()
+      in
+        if selectionName<>newSelectionName or alwaysRefresh then
+          self.selectionName := newSelectionName;
+          if codeBox.isKindOf(ContextFormElement)
+          then
+            codeBox.setContex(codedElement)
+          end;
+          codeBox.text := self.comboBox.getCode(codedElement);
+          codeBox.renew()
+        end
+      end
+    end
+    
+    @Operation addTextBoxRules()
+      let rules = OCL::OCL.grammar.terminals()->asSeq in
+        @For rule inSeq rules do
+          codeBox.addWordRule(rule,FormTextBox::blue)
+        end
+      end;
+      self
+    end
+
+  end

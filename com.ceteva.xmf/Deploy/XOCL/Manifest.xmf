@@ -1,0 +1,9 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest XOCL
+  @File Package   end
+  @File Class   end
+  @File Enum   end
+  @File Attribute   end
+end;

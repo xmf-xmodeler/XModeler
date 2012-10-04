@@ -1,0 +1,14 @@
+"XMF supports tables that associated keys with values.".println();
+"You should see 15 printed. Garbage collect should automatically".println();
+"rehash a table. You should see 15 printed after a GC.".println();
+let table = Table(100);
+    key1 = Class;
+    key2 = Object
+in table.put(key1,10);
+   table.put(key2,5);
+   table.println();
+   (table.get(key1) + table.get(key2)).println();
+   gc();
+   table.println();
+   (table.get(key1) + table.get(key2)).println()
+end;

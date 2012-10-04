@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Operation in AST(aOperation,arg,seen)
+  let performable = self.dispatch(aOperation.performable,arg)
+  in ASTNode(aOperation,Seq{performable})
+  end
+end;

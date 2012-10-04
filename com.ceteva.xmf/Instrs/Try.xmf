@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Try extends Instr
+  
+    @Attribute freeVars : Integer end
+    @Attribute locals : Integer end
+    @Attribute source : String end
+    @Attribute body : Seq(Instr) end
+    @Attribute codeBoxOffset : Integer end
+    
+    @Constructor(freeVars,locals,source,body) end
+    
+    @Operation toString():String
+      "<Try " +  codeBoxOffset + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      let newBox = Assembler::assemble(body,locals,source)
+      in self.codeBoxOffset := codeBox.constOffset(newBox);
+         codeBox.addInstr(self)
+      end
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(codeBoxOffset.byte(2),freeVars,codeBoxOffset.byte(1))
+    end
+    
+  end

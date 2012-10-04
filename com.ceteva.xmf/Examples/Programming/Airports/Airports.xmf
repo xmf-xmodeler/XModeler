@@ -1,0 +1,65 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Airports 
+  
+    @Doc
+      The Airports model
+    end
+    
+    @Class Airport 
+
+      @Attribute name : String (?,!) end
+      @Attribute airlines : Set(Airline) (?,!) end
+
+      @Constructor(name,airlines) ! end
+
+    end
+    
+    @Class Airline 
+
+      @Attribute routes : Set(Route) (?,!,+,-) end
+      @Attribute name : String (?,!) end
+
+      @Constructor(routes,name) ! end
+      
+      @Operation allUnderCapacityFlights()
+        routes.flights->select(f |
+          f.passengers->size < f.route.capacity->sel)
+      end  
+    end
+    
+    @Class Flight 
+
+      @Attribute date : String (?,!) end
+      @Attribute passengers : Set(Passenger) (?,!,+,-) end
+      @Attribute route : Route (?,!) end
+
+      @Constructor(date,passengers,route) ! end
+
+    end
+    
+    @Class Passenger 
+
+      @Attribute name : String (?,!) end
+
+      @Constructor(name) ! end
+
+    end
+    
+    @Class Route 
+
+      @Attribute flights : Seq(Flight) (?,!,+,-) end
+      @Attribute destination : String (?,!) end
+      @Attribute source : String (?,!) end
+      @Attribute name : String (?,!) end
+      @Attribute capacity : Integer (?,!) end
+
+      @Constructor(flights,destination,source,name,capacity) ! end
+
+    end
+    
+  end
+  
+  

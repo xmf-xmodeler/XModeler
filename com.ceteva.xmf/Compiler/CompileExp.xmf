@@ -1,0 +1,51 @@
+import Compiler;
+import Instrs;
+
+context Compiler
+  @Operation compileExp(exp:Performable,args:Seq(String),saveSource:Boolean):Seq(Instr)
+    exp.compile(Env().allocateLocals(args,0),0,true,saveSource)
+  end
+  
+context Compiler
+  @Operation compileToFun(name:String,exp:Performable,args:Seq(String),dynamics:Seq(Element),saveSource:Boolean):Operation
+  
+    @Doc
+      This operation is used to translate an expression directly to a function. Compilation
+      is provided with a sequence of argument names and a collection of imported dynamic
+      variables and namespaces. 
+      Parameter: exp:Performable
+        The expression to be compiled.
+      Parameter: args:Seq(String)
+        A sequence of the arguments to the function in the order that they will be supplied.
+      Parameter: dynamics:Seq(Element)
+        The dynamics of a function is a sequence of pairs. The first element of the pair is
+        an integer defining whether the dynamic is a binding (1) or a namespace (2). If the
+        pair is desigated as a binding then the tail of the pair should be a pair whose head
+        is a symbol (the name of the binding) and the tail is the value of the binding. If the
+        pair is designated as a namespace then the tail of the pair must be a table. All elements
+        of the table are then visible to the code being compiled.
+      Parameter: saveSource:String
+        A boolean that determines whether or not the source code being compiled is saved
+        in the function. Saving source code is useful for debugging as it is available to
+        the debugger through the run-time stack. Saving source code increases the size of 
+        the run-time system and imposes a penalty since it must be garbage collected).
+     end
+     
+    let instrs = Compiler::compileExp(exp,args,true) + Seq{Instrs::Return()};
+        maxLocals = exp.maxLocals() + args->size;
+        dynamics = dynamics->collect(d | if d.isReallyKindOf(NameSpace) then Seq{2 | d.contents} else d end)
+    in let codeBox = Assembler::assemble(instrs,maxLocals,"") then
+           operation = codeBox.toMachineFun(args->size,dynamics)
+       in if saveSource
+          then 
+            let params = args->collect(a | OCL::Varp(a));
+                type = OCL::NamedType() then
+                opExp = OCL::Operation(name,params,type,exp)
+            in operation.setSource(opExp.pprint())
+            end
+          end;
+          operation.setName(name);
+          operation
+       end
+    end
+  end

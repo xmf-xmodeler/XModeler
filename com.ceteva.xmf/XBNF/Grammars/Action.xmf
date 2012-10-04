@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Action isabstract extends Recognizer
+  
+  end

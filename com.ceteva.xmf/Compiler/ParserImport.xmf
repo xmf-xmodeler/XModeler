@@ -1,0 +1,22 @@
+import OCL;
+import Instrs;
+
+context ParserImport
+  @Operation FV():Element
+    exp.FV()
+  end
+
+context ParserImport
+  @Operation maxLocals():Element
+    exp.maxLocals()
+  end
+
+context ParserImport
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    exp.compile(env,frame,isLast,saveSource)
+  end
+  
+context ParserImport
+  @Operation lift()
+    Apply(self.typeExp(),Seq{exp.lift()})
+  end

@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Attribute
+
+  @Grammar extends O
+    
+    Attribute ::= name = AttName  meta = MetaClass ':' type = AttType init = AttInit mods = AttMods body = Exp* 'end' { Attribute(name,"",type,init,mods).add(body).meta := meta }.
+    AttInit ::= '=' Exp | '=' 'static' e = Exp { [| static(<e>) |] } | { null }.
+    AttMods ::= mods = { AttributeModifiers() } [ '(' AttModifier^(mods) (',' AttModifier^(mods))* ')' ] { mods }.
+    AttModifier(mods) ::= mod = AttMod { mods.defineModifier(mod) }.
+    AttMod ::= '?' { "?" } | '!' { "!" } | '+' { "+" } | '-' { "-" } | '^' { "^" } | GuardMod.
+    AttType ::= n = AttTypeName AttTypeTail^(n).
+    AttTypeName ::= n = Name ns = ('::' Name)* { if ns->isEmpty then Var(n) else Path(Var(n),ns) end}.
+    AttTypeTail(n) ::= '(' args = CommaSepExps ')' { Apply(n,args) } | { n }.
+    GuardMod ::= '#' e = ( Exp | { null } ) { Seq{e} }.
+    AttName ::= Name | Str.
+    MetaClass ::= 'metaclass' Exp | { null }.
+      
+    end 

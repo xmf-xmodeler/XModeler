@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Features;
+
+context Features
+  @Class NextFeature
+  
+    // A next feature records a possible step from a current
+    // feature and also the environment it should be
+    // evaluated in
+  
+    @Attribute feature 	: Feature end
+    @Attribute env		: Seq(Feature) end
+    
+    @Constructor(feature,env)
+    end
+    
+    @Operation toString()
+      "Feature: " + feature.toString() + " Env: " + env.toString()
+    end
+  
+  end

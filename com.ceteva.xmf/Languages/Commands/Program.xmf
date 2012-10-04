@@ -1,0 +1,48 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+import Env;
+
+context Commands
+
+  @Class Program extends Performable
+  
+    @Grammar extends Statement.grammar
+    
+      Program ::= s = Statement { Program(s) }.
+      
+    end
+    
+    @Attribute statement : Statement end
+    
+    @Constructor(statement) ! end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      statement.compile(NullEnv(),Seq{},@Operation(typeEnv,varEnv) Seq{} end)
+    end
+    
+    @Operation desugar1()
+      statement.desugar1([| self |])
+    end
+    
+    @Operation desugar2()
+      statement.desugar2(NullEnv(),@Operation(typeEnv)[| self |] end)
+    end
+      
+    @Operation eval(target,env,imports)
+      statement.eval(target,env,imports)
+    end
+    
+    @Operation FV()
+      Set{}
+    end
+    
+    @Operation maxLocals()
+      statement.maxLocals(0,0,@Operation(locals,maxLocals) maxLocals end)
+    end
+    
+  end

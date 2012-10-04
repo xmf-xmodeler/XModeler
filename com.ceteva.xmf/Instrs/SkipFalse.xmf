@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SkipFalse extends Instr
+  
+    @Attribute offset : Integer (?,!) end
+    @Attribute targetLabel : String (?,!) end
+    
+    @Constructor(targetLabel) end
+    
+    @Operation toString():String
+      "<SkipFalse " + targetLabel + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+  end

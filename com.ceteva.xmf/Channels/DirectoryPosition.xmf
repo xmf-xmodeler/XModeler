@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class DirectoryPosition extends ResourcePosition, OrderedContainer
+  
+  end

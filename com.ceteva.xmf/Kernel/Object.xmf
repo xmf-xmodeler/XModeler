@@ -1,0 +1,498 @@
+parserImport XOCL;
+
+context Object
+
+  @Operation addDaemon(d):Element
+  
+    @Doc
+      All objects have a collection of daemons. A daemon is an operation that is
+      invoked whenever a slot of the object is updated. The operation is any
+      invokable value (either an operation or an object that implements the
+      'invoke/2' operation. The invocation occurs after the slot has been
+      updated and is supplied with 3 values as the second argument: the slot
+      (symbol) that has been updated, the new value and the old value.
+    end
+     
+    self.setDaemons(self.daemons() + Seq{d})
+  end
+  
+context Object
+  @Operation addMultiDaemon(d,target)
+    @Doc
+      This operation facilitates the addition of daemons that support synchronisation
+      of multiple objects.
+    end
+    d.addMultiTarget(self,target);
+    self
+  end  
+  
+context Object
+  @Operation addPersistentDaemon(d)
+    d.setProperty(Symbol("persistentDaemon"),null);
+    self.addDaemon(d)
+  end
+  
+context Object
+  // Add slots to an object using 'addStructuralFeature'.
+  @Operation addStructuralFeature(name:String,value:Element):Object
+    Kernel_addAtt(self,name,value);
+    self
+  end
+  
+context Object
+  @Operation allCompositeValues()
+    let allCompositeValues = Set{}
+    in
+      @For value in self.compositeValues() do
+        allCompositeValues := allCompositeValues + value.allCompositeValuesAndSelf()
+      end;
+      allCompositeValues
+    end
+  end
+
+context Object
+  @Operation allCompositeValuesAndSelf()
+    self.allCompositeValues() + Set{self}
+  end
+
+context Object
+  @Operation compositeValues()
+    let compositeValues = Seq{}
+    in
+      @For att in self.of().allAttributes() do
+        if att.isComposite
+        then
+          let actualSlotValue = self.get(att.name()) then
+              slotValues = 
+                if actualSlotValue = null then Seq{}
+                elseif actualSlotValue.isKindOf(SeqOfElement) then actualSlotValue.asProperSeq()
+                elseif actualSlotValue.isKindOf(SetOfElement) then actualSlotValue.asSeq()
+                else Seq{actualSlotValue}
+                end
+          in
+            compositeValues := compositeValues + slotValues
+          end
+        end
+      end;
+      compositeValues.asSet()
+    end
+  end
+
+context Object
+  @Operation allDaemonsWithId(id)
+    let result = Seq{} in
+      @For daemon in self.daemons() do
+        if daemon.matchesId(id)
+        then result := result->linkAt(daemon,0)
+        end
+      end;
+      result
+    end
+
+  end
+
+context Object
+  @Operation allDaemonsWithTarget(target)
+    let result = Seq{} in
+      @For daemon in self.daemons() do
+        if daemon.matchesTarget(self,target)
+        then result := result->linkAt(daemon,0)
+        end
+      end;
+      result
+    end    
+  end
+
+context Object
+  @Operation daemons()
+    @Doc
+      Returns the currently defined daemons for the receiver.
+      Daemons are fired when the object changes state and when
+      the objects daemons are active.
+    end
+    Kernel_daemons(self)
+  end
+  
+context Object
+  @Operation daemonsActive():Boolean
+    @Doc
+      Returns whether or not the daemons of this object will be
+      fired when an update takes place.
+    end
+    Kernel_objDaemonsActive(self)
+  end
+  
+context Object
+  @Operation daemonNamed(name)
+    @Find(daemon,self.daemons())
+      when daemon.name().toString() = name.toString()
+    end
+  end
+
+context Object
+  @Operation daemonWithId(id)
+    @Find(daemon,self.daemons())
+      when daemon.matchesId(id)
+    end
+  end
+
+context Object
+  @Operation daemonWithIdAndTarget(id,target)
+    @Find(daemon,self.daemons())
+      when daemon.matchesId(id) and daemon.matchesTarget(self,target)
+    end
+  end
+
+context Object
+  @Operation destroyDaemon(d:Daemon)
+    self.removeDaemon(d);
+    Daemon::removeFromDaemonTable(d)
+  end
+
+context Object
+  @Operation fire(slot,newValue,oldValue):Element
+  
+    @Doc
+      When the slot of an object is updated, its daemons are fired by calling
+      this operation. The operation is supplied with 3 arguments: the name of
+      the slot that was changed (a symbol), the new value of the slot and the
+      old value of the slot.
+    end
+     
+    let daemons = Kernel_daemons(self)
+    in 
+      @While daemons <> Seq{} do
+        daemons->at(0).invoke(self,Seq{slot,newValue,oldValue});
+        daemons := daemons->tail
+      end
+    end;
+    self
+  end
+  
+context Object
+  @Operation hasDaemonNamed(name)
+    @Find(daemon,self.daemons())
+    when daemon.name().toString() = name.toString()
+    do true else false
+    end    
+  end
+
+context Object
+  @Operation hasDaemonWithId(id)
+    @Find(daemon,self.daemons())
+    when daemon.matchesId(id)
+    do true else false
+    end
+  end
+  
+context Object
+  @Operation hasDaemonWithIdAndTarget(id,target)
+    @Find(daemon,self.daemons())
+    when daemon.matchesId(id) and daemon.matchesTarget(self,target)
+    do
+      true
+    else
+      false
+    end
+  end
+
+context Object
+  @Operation hasDaemonWithTarget(target)
+    @Find(daemon,self.daemons())
+    when daemon.matchesTarget(self,target)
+    do true else false
+    end
+  end
+
+context Object
+  @Operation getStructuralFeatureNames():Set(String)
+    @Doc 
+      Returns the slot names of the object.
+    end
+    Kernel_slotNames(self)
+  end
+
+context Object
+  // Enquire whether an object has a slot using 'hasStructuralFeature'.
+  @Operation hasStructuralFeature(name:String):Boolean
+    self.getStructuralFeatureNames()->includes(name)
+  end
+  
+context Object
+  // Slot values of objects can be retrieved by name.
+  @Operation get(name:String):Element
+    @Doc
+      Returns the value of the named slot of the receiver.
+      The name may be a string or a symbol. An exception is
+      raised if the receiver has no slot with the given name.
+    end
+    if self.of().of() = XCore::Class
+    then 
+      if self.hasSlot(name)
+      then Kernel_getSlotValue(self,name)
+      else self.slotMissing(name)
+      end
+    else self.of().getInstanceSlot(self,name)
+    end
+  end
+  
+context Object
+  @Operation getProperty(name)
+    if self.hasSlot("Object***Properties")
+    then
+      let properties = self.get("Object***Properties")
+      in
+        @Find(property,properties)
+        when property.head() = name
+        do property.at(1)
+        else null 
+        end
+      end
+    else 
+      null 
+    end
+  end
+  
+context Object
+  @Operation hasProperty(name)
+    self.getProperty(name) <> null
+  end  
+  
+context Object 
+  @Operation hasSlot(name):Boolean
+    @Doc
+      Returns true when the receiver has a slot with the given
+      name. The name may be a string or a symbol.
+    end
+    if self.of().of() = XCore::Class
+    then 
+      if name.isKindOf(Symbol)
+      then Kernel_hasSlot(self,name)
+      elseif name.isKindOf(String)
+      then Kernel_hasSlot(self,Symbol(name))
+      else false
+      end
+    else self.of().hasInstanceSlot(self,name)
+    end
+  end
+  
+context Object
+  @Operation hotLoad():Boolean
+    @Doc
+      Hot loading objects run the hotLoad operation when loaded by 
+      the loader. the default is false for this property.
+    end
+    Kernel_objHotLoad(self)
+  end
+  
+context Object
+  @Operation hotLoaded():Object
+    @Doc
+      This operation is run when the value loader loads an object 
+      that is tagged as being hot loading. By default this operation 
+      does nothing. Specialize this in sub-classes to perform
+      actions when an object is loaded.
+    end 
+    self
+  end
+
+context Object
+
+  @Operation init(args):Element
+  
+    @Doc
+      When an object is initialised, by default we look for a constructor
+      that has the same arity as the supplied arguments. If we find one
+      then it is invoked. Note that we always invoke the 'init/0' operation
+      after slot initialisation.
+    end
+     
+    let constructors = self.of().allConstructors()->select(c | c.names->size = args->size)
+    in if constructors->isEmpty
+       then self
+       else constructors->head.invoke(self,args)
+       end;
+       
+       // We might be able to perform instantiation via the VM
+       // in future, calling VMNew will either set the NotVMNew
+       // property or will cache the constructor signatures in the
+       // VM...
+       
+       if not Kernel_objIsNotVMNew(self.of()) then self.of().VMNew() end;
+       self.init()
+    end
+  end
+  
+context Object 
+  @Operation initSlots()
+    @Doc
+      Attributes have a slot 'init' that contains an operation or null.
+      If the value is an operation then invoking the operation with an
+      object as the target will return an initial value for that slot
+      of the object.
+    end
+    @For a in self.of().allAttributes() do
+      if a.init <> null
+      then self.set(a.name,a.init.invoke(self,Seq{}))
+      end
+    end;
+    self
+  end
+  
+context Object
+  @Operation machineInit(args)
+    @Doc
+      Called when the machine has detected initialization values defined
+      for one or more attributes. The machine relies on this operation to
+      perform the slot initialization and then call the init/1 operation.
+    end
+    self.initSlots();
+    self.init(args)
+  end
+
+context Object
+  @Operation removeDaemon(d,target)
+  
+    @Doc 
+      Removes the supplied daemon. 
+    end
+    
+    if d.isReallyKindOf(Daemon)
+    then
+      if d.isMultiDaemon()
+      then
+        d.removeMultiTarget(self,target)
+      else
+        self.setDaemons(self.daemons()->excluding(d))
+      end
+    end
+  end
+  
+context Object
+  @Operation removeDaemonNamed(name)
+    if self.hasDaemonNamed(name)
+    then self.removeDaemon(self.daemonNamed(name))
+    else self
+    end
+  end
+
+context Object
+  @Operation removeDaemonsWithId(id,destroy)
+    @For daemon in self.allDaemonsWithId(id) do
+      if destroy andthen not daemon.isMultiDaemon()
+      then self.destroyDaemon(daemon)
+      else self.removeDaemon(daemon)
+      end
+    end
+  end
+
+context Object
+  @Operation removeDaemonsWithTarget(target,destroy)
+    @For daemon in self.allDaemonsWithTarget(target) do
+      if destroy andthen not daemon.isMultiDaemon()
+      then self.destroyDaemon(daemon)
+      else self.removeDaemon(daemon,target)
+      end
+    end
+  end
+  
+context Object
+  // Remove slots to an object using 'removeStructuralFeature'.
+  @Operation removeStructuralFeature(name:String):Object
+    Kernel_removeAtt(self,name);
+    self
+  end
+  
+context Object
+  @Operation renameSlot(oldName:String,newName:String)
+    let 
+      type = self.of().getAttribute(newName);
+      value = self.get(oldName)
+    in
+      self.removeStructuralFeature(oldName);
+      self.addStructuralFeature(newName,type);
+      self.set(newName,value);
+      @For daemon in self.daemons()
+      do
+        if not daemon.type = Daemon::ANY and
+          daemon.slot = oldName
+        then
+          daemon.slot := newName
+        end
+      end
+    end
+  end
+
+context Object
+  // Slot values of objects can be set.
+  @Operation set(name:String,value:Element):Element
+    @Doc
+      Sets the named slot to the supplied value in the receiver.
+      Raises an exception if the receiver has no slot with the
+      supplied name. The name may be a symbol or a string.
+    end
+    if self.of().of() = XCore::Class
+    then Kernel_setSlotValue(self,name,value)
+    else self.of().setInstanceSlot(self,name,value)
+    end;
+    self
+  end
+  
+context Object
+  // Set the current list of daemons.
+  @Operation setDaemons(daemons)
+    Kernel_setDaemons(self,daemons)
+  end
+  
+context Object
+  @Operation setDaemonsActive(active:Boolean):Object
+    @Doc
+      Sets whether or not the daemons of this receiver will be
+      fired when an update takesplace.
+    end
+    Kernel_objSetDaemonsActive(self,active)
+  end
+  
+context Object
+  @Operation setHotLoad(hotLoad:Boolean):Object
+    @Doc
+      Sets the hot load status of the receiver.
+    end
+    Kernel_objSetHotLoad(self,hotLoad)
+  end
+  
+context Object
+  @Operation setProperty(name,value)
+    let slot = "Object***Properties"
+    in
+      if not self.hasSlot(slot)
+      then
+        Kernel_addAtt(self,slot,Seq{})
+      end;
+      let
+        property = Seq{name,value}; 
+        properties = self.get(slot)
+      in
+        self.set(slot,properties->including(property))
+      end
+    end
+  end  
+  
+context Object
+  @Operation slotMissing(slot:Symbol)
+    @Doc
+      Called when an we request the slot of an object and the
+      slot does not exist.
+    end
+    throw Exceptions::NoSlot(self,slot)
+  end
+  
+context Object
+  @Operation slotMissing(slot:Symbol,value:Element)
+    @Doc
+      Called when an we update the slot of an object and the
+      slot does not exist.
+    end
+    throw Exceptions::NoSlot(self,slot)
+  end
+  

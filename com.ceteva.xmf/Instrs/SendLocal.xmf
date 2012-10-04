@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class SendLocal extends Instr
+ 
+    @Doc
+      This machine instruction sen-ds a message to a local target. The message
+      has a name and some arguments. The target is a local in the stack frame
+      at a known offset. The instruction word contains the arity and the
+      offset of the message in the current constants array. The message
+      name must be a symbol. The instruction is performed after a new stack
+      frame has been opened and the arguments and target have been pushed. 
+      The instruction then enters the stack frame after finding the operation
+      appropriate to the target. If no operation is defined then an error is
+      signaled.
+    end
+ 
+    @Attribute arity         : Integer end
+    @Attribute message       : Symbol end
+    @Attribute localName     : String end
+    @Attribute local         : Integer end
+    @Attribute messageOffset : Integer end
+    
+    @Constructor(localName,local,message,arity) end
+    
+    @Operation toString():String
+      "<SendLocal " + localName + " " + arity + "," + message.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.messageOffset := codeBox.constOffset(message);
+      if messageOffset < 256 and local < 256
+      then
+        // The operands will fit into a machine word...
+        codeBox.addInstr(self)
+      else 
+        // Cannot fit into a machine word ...
+        LocalRef(localName,local).assemble(codeBox);
+        Send(message,arity).assemble(codeBox)
+      end
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(arity,messageOffset,local)
+    end
+    
+  end
+  

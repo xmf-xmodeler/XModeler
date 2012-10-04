@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SetEdge extends SlotEdge
+  end

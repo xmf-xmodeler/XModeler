@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class StrExp extends OCL::OCL
+  
+    @Attribute value : String end
+    
+    @Constructor(value) ! end
+ 
+    @Operation pprint(out,indent)
+      format(out,"\"~S\"",Seq{value})
+    end
+    
+  end

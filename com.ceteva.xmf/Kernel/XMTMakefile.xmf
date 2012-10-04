@@ -1,0 +1,33 @@
+// This file makes the kernel. The current directory
+// is assumed to be the bin directory of XMT.
+
+Compiler::compileFile("../../XMF/Kernel/Kernel",true,false);
+Compiler::compileFile("../../XMF/Kernel/Attribute",true,true);
+Compiler::compileFile("../../XMF/Kernel/Bind",true,true);
+Compiler::compileFile("../../XMF/Kernel/Boolean",true,true);
+Compiler::compileFile("../../XMF/Kernel/Boot",true,true);
+Compiler::compileFile("../../XMF/Kernel/Class",true,true);
+Compiler::compileFile("../../XMF/Kernel/Classifier",true,false);
+Compiler::compileFile("../../XMF/Kernel/Container",true,true);
+Compiler::compileFile("../../XMF/Kernel/Doc",true,false);
+Compiler::compileFile("../../XMF/Kernel/Element",true,true);
+Compiler::compileFile("../../XMF/Kernel/Enum",true,true);
+Compiler::compileFile("../../XMF/Kernel/EnumChoice",true,true);
+Compiler::compileFile("../../XMF/Kernel/Exception",true,true);
+Compiler::compileFile("../../XMF/Kernel/InitialisedAttribute",true,true);
+Compiler::compileFile("../../XMF/Kernel/Integer",true,true);
+Compiler::compileFile("../../XMF/Kernel/NamedElement",true,true);
+Compiler::compileFile("../../XMF/Kernel/NameSpace",true,true);
+Compiler::compileFile("../../XMF/Kernel/Null",true,true);
+Compiler::compileFile("../../XMF/Kernel/Object",true,true);
+Compiler::compileFile("../../XMF/Kernel/Operation",true,true);
+Compiler::compileFile("../../XMF/Kernel/Package",true,true);
+Compiler::compileFile("../../XMF/Kernel/Parameter",true,true);
+Compiler::compileFile("../../XMF/Kernel/Performable",true,true);
+Compiler::compileFile("../../XMF/Kernel/Set",true,true);
+Compiler::compileFile("../../XMF/Kernel/Seq",true,true);
+Compiler::compileFile("../../XMF/Kernel/SeqOfElement",true,false);
+Compiler::compileFile("../../XMF/Kernel/SetOfElement",true,true);
+Compiler::compileFile("../../XMF/Kernel/String",true,true);
+Compiler::compileFile("../../XMF/Kernel/Symbol",true,true);
+Compiler::compileFile("../../XMF/Kernel/Table",true,true);

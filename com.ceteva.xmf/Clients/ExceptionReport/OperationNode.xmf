@@ -1,0 +1,86 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import Forms;
+import Menus;
+import Exceptions;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class OperationNode extends TreeNode
+  
+    @Attribute operation : Operation end
+    
+    @Constructor(operation)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      null
+    end
+    
+    @Operation doubleSelected()
+      
+      // The resource name may be relative to xmf.homeDir() or may be absolute.
+     
+      let resourceName = operation.codeBox.resourceName()
+      in 
+        if resourceName <> "" and resourceName <> null
+        then
+          let 
+            path1 = resourceName;
+            path2 = xmf.homeDir() + "/" + resourceName;
+            lineNumber = self.owner.frame.line
+          in 
+            if path1.fileExists()
+            then 
+              self.editText(path1,lineNumber)
+            elseif path2.fileExists()
+            then 
+              self.editText(path2,lineNumber)
+            else 
+              xmf.errorMessage("Cannot find " + resourceName + " in xmf.home() or as absolute path.")
+            end
+          end
+        end
+      end
+    end 
+    
+    @Operation editOperation()
+      self.operation.edit()
+    end
+    
+    @Operation setReportText()
+      self.text := 
+        operation.path() + "(" + 
+          @For arg,type in operation.paramNames(),operation.paramTypes() produce 
+            arg + ":" + type.name().toString() 
+          end->separateWith(",") + ")"
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Operation.gif"
+    end
+    
+    @Operation editText(file,line)
+      let 
+        file = file.toFilePath() then
+        editor = xmf.fileEditorManager().edit(file,true)
+      in
+        editor.showLine(line);
+        editor.addLineHighlight(line)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        node.pprint(out,indent+2)
+      end
+    end
+
+  end

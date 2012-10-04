@@ -1,0 +1,19 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+
+context Constructor
+
+  @Grammar extends O
+    
+      AttNames ::= name = Name names = (',' Name)* { Seq{name | names} } | { Seq{} }.
+    
+      Constructor ::= '(' names = AttNames ')' toString = ToString body = Exp* 'end' { Constructor(names,toString).add(body) }.
+      
+      ToString ::= '!' { true } | { false }.
+      
+    end
+    
+      

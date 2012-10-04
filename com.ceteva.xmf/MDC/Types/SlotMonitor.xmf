@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! Types
+
+  @Class SlotMonitor
+  
+    @Attribute class   : Class     (?,!) end
+    @Attribute handler : Operation (?,!) end
+    
+    @Constructor(class,handler) end
+    
+    @Operation fire(tool,value,slot,new,old)
+      handler(tool,value,slot,new,old)
+    end
+    
+  end

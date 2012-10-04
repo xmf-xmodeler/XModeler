@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Layout;
+
+context StandardLayoutManager
+
+  @Operation remainingHeight(container,display):Integer
+  
+    // Returns the remaining layout height after the display element
+    // in the contents of the container.
+    
+    let contents = container.contents()
+    in @While not contents->isEmpty andthen contents->head <> display do
+         contents := contents->tail
+       end; 
+       if contents->isEmpty 
+       then 0
+       else contents->tail->iterate(d h = 0 | h + d.layoutHeight())
+       end
+    end
+  end
+
+context StandardLayoutManager
+
+  @Operation verticalLayout(type,container,width,height)
+    
+      // Layout elements in object from top to bottom. The layout annotations
+      // on the attributes are used to control how each of the elements is
+      // placed and sized within the container.
+      
+      // NB a partial solution to the problem of non-abutting boxes is to adjust
+      // the y-position when a box needs abutting at the top. This is OK
+      // except that the container height has not had the same adjustment 
+      // and therefore will be slightly too big. Also have only implemented 
+      // this for ALIGN...
+      
+      let padding = 0;
+          y = 0
+      in @For value in container.contents() do
+           @Case value.type().layout() of
+             "ALIGN" do
+               let height = ((height - y) - self.remainingHeight(container,value)).min(value.maxLayoutHeight());
+                   padTop = value.padTop();
+                   topAbutt =  if value.needsTopAbutt() and y > 0 then 1 else 0 end
+               in value.type().layout(value,value.padLeft(),y + padTop - topAbutt,width - value.padWidth(),height - value.padHeight());
+                  y := y + height - topAbutt
+               end
+             end
+             "CENTRE" do
+               let maxWidth = value.layoutWidth() then
+                   x = if width > maxWidth then (width - maxWidth).div(2) else 0 end;
+                   height = ((height - y) - self.remainingHeight(container,value)).min(value.maxLayoutHeight())
+               in value.type().layout(value,x + value.padLeft(),y + value.padTop(),maxWidth - value.padWidth(),height - value.padHeight());
+                  y := y + height - if value.needsBaseAbutt() then 1 else 0 end
+               end
+             end
+             "LEFT" do
+               let height = value.layoutHeight() + padding;
+                   maxWidth = value.layoutWidth() 
+               in value.type().layout(value,value.padLeft(),y + value.padTop(),maxWidth - value.padWidth(),height - value.padHeight());
+                  y := y + height - if value.needsBaseAbutt() then 1 else 0 end
+               end
+             end
+             "RIGHT" do
+               let height = value.layoutHeight() + padding;
+                   maxWidth = value.layoutWidth() then
+                   x = if width > maxWidth then width - maxWidth else maxWidth - width end
+               in value.type().layout(value,x - value.padRight(),y + value.padTop(),maxWidth - value.padWidth(),height - value.padHeight());
+                  y := y + height - if value.needsBaseAbutt() then 1 else 0 end
+               end
+             end
+           end
+         end
+       end
+     end

@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TextForm extends Form
+  
+    @Attribute label : String end
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    
+    @Constructor(label,x,y)
+      let label = Label("LABEL",label,"","",x,y,1000,20);
+          textBox = TextBox("TEXT_VALUE","TEXT_FIELD",false,"",false,"UNDEFINED",x,y+50,200,20);
+          button = Button("TEXT_DONE","DONE","bigiconb.bmp","MIDDLE_LEFT",true,true,x,y+150,150,100)
+      in self.id := "GetText";
+         self.name := "Get Text";
+         self.labels := Seq{label};
+         self.textBoxes := Seq{textBox};
+         self.buttons := Seq{button}
+      end
+    end
+    
+  end       

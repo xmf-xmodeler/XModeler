@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import FormEvents;
+
+context FormEvents
+
+  @Class NodeSelected extends Change
+  
+    @Operation raisedName():String
+      path->separateWith("_") + "_Selection_Changed"
+    end
+    
+  end

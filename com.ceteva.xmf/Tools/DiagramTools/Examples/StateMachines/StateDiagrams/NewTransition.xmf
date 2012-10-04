@@ -1,0 +1,19 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler New_Transition()
+    let target = find(event.target());
+        source = find(event.source());
+        guard = XOCL::Exp([| true |],Seq{},@Operation() true end);
+        action = XOCL::Exp([| null |],Seq{},@Operation() null end) then
+        transition = Transition("",Seq{},source.name(),target.name(),guard,action)
+    in event.tool().element().add(transition);
+       register(event.edge(),transition);
+       register(event.edge().ref("name"),transition);
+       register(event.edge().ref("guard"),transition);
+       register(event.edge().ref("action"),transition)
+    end
+  end
+  

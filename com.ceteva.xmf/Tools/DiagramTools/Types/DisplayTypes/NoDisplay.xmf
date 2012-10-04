@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Types;
+import DisplayTypes;
+
+context DisplayTypes
+
+  @Class NoDisplay extends DisplayType
+   
+    @Doc
+      The default display type that represents nothing.
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      null
+    end
+    
+  end

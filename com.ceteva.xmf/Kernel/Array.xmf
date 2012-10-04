@@ -1,0 +1,126 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class Array extends Class
+  
+    @Attribute elementType : Classifier end
+    
+    @Constructor(elementType) 
+      self.name := "Array(" + elementType.name + ")"
+    end
+    
+    @Operation defaultParents()
+      Set{BasicArray}
+    end
+    
+    @Operation toString()
+      name
+    end
+    
+  end
+  
+context XCore
+
+  @Class BasicArray
+  
+    @Attribute storage : Element end
+    @Attribute size : Integer end
+    
+    @Operation addDaemon(daemon:Operation)
+      self.setDaemons(self.daemons() + Seq{daemon})
+    end
+
+    @Operation elementType():Classifier
+      self.of().elementType
+    end
+    
+    @Operation daemons():Seq(Operation)
+      Kernel_arrayDaemons(storage)
+    end
+    
+    @Operation daemonsActive():Boolean
+      Kernel_arrayDaemonsActive(storage)
+    end
+    
+    @Operation daemonNamed(name)
+      @Find(daemon,self.daemons())
+        when daemon.name().toString() = name.toString()
+      end
+    end
+
+    @Operation destroyDaemon(d:Daemon)
+      self.removeDaemon(d);
+      Daemon::removeFromDaemonTable(d)
+    end
+
+    @Operation fire(index,newValue,oldValue)
+     @For daemon in self.daemons() do
+       daemon.invoke(self,Seq{index,newValue,oldValue})
+      end
+    end
+    
+    @Operation hasDaemonNamed(name)
+      self.daemons()->exists(daemon | daemon.name().toString() = name.toString())
+    end
+    
+    @Operation init(args)
+      super(args);
+      let size = args->at(0) then
+          storage = Kernel_mkArray(size)
+      in self.size := size;
+         self.storage := storage;
+         self
+      end
+    end
+    
+    @Operation inRange(index:Integer):Boolean
+      index >= 0 and index < size
+    end
+    
+    @Operation rangeError(index:Integer)
+      self.error("Array ref index " + index + " not in [0 " + (size - 1) + "]")
+    end
+    
+    @Operation ref(index:Integer)
+      if self.inRange(index)
+      then Kernel_arrayRef(storage,index)
+      else self.rangeError(index)
+      end
+    end
+    
+    @Operation removeDaemon(d,target)
+      self.setDaemons(self.daemons()->excluding(d))
+    end
+  
+   @Operation removeDaemonNamed(name)
+     if self.hasDaemonNamed(name)
+     then self.removeDaemon(self.daemonNamed(name))
+     else self
+     end
+   end
+    
+    @Operation put(index:Integer,value:Element)
+      if value.isKindOf(self.elementType())
+      then 
+        if self.inRange(index)
+        then Kernel_arraySet(storage,index,value)
+        else self.rangeError(index)
+        end
+      else self.typeError(value)
+      end
+    end
+    
+    @Operation setDaemons(daemons)
+      Kernel_arraySetDaemons(storage,daemons)
+    end
+    
+    @Operation toString()
+      self.of().elementType.name + "[" + size + "]"
+    end
+    
+    @Operation typeError(value:Element)
+      self.error("Array value update " + value.toString() + " is not of type " + self.elementType())
+    end
+    
+  end 

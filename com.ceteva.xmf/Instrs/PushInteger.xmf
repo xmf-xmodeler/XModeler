@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class PushInteger extends Instr
+  
+    @Doc
+      A machine instruction that pushes an integer value onto the
+      stack. The integer is encoded in the machine word as an
+      instruction operand.
+    end
+  
+    @Attribute value : Integer end
+    
+    @Constructor(value) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      value
+    end
+    
+    @Operation toString():String
+      "<PushInteger " + value + ">"
+    end
+    
+  end
+  

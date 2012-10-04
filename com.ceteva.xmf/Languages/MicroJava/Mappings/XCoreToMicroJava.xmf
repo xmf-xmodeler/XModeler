@@ -1,0 +1,171 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+
+context Mappings
+
+  @Operation XCoretoMicroJava(element)
+  
+    // Translates XCore element to a microJava element.
+    
+    @Case element of
+    
+/*      XCore::Package[name=name,classes=C,operations=O] do 
+      
+        packageToMicroJava(name,C,O) 
+        
+      end
+*/    
+      XCore::Package[name=name,classes=CL,parents=P,operations=O,constraints=CO,attributes=A] do 
+      
+        packageToMicroJava(name,CL,P,O,CO,A) 
+        
+      end
+
+      XCore::Class[name=name,parents=P,operations=O,constraints=C,attributes=A] do 
+      
+        // Translate the class to a MicroJava class. Note that we only know how to
+        // generate code for *real* xmf constraints. Sub-classes of constraint must be
+        // treated differently - possibly by defining a new version of XCoreToMicroJava
+        // based on this definition.
+      
+        classToMicroJava(name,P,O,C->select(c | c.send("of",Seq{}) <> Associations::End),A) 
+        
+      end
+      
+      (o = XCore::Operation[ ]) do 
+      
+        [| @Java 
+             Value <o.name> <* A *> { 
+               Values locals = new Values(); 
+               { <* setLocalArgs + body *> }
+               return popStack();
+             } 
+           end 
+        |]
+        
+          where 
+          
+            setLocalArgs = o.paramNames()->collect(n | [| @Statement locals.set(<Int(o.paramNames()->indexOf(n))>,<Expressions::Var(n)>); end |]);
+          
+            A = o.paramNames()->collect(n | 
+              let type = o.paramTypes()->at(o.paramNames()->indexOf(n))
+              in Formal(typeToMicroJava(type),n)
+              end);
+            
+            body = OCLtoMicroJava(OCL::OCL.grammar.parseString(o.source(),"Exp",Seq{XOCL}).performable,o.paramNames())
+        
+      end 
+      
+      XCore::Attribute[name=name,type=type] do
+      
+        [| @Java <typeToMicroJava(type)> <name> = <typeToInitialValue(type)>; end |]
+          
+      end 
+
+    end
+    
+  end
+  
+context Mappings
+
+  @Operation typeToMicroJava(classifier)
+  
+    // Translate the supplied classifier to a MicroJava type name.
+     
+    @Case classifier of
+      [ XCore::Boolean ] do NamedType(Seq{"Bool"}) end 
+      [ XCore::Integer ] do NamedType(Seq{"Int"}) end
+      [ XCore::String ]  do NamedType(Seq{"Str"}) end
+      [ XCore::Null ]    do NamedType(Seq{"Null"}) end
+      [ XCore::Element ] do NamedType(Seq{"Value"}) end
+      [ XCore::Object ]  do NamedType(Seq{"Value"}) end
+      Seq[ ]            do NamedType(Seq{"Values"}) end
+      Set[ ]            do NamedType(Seq{"Values"}) end
+      else                 NamedType(Seq{classifier.name.toString()})
+      
+    end
+    
+  end
+  
+context Mappings
+
+  @Operation typeToInitialValue(classifier)
+  
+    // Translate the supplied classifier to a MicroJava type name.
+    
+    @Case classifier of
+      [ XCore::Boolean ] do [| @JExp new Bool(true) end |] end 
+      [ XCore::Integer ] do [| @JExp new Int(0) end |] end
+      [ XCore::String ]  do [| @JExp new Str("") end |] end
+      [ XCore::Null ]    do [| @JExp new Null() end |] end
+      Seq[ ]            do [| @JExp new Values() end |] end
+      Set[ ]            do [| @JExp new Values() end |] end
+      else                 [| @JExp null end |]
+    end
+    
+  end
+  
+context XCore::Package
+
+  @Operation toJava()
+    XCoretoMicroJava(self)
+  end
+  
+context XCore::Package
+
+  @Operation toJavaSource()
+    XCoretoMicroJava(self).pprint()
+  end
+  
+context XCore::Package
+  @Operation exportJavaSource()
+    self.exportJavaSource(xmf.selectDirectory(xmf.homeDir()))
+  end
+  
+context XCore::Package
+  @Operation exportJavaSource(dir:String)
+    let java = self.toJava()
+    in if dir.fileExists() and dir <> ""
+       then 
+         java.export(dir);
+         xmf.message("Package " + self.name.toString() + " exported to " + dir)
+       end;
+       java.pprint()
+    end
+  end
+  
+context Mappings
+
+  @Map TranslateAttribute(XCore::Attribute) -> Structure::Field
+  
+    @Clause MapAttribute
+    
+      a do XCoretoMicroJava(a)
+          
+    end 
+    
+  end
+  
+context Mappings
+
+  @Map TranslateOperation(XCore::Operation) -> Structure::Method
+  
+    @Clause MapOperation
+    
+      o do XCoretoMicroJava(o)
+          
+    end 
+    
+  end
+    
+    

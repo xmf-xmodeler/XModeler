@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import P; 
+
+context Root
+  @Package Q
+    @Operation test()
+      C()
+    end
+  end
+  
+print("After importing a namespace, all the names defined in the namespace");
+print("are available within the file (except after @). You should see.");
+print("an instance of the class C displayed.");
+print("Class C available here = " + Kernel_hasVar("C"));
+print(Root::Q::test().toString()); 

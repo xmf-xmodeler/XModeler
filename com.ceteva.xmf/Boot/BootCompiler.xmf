@@ -1,0 +1,14 @@
+try 
+  let fileName = saveMachineState("Images/compiler.img")
+  in if fileName = true
+     then "Compiler Build Completed."
+     else   
+       if not fileName->exists(pair | pair->head = "filename")
+       then TopLevel::Loop(stdin,stdout).loop()
+       else Compiler::compileFile(fileName->select(pair | pair->head = "filename")->head->tail,true,true)
+       end
+     end
+  end
+catch(exception)
+  exception.message
+end; 

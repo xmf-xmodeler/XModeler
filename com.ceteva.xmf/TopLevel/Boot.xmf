@@ -1,0 +1,11 @@
+
+
+
+
+"TopLevel/TopLevel.o".loadBin(true);
+"TopLevel/Command.o".loadBin(true);
+"TopLevel/Loop.o".loadBin(true);
+
+// Provide the following command to exit the system:
+
+Root::exit := @Operation() Kernel_exit() end;

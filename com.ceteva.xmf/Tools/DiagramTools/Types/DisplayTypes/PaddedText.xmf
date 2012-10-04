@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import DisplayType;
+import Text;
+
+context DisplayTypes
+
+  @Class PaddedText extends Text
+  
+    @Grammar extends Text.grammar
+    
+      PaddedText ::= text = Text {
+        [| let text = <text>
+           in text.setPadLeft(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              text.setPadRight(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              text.setPadTop(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              text.setPadBottom(<OCL::IntExp(displayAttributes.lookup("pad",0))>);
+              text
+           end
+        |]
+      }.
+      
+    end
+    
+  end

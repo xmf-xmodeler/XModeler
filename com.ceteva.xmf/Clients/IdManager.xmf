@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+context Clients
+
+  @Class IdManager
+  
+    @Attribute idCounter : Integer end
+    @Attribute idTable : Table end
+    @Attribute debug : Boolean = false end
+    
+    @Constructor()
+      self.idTable := Table(10)
+    end
+    
+    @Operation allocateId(element:ClientElement)
+     let id = self.newId()
+      in if element <> null
+      	 then
+           idTable.put(id,element);
+           element.setId(id)
+         end;
+         //self.debug("+ " + id + " : " + element.toString());
+         id
+      end
+    end
+    
+    @Operation debug(text:String)
+      if debug
+      then
+        text.println()
+      end
+    end
+    
+    @Operation find(id)
+      if self.hasId(id)
+      then idTable.get(id)
+      else self.error("Cannot find element with id " + id.toString())
+      end
+    end
+    
+    @Operation hasId(id)
+      idTable.hasKey(id)
+    end
+    
+    @Operation newId() 
+      self.idCounter := idCounter + 1;
+      //"id" + idCounter.toString()
+      Kernel_valueToString(idCounter)
+    end
+
+    @Operation reallocateId(element:ClientElement,id)
+      if idTable.hasKey(id)
+      then
+        idTable.remove(id)
+      end;
+      //self.debug("* reallocate " + id + " : " + element.toString());
+      idTable.put(id,element);
+      element.setId(id);
+      id
+    end
+    
+    @Operation remove(element:ClientElement)
+      let id = element.id()
+      in
+        if idTable.hasKey(id) andthen idTable.get(id) = element
+        then
+          //self.debug("- " + id + " : " + element.toString());
+          idTable.remove(element.id())
+        end;
+        id
+      end
+    end
+
+  end

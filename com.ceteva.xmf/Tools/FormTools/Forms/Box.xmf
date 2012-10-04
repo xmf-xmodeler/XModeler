@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class Box extends FormContainer, Clients::Forms::FormElement
+  
+    @Attribute contents : Seq(FormElement) (+,-,?) end
+    
+    @Operation add(element)
+      element.setOwner(self);
+      self.addToContents(element)
+    end
+    
+    @Operation delete()
+      self.owner.removeElement(self);
+      @For element in contents do
+        element.delete()
+      end;
+      self.owner := null
+    end
+    
+    @Operation id()
+      owner.id()
+    end
+    
+    @Operation move(x,y)
+      null
+    end
+    
+    @Operation new(parent)
+      @For element in contents do
+        element.new(self)
+      end
+    end
+    
+    @Operation removeElement(element)
+      self.deleteFromContents(element)
+    end
+    
+    @Operation setSize(width,height)
+      null
+    end
+  
+  end

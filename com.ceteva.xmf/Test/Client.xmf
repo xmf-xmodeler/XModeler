@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Comms;
+
+let server = Server()
+in server.listen(999);
+   let input = server.input;
+       output = server.output
+   in @Fork
+         @While true do
+           let line = Seq{}
+           in  @While not input.eof() do
+                 line := line + Seq{input.read()}
+               end;
+               if not line->isEmpty then line->asString.println() end
+           end;
+           self.yield()
+         end
+      end;
+      @While true do
+        self.yield()
+      end
+   end
+end;
+           
+             
+   

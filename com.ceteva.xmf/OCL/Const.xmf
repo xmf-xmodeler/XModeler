@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Const extends OCL::OCL
+  
+    @Attribute value : Element end
+    
+    @Constructor(value) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

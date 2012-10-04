@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+import Env;
+
+context OCL
+
+  @Class Constp extends Pattern
+  
+    @Doc
+      A constant pattern is either an integer, a string a boolean or an empty collection.
+      Constructor: Constp(const)
+        The expression defines the constant.
+    end
+    
+     @Attribute const : Performable end
+     
+     @Constructor(const) ! end
+     
+     @Operation bind(value:Element,target:Element,env:Env,imports:Seq(NameSpace)):Env
+       if const.eval(target,env,imports) = value
+       then NullEnv()
+       else throw PatternFailed(self,value)
+       end
+     end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{const.lift()})
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       [| if <value> = <const> then <success> else <fail> end |]
+     end
+     
+     @Operation needsBacktrack():Boolean
+       false
+     end
+     
+     @Operation pprint(out)
+       format(out,"[ ");
+       const.pprint(out,0);
+       format(out," ]")
+     end
+     
+   end

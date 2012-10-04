@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class EdgeType extends Tools::DiagramTools::Types::EdgeType,EventHandler
+    
+  end

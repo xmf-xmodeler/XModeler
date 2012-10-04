@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+context Root
+
+@Package Java
+  @Doc  
+    A simple model of Java.
+  end
+
+  @Class JProgram
+    @Attribute classes : Set(JClass) end
+  end
+  
+  @Class JClass
+    @Attribute name : String end
+    @Attribute features : Set(Feature) end
+  end
+  
+  @Class Feature isabstract
+  end
+end

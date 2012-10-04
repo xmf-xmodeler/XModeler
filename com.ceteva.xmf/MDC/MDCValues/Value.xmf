@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import MDC;
+import Values;
+import Displays;
+
+context ! Values
+
+  // Class deployed by Tony Clark on Wed Dec 21 09:34:22 GMT 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Value 
+
+    @Attribute element : Element (?,!) end
+    @Attribute type : Element (?,!) end
+    @Attribute display : Root::Tools::DiagramTools::Diagrams::Display (?,!) end
+
+    @Constructor(type,element,display) ! end
+    
+    @AbstractOp applyTheme(tool,theme,adding) end
+    
+    @AbstractOp displayRemoved(tool,display) end
+    
+    @AbstractOp allValues():Seq(Value) end
+    
+    @Operation findDisplayValue(display)
+      if display.type().isKindOf(NestedNodeType)
+      then self.findDisplayValue(display.displays->head)
+      elseif display = self.display
+      then self
+      else null
+      end
+    end
+    
+    @Operation findElementValue(element)
+      if element = self.element
+      then self
+      else null
+      end
+    end
+    
+    @AbstractOp findRootValue(object) end
+    
+    @AbstractOp modifyDisplay(tool,new,old) end
+    
+    @AbstractOp newNode(tool,node) end
+    
+    @AbstractOp nodeRemoved(tool,node) end
+    
+    @AbstractOp pprint(out,indent) end
+
+  end

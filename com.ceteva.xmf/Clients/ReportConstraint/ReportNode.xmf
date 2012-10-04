@@ -1,0 +1,104 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import ReportConstraint;
+
+context ReportConstraint
+
+  @Class ReportNode extends TreeNode
+  
+    @Attribute report : ConstraintReport end
+    
+    @Constructor(report)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false;
+      self.setMenuKey(Set{report.of(),self.of()})
+    end
+  
+    @Operation addContents()
+      @For report in report.children() do
+        self.addItem(ReportNode(report))
+      end
+    end
+    
+    @Operation doubleSelected()
+      report.doubleClick()
+    end 
+    
+    @Operation setReportText()
+      if report.constraint() <> null 
+      then
+        let
+          satisfied = report.satisfied();
+          candidate = report.candidate().toString();
+          constraint = report.constraint().name.toString();
+          reason = report.reason()
+        in
+          if reason <> ""
+          then reason := " : " + reason
+          end;
+          if satisfied
+          then
+            self.text := candidate + " satisfies " + constraint + reason
+          else
+            self.text := candidate + " fails " + constraint + reason
+          end
+        end
+      else
+        self.text := report.candidate().toString()
+	  end
+    end
+    
+    @Operation setReportIcon()
+      if report.satisfied()
+      then self.icon := "Classify/okay.gif"
+      else self.icon := "Classify/error.gif"
+      end
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Export As HTML",target,Seq{},ReportNode::exportHTML));
+        globalMenu.add(MenuAction("View As HTML",target,Seq{},ReportNode::liveDoc));
+        globalMenu.add(MenuAction("View Constraint",target,Seq{},ReportNode::viewConstraint));
+        globalMenu.add(MenuAction("Edit Object",target,Seq{},ReportNode::editCandidate));
+        globalMenu
+      end
+    end
+
+    @Operation exportHTML()
+      let file = xmf.saveFile(xmf.docDir(),"*.html")
+      in if file <> ""
+         then 
+           report.writeHTML(file);
+           xmf.message("HTML exported.")
+         end
+      end
+    end
+
+    @Operation liveDoc()
+      let textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient) 
+      in if textEditorClient <> null
+         then
+           let viewer = Clients::LiveDocViewer::Viewer(report) 
+           in 
+             textEditorClient.newBrowser(viewer)
+           end
+         end
+      end
+    end
+
+    @Operation viewConstraint()
+      report.constraint.edit()
+    end
+
+    @Operation editCandidate()
+      report.candidate.edit()
+    end
+
+  end

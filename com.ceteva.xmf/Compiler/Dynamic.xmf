@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Compiler;
+
+  context Compiler
+  
+    @Class Dynamic extends Var
+    
+      // A dynamic variable is global to the current scope. Variables whose binding occurrence
+      // cannot be statically determined are assumed to be dynamic.
+      
+      @Operation ref()
+        Seq{Instrs::Dynamic(Symbol(name))}
+      end
+      
+    end

@@ -1,0 +1,6 @@
+import OCL;
+
+context TailUpdate
+  @Operation eval(element,env,imports)
+    seq.eval(element,env,imports)->tail := value.eval(element,env,imports)
+  end

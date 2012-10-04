@@ -1,0 +1,34 @@
+// This file loads all the test files. A test file should minimally:
+//   (1) Define some tests
+//   (2) Print out a description of the test.
+//   (3) Perform the test.
+//   (4) Check the test succeeded and print diagnostics.
+
+
+("Test/At.o").loadBin(true);
+("Test/Bind.o").loadBin(true);
+("Test/CollectionTests.o").loadBin(true);
+("Test/Constructors.o").loadBin(true);
+("Test/Daemons.o").loadBin(true);
+("Test/DrinksMachine.o").loadBin(true);
+("Test/ElementChannel.o").loadBin(true);
+("Test/FileInputTest.o").loadBin(true);
+("Test/Format.o").loadBin(true);
+("Test/ImportTest.o").loadBin(true);
+("Test/Patterns.o").loadBin(true);
+("Test/Parser.o").loadBin(true);
+("Test/Table.o").loadBin(true);
+("Test/Grammar.o").loadBin(true);
+("Test/Tree.o").loadBin(true);
+("Test/Compiler.o").loadBin(true);
+("Test/Sync.o").loadBin(true); 
+("Test/Tokens.o").loadBin(true); 
+("Test/Lift.o").loadBin(true);
+("Test/Modifiers.o").loadBin(true);
+("Test/VarUpdate.o").loadBin(true);
+("Test/Try.o").loadBin(true);
+("Test/TypeCase.o").loadBin(true);
+("Test/XML.o").loadBin(true);
+
+format(stdout,"~%All tests completed. Please view output for details.~%");
+"TESTS DONE";

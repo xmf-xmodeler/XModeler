@@ -1,0 +1,122 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+xmf.definePreference("ExpandableProjectBrowser",false,Boolean,false);
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons";
+  project =
+    @Operation()
+      if self.loaded()
+      then "Projects/Project"
+    	else "Projects/ProjectStub"
+		end 
+    end
+in
+  registry.addContribution(id,Contribution("Projects::Project",Seq{project}));
+  registry.addContribution(id,Contribution("Projects::ProjectStub",Seq{"Projects/ProjectStub"}));
+  registry.addContribution(id,Contribution("Projects::ProjectManager",Seq{"Projects/ProjectManager"}));
+  self
+end;
+
+
+// *** NODE SORT ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution("Projects::Project",Seq{1150}));
+  registry.addContribution(id,Contribution("Projects::ProjectStub",Seq{1150}));
+  registry.addContribution(id,Contribution("Projects::ProjectManager",Seq{1100}));
+  self
+end;
+
+// *** MODEL BROWSER MAPPINGS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.mappings"
+in
+  registry.addContribution(id,Contribution(Projects::Project,Seq{
+                                           Clients::ProjectBrowser::ProjectXNode}));
+  registry.addContribution(id,Contribution(Projects::ProjectManager,Seq{
+                                           Clients::ModelBrowserXCore::ContainerXNode}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Open Project ..." on Projects::ProjectManager notUndoable
+  Projects::ProjectManager::loadFixedProject(false)
+end;
+
+@Menu "Import XMI":"UML XMI 1.1 (Rational Rose)" on Projects::ProjectManager
+  Projects::ProjectManager::importRoseXMI11
+end;
+
+@Menu "Import XMI":"UML XMI 1.2 (Poseidon 3.1)" on Projects::ProjectManager
+  Projects::ProjectManager::importXMI12
+end;
+
+@Menu "Import XMI":"EMF XMI" on Projects::ProjectManager
+  Projects::ProjectManager::importEMFXMI
+end;
+
+@Menu "New Project" on Projects::ProjectManager binds CTRL+N
+  Projects::ProjectManager::newProject
+end;
+
+@Menu "Invoke Operation ..." on Projects::ProjectManager binds CTRL+I notUndoable
+  Root::XCore::Element::invokeOp
+end;
+
+@Menu "Load" on Projects::ProjectStub binds CTRL+I
+  Projects::ProjectStub::load_check
+end;
+
+@Menu "Invoke Operation ..." on Projects::ProjectStub binds CTRL+I
+  Root::XCore::Element::invokeOp
+end;
+
+@Menu "Browse" on Projects::Project binds CTRL+B
+  Projects::Project::browse
+end;
+
+@Menu "Invoke Operation ..." on Projects::Project binds CTRL+I
+  Root::XCore::Element::invokeOp
+end;
+
+@Menu "Delete" on Projects::Project binds CTRL+D
+  Projects::Project::delete_client_redirect
+end;
+
+@Menu "Deploy ..." on Projects::Project
+  Projects::Project::deploySelf
+end;
+
+@Menu "Save ..." on Projects::Project
+  Projects::Project::save
+end;
+
+@Menu "Save As ..." on Projects::Project
+  Projects::Project::saveAs
+end;
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(Projects::ProjectManager,Seq{"Projects::ProjectManager"}));
+  registry.addContribution(id,Contribution(Projects::ProjectManagerContainer,Seq{"Projects::ProjectManagerContainer"}));
+  registry.addContribution(id,Contribution(Projects::ProjectStub,Seq{"Projects::ProjectStub"}));
+  registry.addContribution(id,Contribution(Projects::Project,Seq{"Projects::Project"}));
+  self
+end;

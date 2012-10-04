@@ -1,0 +1,66 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import XMap;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class CompiledOperationXForm extends ObjectXForm
+
+    @Operation daemons_selfNameChanged(e,slot,newName,oldName)
+      self.form.setName("Properties - " + element.labelString());
+      self.form.setTextOut("self",element);
+      self.form.setTextOut("source",element.source())
+    end
+
+    @Operation daemons_codeChanged(e,slot,newValue,oldValue)
+      slot:=slot.toString();
+      if slot="codeBox" or slot="source" then
+        self.form.setTextOut("source",element.source())
+      end
+    end
+
+    @Operation daemons_ownerOperationRemoved(elementOwner,slot,op)
+      if op = element then
+        form.closeCommand()
+      end
+    end
+
+    @Operation checkDaemons()
+      @SlotValueChanged multi once CompiledOperationXForm::daemons_selfNameChanged(element,"name") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofNameChanged(element.of(),"name") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofAttributesChanged(element.of(),"attributes") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofParentsChanged(element.of(),"parents") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ownerChanged(element,"owner") end;
+      @SlotValueChanged multi once CompiledOperationXForm::daemons_codeChanged(element,"*") end;
+      let elementOwner = element.owner() in
+        if elementOwner <> null then
+          @SlotValueChanged multi once   ObjectXForm::daemons_ownerNameChanged(elementOwner,"name") end;
+          @SlotValueChanged multi once - CompiledOperationXForm::daemons_ownerOperationRemoved(elementOwner,"operations") end
+        end
+      end;
+      @SlotValueChanged multi once ObjectXForm::daemons_docChanged(element,"documentation") end;
+      if element.documentation.isReallyKindOf(Doc) then
+        @SlotValueChanged multi once ObjectXForm::daemons_docStringChanged(element.documentation,"doc") end
+      end;
+      self
+    end
+
+    @Operation removeDaemons()
+      self.removeClosingDaemon();
+      element.removeDaemonsWithTarget(self,true);
+      element.of().removeDaemonsWithTarget(self,true);
+      if element.owner() <> null then
+        element.owner().removeDaemonsWithTarget(self,true)
+      end;
+      if element.documentation.isReallyKindOf(Doc)
+      then element.documentation.removeDaemonsWithTarget(self,true)
+      end;
+      self
+    end
+
+  end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class RuleSource
+  
+    @Attribute name       : String end
+    @Attribute precedence : Integer end
+    @Attribute patterns   : Seq(String) end
+    @Attribute body       : String end
+    
+    @Constructor(name,precedence,patterns,body) end
+    
+  end

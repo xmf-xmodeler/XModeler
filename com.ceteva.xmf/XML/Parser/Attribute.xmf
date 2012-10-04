@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Attribute isabstract extends Syntax
+  
+    @Doc
+      An attribute pattern defines a parser for the attributes of an
+      element. If it succeeds then any names are bound and the value
+      of the last pattern is returned.
+    end
+    
+  end

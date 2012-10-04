@@ -1,0 +1,21 @@
+import Compiler;
+
+compileFile("Clients/TextEditor/Boot",true,true);
+compileFile("Clients/TextEditor/Manifest",true,true);
+compileFile("Clients/TextEditor/TextEditor",true,true);
+compileFile("Clients/TextEditor/Editor",true,true);
+compileFile("Clients/TextEditor/FileEditor",true,true);
+compileFile("Clients/TextEditor/FileTextEditor",true,true);
+compileFile("Clients/TextEditor/TextCommandInterpreter",true,true);
+compileFile("Clients/TextEditor/TextEventHandler",true,true);
+compileFile("Clients/TextEditor/TextEditorClient",true,true);
+compileFile("Clients/TextEditor/StatefulEditor",true,true);
+compileFile("Clients/TextEditor/TextEditorChannel",true,true);
+compileFile("Clients/TextEditor/ExpEditor",true,true);
+compileFile("Clients/TextEditor/OleEditor",true,true);
+compileFile("Clients/TextEditor/HTMLViewer",true,true);
+compileFile("Clients/TextEditor/HTMLFileViewer",true,true);
+compileFile("Clients/TextEditor/RegistryContributions",true,true);
+compileFile("Clients/TextEditor/RegistryExtensionPoints",true,true);
+compileFile("Clients/TextEditor/Extensions",true,true);
+compileFile("Clients/TextEditor/FileEditorManager",true,true);

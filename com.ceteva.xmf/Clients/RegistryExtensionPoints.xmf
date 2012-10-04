@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+let
+
+  registry    = xmf.registry();
+  
+  menuId      = "com.ceteva.xmf.menus";
+  menuRootId  = "com.ceteva.xmf.menus.rootType";
+  menuMultiId = "com.ceteva.xmf.menus.multiHandler";
+  updateId    = "com.ceteva.xmf.slotUpdate";
+  addId       = "com.ceteva.xmf.collectionSlotAdd";
+  removeId    = "com.ceteva.xmf.collectionSlotRemove";
+  labelsDisplayTextId   = "com.ceteva.xmf.labels.displayText";
+  labelsEditableId      = "com.ceteva.xmf.labels.editable";
+  labelsEditTextId      = "com.ceteva.xmf.labels.editText";
+  labelsChangeGuardId   = "com.ceteva.xmf.labels.changeGuard";
+  labelsChangeHandlerId = "com.ceteva.xmf.labels.changeHandler";
+  protectViewId         = "com.ceteva.xmf.protect.view";
+  protectDeleteId       = "com.ceteva.xmf.protect.delete"
+
+then 
+
+  menuPoint      = MultipleExtensionPoint(menuId);
+  menuRootPoint  = InheritanceExtensionPoint(menuRootId);
+  menuMultiPoint = TypeLessExtensionPoint(menuMultiId);
+  updatePoint    = MultipleExtensionPoint(updateId);
+  addPoint       = MultipleExtensionPoint(addId);
+  removePoint    = MultipleExtensionPoint(removeId);
+  labelsDisplayTextPoint   = InheritanceExtensionPoint(labelsDisplayTextId);
+  labelsEditablePoint      = InheritanceExtensionPoint(labelsEditableId);
+  labelsEditTextPoint      = InheritanceExtensionPoint(labelsEditTextId);
+  labelsChangeGuardPoint   = InheritanceExtensionPoint(labelsChangeGuardId);
+  labelsChangeHandlerPoint = InheritanceExtensionPoint(labelsChangeHandlerId);
+  protectViewPoint         = TypeLessExtensionPoint(protectViewId);
+  protectDeletePoint       = TypeLessExtensionPoint(protectDeleteId)
+
+in
+
+  registry.addExtensionPoint(menuPoint);
+  registry.addExtensionPoint(menuRootPoint);
+  registry.addExtensionPoint(menuMultiPoint);
+  registry.addExtensionPoint(updatePoint);
+  registry.addExtensionPoint(addPoint);
+  registry.addExtensionPoint(removePoint);
+  registry.addExtensionPoint(labelsDisplayTextPoint);
+  registry.addExtensionPoint(labelsEditablePoint);
+  registry.addExtensionPoint(labelsEditTextPoint);
+  registry.addExtensionPoint(labelsChangeGuardPoint);
+  registry.addExtensionPoint(labelsChangeHandlerPoint);
+  registry.addExtensionPoint(protectViewPoint);
+  registry.addExtensionPoint(protectDeletePoint)
+
+end;

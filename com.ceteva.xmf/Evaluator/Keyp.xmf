@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Keyp in Eval(aKeyp,arg,seen)
+  if seen
+  then aKeyp
+  else
+    let pattern = self.dispatch(aKeyp.pattern,arg);
+        name = self.dispatch(aKeyp.name,arg)
+    in aKeyp
+    end
+  end
+end;

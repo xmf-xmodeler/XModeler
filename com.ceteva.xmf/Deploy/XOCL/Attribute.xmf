@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import IO;
+
+context XCore::Attribute
+  @Operation deployXOCL(out:OutputChannel)
+  
+    // Writes out the text that can be used to reconstruct
+    // the element.
+    
+    let type       = self.underlyingType() then
+        path       = if owner.owner = type.owner
+                     then type.name()
+                     else type.path()
+                     end;
+        multString = if self.mult().isKindOf(Multiplicity)
+                     then self.multString()
+                     else mult.toString()
+                     end
+    in
+      format(out,"    @Attribute ~S : ~S~S (?,!,+,-) end",Seq{name,multString,path})
+    end
+   end

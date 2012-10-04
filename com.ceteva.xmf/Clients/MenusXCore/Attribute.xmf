@@ -1,0 +1,107 @@
+parserImport XOCL;
+
+import XCore;
+import Clients::Menus;
+
+context Attribute
+  @Operation addGetterOperation()
+    if owner <> null
+    then
+      let
+        selfString = self.name().toString() then
+        opString = 
+          "@Operation get" + selfString.upperCaseInitialLetter() + "()" +
+          "  self." + selfString + " " +
+          "end"
+      in
+        self.parseAndAddOperation(opString)
+      end
+    else
+      xmf.warning("Getter operations cannot be added as the attribute has no owner.")
+    end
+  end
+  
+context Attribute
+  @Operation addSetterOperations()
+    if owner <> null
+    then
+      let selfString = self.name().toString()
+      in
+        if type.inheritsFrom(SeqOfElement) or type.inheritsFrom(SetOfElement)
+        then
+          let adderOpString = 
+                "@Operation addTo" + selfString.upperCaseInitialLetter() + "(v:" + self.underlyingType().name().toString() + ")" +
+                "  self." + selfString + " := self." + selfString + "->including(v) " +
+                "end";
+              subtractorOpString = 
+                "@Operation deleteFrom" + selfString.upperCaseInitialLetter() + "(v:" + self.underlyingType().name().toString() + ")" +
+                "  self." + selfString + " := self." + selfString + "->excluding(v) " +
+                "end"
+          in
+            self.parseAndAddOperation(adderOpString);
+            self.parseAndAddOperation(subtractorOpString)
+          end
+        else
+          let opString = 
+                "@Operation set" + selfString.upperCaseInitialLetter() + "(v:" + self.type.name().toString() + ")" +
+                "  self." + selfString + " := v " +
+                "end"
+          in
+            self.parseAndAddOperation(opString)
+          end
+        end
+      end
+    else
+      xmf.warning("Setter operations cannot be added as the attribute has no owner.")
+    end
+  end
+
+context Attribute
+  @Operation parseAndAddOperation(opString)
+    let opAS = OCL::OCL.grammar.parseString(opString,"Exp1",Seq{XOCL}) then
+        opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+        op = opASfun() then
+        opName = op.name()
+    in
+      if owner.contents.hasKey(opName) andthen owner.getContents(opName).isKindOf(Operation)
+      then
+        if xmf.confirm(
+             "There is already an operation in " + owner.name().toString() +
+             " with the name '" + opName.toString() + "'. If you continue, " +
+             "the old operation will be deleted before adding the new one.\n\nContinue?")
+        then
+          owner.remove(owner.getContents(opName));
+          owner.add(op)
+        end
+      else
+        owner.add(op)
+      end
+    end
+  end
+
+context Attribute
+  @Operation setMultString_client()
+    let message = "Enter a multiplicity for " + name + "." +"\nThe syntax is as follows:\n\n" +
+                  "Single Multiplicities\n" +
+                  "- '1' or ''       =   optional (i.e. can be null)\n" +
+                  "- '!'              =   mandatory (i.e. cannot be null)\n" +
+                  "\n" +
+                  "Unordered Collection (Set) Multiplicities\n" +
+                  "- '*'             =   any number of elements (including none)\n" +
+                  "- 'x..*'         =   has at least x elements\n" +
+                  "- 'x..y'         =   has number of elements between x and y\n" +
+                  "\n" +
+                  "Ordered Collection (Seq) Multiplicities\n" +
+                  "- '$' or '$*'   =   any number of elements (including none)\n" +
+                  "- '$x..*'       =   has at least x elements\n" +
+                  "- '$x..y'       =   has number of elements between x and y\n\n\n\n" then
+        multString = xmf.getString("Enter Multiplicity for " + name,message,self.multString().stripWhiteSpace())
+    in if multString <> null
+       then try
+              self.setMultString(multString.stripWhiteSpace())
+            catch(exception)
+              xmf.warning(exception.message)
+            end
+       end
+    end
+  end

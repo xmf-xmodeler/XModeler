@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SnapshotThemeAPI extends DiagramsThemeAPI
+  
+    @Operation setNameBoxColor(node:Node,color:Color)
+      let namebox = node.getDisplay("namebox")
+      in
+        if namebox <> null
+        then
+          namebox.setThemeFillColor(color)
+        end
+      end
+    end
+    
+    @Operation setSlotBoxColor(node:Node,color:Color)
+      let slotbox = node.getDisplay("slotbox")
+      in
+        if slotbox <> null
+        then
+          slotbox.setThemeFillColor(color)
+        end
+      end
+    end
+    
+    @Operation setObjectBoxColor(node:node,color:Color)
+      if node.isKindOf(ObjectNode)
+      then
+        SnapshotThemeAPI::setNameBoxColor(node,color);
+        SnapshotThemeAPI::setSlotBoxColor(node,color)
+      end
+    end
+  
+  end

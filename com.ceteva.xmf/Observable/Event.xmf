@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+import Observable;
+
+context Observable
+
+  @Class Event extends XOCL::Syntax
+ 
+     @Attribute path   : Seq(String) end 
+     @Attribute params : Seq(Exp) end
+     
+     @Constructor(path,params) ! end
+     
+     @Operation raise(target,env)
+       let observers = target.observers()
+       in if not observers->isEmpty
+          then 
+            let class = path.ref(Seq{Root,XCore});
+                args = params->collect(p | p.perform(target,env,Seq{}))
+            in @For observer in observers do
+                 observer.handleEvent(target,class,args)
+               end
+            end
+          end
+       end
+     end
+     
+  end 

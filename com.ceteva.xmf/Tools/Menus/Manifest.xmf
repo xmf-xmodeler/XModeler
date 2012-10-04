@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest Menus
+
+  Menus = @File Menus             end
+          @File MenuItem          end
+          @File MenuItemContainer end
+          @File MenuAction        end
+          @File MenuItems         end
+          @File Menu              end
+do Menus
+end;

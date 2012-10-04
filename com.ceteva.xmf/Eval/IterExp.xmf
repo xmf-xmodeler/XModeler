@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import OCL;
+
+context IterExp
+  @Operation eval(target,env,imports)
+    let C = collection.eval(target,env,imports);
+        op = 
+          @Operation(value)
+            body.eval(target,env.bind(name,value),imports)
+          end
+    in C.send(Symbol(iterOp),Seq{op})
+    end
+  end 

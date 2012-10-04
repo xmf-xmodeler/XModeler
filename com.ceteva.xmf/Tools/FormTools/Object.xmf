@@ -1,0 +1,75 @@
+import Tools;
+import FormTools;
+import Structure;
+
+context Object
+  @Operation edit()
+    let descriptors = xmf.toolManager().toolDescriptors(self.of()) then
+        descriptors = descriptors->select(d | d.isKindOf(Structure::ToolDescriptor))
+    in if descriptors->isEmpty
+       then self.oldEdit()
+       else
+         // If there is one then use it otherwise
+         // offer up a list...
+         let descriptor =
+               if descriptors->size = 1
+               then descriptors->sel
+               else xmf.select("Editor Type","Choose an editor type",descriptors->asSeq,null,null)
+               end
+         in if descriptor <> null
+            then
+              // If the manager has been initialised then we can
+              // create a new tool. The tool is added to the
+              // descriptor and is displayed. Must always return the
+              // tool so that extensions of edit can populate
+              // it.
+              let type = descriptor.type();
+                  manager = descriptor.manager()
+              in if type <> null and manager <> null
+                 then
+                   let tool = descriptor.tool(self,self.toString()) 
+                   in tool.showForm();
+                      tool.form().setElement(self);
+                      descriptor.add(tool);
+                      self.observeBy(tool);
+                      tool
+                   end
+                 else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+                 end
+              end
+            end
+         end
+       end
+    end
+  end
+  
+  
+context Object
+  @Operation oldEdit() 
+    let descriptors = self.of().formToolDescriptors()
+    in if descriptors->isEmpty
+       then 
+         let mappingClient = xmf.findClient(Clients::PropertyEditorXCore::MappingClient) 
+         in if mappingClient <> null
+           then mappingClient.showPropertyEditor(self)
+           else format(stdout,"Forms client not available.~%")
+           end
+         end
+       else 
+         let descriptor = descriptors->sel then
+             type = descriptor.type();
+             manager = descriptor.manager()
+         in if type <> null and manager <> null
+            then
+              let tool = descriptor.tool(self,self.toString()) 
+              in tool.showForm();
+                 descriptor.add(tool);
+                 self.observeBy(tool);
+                 tool
+              end
+            else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+            end
+         end
+       end
+    end
+  end

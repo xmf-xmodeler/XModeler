@@ -1,0 +1,6 @@
+import OCL;
+
+context ContextDef
+  @Operation eval(target,env,imports)
+    self.desugar().eval(target,env,imports)
+  end

@@ -1,0 +1,127 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import Menus;
+
+context SnapshotMapping
+
+  @Class DependencyXDependencyEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute dependency : XCore::Dependency  end
+    @Attribute edge       : DependencyEdge (?) end
+    @Attribute nameMaps   : Seq(DependencyNameXText) (+,-) end
+    
+    @Constructor(dependency,edge) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{XCore::Dependency,edge.of()});
+      self.addNameMaps()
+    end
+
+    @Operation addNameMaps()
+      @For name in dependency.names do
+        self.addToNameMaps(DependencyNameXText(name,self))
+      end
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false)
+      in
+        globalMenu.add(MenuAction("Edit",RightClickableProxy::proxyTarget,Seq{},DependencyXDependencyEdge::editMenuOperation));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+    
+    @Operation attach()
+      dependency.attach()
+    end
+    
+    @Operation checkDependencyDaemons()
+      @SlotValueChanged multi once DependencyXDependencyEdge::dependencySourceDaemon(dependency,"source") end;
+      @SlotValueChanged multi once DependencyXDependencyEdge::dependencyTargetDaemon(dependency,"target") end
+    end
+    
+    @Operation dependencySourceDaemon(dependency,slot,newValue,oldValue)
+      if newValue <> oldValue
+      then
+        owner.dependencySourceChanged(self,newValue)
+      end
+    end
+    
+    @Operation dependencyTargetDaemon(dependency,slot,newValue,oldValue)
+      if newValue <> oldValue
+      then
+        owner.dependencyTargetChanged(self,newValue)
+      end
+    end
+    
+    @Operation checkDaemons()
+      self.checkDependencyDaemons();
+      self.checkEdgeDaemons()
+    end
+    
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once DependencyXDependencyEdge::edgeSourceChanged(edge,"source") end;
+      @SlotValueChanged multi once DependencyXDependencyEdge::edgeTargetChanged(edge,"target") end;
+      self
+    end
+    
+    @Operation detach()
+      dependency.detach()
+    end
+
+    @Operation dispose()
+      dependency.source := null;
+      dependency.target := null
+    end
+
+    @Operation edgeSourceChanged(edge,slot,newPort,oldPort)
+      if newPort <> oldPort
+      then
+        owner.dependencyEdgeSourceChanged(self,newPort.owner)
+      end
+    end
+    
+    @Operation edgeTargetChanged(edge,slot,newPort,oldPort)
+      if newPort <> oldPort
+      then
+        owner.dependencyEdgeTargetChanged(self,newPort.owner)
+      end
+    end
+    
+    @Operation editMenuOperation()
+      dependency.edit()
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{dependency.of(),edge.of()},false)
+    end
+
+    @Operation removeDaemons()
+    
+      // Called when this mapping is no longer valid.
+      
+      dependency.removeDaemonsWithTarget(self,true);
+      edge.removeDaemonsWithTarget(self,true);
+      @For map in nameMaps do
+        map.removeDaemons()
+      end
+      
+    end
+
+    @Operation element()
+      dependency
+    end
+    
+    @Operation subMaps()
+      nameMaps
+    end
+
+  end

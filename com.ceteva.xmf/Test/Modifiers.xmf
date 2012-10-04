@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+format(stdout,"Attributes (say named att) can specify modifiers that generate:~%");
+format(stdout,"  ? an accessor with the same name as the attribute.~%");
+format(stdout,"  ! an updater with the name setAtt.~%");
+format(stdout,"  + an extender with the name addToAtt (sequences or sets).~%");
+format(stdout,"  - a reducer with the name deleteFromAtt (sequences or sets).~%");
+format(stdout,"Constructors may specify that they are a template for a toString operation with !.~%");
+format(stdout,"You should see an instance of X change.~%");
+
+context Root 
+  @Class X
+    @Attribute x : Integer (?,!) end
+    @Attribute elements : Set(Element) (?,-,!,+) end
+    @Attribute others : Seq(Element) (?,-,!,+) end
+    @Constructor(x,elements,others) ! end
+  end   
+  
+let x = X(1,Set{},Seq{})
+in x.println();
+   x.setX(100);
+   x.println();
+   x.addToElements(x.x());
+   x.println();
+   x.deleteFromElements(x.x());
+   x.println()
+end;

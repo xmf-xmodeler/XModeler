@@ -1,0 +1,78 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Edge extends Clients::Diagrams::Edge, Selectable, Clickable
+  
+    @Doc
+      A diagram tool edge monitors changes to the source and target and
+      called the appropriate handlers when these events occur.
+    end
+  
+    @Attribute sourceChangedHandler : Operation (!)   end
+    @Attribute targetChangedHandler : Operation (!)   end
+    @Attribute type                 : Element   (!,?) end
+    @Attribute layoutId             : String    (!,?) end
+    
+    @Operation init(args:Seq(Element))
+      super(args);
+      self.addDaemons();
+      self
+    end
+    
+    @Operation addDaemons()
+    
+      @SlotValueChanged multi Edge::sourceChanged(self,"source") end;
+      @SlotValueChanged multi Edge::targetChanged(self,"target") end
+      
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+
+    @Operation ref(name:String)
+    
+      // Access the label with the given name.
+      
+      @Find(label,labels)
+        when label.type().name().toString() = name
+        else self.error("Cannot find label with name " + name + " in " + self.toString())
+      end
+    end
+    
+    @Operation removeDaemons()
+      self.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation renew(parent)
+      self.addDaemons();
+      super(parent)
+    end
+
+    @Operation renewGlobalMenu(tool,parentPath)
+      let path = parentPath + Seq{type.name.toString()}
+      in
+        type.setGlobalMenu(self,tool,path,false)
+      end
+    end
+
+    @Operation sourceChanged(edge,slot,new,old)
+      sourceChangedHandler(edge,new,old)
+    end
+    
+    @Operation targetChanged(edge,slot,new,old)
+      targetChangedHandler(edge,new,old)
+    end
+    
+    @Operation toString()
+      self.type().name() + "(" + labels->asSeq->map("toString")->separateWith(",") + ")"
+    end
+  
+  end

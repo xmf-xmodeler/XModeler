@@ -1,0 +1,108 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class Enum extends Class
+    @Doc
+      The enumerated data type. Create an instance of this class to
+      create a new named enumeration type. The names passed to the
+      constructor are the names of the unique elements of the
+      enumeration. On creation, the names are mapped to instances
+      of the new enumeration type and can be referenced via their name
+      using getElement (or ::).
+    end
+  
+    @Attribute names : Seq(String) end
+    
+    @Constructor(name,names) ! 
+      @For name in names do
+        self.addEnumElement(name)
+      end
+    end
+    
+    @Operation default()
+      self.getEnumElement(names->head)
+    end
+    
+    @Operation defaultParents():Set(Classifier)
+      Set{EnumChoice}
+    end
+    
+    @Operation add(n)
+  
+      @Doc
+        Exte-nd the behaviour for 'add' inherited from
+        Class by taking name strings into account.
+      end
+   
+      if n.isKindOf(Symbol)
+      then
+        self.addName(n.toString())
+      elseif n.isKindOf(String)
+      then 
+        self.addName(n)
+      else 
+        super(n)
+      end
+    end
+  
+    @Operation addEnumElement(name:String)
+      let value = self()
+      in value.name := Symbol(name);
+         self.add(value)
+      end;
+      self
+    end
+  
+    @Operation addName(name:String)
+      self.resolveNameClash(name,names);
+      //self.names := names.delete(name);
+      self.names := names->including(name);
+      self.addEnumElement(name)
+    end
+
+    @Operation getEnumElement(name:String)
+      self.contents.get(Symbol(name))
+    end
+
+    @Operation remove(n)
+  
+      @Doc
+        Exte-nd the behaviour inherited from Class by
+        taking name strings into account.
+      end
+  
+      if n.isKindOf(Symbol)
+      then
+        self.removeName(n.toString())
+      elseif n.isKindOf(String)
+      then
+        self.removeName(n)
+      else
+        super(n)
+      end
+    end
+
+    @Operation removeEnumElement(name:String)
+      if self.contents.hasKey(Symbol(name))
+      then
+        self.remove(self.getEnumElement(name))
+      end;
+      self
+    end
+
+    @Operation removeName(name:String)
+      self.names := names.excluding(name);
+      self.removeEnumElement(name)
+    end
+
+    @Operation resolveNameClash(name,collection)
+      @Find(e,collection)
+        when (e.isKindOf(String) andthen e = name) or
+             (e.isKindOf(NamedElement) andthen e.name = name)
+        do self.remove(e)
+      end;
+      self
+    end
+
+  end

@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Languages
+
+  // When we use manifests to boot the system
+  // load in the Languages package vie the following
+  // file, otherwise we already have the package so
+  // don't load it again....
+  // @File Languages end
+  
+  // Activities    = @File Activities/Manifest    end
+  // Ada           = @File Ada/Manifest           end
+  // Automata      = @File Automata/Manifest      end
+  MicroJava     = @File MicroJava/Manifest     end
+  // DFD           = @File DFD/Manifest           end
+  // MicroSQL      = @File MicroSQL/Manifest      end
+  // StateMachines = @File StateMachines/Manifest end
+  // ClassTool     = @File ClassTool/Manifest     end
+  // Processes     = @File Processes/Manifest     end
+do
+  let Languages = ProjectManager("Languages",dir,self);
+      //Activities = ProjectStub("Activities","HOME/Languages/Activities",Activities);
+      //Ada = ProjectStub("Ada","HOME/Languages/Ada",Ada);
+      //Automata = ProjectStub("Automata","HOME/Languages/Automata",Automata);
+      MicroJava = ProjectStub("MicroJava","HOME/Languages/MicroJava",MicroJava)
+      //DFD = ProjectStub("DFD","HOME/Languages/DFD",DFD);
+      //MicroSQL = ProjectStub("MicroSQL","HOME/Languages/MicroSQL",MicroSQL);
+      //StateMachines = ProjectStub("StateMachines","HOME/Languages/StateMachines",StateMachines);
+      //ClassTool = ProjectStub("ClassTool","HOME/Languages/ClassTool",ClassTool);
+      //Processes = ProjectStub("Processes","HOME/Languages/Processes",Processes)
+  in //Languages.add(Activities);
+     //Languages.add(Ada);
+     //Languages.add(Automata);
+     Languages.add(MicroJava)
+     //Languages.add(DFD);
+     //Languages.add(MicroSQL);
+     //Languages.add(StateMachines);
+     //Languages.add(ClassTool);
+     //Languages.add(Processes)
+  end
+end;

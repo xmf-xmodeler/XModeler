@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+context XOCL
+
+  @Class AttributeModifiers 
+  
+    @Attribute accessor : Boolean end
+    @Attribute updater  : Boolean end
+    @Attribute extender : Boolean end
+    @Attribute reducer  : Boolean end
+    @Attribute setOwner : Boolean end
+    @Attribute guard    : Boolean     = false end
+    @Attribute guardExp : Performable = null  end
+    
+    @Constructor(accessor,updater,extender,reducer) end
+    
+    @Constructor(accessor,updater,extender,reducer,guard,guardExp) end
+    
+    @Operation defineModifier(mod)
+      if mod.isKindOf(SeqOfElement)
+      then
+        self.guard := true;
+        self.guardExp := mod->at(0)
+      else
+        if mod = "?" then self.accessor := true 
+        elseif mod = "!" then self.updater := true
+        elseif mod = "+" then self.extender := true 
+        elseif mod = "-" then self.reducer := true
+        elseif mod = "^" then self.setOwner := true
+        end
+      end
+    end
+    
+    @Operation emptyModifier():Boolean
+      not(accessor or updater or extender or reducer)
+    end
+    
+    @Operation pprint(out)
+      let printComma = false
+      in if not self.emptyModifier()
+         then 
+           let accessorStr = if accessor then Seq{"?"} else Seq{} end;
+               updaterStr = if updater then Seq{"!"} else Seq{} end;
+               extenderStr = if extender then Seq{"+"} else Seq{} end;
+               reducerStr = if reducer then Seq{"?"} else Seq{} end;
+               setOwnerStr = if setOwner then Seq{"^"} else Seq{} end;
+               guardStr = if guard then Seq{"#" + if guardExp = null then "" else guardExp.pprint() end} else Seq{} end
+           in format(out," (~S)",Seq{(accessorStr+updaterStr+extenderStr+reducerStr+setOwnerStr+guardStr)->separateWith(",")})
+           end
+         end
+      end
+    end
+    
+  end  

@@ -1,0 +1,171 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+
+context Basic
+
+  @Class SavedTools
+  
+    @Attribute element : Element (?) end
+    @Attribute tools : Seq(Tools) (+,-,?) end
+    @Attribute xmfVersion : String (?) end
+    
+    @Constructor(element,tools,xmfVersion) end
+    
+    //@Operation allTools()
+    //  let allTools = tools->asSet
+    //  in
+    //    @For tool in tools do
+    //      allTools := allTools->union(tool.allTools())
+    //    end;
+    //    allTools->asSeq
+    //  end
+    //end
+    
+    @Operation preSave()
+      self.preSaveToolManagerHandler();
+      self.preSaveObjectManagerHandler();
+      self.preSaveDefinitionManagerHandler();
+
+      if element.isReallyKindOf(Contained)
+      then
+        let elementOwner = element.owner
+        in
+          if elementOwner.isReallyKindOf(NameSpace) andthen
+             elementOwner.contents()->includes(element)
+          then
+            Root.putElement("savedTools_originalOwner",elementOwner);
+            Root.putElement("savedTools_daemons",elementOwner.contents.daemons());
+            element.owner.contents.setDaemons(Seq{});
+            elementOwner.remove(element)
+          end
+        end
+      end;
+
+      xmf.clientManager().preSave()
+    end
+    
+    @Operation preSaveDefinitionManagerHandler()
+      // Delink all definitions from the definition manager...
+      let definitionManager = xmf.toolManager().definitionManager()
+      in
+        Root.putElement("savedTools_definitionManagerContents",definitionManager.contents);
+        definitionManager.contents := Table(10)
+      end
+    end
+    
+    @Operation preSaveObjectManagerHandler()
+      // Delink all objects from the object manager...
+      let objectManager = xmf.toolManager().objectManager()
+      in
+        Root.putElement("savedTools_objectManagerContents",objectManager.contents);
+        objectManager.contents := Table(10)
+      end
+    end
+
+    @Operation preSaveToolManagerHandler()
+      // De-link all elements from the clients and remove all
+      // elements not to be saved....
+      
+      //let toolManager = xmf.toolManager()
+      //in
+      //  @For tool in toolManager.allTools() do
+      //    if tool.tooledElement() <> element
+      //    then
+      //      toolManager.delinkTool(tool)
+      //    end
+      //  end
+      
+      // Delink the top level tools from the tool manager...
+      //@For tool in tools do
+      @For tool in xmf.toolManager().allTools() do
+        tool.owner := null
+      end
+    end
+    
+    @Operation postSave()
+      self.postSaveToolManagerHandler();
+      self.postSaveObjectManagerHandler();
+      self.postSaveDefinitionManagerHandler();
+    
+      if Root.contents.hasKey(Symbol("savedTools_originalOwner"))
+      then
+        let originalOwner = Root::savedTools_originalOwner
+        in
+          originalOwner.add(element);
+          originalOwner.contents.setDaemons(Root::savedTools_daemons);
+          Root.contents.remove(Symbol("savedTools_originalOwner"));
+          Root.contents.remove(Symbol("savedTools_daemons"))
+        end
+      end;
+
+      xmf.clientManager().postSave()
+    end
+
+    @Operation postSaveDefinitionManagerHandler()
+      // Re-link all definitions to the definition manager...
+      let definitionManager = xmf.toolManager().definitionManager()
+      in
+        definitionManager.contents := Root::savedTools_definitionManagerContents;
+        Root.contents.remove(Symbol("savedTools_definitionManagerContents"))
+      end
+    end
+    
+    @Operation postSaveObjectManagerHandler()
+      // Re-link all objects to the object manager...
+      let objectManager = xmf.toolManager().objectManager()
+      in
+        objectManager.contents := Root::savedTools_objectManagerContents;
+        Root.contents.remove(Symbol("savedTools_objectManagerContents"))
+      end
+    end
+
+    @Operation postSaveToolManagerHandler()
+      // Re-link and re-add elements that were removed in the
+      // pre-save...
+      
+      //xmf.toolManager().postSave(); // relink all delinked tools
+      
+      // Re-link the top level tools to the tool manager...
+      let toolManager = xmf.toolManager()
+      in
+        //@For tool in tools do
+        @For tool in toolManager.allTools() do
+          tool.owner := toolManager
+        end
+      end
+    end
+
+    @Operation save()
+      let file = xmf.saveFile(xmf.projDir(),"*.xto")
+      in if file <> ""
+         then
+           if not file.fileExists() orelse xmf.question("Overwrite " + file)
+           then self.save(file)
+           end
+         end
+      end
+    end
+    
+    @Operation save(file:String)
+        self.saveBody(file)
+    end
+    
+    @Operation saveBody(file:String)
+      try
+        self.preSave();
+        @WithOpenFile(fout -> file)
+          let eout = ElementOutputChannel(GZipOutputChannel(fout))
+          in eout.write(self,Root.allContentsOf(NameSpace)->including(Root)->asSeq);
+             eout.close()
+          end
+        end;
+        self.postSave()
+      catch(exception)
+        self.postSave();
+        throw exception
+      end
+    end
+    
+  end

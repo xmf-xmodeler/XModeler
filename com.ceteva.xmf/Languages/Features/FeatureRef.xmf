@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Features;
+
+context Features
+  @Class FeatureRef extends Contained
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      FeatureRef ::= name = PathRef names = ('::' PathRef)* {
+        FeatureRefDef(SetExp("Seq",Seq{name | names}))
+      }.
+      
+      PathRef ::= name = Name {
+        StrExp(name)
+      }.
+      
+    end
+    
+    @Attribute path : Seq(String) end
+    
+    @Constructor(path)
+    end
+    
+    // currently we assume that the environment of the dereference is Root
+    
+    @Operation dereference()
+      let ns = Root
+      in
+        @For name in path
+        do
+          ns := ns.getElement(name)
+        end;
+        ns
+      end
+    end
+    
+    @Operation findName(ns:NameSpace,name:String)
+      @Find(content,ns.contents())
+      when content.name = name
+      else
+        format(stdout,"Warning cannot find ~S in ~S~%",Seq{name,ns});
+        false
+      end
+    end
+   
+  end

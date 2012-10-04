@@ -1,0 +1,109 @@
+parserImport XOCL;
+
+context Vector
+  @Operation asSeq():Seq(Element)
+    @Doc
+      Converts a vector into a sequence.
+    end
+    let i = self.size() - 1;
+        seq = Seq{}
+    in @While i >= 0 do
+          seq := Seq{self.ref(i) | seq};
+          i := i - 1
+        end;
+        seq
+    end
+  end
+  
+context Vector
+  @Operation asString():String
+    @Doc
+      Converts a vector to a string.
+    end
+    Kernel_asString(self)
+  end
+
+context Vector
+  @Operation copyInto(vector)
+    @Doc
+      Copies the elements of vector into self starting at 
+      position 0.
+    end
+    @Count i from 0 to vector.size().min(self.size()) do
+      self.put(i,vector.ref(i))
+    end;
+    self
+  end 
+ 
+context Vector
+  @Operation daemons()
+    Kernel_arrayDaemons(self)
+  end
+  
+context Vector
+  @Operation daemonsActive():Boolean
+    Kernel_arrayDaemonsActive(self)
+  end
+  
+context Vector
+  @Operation init(args)
+    Kernel_mkArray(args->at(0))
+  end
+  
+context Vector
+  @Operation ref(index)
+    @Doc
+      Returns the value at position index in a vector.
+    end
+    if self.size() > index
+    then Kernel_arrayRef(self,index)
+    else throw Exceptions::IndexOutOfBounds(self,index)
+    end
+  end
+  
+context Vector
+  @Operation put(index,value)
+    @Doc
+      Put the element value into a vector at position index.
+    end
+    if self.size() > index
+    then Kernel_arraySet(self,index,value)
+    else throw Exceptions::IndexOutOfBounds(self,index)
+    end
+  end
+  
+context Vector
+  @Operation setDaemons(daemons)
+    Kernel_arraySetDaemons(self,daemons)
+  end
+  
+context Vector
+  @Operation setDaemonsActive(active)
+    Kernel_arraySetDaemonsActive(self,active)
+  end
+  
+context Vector
+  @Operation size():Integer
+    @Doc 
+      Returns the size of a vector.
+    end
+    Kernel_arrayLength(self)
+  end
+  
+context Vector
+  @Operation toString():String
+    @Doc
+      Returns a string representation of a vector.
+    end
+    let s = "Vector{"
+    in @Count i from 0 to self.size() do
+         s := s + self.ref(i).toString();
+         if i < self.size() - 1
+         then s := s + ","
+         end
+       end;
+       s + "}"
+    end
+  end
+  
+  

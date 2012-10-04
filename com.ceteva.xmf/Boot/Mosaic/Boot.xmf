@@ -1,0 +1,176 @@
+parserImport XOCL;
+
+import Projects;
+import Comms;
+import TopLevel;
+import IO;
+
+// Load all packages that Mosaic depends on.
+// Assume that the base level XMFE and XMFS images are running.
+ 
+try 
+  
+  (xmf.homeDir() + "/Clients/MiscOps.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Point.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Registry.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Preferences.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/BootClients.o").loadBin(true);
+  (xmf.homeDir() + "/DocTables/HTML/InternalBrowser/Boot.o").loadBin(true);
+  
+  "Boot/Mosaic/Registry.o".loadBin();
+  "Boot/Mosaic/RegistryExtensionPoints.o".loadBin(false);
+  "Boot/Mosaic/MenuManager.o".loadBin(true);
+  "Boot/Mosaic/DiagramManager.o".loadBin(true);
+  "Boot/Mosaic/FileEditorManager.o".loadBin(true);
+  "Boot/Mosaic/RegistryContributions.o".loadBin(false);
+
+  // Set up the project manager from the manifests...
+       
+  xmf.setProjectManager((xmf.homeDir() + "/Boot/Manifest.o").loadBin(true).load("HOME"));
+
+  // Add XTools shapes directory
+
+  MDC::shapeDir(xmf.homeDir() + "/MDC/Shapes");
+
+  // Load protection facility (this must be loaded after XTools and MDC)
+
+  (xmf.homeDir() + "/Protect/Boot.o").loadBin(true);
+  
+  (xmf.homeDir() + "/Boot/Mosaic/BootMosaic.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootMenus.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootConsole.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootUndo.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootPropertyEditor.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootBrowser.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootDiagrams.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootDialogs.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootTextEditor.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootOleBridge.o").loadBin(true);
+  // (xmf.homeDir() + "/Boot/Mosaic/BootEclipseBridge.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootPatches.o").loadBin(true);
+  
+  // Save the system.
+  
+  gc();
+
+  let startup = saveMachineState("Images/mosaic.img")
+  in if startup = true
+     then format(stdout,"[ Mosaic Build Completed. ]~%")
+     else 
+     
+       // When the image restarts the command line -arg name:value arguments are passed
+       // as a sequence of name-value pairs as the value of startup.
+     
+       let hasArg = @Operation(name) startup->exists(pair | pair->head = name) end;
+           getArg = @Operation(name) startup->select(pair | pair->head = name)->head->tail end
+       in 
+          if hasArg("user")
+          then xmf.setUser(getArg("user"))
+          else xmf.setUser("Unknown User")
+          end;
+          if hasArg("projects")
+          then 
+            let projects = getArg("projects")
+            in xmf.setProperty("projDir",projects);
+               XMF.add(@Operation projDir() self.property("projDir") end)
+            end
+          end;
+          if hasArg("demos")
+          then 
+            let demos = getArg("demos")
+            in xmf.setProperty("demoDir",demos);
+               XMF.add(@Operation demoDir() self.property("demoDir") end)
+            end
+          end;
+          if hasArg("home")
+          then 
+            let home = getArg("home")
+            in xmf.setHomeDir(home)
+            end
+          end;
+          if hasArg("images")
+          then
+            let images = getArg("images")
+            in xmf.setImageDir(images)
+            end
+          end;
+          if hasArg("version")
+          then 
+            xmf.setVersion(getArg("version"))
+          end;
+          if hasArg("stdout")
+          then xmf.setStandardOutput(getArg("stdout"))
+          end;
+          xmf.projectManager().add(ProjectManager("MyProjects",xmf.projDir(),null));
+          
+          if hasArg("initFile")
+          then
+            xmf.setProperty("initFile",getArg("initFile"))
+          end;
+       
+          xmf.bootMosaic();
+          xmf.bootMenus();
+          xmf.bootConsole();
+          xmf.bootUndo();
+          xmf.bootPropertyEditor();
+          xmf.bootBrowser();
+          xmf.bootDiagrams();
+          xmf.bootDialogs();
+          xmf.bootTextEditor();
+          xmf.bootOleBridge();
+          // xmf.bootEclipseBridge();
+		  
+		  // boot tool interface
+          
+          (xmf.homeDir() + "/Boot/Mosaic/ToolInterface.o").loadBin(false);
+          
+          // Do this here so that we can give the user a warning if anything goes wrong.
+          // Use xmf.message to inform the user of any problems with the init file. Client
+          // connections are initiated in separate threads that must have connected properly
+          // before we can create dialogs etc. The following yield allows other threads to
+          // run - this works OK, but really we should also check that the dialog client is
+          // connected...
+          
+          self.yield(); 
+          
+          if hasArg("prefs")
+          then
+            let prefStrings = getArg("prefs").splitBy(",",0,0)
+            in
+              @For prefString in prefStrings do
+                let prefPair = prefString.splitBy("=",0,0) then
+                    pref = prefPair.at(0);
+                    value = prefPair.at(1)
+                in
+                  xmf.setPreference(pref,value)
+                end
+              end
+            end
+          end
+
+          /* if hasArg("initFile")
+          then
+            let initFile = getArg("initFile")
+            in xmf.setInitFile(initFile.subString(0,initFile->size - 2) + ".xmf");
+               if initFile.fileExists() and initFile.hasSuffix(".o")
+               then initFile.loadBin(false)
+               else xmf.warning("Cannot find Mosaic init file " + initFile)
+               end
+            end
+          end */
+          
+        end;
+
+        xmf.projectManager("MyProjects").selectModelBrowserNode(true);
+        
+        // boot patches
+
+		xmf.bootPatches()
+       
+     end
+  end  
+  
+catch(exception)
+  exception.printBacktrace()
+end;  
+

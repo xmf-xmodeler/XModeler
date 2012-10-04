@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a SelectExpression within the context of the namespace Frames
+context Frames
+
+	// the class SelectExpression provides the selection command to allow 
+	// selective adaptation of a Frame based on the outcome of some Boolean
+	// expression (equivalent to if-then-else constructs)
+
+    @Class SelectExpression extends CompositeExpression
+		// create an instance of the class and bind to the appropriate attributes
+		@Constructor(theGuard) end
+
+		// define the grammar to be supported by the CS
+		@Grammar extends OCL::OCL.grammar
+			SelectExpression ::= 
+				theGuard=Guard
+				thenPart=ThenPart
+				elsePart=ElsePart
+				{
+				import OCL
+				in [| import Frames in SelectExpression( <theGuard> ) end |]
+				end
+				}.
+			
+			Guard ::= 'if' condition=Name { [| <StrExp(condition)> |] }.
+			ThenPart ::= 'then' val=Name { [| <StrExp(val)> |] }.
+			ElsePart ::= 'else' val=Name { [| <StrExp(val)> |] }.
+		end
+		
+		@Attribute theGuard : String end
+		
+		// query operation
+		@Operation isSelectExpression():Boolean
+			true
+		end
+	end

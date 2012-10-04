@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import FormEvents;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class CheckBox extends FormElement
+
+  @Attribute value : Boolean (!,?) end
+  
+  @Constructor(name,value) 
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+  
+    CheckBox ::= name = EName patts = PosAtts value = BoolExp natts = NamedAtts defs = Exp * {
+    
+      [| let checkBoxType = <defs->iterate(t e = [| Tools::FormTools::Types::CheckBox(<name>) |] | [| <e>.add(<t>) |])>
+         in checkBoxType.setValue(<value>);
+            checkBoxType.setMinWidth(<OCL::IntExp(FormElement::lookup(natts,"minWidth",0))>);
+            checkBoxType.setMaxWidth(<OCL::IntExp(FormElement::lookup(natts,"maxWidth",9999))>);
+            checkBoxType.setMinHeight(<OCL::IntExp(FormElement::lookup(natts,"minHeight",0))>);
+            checkBoxType.setMaxHeight(<OCL::IntExp(FormElement::lookup(natts,"maxHeight",9999))>);
+            checkBoxType.setPadLeft(<OCL::IntExp(FormElement::lookup(natts,"padLeft",0))>);
+            checkBoxType.setPadRight(<OCL::IntExp(FormElement::lookup(natts,"padRight",0))>);
+            checkBoxType.setPadTop(<OCL::IntExp(FormElement::lookup(natts,"padTop",0))>);
+            checkBoxType.setPadBottom(<OCL::IntExp(FormElement::lookup(natts,"padBottom",0))>);
+            checkBoxType.setLayout(<OCL::StrExp(FormElement::filterLayout(patts))>);
+            checkBoxType
+         end
+      |]
+    }.
+    
+  end
+  
+  @Operation new(parent,path,env,tool)
+  
+    // Create but do not new the check box since the parent
+    // may not have been bewed yet.
+    
+    let checkBox = Forms::CheckBox(value)
+    in checkBox.setType(self);
+       checkBox.setCheckHandler(@Operation(checkBox,new,old) tool.raise(CheckBoxChanged(path + Seq{name.toString()},checkBox,new,old)) end);
+       parent.add(checkBox);
+       menu.setGlobalMenu(checkBox,checkBox,tool,path + Seq{name.toString()},Set{self,tool});
+       checkBox
+    end
+  end
+end

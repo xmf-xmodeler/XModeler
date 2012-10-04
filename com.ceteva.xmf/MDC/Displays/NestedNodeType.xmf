@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import MDC;
+import Tools::DiagramTools::Types;
+
+context Displays
+
+  @Class NestedNodeType extends NodeType
+  
+    // A class that represents a node type that is used
+    // in a collection attribute whose containership is
+    // a diagram.
+    
+  end

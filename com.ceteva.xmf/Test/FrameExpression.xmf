@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a FrameExpression within the context of the namespace Frames
+context Frames
+
+	// this class is specialised elsewhere
+	@Class FrameExpression isabstract
+		
+		//query operations on the class hierarchy
+		@Operation isFrameExpression():Boolean
+			true
+		end
+		
+		// the following should be overridden in the relevant subclass
+		@Operation isStringexpression():Boolean
+			false
+		end
+		@Operation isCompositeExpression():Boolean
+			false
+		end
+		@Operation isCopy():Boolean
+			false
+		end
+		@Operation isInsertAfter():Boolean
+			false
+		end
+		@Operation isInsertBefore():Boolean
+			false
+		end
+		@Operation isBreak():Boolean
+			false
+		end
+		@Operation isIterateExpression():Boolean
+			false
+		end
+		@Operation isSelectExpression():Boolean
+			false
+		end
+		
+		// this operation should be implemented by all subclasses
+		@Operation asStringSequence():Seq(String)
+			self.error("My subclass should have implemented this operation! " + self)
+		end
+		
+	end

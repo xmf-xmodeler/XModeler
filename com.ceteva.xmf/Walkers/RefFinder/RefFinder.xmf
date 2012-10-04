@@ -1,0 +1,247 @@
+parserImport XOCL;
+
+import Walkers;
+import Stacks;
+  
+context Walkers
+
+  @Class RefFinder
+  
+    @Doc
+      This is a special kind of walker that is used to determine whether any 
+      references exists for a given element - as such, it is useful for tracing
+      the cause of memory leaks. It is used as follows:
+      
+      (1) For a given element 'e' that you want to search, create a RefFinder
+          as follows:
+             w := RefFinder(e);
+          Alternatively, you can construct the walker without parameters and use:
+             w.setSearch(e);
+          You can set the start element of the root using:
+             w.setWalk(root);
+          If the root is not explicitly set, it will use 'Root'
+      
+      (2) When you are ready to search for the element (this is usually after removing
+          known references to it), run the walker as follows:
+             w.walk();
+      
+      (3) When the walk is completed, it will print a report saying whether the search
+          element has been found, and if it has it will print out a reference trace
+          from the search element back to the root element. The 'objectTrace' sequence
+          will also be set to that trace, with its first element being the last object
+          that referenced the search element, and the last element being the root of
+          the search, so each element of the trace can be examined in turn by editing
+          it.
+    end
+  
+    @Attribute table : Table = Table(100) end
+    @Attribute root : Element = Root (!) end
+    @Attribute search : Element (!) end
+    @Attribute finalObject : Object end
+    @Attribute objectTrace : Seq(Element) end
+    @Attribute found : Boolean end
+
+    @Constructor(search)
+    end
+    
+    @Constructor(root,search)
+    end
+
+    @Operation walk()
+    
+      // start by garbage collection twice
+    
+      gc();
+      gc();
+      resetOperatorTable();
+      
+      // initialise main walk
+      
+      self.found := false;
+      table.clear();
+
+      @WithoutSourcePos
+        let currentStack = Buffer(10000,false);
+            lastObjectStack = Buffer(10000,false);
+            index = 0;
+            p = Seq{null};
+            element = root;
+            lastObject = null
+        in
+           Kernel_arraySet(currentStack,index,root);
+           Kernel_arraySet(lastObjectStack,index,null);
+           index := index + 1;
+           
+           // start main walk
+
+           @While not (index = 0 or found) do
+             index := index - 1;
+             element := Kernel_arrayRef(currentStack,index);
+             lastObject := Kernel_arrayRef(lastObjectStack,index);
+             if not table.hasKey(element) and not element = self
+             then 
+               Kernel_tablePut(table,element,element);
+               @CaseInt[34] Kernel_tag(element) of 
+                 XMF::ARRAY do
+                   @Count i from 0 to element->size do
+                     Kernel_arraySet(currentStack,index,Kernel_arrayRef(element,i));
+                     Kernel_arraySet(lastObjectStack,index,lastObject);
+                     index := index + 1
+                   end
+                 end
+                 XMF::BOOL do
+                   null
+                 end
+                 XMF::BUFFER do
+                   null
+                 end
+                 XMF::CLIENT do
+                   null
+                 end
+                 XMF::CODE do
+                   null
+                 end
+                 XMF::CODEBOX do
+                   null
+                 end
+                 XMF::CONS do
+                   Kernel_arraySet(currentStack,index,element->head);
+                   Kernel_arraySet(lastObjectStack,index,lastObject);
+                   index := index + 1;
+                   Kernel_arraySet(currentStack,index,element->tail);
+                   Kernel_arraySet(lastObjectStack,index,lastObject);
+                   index := index + 1
+                 end
+                 XMF::CONT do
+                   null
+                 end
+                 XMF::DAEMON do
+                   null
+                 end
+                 XMF::FLOAT do
+                   null
+                 end
+                 XMF::FOREIGNFUN do
+                   null
+                 end
+                 XMF::FOREIGNOBJ do
+                   null
+                 end
+                 XMF::FUN do
+                   null
+                 end
+                 XMF::HASHTABLE do
+                   @Count i from 0 to element->size do
+                     Kernel_arraySet(currentStack,index,Kernel_arrayRef(element,i));
+                     Kernel_arraySet(lastObjectStack,index,lastObject);
+                     index := index + 1
+                   end
+                 end
+                 XMF::INPUT_CHANNEL do
+                   null
+                 end
+                 XMF::INT do
+                   null
+                 end
+                 XMF::NEGINT do
+                   null
+                 end
+                 XMF::NIL do
+                   null
+                 end
+                 XMF::OBJ do
+                   if self.match(element)
+                   then
+                     self.found := true;
+                     self.finalObject := lastObject
+                   else
+                     if not element = self
+                     then
+                       lastObject := element;
+                       @For slot in Kernel_objSlots(element) do
+                         if not found
+                         then
+                           Kernel_arraySet(currentStack,index,slot->tail);
+                           Kernel_arraySet(lastObjectStack,index,lastObject);
+                           index := index + 1
+                         end
+                       end
+                     end
+                   end
+                 end
+                 XMF::OUTPUT_CHANNEL do
+                   null
+                 end
+                 XMF::SET do
+                   @For e in element do
+                     Kernel_arraySet(currentStack,index,e);
+                     Kernel_arraySet(lastObjectStack,index,lastObject);
+                     index := index + 1
+                   end
+                 end
+                 XMF::STRING do
+                   null
+                 end
+                 XMF::SYMBOL do
+                   null
+                 end
+                 XMF::THREAD do
+                   null
+                 end
+                 else
+                   null
+               end    // end CaseInt
+             end      // end if
+           end;       // end While
+
+           // set and print out the object traces
+
+           let started = false;
+               lastStackIndex = lastObjectStack.size()-1 then
+               object = lastObjectStack.at(lastStackIndex)
+           in
+             self.objectTrace := Seq{};
+             let i = 0
+             in
+               @While i <= lastStackIndex do
+                 let nextObject = lastObjectStack.at(lastStackIndex-i)
+                 in
+                   if nextObject = finalObject
+                   then
+                     started := true
+                   end;
+                   if nextObject <> object and started
+                   then
+                     nextObject.println();
+                     self.objectTrace := objectTrace + Seq{nextObject};
+                     object := nextObject
+                   end
+                 end;
+                 i := i+1
+               end
+             end
+           end
+
+        end           // end let 
+      end;            // end WithoutSourcePos 
+
+      // if search element has not been found ...
+
+      "".println();
+      ("Search for element: " + search.toString()).println();
+      ("Start element for search: " + root.toString()).println();
+      if found
+      then
+        "Result: search element found (see above for object reference trace).".println()
+      else
+        "Result: search element not found.".println()
+      end;
+
+      self
+    end
+
+    @Operation match(element)
+      element = search
+    end
+
+  end

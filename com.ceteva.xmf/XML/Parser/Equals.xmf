@@ -1,0 +1,28 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Equals extends Guard
+  
+    @Attribute left  : GuardExp (?) end
+    @Attribute right : GuardExp (?) end
+    
+    @Constructor(left,right) end
+    
+    @Operation eval(env):Boolean
+      left.eval(env) = right.eval(env)
+    end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      format(out," = ");
+      right.pprint(out,indent)
+    end
+    
+  end

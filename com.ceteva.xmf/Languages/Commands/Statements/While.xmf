@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class While extends Statement
+  
+    @Attribute test : Exp end
+    @Attribute body : Statement end
+    
+    @Constructor(test,body) ! end
+    
+    // Incomplete....
+    
+    @Operation pprint(out,indent)
+      format(out,"while ");
+      test.pprint(out);
+      format(out," do~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+      
+  end

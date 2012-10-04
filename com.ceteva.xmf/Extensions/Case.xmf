@@ -1,0 +1,129 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+ 
+context XOCL
+
+  @Class Case extends Sugar
+  
+    @Doc
+      A case expression captures the often used pattern of
+      dispatching on a value to do several different tasks.
+     end
+     
+     @Attribute values : Seq(Performable) end
+     @Attribute arms : Seq(CaseArm) end
+     @Attribute default : Performable end
+     
+     @Constructor(values,arms,default) ! 
+       @Doc 
+         Values is a sequence of performable expressions producing
+         the values for the case to match against. The arms are case arms
+         consisting of patterns and actions. The default may be null if
+         not specified or a default action that is performed if none
+         of the arm patterns match all of the values in sequence.
+       end
+     end
+     
+     @Operation desugar()
+     
+       // Check that the case has the correct number of values and patterns.
+       // Then, if the case just contains constant patterns, desugar to a
+       // nested if. Otherwise, desugar to a full-blown pattern matching case...
+       
+       if self.wellFormed()
+       then
+         if self.isConstCase()
+         then self.desugarConstCase()
+         else self.desugarValues(values,Seq{},self.desugarLast())
+         end
+       else self.error("Case is not well formed:\n" + self.pprint())
+       end
+     end
+     
+     @Operation desugarArms(arms,vars,fail)
+       if arms->isEmpty
+       then [| arm1() |]
+       else 
+         let var = Var("arm" + arms->size.toString())
+         in [| let <var.name> = @Operation() <arms->head.desugar(vars,fail)> end
+               in <self.desugarArms(arms->tail,vars,[| <var>() |])>
+               end
+            |] 
+         end
+       end
+     end
+     
+     @Operation desugarConstCase()
+     
+       // Turn the case into a nested if...
+       
+       let vars = 0.to(values->size)->collect(i | Var("case_value" + i)) then
+           binds = @For var,value in vars,values produce ValueBinding(var.name,value) end;
+           body = arms->reverse->iterate(arm exp = self.desugarLast() | arm.desugarConst(vars,exp))
+       in Let(binds,body)
+       end
+     end
+     
+     @Operation desugarLast()
+       if default = null 
+       then [| self.error("out of case arms for " + <SetExp("Seq",values)>.toString()) |] 
+       else default
+       end
+     end
+     
+     @Operation desugarValues(values,vars,last)
+       if values->isEmpty 
+       then self.desugarArms(arms->reverse,vars,last)
+       else 
+         let var = Var("var" + vars->size.toString())
+         in [| let <var.name> = <values->head>
+               in <self.desugarValues(values->tail,vars + Seq{var},last)>
+               end
+            |]
+         end
+       end
+     end
+     
+     @Operation isConstCase():Boolean
+     
+       // Returns true when all the case arms are constant patterns...
+       
+       arms->forAll(arm | arm.isConst())
+       
+     end
+     
+     @Operation lift()
+       let valueExps = SetExp("Seq",values->collect(v | v.lift()));
+           armExps = SetExp("Seq",arms->collect(a | a.lift()));
+           defaultExp = if default = null then [| null |] else default.lift() end
+       in [| XOCL::Case(<valueExps>,<armExps>,<defaultExp>) |]
+       end
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@Case ");
+       @For value in values do
+         value.pprint(out,indent);
+         if not isLast then format(out,",") end
+       end;
+       format(out," of~%~V",Seq{indent+2});
+       @For arm in arms do
+         arm.pprint(out,indent+2);
+         if not isLast then format(out,"~%~V",Seq{indent+2}) end
+       end;
+       if default <> null
+       then 
+         format(out,"~%~Velse ",Seq{indent+2});
+         default.pprint(out,indent + 2)
+       end;
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+     @Operation wellFormed()
+       arms->forAll(arm | arm.arity() = values->size)
+     end
+     
+   end
+     

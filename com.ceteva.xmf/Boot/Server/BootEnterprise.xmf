@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Comms;
+import TopLevel;
+import IO;
+
+context XMF
+  @Operation bootEnterprise()
+    try 
+      let enterpriseClient = Clients::Enterprise::EnterpriseClient("com.ceteva.xmf.enterprise")
+      in 
+        xmf.clientManager().add(enterpriseClient);
+        @Fork(Enterprise)
+          enterpriseClient.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

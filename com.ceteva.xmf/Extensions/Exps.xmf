@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Operation Exps(es:Seq(Performable)):Seq(Exp)
+    es->collect(e | Exp(e))
+  end

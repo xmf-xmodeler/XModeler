@@ -1,0 +1,69 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class WayPoint extends ContainedDiagramElement
+  
+    @Attribute index : Integer (?) end
+    @Attribute x : Integer (?) end
+    @Attribute y : Integer (?) end
+    
+    @Constructor(index,x,y) end
+    @Constructor(id,index,x,y) ! end
+    
+    @Operation applyDelta(delta:Dimension)
+      self.move(x + delta.x,y + delta.y)
+    end
+    
+    @Operation delete()
+      @Command(self) deleteCommand(self) end;
+      self.removeFromOwner()
+    end
+    
+    @Operation layoutData():XML::Element
+      DiagramLayout::WayPoint(x,y)
+    end
+    
+    @Operation move(x,y)
+      @When self.x <> x or self.y <> y do
+        self.x := x;
+        self.y := y;
+        @Command(self) moveCommand(self,x,y) end
+      end
+    end
+    
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newWayPointCommand(parent,self) end;
+      self
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newWayPointCommand(parent,self) end;
+      self
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.remove(self)
+      else self.error("WayPoint::removeFromOwner: no owner.")
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        index = Seq{"index",index};
+        x = Seq{"x",x};
+        y = Seq{"y",y} then
+        attributes = Seq{id,index,x,y}
+      in
+        @Command(self) startElement("waypoint",attributes) end;
+        @Command(self) endElement("waypoint") end
+      end
+    end
+  
+  end

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Manifests;
+
+xmf.setProperty("manifestManager",null);
+
+context XMF
+  @Operation manifestManager()
+    self.property("manifestManager") 
+  end
+  
+context XMF
+  @Operation setManifestManager(p:ManifestManager)
+    self.setProperty("manifestManager",p)
+  end
+  
+xmf.setManifestManager(ManifestManager());

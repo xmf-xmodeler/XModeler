@@ -1,0 +1,37 @@
+parserImport Features;
+
+context Root
+  @Feature F0
+    
+    @Feature F1
+      @Feature F2
+      end
+      
+      @Feature F3
+      end
+      
+      @FeatureRef Root::BOB
+      end
+      
+      @Behaviour
+        Initial -> F2
+        Initial -> F3
+        Initial -> BOB
+        F3 -> F2
+        BOB -> Initial
+      end
+    end
+    
+    @Feature F4
+    end
+    
+    @Feature F5
+    end
+    
+    @Behaviour
+      Initial -> F1
+      Initial -> F4
+      F1 -> F5
+      F4 -> F5
+    end
+  end

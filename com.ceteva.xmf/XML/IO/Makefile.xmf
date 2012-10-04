@@ -1,0 +1,16 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XML/IO/Boot",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/AbstractObjectFormatter",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/ObjectXMLFormatter",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/ObjectXMLInflater",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/NameSpaceXMLFormatter",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/PackageXMLFormatter",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/NameSpaceXMLInflater",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/PackageXMLInflater",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/XMLInputChannel",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/XMLOutputChannel",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/XMLPackageInputChannel",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/XMLPackageOutputChannel",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/Element",true,true);
+compileFile(xmf.homeDir() + "/XML/IO/Package",true,true);

@@ -1,0 +1,82 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+  @Package Units 
+    @Class AdaProgram extends AdaObject
+      @Attribute resourceName : String end
+      @Attribute compilationUnits : Set(Units::CompilationUnit) end
+      @Attribute pragmas : Set(Units::Pragma) end
+      @Operation code():String
+        let ps = pragmas->asSeq->collect(p |
+          p.code(0)); cus = compilationUnits->asSeq->collect(cu |
+          cu.code(0))
+        in (ps + cus)->separateWith("\n\n\n")
+        end
+      end
+    end
+    @Class AdaSystem extends AdaObject
+      @Attribute programs : Set(Units::AdaProgram) end
+      @Operation code():String
+        programs->asSeq->collect(p |
+          p.code())->separateWith("\n\n\n\n\n\n")
+      end
+    end
+    @Class CompilationUnit extends AdaObject
+      @Attribute private : Boolean end
+      //@Attribute contextSpec : Set(Specs::ContextSpec) end
+      @Attribute contextSpec : Element end
+      @Attribute unit : Set(Units::Unit) end
+      @Operation code(indent:Integer):String
+        let cs = contextSpec->asSeq->collect(cs |
+          cs.code(indent)); us = unit->asSeq->collect(u |
+          u.code(indent)); p = if private
+        then Seq{"private"}
+        else Seq{}
+        end
+        in (cs + p + us)->separateWith("\n\n\n")
+        end
+      end
+    end
+    @Class PackageBody extends Units::Unit
+    end
+    @Class Pragma extends AdaObject
+      @Attribute contents : Set(Element) end
+      @Attribute name : String end
+      @Attribute val : String end
+      @Operation code(indent:Integer):String
+        "pragma ;\n\n\n" + " ".repeat(indent)
+      end
+    end
+    @Class RenameUnit extends Units::Unit
+    end
+    @Class SubUnit extends Units::Unit
+    end
+    @Class Unit isabstract extends AdaObject
+    end
+    @Class UseClause //extends Decls::DeclItem
+      @Attribute type : Boolean end
+      @Attribute name : Names::Name end
+      @Operation toString():Element
+        "<UseClause " + name + ":" + type + ">"
+      end
+      @Operation code(indent:Integer):String
+        if type
+        then "use type"
+        else "use "
+        end + name.code(indent) + ";"
+      end
+    end
+    @Class WithClause extends AdaObject
+      @Attribute name : Names::Name end
+      @Operation toString():Element
+        "<WithClause " + name + ">"
+      end
+      @Operation code(indent:Integer):String
+        "with " + name.code(indent) + ";"
+      end
+    end
+  end

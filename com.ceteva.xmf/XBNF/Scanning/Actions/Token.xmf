@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context ! XBNF::Scanning::Actions
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Token extends XBNF::Scanning::Actions::Action
+
+    @Attribute name  : String  (?,!) end
+    @Attribute index : Integer (?,!) end
+
+    @Constructor(name) ! end
+    
+    @Operation setTokenIndex(index:Integer):Integer
+      self.index := index;
+      index + 1
+    end
+
+  end

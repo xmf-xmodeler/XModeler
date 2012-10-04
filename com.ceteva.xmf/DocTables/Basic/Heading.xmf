@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Heading extends Entry
+
+    @Attribute text : String (?,!) end
+    @Attribute level : Integer (?,!) end
+
+    @Constructor(text,level) ! end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

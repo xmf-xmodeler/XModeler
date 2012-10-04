@@ -1,0 +1,1083 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::DiagramTools::DiagramEvents;
+import MDC;
+import Displays;
+import Types;
+import Values;
+import Walkers;
+import IO;
+
+context ! MDC
+
+  @Class MDCTool extends Root::Tools::DiagramTools::Structure::Tool
+  
+    // The tool that manages a controlled object and a collection 
+    // of free nodes. All events that occur to the diagram or change
+    // the state of the objects are received by this tool and are
+    // handled by broadcasting the event to the controlled object and
+    // the free objects.
+  
+    @Attribute free     : Seq(Value)                    (?,!,+,-)       end
+    @Attribute edges    : Seq(EdgeSlot)                 (?,!,+,-)       end
+    @Attribute assocs   : Seq(Association)              (?,!,+,-)       end
+    @Attribute check    : Boolean = false               (?,!)           end
+    @Attribute undo     : Boolean = false               (?,!)           end
+    @Attribute walker   : ConstraintReporter = ConstraintReporter(true) end
+    @Attribute events   : Seq(Event)                    (?,!,+,-)       end
+    @Attribute debug    : Boolean                       (?,!)           end
+    @Attribute themes   : Seq(Theme)                    (?,!,+,-)       end
+    @Attribute applied  : Seq(Theme)                    (?,!,+,-)       end
+    
+    @Operation allAssocs()
+    
+      // All the assocs including those from the nested diagrams...
+      
+      let tools = self.allTools()
+      in  tools->iterate(t A = Seq{} | A + t.assocs())
+      end
+    end
+
+    @Operation allEdges()
+    
+      // All the edges including those from the nested diagrams...
+      
+      let tools = self.allTools()
+      in  tools->iterate(t A = Seq{} | A + t.edges())
+      end
+    end
+    
+    @Operation applyTheme(theme:Theme)
+      
+      // Add to list of applied themes and apply the themes to the
+      // elements...
+      
+      self.addToApplied(theme);
+      element.applyTheme(self,theme,true)
+      
+    end
+    
+    @Operation applyThemes()
+      @For theme in applied do
+        element.applyTheme(self,theme,true)
+      end
+    end
+          
+    @Operation attributeChanged(display,new,old)
+    
+      // Inform the element that some display text has changed.
+      // If we are checking (and not undoing) then check the
+      // constraints and undo the change if the constraint check
+      // fails...
+      
+      element.displayChanged(self,display,new,old);
+      @For value in free do
+        value.displayChanged(self,display,new,old)
+      end;
+      if check and not undo
+      then 
+        if not self.checkWellformedness()
+        then 
+          @WithEvents(self)
+            try
+              self.setUndo(true);
+              display.setText(old);
+              self.setUndo(false)
+            catch(exception)
+              self.setUndo(false);
+              throw exception
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation attributeEdgeAdded(edge,edgeMap,sourceNode,targetNode)
+      
+      // The edge matches the associated edgeMap.
+      // Assume that the source and target node types
+      // are correct. Update the source node
+      // attribute to contain the target node value
+      // and register the edge. Edges should be unique.
+      
+      let sourceValue = self.findDisplayValue(sourceNode);
+          targetValue = self.findDisplayValue(targetNode) then
+          object = sourceValue.element();
+          element = targetValue.element()
+      in @Find(e,edges)
+           when e.source() = sourceValue and
+                e.target() = targetValue and
+                e.type() = edgeMap
+           do xmf.message("Only one edge allowed!");
+              edge.delete()
+           else
+             let e = EdgeSlot(edge,edgeMap,sourceValue,targetValue);
+                 result = null
+             in
+               let handler = edgeMap.creationHandler()
+               in
+                 result := handler(edgeMap,self,object,element)
+               end;
+               if not result.isReallyKindOf(HandlerRejectEvent)
+               then self.addToEdges(e)
+               else if result.type() = "DELETE"
+                    then edge.delete()
+                    end
+               end
+             end
+         end
+      end
+    end
+
+    @Operation attributeValueAdded(node,display)
+      @WithoutEvents(self)
+        if self.isRegistered(node)
+        then self.find(node).displayAdded(self,display)
+        end
+      end
+    end
+    
+    @Operation basicClassEdgeAdded(edge,classMap,sourceNode,targetNode)
+    
+      // Update the controlled element and store an association
+      // in the tool...
+      
+      let name = classMap.attribute().name();
+          sourceValue = self.findDisplayValue(sourceNode);
+          targetValue = self.findDisplayValue(targetNode) then
+          sourceElement = sourceValue.element();
+          targetElement = targetValue.element();
+          sourceAtt = classMap.sourceAtt();
+          targetAtt = classMap.targetAtt() then
+          class = classMap.attribute().underlyingType() then
+          object = class() then
+          assoc = Association(edge,classMap,sourceValue,targetValue,object);
+          result = null
+      in let handler = classMap.creationHandler()
+         in
+           result := handler(classMap,self,element.element(),object,sourceElement,targetElement)
+         end;
+         if not result.isReallyKindOf(HandlerRejectEvent)
+         then assoc.populate(self);
+              object.observeBy(self,true);
+              self.addToAssocs(assoc)
+         else if result.type() = "DELETE"
+              then edge.delete()
+              end
+         end
+      end
+    end
+
+    @Operation checkLegacyUpgrade(xmfVersion)
+
+      // Need to delink the edge labels from their locally stored copies
+      // of the types and link them up to the mappings in the tool definition.
+      // Also make sure Tool Observer daemons are added to the
+      // association's objects slot values.
+
+      if xmfVersion = ""
+      then
+        self.upgradeLegacy_labelTypes();
+        self.upgrateLegacy_assocToolObserverDaemons()
+      end;
+    
+      // Add any missing labels to edges and connect to the appropriate types...
+      self.upgradeLegacy_labelTypes2();
+      self.upgradeLegacy_addToolDiagramListener();
+      
+      // Check diagram drop enabled state against tool definition diagram contribution...
+      let dropEnabled = self.element.type.toolDescriptor.diagramContribution.dropEnabled
+      in
+        self.diagram.dropEnabled := dropEnabled
+      end
+
+    end
+
+    @Operation checkWellformedness()
+    
+      // Inform the user if the diagram has become ill-formed.
+      // Return false if the last change should be undone...
+      
+      walker.reset();
+      let report = walker.walkConstraints(element.element())
+      in if not report.satisfied()
+         then 
+           not xmf.question(report.failures()->map("reason")->separateWith("\n") + "\nUndo?")
+         else true
+         end
+      end
+    end
+    
+    @Operation classEdgeAdded(edge,classMap,sourceNode,targetNode)
+      
+      // The edge has a classMap type. The edge represents
+      // an instance of the class defined in the classMap and
+      // the ends are attribute values.
+      
+      if classMap.attribute().hasAtomicType()
+      then self.immediateClassEdgeAdded(edge,classMap,sourceNode,targetNode)
+      else self.basicClassEdgeAdded(edge,classMap,sourceNode,targetNode)
+      end
+    end
+    
+    @Operation clicks(display,clicks)
+      if display.type().isKindOf(EventHandler)
+      then display.type().handleClicks(self,display,clicks)
+      end
+    end
+    
+    @Operation deleteEdgeSlot(edgeSlot)
+      edgeSlot.edge().delete();
+      self.deleteFromEdges(edgeSlot)
+    end
+    
+    @Operation deleteEdgeSlot(source,slot,target)
+      let edgeSlot = self.findEdgeSlot(source,slot,target)
+      in
+        if edgeSlot <> null
+        then
+          self.deleteEdgeSlot(edgeSlot)
+        end
+      end
+    end
+    
+    @Operation displayRemoved(display)
+      @WithoutEvents(self)
+        element.displayRemoved(self,display)
+      end
+    end
+    
+    @Operation edgeAdded(edge,sourceNode,targetNode)
+    
+      // Called when an edge is added to the diagram.
+      // Determine whether the edge corresponds to an 
+      // attribute or a class and dispatch...
+      
+      @Find(edgeMap,element.type().edges())
+        when edgeMap.edgeType() = edge.type()
+        do self.attributeEdgeAdded(edge,edgeMap,sourceNode,targetNode)
+      end;
+      @Find(classMap,element.type().classEdges())
+        when classMap.edgeType() = edge.type()
+        do self.classEdgeAdded(edge,classMap,sourceNode,targetNode)
+      end
+    end
+    
+    @Operation edgeRemoved(edge,sourceNode,targetNode)
+    
+      // Called when an edge is removed from the diagram.
+      // Find the edge and remove it, ask it to modify
+      // the underlying element...
+      
+      @Find(e,edges)
+        when e.edge() = edge
+        do e.remove(self,sourceNode,targetNode);
+           self.deleteFromEdges(e)
+      end;
+      @Find(a,assocs)
+        when a.edge() = edge
+        do a.remove(self);
+           self.deleteFromAssocs(a)
+      end
+    end
+    
+    @Operation findElement(display)
+    
+      // Used to map a display to an underlying element.
+      // Note that the display could be an edge...
+      
+      let value = self.findDisplayValue(display)
+      in if value = null
+         then 
+           @Find(assoc,assocs)
+             when assoc.edge() = display
+             do assoc.object()
+             else null
+           end
+         else value.element()
+         end
+      end
+    end
+    
+    @Operation findDisplayValue(display)
+    
+      // Return the value with the associated display...
+      
+      let x = element.findDisplayValue(display);
+          V = free
+      in @While x = null and not V->isEmpty do
+           x := V->head.findDisplayValue(display);
+           V := V->tail
+         end;
+         x
+      end
+    end
+
+    @Operation findEdgeSlot(source,slot,target)
+      let sourceValue = self.findRootValue(source);
+          targetValue = self.findRootValue(target)
+      in
+        @Find(edgeSlot,edges)
+          when
+            let edgeMap = edgeSlot.type()
+            in
+              edgeMap.attribute().name() = slot andthen
+              sourceValue.type().inheritsFrom(edgeMap.source().type())
+            end andthen
+            edgeSlot.source() = sourceValue andthen
+            edgeSlot.target() = targetValue
+        end
+      end
+    end
+
+    @Operation findElementValue(e)
+    
+      // Return the value associated with the supplied
+      // element...
+      
+      let x = element.findElementValue(e);
+          V = free
+      in @While x = null and not V->isEmpty do
+           x := V->head.findElementValue(e);
+           V := V->tail
+         end;
+         x
+      end
+    end
+    
+    @Operation findRootValue(object)
+    
+      // Returns a value representing a node for the
+      // supplied object (either root or free). Returns
+      // null of no root node value exists...
+      
+      let value = element.findRootValue(object)
+      in @For f in free when value = null do
+           value := f.findRootValue(object)
+         end;
+         value
+      end
+    end
+    
+    @Operation handleAssociationStateChange(object,slot,new,old)
+    
+      // Perhaps one of the slots that the root object uses for
+      // class edges has changed. Update the display as appropriate...
+      
+      if object = element.element()
+      then 
+        @Find(classMap,element.type().classEdges())
+          when classMap.attribute().name() = slot
+          do classMap.handleAssociationStateChange(self,new,old)
+        end
+      end
+    end
+    
+    @Operation handleEdgeStateChange(object,slot,new,old)
+    
+      // Find the node corresponding to the source object.
+      // If the node exists and there is an edge type for
+      // it then add or modify the edge...
+    
+      let sourceValue = self.findRootValue(object)
+      in // sourceValue is the representation for the object that has changed.
+         // Now try to find the type definition for an edge from this
+         // object with the given attribute name...
+         if sourceValue <> null
+         then 
+           @Find(edgeMap,element.type().edges())
+             when edgeMap.attribute().name() = slot and
+                  sourceValue.type().inheritsFrom(edgeMap.source().type())
+             do // The edgeMap is the type definition for the
+                // edge that has changed.
+                if edgeMap.attribute().hasAtomicType()
+                then self.handleImmediateEdgeStateChange(edgeMap,sourceValue,new,old)
+                else self.handleCollectionEdgeStateChange(edgeMap,sourceValue,new,old)
+                end
+           end
+         end
+      end;
+      self.slotChangedEvent(object,slot,new,old)
+    end
+    
+    @Operation handleCollectionEdgeStateChange(edgeMap,sourceValue,new,old)
+    
+      // The state of the soureValue has changed and the edgeMap is an
+      // Attribute_x_Edge that desribes any edges that must be modified. Both
+      // new and old are collections of elements...
+      
+      let added = new - old;
+          deleted = old - new
+      in // Delete any edges that exist from the source value to
+         // any deleted elements...
+         @For element in deleted do
+           let targetValue = self.findRootValue(element)
+           in if targetValue <> null
+              then
+                @Find(edgeSlot,edges)
+                  when edgeSlot.type() = edgeMap and
+                       edgeSlot.source() = sourceValue and
+                       edgeSlot.target() = targetValue
+                  do edgeSlot.edge().delete();
+                     self.deleteFromEdges(edgeSlot)
+                end
+              end
+           end
+         end;
+         // Create any edges that link the source value to
+         // any added elements for which we do not have an edge...
+         @For element in added do
+           let targetValue = self.findRootValue(element)
+           in if targetValue = null
+              then 
+                let newNode = edgeMap.target().type().nodeType().new(0,0,self)
+                in targetValue := edgeMap.target().type().newNode(self,element,newNode);
+                   self.addToFree(targetValue)
+                end
+              end;
+              // Create a new edge if the edge does not already
+              // exist...
+              @Find(edgeSlot,edges)
+                when edgeSlot.type() = edgeMap and
+                     edgeSlot.source() = sourceValue and
+                     edgeSlot.target() = targetValue
+                else
+                  let sourceNode = sourceValue.node();
+                      targetNode = targetValue.node() then
+                      sourcePort = sourceNode.port();
+                      targetPort = targetNode.port() then
+                      edgeType = edgeMap.edgeType() then
+                      edge = edgeType.new(sourcePort,targetPort,self) then
+                      edgeSlot = EdgeSlot(edge,edgeMap,sourceValue,targetValue)
+                  in self.addToEdges(edgeSlot)
+                  end
+              end
+           end
+         end
+     end
+   end
+    
+    @Operation handleImmediateEdgeStateChange(edgeMap,sourceValue,new,old)
+    
+      // The state of the sourceValue has changed and the edgeMap is an
+      // Attribute_x_Edge that describes any edges that must be modified...
+      
+      if new = null
+      then 
+        // If the value has been set to null then
+        // delete any edge that exists... 
+        @Find(edge,edges)
+          when edge.type() = edgeMap
+          do edge.edge().delete();
+             self.deleteFromEdges(edge)
+        end
+      else 
+        // Delete any edge that exists and create a
+        // new edge if necessary...
+        @Find(edge,edges)
+          when edge.type() = edgeMap and edge.source() = sourceValue
+          do // Only delete if the slot value has 
+             // really changed...
+             if edge.target().element() <> new
+             then 
+               edge.edge().delete();
+               self.deleteFromEdges(edge)
+             end
+        end;
+        // If there is no edge then create a new one...
+        @Find(edge,edges)
+          when edge.type() = edgeMap and edge.source() = sourceValue
+          else
+           let targetValue = self.findRootValue(new)
+           in if targetValue = null
+              then 
+               let newNode = edgeMap.target().type().nodeType().new(0,0,self)
+               in targetValue := edgeMap.target().type().newNode(self,new,newNode);
+                  self.addToFree(targetValue)
+               end
+              end;
+              let sourceNode = sourceValue.node();
+                  targetNode = targetValue.node() then
+                  sourcePort = sourceNode.port();
+                  targetPort = targetNode.port() then
+                  edgeType = edgeMap.edgeType() then
+                  edge = edgeType.new(sourcePort,targetPort,self) then
+                  edgeSlot = EdgeSlot(edge,edgeMap,sourceValue,targetValue)
+              in self.addToEdges(edgeSlot)
+              end
+            end
+         end
+       end
+    end
+    
+    @Operation handleObjectStateChange(object,slot,new,old)
+    
+      // If we are handling events then the display must be 
+      // updated. Assumes that no further events need to be
+      // handled and that the state change can be broadcast
+      // because each slot occurs only once on a diagram...
+      
+      if handleEvents and self.rootTool() <> null
+      then 
+        @WithoutEvents(self.rootTool().allTools())
+          element.stateChanged(self,object,slot,new,old)
+        end
+      end
+    end
+    
+    @Operation handleObjectStateChangeInternal(object,slot,new,old)
+    
+      // Allows for re-entry via nested diagram tools...
+      
+      @For value in free do
+        value.stateChanged(self,object,slot,new,old)
+      end;
+      @For assoc in assocs do
+        assoc.stateChanged(self,object,slot,new,old)
+      end;
+      self.handleEdgeStateChange(object,slot,new,old);
+      self.handleAssociationStateChange(object,slot,new,old);
+      self.processEvents();
+      if self.debug
+      then self.pprint(stdout,0)
+      end
+    end
+    
+    @Operation immediateClassEdgeAdded(edge,classMap,sourceNode,targetNode)
+    
+      // If there is already an edge for this class map then
+      // it must be deleted before creating a new instance
+      // of the class underlying the map, updating the controlled
+      // element and modifying the attributes of the new instance.
+      
+      @Find(assoc,assocs)
+        when assoc.type() = classMap
+        do assoc.edge().delete();
+           self.deleteFromAssocs(assoc)
+      end;
+      
+      self.basicClassEdgeAdded(edge,classMap,sourceNode,targetNode)
+      
+    end
+    
+    @Operation isRootNode(node)
+      @Find(map,element.type().nodes())
+        when map.type().nodeType() = node.type()
+        do map.isKindOf(Root_x_Node)
+        else self.error("Unknown type of node " + node.toString())
+      end
+    end
+    
+    @Operation labelChanged(edge,sourceNode,targetNode,label,new,old)
+    
+      // Called when one of the labels on an edge is changed.
+      // Find the appropriate edge, find the label on the type
+      // of the edge and fire all the listeners...
+      
+      @Find(edgeMap,edges)
+        when edgeMap.edge() = edge
+        do edgeMap.labelChanged(self,label,new,old)
+      end;
+      @Find(assoc,assocs)
+        when assoc.edge() = edge
+        do assoc.labelChanged(self,label,new,old)
+      end
+    end
+    
+    @Operation loadTheme()
+      let file = xmf.openFile(xmf.projDir(),"Theme File","*.thm")
+      in if file.fileExists()
+         then 
+           @Busy("Loading Theme")
+             @WithOpenFile(fin <- file)
+               let inch = ElementInputChannel(fin) then
+                   theme = inch.read()
+               in @Find(t,self.themes())
+                    when t.name() = theme.name()
+                    do self.deleteFromThemes(t)
+                  end;
+                  self.addToThemes(theme)
+               end
+             end
+           end;
+           xmf.message("Loaded Theme")
+         end
+      end
+    end
+    
+    @Operation moved(display,newx,newy,oldx,oldy)
+    
+      // Called when the display is moved. Each display type should
+      // define a move handler...
+      
+      if display.type().isKindOf(EventHandler)
+      then display.type().handleMove(self,display,newx,newy,oldx,oldy)
+      end
+    end
+    
+    @Operation newFreeNode(node)
+    
+      // Called when the node is added and is a free node.
+      // Create a value for the new node and add it into
+      // the set of free values...
+      
+      @Find(map,element.type().nodes())
+        when map.type().nodeType() = node.type() andthen
+             map.isKindOf(Free_x_Node)
+        do map.build(self,node,diagram)
+      end
+    end
+    
+    @Operation newNode(node)
+    
+      // Occurs when a node is added to the diagram.
+      // The node is either a free node or a root
+      // node.
+      
+      element.newNode(self,node);
+      node.setTextFocus()
+      
+    end
+    
+    @Operation nodeRemoved(node)
+      
+      // Called when the node has been removed from
+      // the diagram. Reset the appropriate value by
+      // broadcasting the message...
+      
+      @Find(value,free)
+        when value.display() = node
+        do self.free := free->excluding(value)
+        else element.nodeRemoved(self,node)
+      end
+    end
+    
+    @Operation objectCreatedEvent(object)
+    
+      // Called when an object is instantiated by diagram event
+      // processing. Logs an event...
+      
+      self.events := events->including(NewObject(object))
+      
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"MDCTool~%~V",Seq{indent+2});
+      format(out,"Free~%~V",Seq{indent+4});
+      @For f in free do
+        f.pprint(out,indent+4);
+        if not isLast
+        then format(out,"~%~V",Seq{indent+4})
+        end
+      end;
+      format(out,"~%~V",Seq{indent+2});
+      format(out,"Edges~%~V",Seq{indent+4});
+      @For e in edges do
+        e.pprint(out,indent+4);
+        if not isLast 
+        then format(out,"~%~V",Seq{indent+4})
+        end
+      end;
+      format(out,"~%~V",Seq{indent+2});
+      format(out,"Assocs~%~V",Seq{indent+4});
+      @For a in assocs do
+        a.pprint(out,indent+4);
+        if not isLast 
+        then format(out,"~%~V",Seq{indent+4})
+        end
+      end;
+      format(out,"~%~V",Seq{indent+2});
+      format(out,"Eement~%~V",Seq{indent+4});
+      self.element().pprint(out,indent+4);
+      format(out,"~%~Vend",Seq{indent+2})
+    end
+    
+    @Operation processEvents()
+    
+      // Called when the receiver wants to process any events
+      // that have occurred during normal processing...
+      
+      @For event in events do
+        event.process(self)
+      end;
+      self.events := Seq{};
+      self.applyThemes()
+    end
+    
+    @Operation raise(event)
+    
+      // Events arrive here and are dispatched to an 
+      // appropriate handler.
+      
+      if handleEvents
+      then
+
+        // Process these events in any case...
+        @CaseObj event of
+          Clicks[value,clicks] do
+            self.clicks(value,clicks);
+            self.processEvents()
+          end
+          Move[value,newx,newy,oldx,oldy] do
+            self.moved(value,newx,newy,oldx,oldy);
+            self.processEvents()
+          end
+          Resize[value,newWidth,newHeight,oldWidth,oldHeight] do
+            self.resized(value,newWidth,newHeight,oldWidth,oldHeight);
+            self.processEvents()
+          end
+          Selection[value,selected] do
+            self.selection(value,selected);
+            self.processEvents()
+          end
+          AttributeChanged[root,path,value,new,old] do
+            self.attributeChanged(value,new,old);
+            self.textChanged(value,new,old)
+          end
+          AttributeValueAdded[root,value] do
+            self.attributeValueAdded(root,value)
+          end
+          NodeRemoved[node] do
+            self.nodeRemoved(node)
+          end
+          else null
+        end; 
+
+        // Filter these events...
+        @WithoutEvents(self.rootTool().allTools())
+          @CaseObj event of
+            NewNode[node] do
+              self.newNode(node)
+            end
+            DisplayRemoved[display] do
+              self.displayRemoved(display)
+            end
+            NewEdge[edge,source,target] do
+              self.edgeAdded(edge,source,target)
+            end
+            EdgeRemoved[edge,source,target] do
+              self.edgeRemoved(edge,source,target)
+            end
+            TargetChanged[edge,new,old] do
+              self.targetReconnected(edge,new,old)
+            end
+            SourceChanged[edge,new,old] do
+              self.sourceReconnected(edge,new,old)
+            end
+            EdgeAttributeChanged[edge,source,target,value,new,old] do
+              self.labelChanged(edge,source,target,value,new,old)
+            end
+            else null //format(stdout,"Unknown event type: ~S~%",Seq{event})
+          end;
+          self.processEvents()
+        end;
+        
+        if self.debug
+        then self.pprint(stdout,0)
+        end
+      end
+    end
+    
+    @Operation removeTheme(theme)
+      self.deleteFromApplied(theme);
+      element.applyTheme(self,theme,false);
+      self.applyThemes()
+    end
+    
+    @Operation resized(display,newWidth,newHeight,oldWidth,oldHeight)
+    
+      // Called when a display element is resized...
+      
+      if display.type().isKindOf(EventHandler)
+      then display.type().handleResize(self,display,newWidth,newHeight,oldWidth,oldHeight)
+      end
+    end
+    
+    @Operation save()
+    
+      // Temporary operation for saving a tool...
+      // Needs to be integrated with XTool superstructure...
+      
+      let file = xmf.saveFile(xmf.projDir(),".xar")
+      in if file <> ""
+         then
+           @Busy("Saving " + file)
+             xmf.clientManager().setSaving(true);
+             let excludedNameSpaces = Root.allContentsOf(XCore::NameSpace)->including(Root)->asSeq;
+                 out = ElementOutputChannel(GZipOutputChannel(FileOutputChannel(file)))
+             in xmf.clientManager().preSave();
+                out.write(self,excludedNameSpaces);
+                out.close();
+                xmf.clientManager().postSave();
+                xmf.clientManager().setSaving(false)
+             end
+           end
+         end
+      end
+              
+    end
+    
+    @Operation selection(display,selected)
+    
+      // Called when a display element is selected or
+      // de-selected...
+      
+      if display.type().isKindOf(EventHandler)
+      then display.type().handleSelection(self,display,selected)
+      end
+    end
+    
+    @Operation showDialog()
+    
+      // Offer elements up for un-hiding...
+      
+      let values = element.allValues()->excluding(element) + free then
+          nodeValues = values->select(v | v.display().isKindOf(Clients::Diagrams::Node)) then
+          hiddenNodeValues = nodeValues->select(v | v.display().hidden());
+          allAssocs = self.allAssocs() then
+          hiddenAssocs = allAssocs->asSeq->select(a | a.edge().hidden());
+          hiddenEdges = self.allEdges()->asSeq->select(e | e.edge().hidden());
+          labels = allAssocs->iterate(a L = Seq{} | L + a.edge().labels->asSeq) then
+          hiddenLabels = labels->select(l | l.hidden()) then
+          options = hiddenNodeValues + hiddenEdges + hiddenAssocs + hiddenLabels
+      in
+         if not options->isEmpty
+         then 
+           let O = xmf.selects("Show","Select values to un-hide",options,Seq{},MDCTool::showHideFilter)
+           in
+             if O <> 0-1
+             then 
+              @For option in O do
+                @TypeCase(option)
+                  Value do
+                    option.display().show()
+                  end
+                  Association do
+                    option.edge().show()
+                  end
+                  Clients::Diagrams::Label do
+                    option.show()
+                  end
+                  EdgeSlot do
+                    option.edge().show()
+                  end
+                  else null
+                end
+              end
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation showHideFilter(x)
+      
+      // Used by the XMF selection dialog to filter on the
+      // displayable portion of a value...
+      
+      @TypeCase(x)
+        Value do
+          x.element().labelString()
+        end
+        Association do
+          x.object().labelString()
+        end
+        Clients::Diagrams::Label do
+          x.text().toString()
+        end
+        EdgeSlot do
+          x.source().element().labelString() + " -> " + x.target().element().labelString() + " (" + x.type().attribute().name() + " slot)"
+        end
+        else x.toString()
+      end
+    end
+    
+    @Operation slotChangedEvent(object,slot,new,old)
+    
+      // Called to register an event for subsequent processing...
+      
+      self.addToEvents(SlotChanged(object,slot,new,old))
+    end
+    
+    @Operation sourceReconnected(edge,newNode,oldNode)
+    
+      // Called when the source of an edge is changed on
+      // a diagram...
+      
+      @Find(e,edges)
+        when e.edge() = edge
+        do let newValue = self.findDisplayValue(newNode);
+               oldValue = self.findDisplayValue(oldNode) then
+               result = e.sourceReconnected(self,newValue,oldValue)
+           in
+             if result.isReallyKindOf(HandlerRejectEvent)
+             then
+               if result.type() = "DELETE"
+               then
+                 self.deleteFromEdges(e);
+                 edge.delete()
+               elseif result.type() = "RESET"
+               then
+                 @WithoutEvents(self)
+                   edge.sourceReconnected(oldNode.ports->sel);
+                   e.setSource(oldValue)
+                 end
+               end
+             end
+           end
+      end;
+      @Find(a,assocs)
+        when a.edge() = edge
+        do let newValue = self.findDisplayValue(newNode);
+               oldValue = self.findDisplayValue(oldNode) then
+               result = a.sourceReconnected(self,newValue,oldValue)
+           in
+             if result.isReallyKindOf(HandlerRejectEvent)
+             then
+               if result.type() = "DELETE"
+               then
+                 Class_x_Edge::deleteClassEdge(self,a.object())
+               elseif result.type() = "RESET"
+               then
+                 @WithoutEvents(self)
+                   edge.sourceReconnected(oldNode.ports->sel);
+                   a.setSource(oldValue)
+                 end
+               end
+             end
+           end
+      end
+    end
+    
+    @Operation targetReconnected(edge,newNode,oldNode)
+    
+      // Called when the target of an edge is changed on
+      // a diagram...
+
+      @Find(e,edges)
+        when e.edge() = edge
+        do let newValue = self.findDisplayValue(newNode);
+               oldValue = self.findDisplayValue(oldNode) then
+               result = e.targetReconnected(self,newValue,oldValue)
+           in
+             if result.isReallyKindOf(HandlerRejectEvent)
+             then
+               if result.type() = "DELETE"
+               then
+                 self.deleteFromEdges(e);
+                 edge.delete()
+               elseif result.type() = "RESET"
+               then
+                 @WithoutEvents(self)
+                   edge.targetReconnected(oldNode.ports->sel);
+                   e.setTarget(oldValue)
+                 end
+               end
+             end
+           end
+      end;
+      @Find(a,assocs)
+        when a.edge() = edge
+        do let newValue = self.findDisplayValue(newNode);
+               oldValue = self.findDisplayValue(oldNode) then
+               result = a.targetReconnected(self,newValue,oldValue)
+           in
+             if result.isReallyKindOf(HandlerRejectEvent)
+             then
+               if result.type() = "DELETE"
+               then
+                 Class_x_Edge::deleteClassEdge(self,a.object())
+               elseif result.type() = "RESET"
+               then
+                 @WithoutEvents(self)
+                   edge.targetReconnected(oldNode.ports->sel);
+                   a.setTarget(oldValue)
+                 end
+               end
+             end
+           end
+      end
+    end
+
+    @Operation textChanged(display,new,old)
+    
+      // Called when the display is changed by editing. Each text box
+      // defines a change handler...
+      
+      if display.type().isKindOf(TextEventHandler)
+      then display.type().handleTextChanged(self,display,new,old)
+      end
+    end
+    
+    @Operation tooledElement()
+      if self.element().isReallyKindOf(ControlledObject)
+      then self.element().element
+      else self.element()
+      end
+    end
+
+    @Operation upgradeLegacy_labelTypes()
+      let e = self.tooledElement() then
+          diagrams = xmf.diagramManager().diagramsFor(e);
+          rtns = Root::XToolsRefTypes then
+          elementTable = rtns.getElement("elementTable")
+      in
+        let edges = self.allAssocs()->collect(v | v.edge)
+        in
+          @For edge in edges do
+            let labels = edge.labels;
+                types = edge.type.labels
+            in
+              @For label in labels do
+                let labelType = label.type
+                in
+                  @Find(type,types)
+                    when elementTable.get(type)->head = labelType.name andthen
+                         type.attachedTo = labelType.attachedTo
+                    do
+                      label.setType(type)
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation upgradeLegacy_labelTypes2()
+    
+      // Add any missing labels to edges and connect to the appropriate types...
+      
+      @For assoc in self.allAssocs() do
+        let edge = assoc.edge
+        in  edge.type.upgradeEdge(edge,self)
+        end;
+        assoc.populate(self)
+      end
+    end
+
+    @Operation upgrateLegacy_assocToolObserverDaemons()
+      @For assoc in self.allAssocs() do
+        assoc.populate(self)
+      end
+    end
+    
+    @Operation upgradeLegacy_addToolDiagramListener()
+      
+      // Since the listeners is a set, it doesn't matter
+      // if the tool is registered with the diagram multiple
+      // times
+      
+      self.registerWithDiagram(diagram);
+      @For tool in self.subTools()
+      do
+        if tool.isKindOf(MDCTool)
+        then
+          tool.upgradeLegacy_addToolDiagramListener()
+        end
+      end
+    end
+
+  end

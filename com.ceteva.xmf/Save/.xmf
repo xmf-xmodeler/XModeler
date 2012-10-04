@@ -1,0 +1,169 @@
+let table = Stacks::Stack()
+in @Package BT metapackage Root::XCore::Package
+     @Package Entities metapackage Root::XCore::Package extends Root::XCore
+       @Class Entity metaclass Root::XCore::Class  extends Root::XCore::Class
+         @Constraint CorrectSpecs
+           self.constraints->forAll(c |
+             let ctype = c.of()
+           in @Case ctype of 
+                [ BT::Entities::ServiceSpec ] do
+                  self.isKindOf(BT::Entities::Service)
+                end
+                [ BT::Entities::ProductSpec ] do
+                  self.isKindOf(BT::Entities::Product)
+                end
+                [ BT::Entities::ResourceSpec ] do
+                  self.isKindOf(BT::Entities::Resource)
+                end
+              end
+           end)
+          fail self.constraints->collect(c |
+             Seq{c.of(),self.of()}).toString()
+         end
+         @Constraint LinkToSameType
+           self.attributes->forAll(a |
+             BT::Entities.classes->includes(a.underlyingType().of()) implies a.underlyingType().of().inheritsFrom(self.of()))
+          fail self.toString() + ": constraint <" + name + "> failed."
+         end
+       end
+       @Class Service metaclass Root::XCore::Class  extends Root::BT::Entities::Entity
+         
+       end
+       @Class Product metaclass Root::XCore::Class  extends Root::BT::Entities::Entity
+         
+       end
+       @Class ServiceSpec metaclass Root::XCore::Class  extends Root::BT::Entities::EntitySpec
+         
+       end
+       @Class ProductSpec metaclass Root::XCore::Class  extends Root::BT::Entities::EntitySpec
+         
+       end
+       @Class ResourceSpec metaclass Root::XCore::Class  extends Root::BT::Entities::EntitySpec
+         
+       end
+       @Class EntityAttribute metaclass Root::XCore::Class  extends Root::XCore::Attribute
+         
+       end
+       @Class EntitySpec metaclass Root::XCore::Class  extends Root::XCore::Constraint
+         
+       end
+       @Class Resource metaclass Root::XCore::Class  extends Root::BT::Entities::Entity
+         
+       end
+     end
+     @Package ExampleModel metapackage Root::XCore::Package
+       @Class Staff metaclass Root::BT::Entities::Resource  extends Root::XCore::Object
+         
+       end
+       @Class GoldMemberService metaclass Root::BT::Entities::Service  extends Root::BT::ExampleModel::StandardService
+         @Constraint MyServiceIsPremium
+           self.rate > 1000 implies type = "PREMIUM"
+          fail ""
+         end
+       end
+       @Class Router metaclass Root::BT::Entities::Product  extends Root::XCore::Object
+         @Constraint RouterConstraint
+           true
+          fail ""
+         end
+       end
+       @Class StandardService metaclass Root::BT::Entities::Service  extends Root::XCore::Object
+         @Attribute type : Root::XCore::String end
+         @Attribute rate : Root::XCore::Integer end
+       end
+     end
+     @Package IPVPNModel metapackage Root::XCore::Package
+       @Class IPStream_S1000 metaclass Root::BT::Entities::Service  extends Root::BT::IPVPNModel::IPStream_S
+         @Constraint S1000Spec
+           self.upStrm = 250 and self.dwnStrm = 1000 and self.unitType = "kbps"
+          fail ""
+         end
+       end
+       @Class IPStream_Office metaclass Root::BT::Entities::Service  extends Root::BT::IPVPNModel::IPStream
+         
+       end
+       @Class IPStream metaclass Root::BT::Entities::Service  extends Root::XCore::Object
+         @Attribute conten : Root::XCore::String end
+         @Attribute upStrm : Root::XCore::Integer end
+         @Attribute dwnStrm : Root::XCore::Integer end
+         @Attribute unitType : Root::XCore::String end
+       end
+       @Class IPStream_S metaclass Root::BT::Entities::Service  extends Root::BT::IPVPNModel::IPStream
+         @Constraint IPStream_SSpec
+           self.conten = "20:1"
+          fail ""
+         end
+       end
+       @Class IPStream_S2000 metaclass Root::BT::Entities::Service  extends Root::BT::IPVPNModel::IPStream_S
+         @Constraint S2000Spec
+           self.upStrm = 250 and self.dwnStrm = 2000 and self.unitType = "kbps"
+          fail ""
+         end
+       end
+       @Operation main(args : Element):Element
+         "Testing IPVPN Model".println();
+         let i = IPVPN();
+             s500 = IPStream_S500();
+             s1000 = IPStream_S1000()
+         in "Checking empty IPVPN:".println();
+            i.println();
+            i.check().println();
+            i.containedServices := i.containedServices->including(s500);
+            "Checking single s500:".println();
+            s500.println();
+            s500.check().println();
+            "Checking IPVPN containing a single s500".println();
+            i.println();
+            i.check().println();
+            s500.conten := "20:1";
+            s500.unitType := "kbps";
+            s500.upStrm := 250;
+            s500.dwnStrm := 500;
+            s500.println();
+            "Checking modified s500".println();
+            s500.check().println();
+            "Checking single s1000".println();
+            s1000.println();
+            s1000.check().println();
+            i.containedServices := i.containedServices->including(s1000);
+            "checking updated IPVPN".println();
+            i.println();
+            i.check().println()
+         end
+       end
+       @Class IPVPN metaclass Root::BT::Entities::Product  extends Root::XCore::Object
+         @Attribute containedServices : Set(Root::BT::IPVPNModel::IPStream) end
+         @Constraint IPVPNSpec
+           self.containedServices->size > 0 and self.containedServices->exists(s |
+             s.isKindOf(IPStream_S500)) implies not self.containedServices->exists(s2 |
+             s2.isKindOf(IPStream_S2000)) and not self.containedServices->exists(s3 |
+             s3.isKindOf(IPStream_S1000))
+          fail ""
+         end
+       end
+       @Class IPStream_S500 metaclass Root::BT::Entities::Service  extends Root::BT::IPVPNModel::IPStream_S
+         @Constraint S500Spec
+           self.upStrm = 250 and self.dwnStrm = 500 and self.unitType = "kbps"
+          fail ""
+         end
+       end
+     end
+     error("Lifting Snapshots not implemented")
+     error("Lifting Snapshots not implemented")
+     error("Lifting Snapshots not implemented")
+     @Package ExampleModel2 metapackage Root::XCore::Package
+       @Class Broadband metaclass Root::BT::Entities::Product  extends Root::XCore::Object
+         @Attribute service : Root::BT::ExampleModel2::BroadbandService end
+       end
+       @Class Gold metaclass Root::BT::Entities::Service  extends Root::BT::ExampleModel2::BroadbandService
+         
+       end
+       @Class Silver metaclass Root::BT::Entities::Service  extends Root::BT::ExampleModel2::BroadbandService
+         
+       end
+       @Class BroadbandService metaclass Root::BT::Entities::Service  extends Root::XCore::Object
+         
+       end
+     end
+   end
+end

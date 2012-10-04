@@ -1,0 +1,196 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class SAXInputChannel extends InputChannel
+  
+    @Doc
+      Reads XML from the supplied input channel and transforms the
+      XML into a sequence of SAX events. The events are handled by
+      operations defined by the class. This class provides default
+      implementations of the operations. Sub-classes of this class
+      will provide appropriate implementations. The standard read
+      operation provides raw access to the byte encoded SAX events.
+    end
+    
+    // The following constants define the tags used for the events
+    // as produced by the input channel.
+    
+    @Bind START_ELEMENT = 1 end
+
+    @Bind END_ELEMENT   = 2 end
+
+    @Bind CHARS         = 3 end
+
+    @Bind ERROR         = 4 end
+  
+    @Attribute input    : InputChannel              end
+    @Attribute sin      : Element                   end
+    @Attribute tag      : Buffer = Buffer(50,true)  end
+    @Attribute atts     : Buffer = Buffer(24,false) end
+    @Attribute freeAtts : Seq(SAXAttribute)         end
+    @Attribute chars    : Buffer = Buffer(1024,true)end
+    
+    @Constructor(input) ! 
+      self.initialiseInput(input)
+    end
+    
+    @Operation channel()
+      sin
+    end
+    
+    @Operation characters(chars:Buffer)
+      format(stdout,"chars '~S'~%",Seq{chars})
+    end
+    
+    @Operation close()
+      Kernel_close(sin)
+    end
+    
+    @Operation eof() 
+      Kernel_eof(sin)
+    end
+    
+    @Operation endElement(tag:Buffer)
+      format(stdout,"end element ~S~%",Seq{tag})
+    end
+    
+    @Operation freeAtt(att:SAXAttribute)
+      self.freeAtts := Seq{att | freeAtts}
+    end
+    
+    @Operation freeAtts()
+      // The attributes in the buffer have been used, add them to
+      // the free list.
+      @Count i from 0 to atts.size() do
+        self.freeAtt(atts->at(i))
+      end
+    end
+    
+    @Operation getAtt()
+    
+      // Return an attribute from the free list if available
+      // otherwise create a new attribute.
+      
+      if freeAtts->isEmpty
+      then SAXAttribute()
+      else 
+        let free = freeAtts->head
+        in self.freeAtts := freeAtts->tail;
+           free.name.setSize(0);
+           free.value.setSize(0);
+           free
+        end
+      end
+    end
+    
+    @Operation initialiseInput(input)
+      self.sin := Kernel_saxInputChannel(input.channel())
+    end
+    
+    @Operation parse()
+      @Doc 
+        Starts the parsing of SAX events. Each event calls the
+        appropriate SAX operation.
+      end
+      try
+        @While not self.eof() do
+          let instr = self.read()
+          in @CaseInt[6] instr of
+               1 do
+                 self.prepareStartElement();
+                 self.startElement(tag,atts);
+                 self.freeAtts()
+               end
+               2 do
+                 self.prepareTag();
+                 self.endElement(tag)
+               end
+               3 do
+                 self.prepareChars();
+                 self.characters(chars)
+               end
+             end
+          end
+        end
+      catch(exception)
+        self.close();
+        throw exception
+      end
+    end
+    
+    @Operation peek():Integer
+      Kernel_peek(sin)
+    end
+    
+    @Operation prepareAttributes()
+      let length = self.read()
+      in atts.setSize(0);
+         @Count i from 0 to length do
+           let nameLength = self.read() then
+               valueLength = self.read24();
+               att = self.getAtt()
+           in @Count x from 0 to nameLength do
+                att.name.add(self.read())
+              end;
+              @Count x from 0 to valueLength do
+                att.value.add(self.read())
+              end;
+              atts.add(att)
+           end
+         end
+      end
+    end
+    
+    @Operation prepareChars()
+      chars.setSize(0);
+      let length = self.read24()
+      in @Count i from 0 to length do
+           chars.add(self.read())
+         end
+      end
+    end
+    
+    @Operation prepareStartElement()
+    
+      // The next byte is the length of the tag name followed by
+      // the tag characters. Then the number of attributes followed
+      // by the attributes.
+      
+      self.prepareTag();
+      self.prepareAttributes()
+    end
+    
+    @Operation prepareTag()
+      let length = self.read()
+      in tag.setSize(0);
+         @Count i from 0 to length do
+           tag.add(self.read())
+         end
+      end
+    end
+    
+    @Operation read():Integer
+       Kernel_read(sin)
+    end
+    
+    @Operation read24():Integer
+      let high = self.read() then
+          med = self.read() then
+          low = self.read() 
+      //in high.lsh(16) or med.lsh(8) or low
+      in Kernel_lsh(high,16) or Kernel_lsh(med,8) or low
+      end
+    end
+    
+    @Operation setChannel(channel)
+      input.setChannel(channel)
+    end
+    
+    @Operation startElement(tag:Buffer,atts:Buffer)
+      format(stdout,"start element ~S ~S~%",Seq{tag,atts->asSeq})
+    end
+    
+  end

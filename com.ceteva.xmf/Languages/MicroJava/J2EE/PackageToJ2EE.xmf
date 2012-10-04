@@ -1,0 +1,26 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import J2EE;
+   
+context J2EE
+
+  @Operation packageToJ2EE(name,C,O) 
+  
+    let C = xmf.selects("Entity Beans","Select Bean Classes",C->asSeq,null,null) then
+        JB = C->asSeq->collect(c | XCoretoJ2EE(c))->flatten;
+        SB = classesToSessionBean(name,C->asSeq)
+    in [| @Java package <name> { <* JB + SB *> } end |]
+    end
+    
+  end 
+  
+          
+      

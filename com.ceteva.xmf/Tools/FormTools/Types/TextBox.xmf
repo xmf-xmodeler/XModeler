@@ -1,0 +1,59 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class TextBox extends FormElement
+
+  @Attribute isEditable : Boolean (!,?) end
+  @Attribute text       : String  (!,?) end
+  
+  @Constructor(name,text,isEditable) 
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+  
+    TextBox ::= name = EName patts = PosAtts text = Text natts = NamedAtts defs = Exp* {
+    
+      [| let textBoxType = <defs->iterate(t e = [| Tools::FormTools::Types::TextBox(<name>) |] | [| <e>.add(<t>) |])>
+         in textBoxType.setText(<text>);
+            textBoxType.setIsEditable(not <OCL::BoolExp(patts->includes("readonly"))>);
+            textBoxType.setMinWidth(<OCL::IntExp(FormElement::lookup(natts,"minWidth",0))>);
+            textBoxType.setMaxWidth(<OCL::IntExp(FormElement::lookup(natts,"maxWidth",9999))>);
+            textBoxType.setMinHeight(<OCL::IntExp(FormElement::lookup(natts,"minHeight",0))>);
+            textBoxType.setMaxHeight(<OCL::IntExp(FormElement::lookup(natts,"maxHeight",9999))>);
+            textBoxType.setPadLeft(<OCL::IntExp(FormElement::lookup(natts,"padLeft",0))>);
+            textBoxType.setPadRight(<OCL::IntExp(FormElement::lookup(natts,"padRight",0))>);
+            textBoxType.setPadTop(<OCL::IntExp(FormElement::lookup(natts,"padTop",0))>);
+            textBoxType.setPadBottom(<OCL::IntExp(FormElement::lookup(natts,"padBottom",0))>);
+            textBoxType.setLayout(<OCL::StrExp(FormElement::filterLayout(patts))>);
+            textBoxType
+         end
+      |]
+    }.
+    
+    Text ::= n = Name { OCL::StrExp(n) } | s = Str { OCL::StrExp(s) } | '<' e = Exp '>' { e }.
+    
+  end
+  
+  @Operation new(parent,path,env,tool)
+  
+    // Create but do not new the text box since the parent may not have
+    // been newed yet.
+    
+    let textBox = Forms::TextBox(0,0,0,0,text,isEditable)
+    in textBox.setType(self);
+       parent.add(textBox);
+       menu.setGlobalMenu(textBox,textBox,tool,path + Seq{name.toString()},Set{self,tool});
+       textBox
+    end
+  end
+  
+end

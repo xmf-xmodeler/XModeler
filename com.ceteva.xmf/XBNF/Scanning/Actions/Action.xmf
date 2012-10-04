@@ -1,0 +1,39 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning::Actions;
+
+context ! XBNF::Scanning::Actions
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Action isabstract extends XOCL::Syntax
+  
+    @Attribute order : Integer (?,!) end
+  
+    @Grammar
+    
+      Action ::= '{' ActionType '}'.
+      
+      ActionType ::= Error | TokenAction | Ignore | Do.
+      
+      Error ::= 'error' { Error() }.
+      
+      Ignore ::= 'ignore' { Ignore() }.
+      
+      TokenAction ::= n = Name { (Actions.getElement("Token"))(n) }.
+      
+      Do ::= 'do' n = Name { Do(n) }.
+    end
+    
+    @AbstractOp setTokenIndex(index:Integer):Integer end
+
+
+  end

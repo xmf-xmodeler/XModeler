@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import BrowserInterface;
+import ExtensionPoints;
+import Displays;
+
+context BrowserInterface
+
+  @Class Child extends InterfaceElement
+  
+    @Attribute name : Display (?) end
+    
+    @Constructor(name) ! 
+      if name.isKindOf(String)
+      then self.name := Literal(name)
+      end
+    end
+    
+    @Grammar 
+      
+      Child ::= display = Display { Child(display) }.
+    
+      Display ::= left = Atom ('+' right = Display { Add(left,right) } | { left }).
+      
+      Atom ::= Literal | Path.
+      
+      Literal ::= s = Str { Literal(s) }.
+      
+      Path ::= n = Name ns = ('.' Name)* { Navigate(Seq{n | ns}) }.
+      
+    end
+    
+    @Operation getChildrenFor(object):Seq(Element)
+      name.map(object)
+    end
+    
+  end
+
+  

@@ -1,0 +1,53 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+
+context Basic
+
+  @Class WithoutEvents 
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      WithoutEvents ::= '(' t = Exp ')' b = Exp {
+      
+        [| 
+           let target = <t> then
+               tools = 
+                 if target.isKindOf(SetOfElement) or target.isKindOf(SeqOfElement)
+                 then target->asSeq
+                 else Seq{target}
+                 end;
+               stateTable = Table(10)
+           in
+             @For withoutEventsTool in tools do
+               let withoutEventsState = withoutEventsTool.handleEvents()
+               in withoutEventsTool.setHandleEvents(false);
+                  stateTable.put(withoutEventsTool,withoutEventsState)
+               end
+             end;
+
+             try 
+               let withoutEventsResult = <b>
+               in
+                 @For withoutEventsTool in tools do
+                   let withoutEventsState = stateTable.get(withoutEventsTool)
+                   in withoutEventsTool.setHandleEvents(withoutEventsState)
+                   end
+                 end;
+                 withoutEventsResult
+               end
+             catch(exception)
+               @For withoutEventsTool in tools do
+                 let withoutEventsState = stateTable.get(withoutEventsTool)
+                 in withoutEventsTool.setHandleEvents(withoutEventsState)
+                 end
+               end;
+               throw exception
+             end
+           end
+         |]
+       }.
+       
+     end
+   end

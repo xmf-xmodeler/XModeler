@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class FormCheckBox extends Entry
+
+    @Attribute label : String (?,!) end
+    @Attribute checked : Boolean (?,!) end
+
+    @Constructor(label,checked) ! end
+    
+    @Operation bind(vEnv,fEnv)
+      if fEnv.binds(label)
+      then vEnv.bind(label,true)
+      else vEnv.bind(label,false)
+      end
+    end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

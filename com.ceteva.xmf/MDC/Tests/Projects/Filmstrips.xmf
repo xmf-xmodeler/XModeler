@@ -1,0 +1,114 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package Filmstrips
+  
+      @Class Snapshot metaclass BrowsedClass
+      
+        @Attribute name : String (?) end
+        
+        @Constructor(name) ! end
+        
+        @Interface
+        end
+        
+      end
+        
+      @Class Filmstrip metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String end
+        @Attribute snapshots : Seq(Snapshot) (?,+,-) end
+        @Attribute steps : Seq(Step) (+,-,^) end
+        
+        @Constructor(name) ! end
+        
+        @Interface
+          @Child snapshots end
+          @Child steps end
+          @Image "Projects/FilmStrip" end
+          @MenuRoot MyProjects::Filmstrips::Filmstrip end
+          @Menu Delete delete end
+          @Menu New::Step newStep end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromFilmstrips(self)
+          end
+        end
+        
+        @Operation getSnapshot(name:String)
+          @Find(s,snapshots)
+            when s.name() = name
+            else 
+              let s = Filmstrips::Snapshot(name)
+              in self.addToSnapshots(s);
+                 s
+              end
+          end
+        end
+        
+        @Operation newStep()
+          let pre = self.selectSnapshot("Start")
+          in if pre <> null
+             then 
+               let post = self.selectSnapshot("End")
+               in if post <> null
+                  then self.addToSteps(Filmstrips::Step(pre,post))
+                  end
+               end
+             end
+          end
+        end
+        
+        @Operation selectSnapshot(message:String)
+          if owner <> null
+          then 
+            let S = owner.snapshots()
+            in if S->isEmpty
+               then self.getSnapshot(xmf.getString("Snapshot Name","Name","<NAME>"))
+               else 
+                 let s = xmf.select(message,message,S,null,null)
+                 in if s <> null
+                    then self.getSnapshot(s.name())
+                    else self.getSnapshot(xmf.getString("Snapshot Name","Name","<NAME>"))
+                    end
+                 end
+               end
+            end
+          else self.getSnapshot(xmf.getString("Snapshot Name","Name","<NAME>"))
+          end
+        end
+        
+      end
+        
+      @Class Step metaclass BrowsedClass extends Contained
+      
+        @Attribute pre : Snapshot end
+        @Attribute post : Snapshot end
+        @Attribute description : String end
+        
+        @Constructor(pre,post) end
+        
+        @Interface
+          @MenuRoot MyProjects::Filmstrips::Step end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromSteps(self)
+          end
+        end
+        
+        @Operation toString()
+          description + ":" + pre.name() + "-->" + post.name()
+        end
+        
+      end
+    end

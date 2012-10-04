@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class MetaslotValue extends Text
+  
+    @Constructor(text,x,y)
+      self.init(Seq{text,x,y,true})
+    end
+    
+/*    @Operation type()
+      try
+        text.parseAndEval()
+      catch(exception)
+        Element
+      end
+    end
+*/    
+  end

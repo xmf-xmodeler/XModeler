@@ -1,0 +1,24 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Objectp in PPrint(aObjectp,out,seen)
+  self.mark(
+    @Operation()
+      let index = 0
+      in format(out,"~S~{~;::~S~}(",Seq{aObjectp.class,aObjectp.names});
+         self.indent(
+           @Operation()
+             @For slot in aObjectp.slots do
+               self.dispatch(slot,out);
+               index := index + 1;
+               if index <> aObjectp.slots->size
+               then format(out,",")
+               end
+             end;
+             format(out,")")
+           end)
+       end
+     end)
+end;

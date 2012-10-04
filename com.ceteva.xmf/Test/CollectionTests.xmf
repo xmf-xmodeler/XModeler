@@ -1,0 +1,13 @@
+// This file contains tests for collections.
+
+"Head and tail of collections are available via ->.".println();
+"You should see 1 printed then 2 and then Seq{3,4}.".println();
+Seq{1,2,3,4}->head.println();
+Seq{1,2,3,4}->tail->head.println();
+Seq{1,2,3,4}->tail->tail.println();
+
+"The '.' when used with a collection applies the '.' do the".println();
+"elements of the collection and flattens the result when".println();
+"necessary. You should see the names of all classes in XCore".println();
+Root::XCore.contents.name.println();
+Root::XCore.contents.parents.name.println();

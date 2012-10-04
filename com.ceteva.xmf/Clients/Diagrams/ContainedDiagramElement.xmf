@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Clients;
+
+context Diagrams
+
+  @Class ContainedDiagramElement extends ContainedClientElement
+  
+    @Operation engine()
+      if owner <> null
+      then owner.engine()
+      else self.error("Cannot find the command engine for " + self.toString())
+      end
+    end
+    
+    @Operation diagram()
+      if not owner.isKindOf(Diagrams::Diagram) then
+        owner.diagram()
+      else
+        owner
+      end
+    end
+    
+    @Operation new(parent)
+      self.new(parent,true)
+    end
+  
+  end

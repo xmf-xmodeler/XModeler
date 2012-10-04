@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+format(stdout,"XMF supports patterns as the formal parameters of operations.~%");
+format(stdout,"You should see Hooray followed by some numbers added up.~%");
+
+context Root
+  @Class Pair
+    @Attribute h : Element end
+    @Attribute t : Element end
+    @Constructor(h,t) end
+  end
+
+context Root
+  @Operation f(100,200)
+    "Hooray"
+  end
+  
+context Root
+  @Operation g(Seq{x | y},Seq{a,b,c})
+    x + y + a + b + c
+  end   
+  
+context Root
+  @Operation h(Pair(x,y),Pair(a,b))
+    x + y + a + b
+  end   
+  
+f(100,200).println();
+g(Seq{1|2},Seq{1,2,3}).println(); 
+h(Pair(1,2),Pair(2,3)).println();

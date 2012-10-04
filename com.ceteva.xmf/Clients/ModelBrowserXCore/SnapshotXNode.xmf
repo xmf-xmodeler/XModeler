@@ -1,0 +1,132 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class SnapshotXNode extends ContainerXNode
+    
+    @Attribute daemons : SeqOfElement = Seq{} end
+
+    @Constructor(element,node,owner) !
+      self.init(Seq{element,node});
+      @For n in node.nodes do
+        self.textChanged(n,false)
+      end
+    end
+
+    @Operation checkDaemons()
+      if not element.hasSlot("instanceOf")
+      then super()
+      end
+    end
+/*
+    @Operation createMapping(e,n)
+      let map = super(e,n) then
+          mapNode = map.node
+      in
+        if self.element().contents.hasValue(map.element())
+        then
+          mapNode.globalMenu().add(MenuAction("Delete from Snapshot",
+                                              "",
+                                              RightClickable::selfTarget,
+                                              Seq{},
+                                              SnapshotXNode::test))
+        end;
+        map
+      end
+    end
+
+    @Operation test()
+      self.owner.element().remove(self.element())
+    end
+*/
+/*
+    @Operation checkDaemons()
+      super();
+      let
+        newKeyDaemon = 
+          element.namedObjects.addNewKeyDaemon(
+            @Operation(key,value)
+              let n = node.childNodeFor(value) in
+                if not n.isKindOf(Null) then
+                  self.textChanged(n,true)
+                end
+              end
+            end
+          ,self);
+        keyRemovedDaemon = 
+          element.namedObjects.addKeyRemovedDaemon(
+            @Operation(key,value)
+              let n = node.childNodeFor(value) in
+                if not n.isKindOf(Null) then
+                  self.textChanged(n,true)
+                end
+              end
+            end
+          ,self)      
+      in
+        self.daemons := Seq{newKeyDaemon,keyRemovedDaemon};
+        self
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      @For daemon in daemons do
+        element.namedObjects.removeDaemon(daemon)
+      end;
+      self.daemons := Seq{}
+    end
+*/
+    @Operation removeDaemons()
+      if not element.hasSlot("instanceOf")
+      then super()
+      end
+    end
+
+    @Operation textChanged(n : Node,sendToClient:Boolean)
+      self.updateNodeText(n,sendToClient);
+      //n.textChangedOut();
+      //node.nodes := node.nodes->excluding(n);
+      //let pos = node.calcNodePosition(n) in
+      //  node.nodes := node.nodes.linkAt(n,pos);
+      //  if sendToClient
+      //  then
+      //    node.commandInterpreter().removeModelBrowserNodeCommand(n);
+      //    @SendCommand(node.commandInterpreter())
+      //      addNodeWithIcon(node.id(),n.id(),n.text(),n.editable,n.getIcon(),pos)
+      //    end
+      //  end
+      //end;
+      n
+    end
+
+    @Operation updateNodeText(n : Node)
+      self.updateNodeText(n,false)
+    end
+
+    @Operation updateNodeText(n : Node,sendToClient:Boolean)
+      if not element.hasSlot("instanceOf")
+      then
+        let nodeElement = n.element then
+            binding = self.element.nameFor(nodeElement)
+        in
+          if binding <> null then
+            let text = binding + " = " + nodeElement.labelString()
+            in
+              if sendToClient
+              then n.textChangedOut(text)
+              else n.text := text
+              end
+            end
+          end
+        end
+      end
+    end
+
+  end

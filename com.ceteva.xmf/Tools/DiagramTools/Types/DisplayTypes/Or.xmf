@@ -1,0 +1,78 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context DisplayTypes
+
+  @Class Or extends DisplayType
+  
+    @Doc 
+      An Or is a named disjunction of display types. The container of an or type
+      can be told to replace the current instance of one of or-ed types with an
+      instance of one of the other or-ed types.
+    end
+  
+    @Attribute types : Seq(DisplayType) (+,?) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Or ::= name = Name defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::DiagramTools::Types::DisplayTypes::Or(<OCL::StrExp(name)>) |] | 
+          [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        DisplayType do
+          element.setOwner(self);
+          self.addToTypes(element)
+        end
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T := super(T);
+      @For t in self.types do
+        T := t.allDisplayTypes(T)
+      end;
+      T
+    end
+
+    @Operation deref(env)
+      self.types := types->collect(t | t.deref(env))
+    end
+    
+    @Operation hasTypeNamed(name:String):Boolean
+      self.typeNamed(name) <> null
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      env := types->iterate(t env = env.bind(name,self) | env.bind(t.name().toString(),t.referencedType(env)));
+      let display = types->at(0).new(root,parent,path + Seq{name.toString()},tool,env)
+      in parent.setOrHandler(self,root,parent,path,tool,env,display);
+         display
+      end
+    end
+    
+    @Operation typeNamed(name:String):DisplayType
+      @Find(type,types)
+        when type.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation underlyingTypes():Seq(DisplayType)
+      types
+    end
+    
+  end

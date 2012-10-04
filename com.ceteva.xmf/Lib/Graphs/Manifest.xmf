@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Graphs
+  Graphs = @File Graphs  end
+           @File Node    end
+           @File Edge    end
+           @File Graph   end
+do 
+  Project(Graphs,dir,self)
+end;

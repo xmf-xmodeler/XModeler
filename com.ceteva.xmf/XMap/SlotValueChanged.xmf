@@ -1,0 +1,356 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XMap
+
+ @Class SlotValueChanged extends Sugar
+
+   @Doc
+     This construct adds a daemon that fires when the given slot value changes. The
+     construct allows the new value and old value to be bound. The body of the
+     construct is any expression. Modifiers allow this construct to control whether
+     it is fired when a slot value changes, when new values are added or when existing
+     values are removed. A daemon can be a reference to an existing operation or
+     can define the required operation in-line. A daemon may be persistent in which
+     case it is saved when the owning object is saved. The daemon operation involves
+     TWO objects: that which is in scope when the daemon is defined and the object
+     that is monitored. The value of SELF in the daemon operation is always that which
+     is in scope when the daemon is created. The object that is monitored is supplied
+     to the daemon operation as the first argument.
+   end
+
+   @Grammar extends OCL::OCL.grammar
+        SlotValueChanged ::= DefinedSVC | ReferencedSVC.
+          DefinedSVC ::= id = DaemonId multi = Multi guarded = Guarded mod = Modifier persistent = Persistent name = DaemonName '(' object = Exp ',' slot = Exp ',' names = Names ')' body = Exp
+       { SlotValueChanged(id,multi,guarded,mod,persistent,Seq{name},object,slot,names,body) }.
+            ReferencedSVC ::= id = DaemonId multi = Multi guarded = Guarded mod = Modifier persistent = Persistent path = DaemonPath '(' object = Exp ',' slot = Exp ')'
+       { SlotValueChanged(id,multi,guarded,mod,persistent,path,object,slot) }.
+            DaemonId ::= '[' Exp ']' | { null }.
+          Multi ::= 'multi' { true } | { false }.
+            Guarded ::= 'once' { true } | { false }.
+            Modifier ::= '+' { "+" } | '-' { "-" } | { "" } | Drop.
+          Names ::= name = AName names = (',' AName)* { Seq{ name | names } }.
+          DaemonName ::= Name | { "AnonymousDaemon" }.
+          DaemonPath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+          Persistent ::= '!' { true } | { false }.
+        end
+      @Attribute id : Performable end             // Unique identifier (may be null).
+   @Attribute multi : Boolean end              // Is this daemon to be applied to multiple objects?
+   @Attribute guarded : Boolean end            // Only add if not present.
+   @Attribute modifier : String end            // +, - or empty.
+   @Attribute persistent : Boolean end         // Will this daemon be saved?
+   @Attribute path : Seq(String) (?,!) end     // The name of the daemon.
+   @Attribute object : Performable end         // The object the daemon monitors.
+   @Attribute slot : Performable end           // The slot the daemon monitors.
+   @Attribute names : Seq(String) end          // Args for a defined operation.
+   @Attribute body : Performable end           // The body for the defined operation.
+      @Constructor(id,multi,guarded,modifier,persistent,path,object,slot,names,body) !
+     self.setId()
+   end
+      @Constructor(id,multi,guarded,modifier,path,object,slot,names,body)
+     self.setId()
+   end
+      @Constructor(id,multi,guarded,modifier,persistent,path,object,slot)
+     self.setId()
+   end
+
+   @Operation applyExistingMultiDaemon(key,object,target)
+     let slotValueChangedDaemon = Daemon::getMultiDaemon(key)
+     in
+       XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,object,target);
+       slotValueChangedDaemon
+     end
+   end
+
+   @Operation desugar()
+     self.desugarGuard( self.desugarCheckMulti( self.desugarDaemon() ) )
+   end
+      @Operation desugarAdd()
+     if body = null
+     then self.desugarAddReferenced()
+     else self.desugarAddDefined()
+     end
+   end
+      @Operation desugarAddDefined()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            XCore::Daemon::ADD,
+            <slot>,
+            @Operation(<self.objectName()>,s,<self.elementName()>) <body> end,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation desugarAddReferenced()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            XCore::Daemon::ADD,
+            <slot>,
+            <OCL::Path::toPath(path)>,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation desugarChanged()
+     if body = null
+     then self.desugarChangedReferenced()
+     else self.desugarChangedDefined()
+     end
+   end
+      @Operation daemonChangeType():Performable
+          // If the slot is specified as * then the daemon
+     // fires on any slot change, otherwise the daemon fires
+     // when the slot with the specified name is changed.
+          @Case slot of
+       StrExp("*") do
+         [| XCore::Daemon::ANY |]
+       end
+       else [| XCore::Daemon::VALUE |]
+     end
+   end
+      @Operation desugarChangedDefined()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            <self.daemonChangeType()>,
+            <slot>,
+            @Operation(<self.objectName()>,s,<self.newName()>,<self.oldName()>) <body> end,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation desugarChangedReferenced()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            <self.daemonChangeType()>,
+            <slot>,
+            <OCL::Path::toPath(path)>,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation desugarDaemon()
+     @Case modifier of
+     "+" do self.desugarAdd() end
+     "-" do self.desugarRemove() end
+     else self.desugarChanged()
+     end
+   end
+      @Operation desugarGuard(addDaemon:Performable):Performable
+        // A guarded daemon ensures that all daemons on the same object
+     // have different ids. If the daemon is added then it is returned
+     // otherwise a guarded SlotValueChanged returns null to signify that
+     // the daemon was not added.
+          if guarded
+     then
+       [| if not <object>.hasDaemonWithIdAndTarget(<id>,self)
+          then <addDaemon>
+          else null
+          end |]
+     else addDaemon
+     end
+   end
+
+   @Operation desugarCheckMulti(addDaemon:Performable):Performable
+
+     // Need to check if the daemon to be added is a multi object daemon and
+     // if it exists in the Daemon::multiDaemons table.
+          [| if <BoolExp(multi)>
+        then
+          let key = Set{<OCL::Path::toPath(path)>,<slot>->asSymbol}
+          in
+            if Daemon::hasMultiDaemon(key)
+            then
+              XMap::SlotValueChanged::applyExistingMultiDaemon(key,<object>,self)
+            else <addDaemon>
+            end
+          end
+        else <addDaemon>
+        end
+     |]
+   end
+
+   @Operation desugarRemove()
+     if body = null
+     then self.desugarRemoveReferenced()
+     else self.desugarRemoveDefined()
+     end
+   end
+      @Operation desugarRemoveDefined()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            XCore::Daemon::SUB,
+            <slot>,
+            @Operation(<self.objectName()>,s,<self.elementName()>) <body> end,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation desugarRemoveReferenced()
+     [| let slotValueChangedDaemon =
+          XCore::Daemon(<id>,
+            XCore::Daemon::SUB,
+            <slot>,
+            <OCL::Path::toPath(path)>,
+            <BoolExp(persistent)>,
+            XCore::Daemon::traceDaemons,
+            XMap::SlotValueChanged::getTarget(self,<BoolExp(multi)>))
+        in XMap::SlotValueChanged::processDaemon(slotValueChangedDaemon,<object>,self);
+           slotValueChangedDaemon
+        end
+     |]
+   end
+      @Operation elementName():String
+     if names->size = 2
+     then names->at(1)
+     else names->at(0)
+     end
+   end
+
+   @Operation getTarget(target,multi)
+     if multi then Table(10) else target end
+   end
+/*      @Operation id():Performable
+     if id = null
+     then
+       if body = null
+       then [| <OCL::Path::toPath(path)>.name.toString() |]
+       else StrExp(path->last)
+       end
+     else id
+     end
+   end
+*/
+   @Operation setId()
+     self.id :=
+       if id = null
+       then
+         if body = null
+         then [| <OCL::Path::toPath(path)>.name.toString() |]
+         else StrExp(path->last)
+         end
+       else id
+       end;
+     self
+   end
+
+   @Operation lift():Performable
+     XCore::Element::lift.invoke(self,Seq{})
+   end
+      @Operation newName():String
+        // The name for the parameter corresponding to
+     // the new value.
+          if names->size = 3
+     then names->at(1)
+     else names->at(0)
+     end
+   end
+      @Operation objectName():String
+        // Calculate the parameter name corresponding
+     // to the object when it is fired. A default
+     // name is used if no name for the modified
+     // object is supplied.
+          @Case modifier of
+       "+" do
+         if names->size = 2
+         then names->at(0)
+         else "modifiedObject"
+         end
+       end
+       "-" do
+         if names->size = 2
+         then names->at(0)
+         else "modifiedObject"
+         end
+       end
+       "" do
+         if names->size = 3
+         then names->at(0)
+         else "modifiedObject"
+         end
+       end
+     end
+   end
+      @Operation oldName():String
+        // A name for the parameter corresponding to the
+     // original value before the change.
+          if names->size = 3
+     then names->at(2)
+     else names->at(1)
+     end
+   end
+      @Operation pprint(out,indent)
+     format(out,"@SlotValueChanged ");
+     if id <> null
+     then
+       format(out,"[");
+       id.pprint(out,indent);
+       format(out,"]")
+     end;
+     if modifier.isKindOf(Performable)
+     then modifier.pprint(out,0)
+     else format(out,"~S ",Seq{modifier})
+     end;
+     format(out,"~S ~{::~;~S~}(",Seq{if persistent then " ! " else "" end,path});
+     object.pprint(out,0);
+     format(out,",");
+     slot.pprint(out,0);
+     format(out,",");
+     @For name in names do
+       if name.isKindOf(Performable)
+       then name.pprint(out,0)
+       else format(out,"~S",Seq{name})
+       end;
+       if not isLast then format(out,",") end
+     end;
+     format(out,")~%~V",Seq{indent + 2});
+     if body <> null
+     then
+       body.pprint(out,indent+2)
+     end;
+     format(out,"~%~Vend",Seq{indent})
+   end
+
+   @Operation processDaemon(daemon,object,target)
+     let id = daemon.id;
+         multi = daemon.isMultiDaemon()
+     in
+       if not multi
+       then
+         object.addDaemon(daemon)
+       else
+         object.addMultiDaemon(daemon,target);
+         let key = Set{daemon.action, daemon.slot}
+         in
+           if not Daemon::hasMultiDaemon(key)
+           then Daemon::addToMultiDaemonTable(key,daemon)
+           end
+         end
+       end
+     end
+   end
+
+ end

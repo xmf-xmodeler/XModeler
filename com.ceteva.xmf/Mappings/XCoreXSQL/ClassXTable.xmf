@@ -1,0 +1,17 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Languages;
+import MicroSQL;
+import Mappings;
+import XCoreXSQL;
+ 
+context XCoreXSQL
+ 
+  @Map ClassXTable(Class)->Table
+    @Clause ClassXTable
+      c = Class [name = N, attributes = A] do
+        Table(N,true,C,Set{})
+          where C = A->collect(a | AttributeXColumn()(a))
+    end
+  end

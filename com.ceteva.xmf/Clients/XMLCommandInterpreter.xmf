@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Class XMLCommandInterpreter extends CommandInterpreter
+  
+    @Operation endDocument()
+      @SendCommand(self)
+        endDocument()
+      end
+    end
+    
+    @Operation endElement(name)
+      @SendCommand(self)
+        endElement(name)
+      end
+    end
+
+    @Operation startDocument()
+      @SendCommand(self)
+        startDocument()
+      end
+    end
+    
+    @Operation startElement(name,attributes)
+      @SendCommand(self)
+        startElement(name,attributes)
+      end
+    end
+  
+  end

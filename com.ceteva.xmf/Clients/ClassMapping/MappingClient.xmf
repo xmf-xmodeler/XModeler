@@ -1,0 +1,258 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class MappingClient extends DiagramMappingClient
+  
+    @Attribute layoutRegistryPoint : Element end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        XCore::Package do
+          element.createClassDiagram(false)
+        end
+        PackageXClassDiagram do
+          self.addToMappings(element);
+          element.setOwner(self)
+        end
+      end
+    end
+    
+    @Operation add(package,diagram,total)
+      let mapping = PackageXClassDiagram(package,diagram,self)
+      in if not total
+         then mapping.setToPartialSyncMode()
+         end;
+         self.addToMappings(mapping);
+         mapping
+      end
+    end
+
+    @Operation addAndLayoutPackage(package,file,name)
+      let diagram = ClassDiagram(name) then
+          mapping = self.add(package,diagram,true)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram") 
+             mapping.generateDiagram();
+             diagram.loadLayout(file)
+           end
+         end;
+         mapping
+      end
+    end
+
+    @Operation addPackage(package,name,total)
+      let diagram = ClassDiagram(name) then
+          mapping = self.add(package,diagram,total)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram") 
+             mapping.generateDiagram()
+           end
+         end;
+         mapping
+      end
+    end
+    
+    @Operation applyLayout(package,layout):Boolean
+    
+      // Applies layout to the diagram for the supplied package.
+      // If there is no diagram for the supplied package then
+      // nothing happens. Returns true when the request was
+      // successful.
+      
+      if not self.mappingsFor(package)->isEmpty
+      then
+        let
+          mapping = self.mappingsFor(package)->head then
+          diagram = mapping.diagram
+        in diagram.applyLayout(layout);
+           true
+        end
+      else false
+      end
+    end
+
+    @Operation createDiagram(package,name,total)
+
+      // Call this to create a diagram for an package.
+      // If total is true, the diagram will be fully synced with
+      // the package, otherwise it will be partial view.
+
+      if total
+      then
+        let layoutContribution = self.layoutContribution(package)
+        in
+          if layoutContribution <> null
+          then
+            let file = layoutContribution.getValue(0)
+            in
+              file := file.subst(xmf.homeDir(),"$HOME$",false);
+              let mapping = self.addAndLayoutPackage(package,file,name)
+              in 
+                commandInterpreter.showDiagram(mapping.diagram);
+                mapping.diagram()
+              end
+            end
+          else
+            let mapping = self.addPackage(package,name,total)
+            in
+              commandInterpreter.showDiagram(mapping.diagram);
+              mapping.diagram()
+            end
+          end
+        end
+      else
+        let mapping = self.addPackage(package,name,total)
+        in
+          commandInterpreter.showDiagram(mapping.diagram);
+          mapping.diagram()
+        end
+      end
+    end
+
+    @Operation handles(type)
+      type = PackageXClassDiagram
+    end
+    
+    @Operation mappingsFor(package)
+      mappings->select(m | m.package = package)
+    end
+
+    @Operation layoutContribution(package)
+      try
+        if layoutRegistryPoint = null
+        then
+          self.layoutRegistryPoint := xmf.registry().getExtensionPoint("com.ceteva.xmf.classDiagrams.layouts")
+        end;
+        layoutRegistryPoint.find(package)
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation layoutData(package)
+    
+      // Returns an XML representation of the layout for the 
+      // supplied package. Returns null if no diagram exists
+      // for the supplied package.
+      
+      if not self.mappingsFor(package)->isEmpty
+      then
+        let
+          mapping = self.mappingsFor(package)->head then
+          diagram = mapping.diagram
+        in diagram.layoutData()
+        end
+      else
+        null
+      end
+    end
+
+    @Operation load(fileName)
+      let input = ElementInputChannel(FileInputChannel(fileName)) then
+          mapping = input.read()
+      in input.close();
+         self.renew(mapping)
+      end
+    end
+
+    @Operation renew()
+    
+      // Called when the state of the client is to be regenerated. For example
+      // when the system loads a saved image...
+      
+      @For map in mappings do
+        if map.diagram.isOpen
+        then map.renew()
+        end
+      end
+      
+    end
+    
+    @Operation renew(mapping)
+
+      // Call this when adding a mapping back to the client. For example,
+      // after loading the mapping from a file. This will re-link the
+      // mapping to the appropriate elements and re-generate the diagram
+      // only if the diagram is open...  
+
+      self.add(mapping);
+      mapping.package.owner.add(mapping.package);
+      if mapping.diagram.isOpen then mapping.renew() end
+
+    end
+    
+    @Operation renewAll(mappings)
+
+      // Call this when adding a mapping back to the client. For example,
+      // after loading the mapping from a file. This will re-link the
+      // mapping to the appropriate elements and re-generate the diagram
+      // only if the diagram is open...      
+
+      @For mapping in mappings do
+        self.add(mapping)
+      end;
+      @For mapping in mappings do
+        if mapping.diagram.isOpen then mapping.renew() end
+      end
+    end
+    
+    @Operation save(mapping,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName))
+      in try
+      
+           // The mapping and the package must be de-linked from their owners
+           // in order to define the save boundary.
+           xmf.clientManager().preSave();
+           out.write(mapping,Root.allContentsOf(XCore::Package)->including(Root)->asSeq);
+           out.close();
+           format(stdout,"Saved package and diagram in ~S~%",Seq{fileName});
+           xmf.clientManager().postSave()
+         catch(exception)
+           format(stdout,"Save mapping: ~S~%",Seq{exception});
+           xmf.clientManager().postSave()
+         end
+      end
+    end
+
+    @Operation showAndLayoutDiagram(package,file)
+      let name = xmf.diagramManager().newDiagramName(package)
+      in
+        self.showAndLayoutDiagram(package,file,name)
+      end
+    end
+
+    @Operation showAndLayoutDiagram(package,file,name)
+      @Find(map,mappings)
+        when map.package = package
+        do
+          let diagram = map.diagram in
+            @WithoutRendering(diagram)
+              diagram.loadLayout(file)
+            end;
+            if not diagram.isOpen then
+              diagram.isOpen := true;
+              map.renew()
+            end;
+            commandInterpreter.showDiagram(diagram);
+            map
+          end
+        else
+          let mapping = self.addAndLayoutPackage(package,file,name)
+          in 
+            commandInterpreter.showDiagram(mapping.diagram);
+            mapping
+          end
+      end
+    end
+
+  end

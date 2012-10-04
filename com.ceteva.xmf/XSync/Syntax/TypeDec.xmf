@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import OCL;
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class TypeDec extends Dec
+  
+    @Attribute types     : Seq(Performable) (?) end
+    @Attribute modifiers : Seq(String)          end
+    
+    @Constructor(types,modifiers) ! end
+    
+    @Operation addExp(net:Performable):Performable
+      let test = types->iterate(t e = [| false |] | [| <e> or x.isKindOf(<t>) |]);
+          modifiersExp = SetExp("Seq",modifiers->asSeq->collect(m | StrExp(m)));
+          typeExp = SetExp("Set",types)
+      in [| let find = Walkers::Find(@Operation(x) <test> and x <> null end);
+                net = <net>
+            in <if self.existingInstances()
+                then 
+                  [| find.walk(Root,null);
+                     @For o in find.results() do
+                       net.add(o)
+                     end
+                  |]
+                else [| null |]
+                end>;
+               <if self.futureInstances()
+                then 
+                  [| @For t in <typeExp> do
+                       let newListener = @Operation(o) net.add(o) end
+                       in net.addToScopedTypes(ScopedType(t,<modifiersExp>,newListener));
+                          newListener.newListenerFor(t)
+                       end
+                     end
+                  |]
+                else 
+                  [| @For t in <typeExp> do
+                       net.addToScopedTypes(ScopedType(t,<modifiersExp>,null))
+                     end
+                  |]
+                end>;
+               net
+            end
+         |]
+      end
+    end
+    
+    @Operation existingInstances():Boolean
+      modifiers->includes("-") or modifiers->isEmpty
+    end
+    
+    @Operation futureInstances():Boolean
+      modifiers->includes("+") or modifiers->isEmpty
+    end
+  
+  end

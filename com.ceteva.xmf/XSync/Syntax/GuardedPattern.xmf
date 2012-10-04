@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class GuardedPattern extends Pattern
+  
+    @Attribute guard   : Performable (?) end
+    @Attribute pattern : Pattern     (?) end 
+    
+    @Constructor(guard,pattern) ! end
+    
+    @Operation code(net:Performable):Performable
+      pattern.code(net)
+    end
+    
+    @Operation constraints(boundVars:Set(String)):Set(Constraint)
+      pattern.constraints(boundVars)->including(GeneralConstraint(guard))
+    end
+    
+    @Operation createNode():Node
+      Alpha(self)
+    end
+    
+    @Operation negated():Boolean
+      pattern.negated()
+    end
+    
+    @Operation source():String
+      pattern.source() + " when " + guard.pprint()
+    end
+    
+    @Operation varEnv(boundVars:Set(String),env:Env):Env
+      pattern.varEnv(boundVars,env)
+    end
+    
+    @Operation vars():Set(String)
+      pattern.vars()
+    end
+    
+  end

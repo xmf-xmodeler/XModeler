@@ -1,0 +1,321 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Events;
+import Data;
+
+context Events
+
+  @Class ElementManager extends NameSpace
+  
+    @Doc
+      An element manager is responsible for handling the events that are raised
+      by tool actions and by changes to the element that is being managed. The
+      manager contains handlers that match the names of events when the event is
+      raised. An element manager also contains a table of associations between
+      data values. These associations are created and used by the event handlers.
+    end
+    
+    @Attribute table       : Table = Table(10)   (?,!) end
+    @Attribute edges       : Seq(Element)        (?,!) end
+    @Attribute handlers    : Seq(EventHandler)   (+)   end
+    @Attribute observers   : Seq(Observer)       (+)   end
+    @Attribute parents     : Seq(ElementManager) (?,+) end
+    @Attribute cache       : Table = Table(10)   (?)   end
+    @Attribute reportFails : Boolean             (?,!) end
+    
+    @Constructor(name,parents,reportFails)
+      self.setName(name);
+      self.addDefinitions();
+      self.initialiseParents(table)
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      ElementManager ::= sig = ManagerSig  reportFails = OptReportFails parents = Extends defs = Exp* {
+      
+        ElementManager::expand(sig,reportFails,parents,defs)
+        
+      }.
+      
+      ManagerSig ::= n = ManagerSigName ns = ('::' ManagerSigName)* { Seq{n | ns} }.
+      
+      ManagerSigName ::= Name | Str.
+      
+      OptReportFails ::= '!' { OCL::BoolExp(true) } | { OCL::BoolExp(false) }.
+      
+      Extends ::= 'extends' e = Exp es = (',' Exp)* { OCL::SetExp("Seq",Seq{e|es}) } | { OCL::SetExp("Seq",Seq{}) }.
+      
+    end
+    
+    @Operation add(element)
+    
+      // If the element is an operation then ensure that the name space is
+      // imported to allow mutual references.
+      
+      @TypeCase(element)
+        EventHandler do
+          cache.clear();
+          element.importNameSpace(self);
+          self.addToHandlers(element)
+        end
+        Observer do
+          element.importNameSpace(self);
+          self.addToObservers(element)
+        end
+        else super(element)
+      end
+      
+    end
+    
+    @Operation addDefinitions()
+      self.add(ElementManager::mkFind(table));
+      self.add(ElementManager::mkRegister(table));
+      self.add(ElementManager::mkDeregister(table));
+      self.add(ElementManager::mkIsRegistered(self));
+      self.add(ElementManager::mkIsRegisteredEdge(self));
+      self.add(ElementManager::mkFindEdge(self));
+      self.add(ElementManager::mkRegisterEdge(self));
+      self.add(ElementManager::mkDeregisterEdge(self))
+    end
+    
+    @Operation mkDeregister(table)
+      @Operation deregister[closure="Tools::Events::ElementManager::mkDeregister"](element)
+        table.remove(element)
+      end.setOwner(null)
+    end
+    
+    @Operation mkDeregisterEdge(manager)
+      @Operation deregisterEdge[closure="Tools::Events::ElementManager::mkDeregisterEdge"](source,key,target)
+        manager.deregisterEdge(source,key,target)
+      end.setOwner(null)
+    end
+    
+    @Operation mkIsRegistered(manager)
+      @Operation isRegistered[closure="Tools::Events::ElementManager::mkIsRegistered"](element)
+        manager.isRegistered(element)
+      end.setOwner(null)
+    end
+    
+    @Operation mkIsRegisteredEdge(manager)
+      @Operation isRegisteredEdge[closure="Tools::Events::ElementManager::mkIsRegisteredEdge"](source,key,target)
+        manager.isRegisteredEdge(source,key,target)
+      end.setOwner(null)
+    end
+    
+    @Operation mkFindEdge(manager)
+      @Operation findEdge[closure="Tools::Events::ElementManager::mkFindEdge"](source,key,target)
+        manager.findEdge(source,key,target)
+      end.setOwner(null)
+    end
+    
+    @Operation mkFind(table)
+      @Operation find[closure="Tools::Events::ElementManager::mkFind"](element)
+        if table.hasKey(element)
+        then table.get(element)
+        else null
+        end
+      end.setOwner(null)
+    end
+    
+    @Operation mkRegister(table)
+      @Operation register[closure="Tools::Events::ElementManager::mkRegister"](e1,e2)
+        table.put(e1,e2) 
+      end.setOwner(null)
+    end
+    
+     @Operation mkRegisterEdge(manager)
+      @Operation registerEdge[closure="Tools::Events::ElementManager::mkRegisterEdge"](source,key,target,edge)
+        manager.registerEdge(source,key,target,edge)
+      end.setOwner(null)
+    end
+    
+    @Operation allHandlers():Seq(EventHandler)
+      parents->iterate(parent handlers = handlers | handlers + parent.allHandlers())
+    end
+    
+    @Operation cacheHandlers(event:Event)
+      let eventHandlers = self.allHandlers() then
+          handlers = event.matchHandlers(eventHandlers)
+      in @For handler in handlers do
+           event.invokeHandler(handler)
+         end;
+         cache.put(event.raisedName(),handlers);
+         if reportFails and handlers->isEmpty
+         then format(stdout,"Warning: No handler for event: ~S~%",Seq{event})
+         end
+      end
+    end
+    
+    @Operation deregister(element)
+      table.remove(element)
+    end
+    
+    @Operation deregisterEdge(source,key,target)
+      @Find(record,edges)
+        when record->at(0) = source and
+             record->at(1) = key and
+             record->at(2) = target
+        do self.edges := edges->excluding(record)
+        else null
+      end
+    end
+    
+    @Operation expand(sig,reportFails,parents,defs)
+      let name = sig->last then
+          body = 
+            defs->iterate(def exp = [| Tools::Events::ElementManager(<OCL::StrExp(name)>,<parents>,<reportFails>) |] |
+              [| <exp>.add(<def>) |]);
+          path = 
+            if sig->size = 1 
+            then null 
+            else 
+              let sig = sig->butLast then
+                  toolType = OCL::StrExp(sig->last) then
+                  sig = sig->butLast then
+                  class = OCL::Path::toPath(sig)
+              in [| xmf.toolManager().toolDescriptor(<class>,<toolType>) |]
+              end
+            end
+       in if sig->size = 1
+         then body
+         else OCL::ContextDef(path,body)
+         end
+      end
+    end
+    
+    @Operation findEdge(source,key,target)
+      @Find(record,edges)
+        when record->at(0) = source and
+             record->at(1) = key and
+             record->at(2) = target
+        do record->at(3)
+        else null
+      end
+    end
+    
+    @Operation findElement(element)
+      if table.hasKey(element)
+      then table.get(element)
+      else self.error("Cannot find an element for " + element.toString() + " in " + table.keys().toString())
+      end
+    end
+    
+    @Operation handleObjectStateChange(tool,object,slot,new,old)
+    
+      // If an object is registered with the tool then changes to the
+      // stat of the object cause this operation to be invoked.
+      
+      let type = object.of() then
+          attribute = type.getAttribute(slot)
+      in if attribute.type = attribute.underlyingType()
+         then self.observeStateChange(tool,object,slot,new,old,"!")
+         else self.handleObjectStateChanges(tool,object,slot,new,old)
+         end
+      end
+    end
+    
+    @Operation handleObjectStateChanges(tool,object,slot,new,old)
+    
+      // Called when the slot is a collection...
+      
+      if not (new - old)->isEmpty
+      then self.observeStateChange(tool,object,slot,new - old,old,"+")
+      end;
+      if not(old - new)->isEmpty
+      then self.observeStateChange(tool,object,slot,new,old - new,"-")
+      end
+    end
+    
+    @Operation initialiseParents(table)
+      @For parent in parents do
+        parent.setTable(table);
+        parent.initialiseParents(table)
+      end
+    end
+    
+    @Operation isRegistered(element):Boolean
+      table.hasKey(element)
+    end
+    
+    @Operation isRegisteredEdge(source,key,target):Boolean
+      self.findEdge(source,key,target) <> null
+    end
+    
+    @Operation new()
+      
+      // Creates a fresh copy of the receiver and ensures that there is no sharing
+      // between the receiver and the copy.
+      
+      let manager = self.copy()
+      in manager.table := Table(10);
+         manager.contents := Table(10);
+         manager.handlers := handlers->collect(handler | handler.new(manager,self));
+         manager.observers := observers->collect(observer | observer.new(manager,self));
+         manager.cache := Table(10);
+         manager.addDefinitions();
+         manager
+      end
+    end
+    
+    @Operation observeStateChange(tool,object,slot,new,old,modifier)
+      
+      // The state has changed. Find the most specific observer
+      // with the modifier ! and invoke it.
+      
+      @For observer in observers
+        when observer.observes(object,slot,modifier) and
+             not observers->exists(observer2 | 
+                   observer2 <> observer andthen 
+                   observer2.observes(object,slot,modifier) andthen
+                   observer2.type().inheritsFrom(observer.type()) and
+                   not observer2.type() = observer.type())
+        do observer.invoke(tool,object,slot,new,old)
+      end
+      
+    end
+    
+    @Operation raise(event:Event)
+    
+      // An element manager is a container of handlers. Each handler is an
+      // operation with pattern matching the type of the event. When the event 
+      // is raised then the appropriate operation is supplied with the event.
+      
+      let eventType = event.raisedName()
+      in if cache.hasKey(eventType)
+         then
+           let handlers = cache.get(eventType)
+           in if handlers->isEmpty
+              then
+                if reportFails
+                then format(stdout,"Warning: No handler for event: ~S~%",Seq{eventType})
+                end
+              else event.invokeHandlers(handlers)
+              end
+           end
+         else self.cacheHandlers(event)
+         end
+      end
+    end
+    
+    @Operation register(e1,e2)
+      table.put(e1,e2)
+    end
+    
+    @Operation registerEdge(source,key,target,edge)
+      self.deregisterEdge(source,key,target);
+      self.edges := Seq{Seq{source,key,target,edge} | edges};
+      edge
+    end
+    
+    @Operation toolData()
+      // Returns the serialization data as an instance of XManagerData...
+      XManagerData(table,edges)
+    end
+    
+    @Operation toString():String
+      "<ElementManager " + name + " " + Kernel_value(self).toString(16) + ">"
+    end
+    
+  end

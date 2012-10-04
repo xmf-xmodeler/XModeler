@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import IO;
+import Walkers;
+
+context IO
+
+  @Class XMLInputChannel extends InputChannel
+  
+    @Doc
+      An XML input channel reads characters from an input channel and translates
+      them to XML elements. The model of XML is defined in Root::XML.
+    end
+  
+    @Attribute input : InputChannel end
+    
+    @Constructor(input) ! 
+      @Doc
+        The input channel is used as the source of characters conforming to the
+        syntax of XML.
+      end
+    end
+    
+    @Operation close()
+      input.close()
+    end
+    
+    @Operation read()
+      @Doc
+        Parses characters from the underlying input channel and constructs
+        XML elements. Returns an XML document if the parse is successful.
+      end
+      Kernel_readXML(input.channel())
+    end
+    
+  end

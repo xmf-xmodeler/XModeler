@@ -1,0 +1,66 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class TableXNode extends ElementXNode
+
+    @Attribute daemons : SeqOfElement = Seq{} end
+
+    @Operation checkDaemons()
+      super();
+      let
+        newKeyDaemon = 
+          element.addNewKeyDaemon(
+            @Operation(key,value)
+              self.elementAdded(value);
+              self.node.textChangedOut(self.element.labelString())
+            end
+          ,self);
+        keyRemovedDaemon = 
+          element.addKeyRemovedDaemon(
+            @Operation(key,value)
+              self.elementRemoved(value);
+              self.node.textChangedOut(self.element.labelString())
+            end
+          ,self)      
+      in
+        self.daemons := Seq{newKeyDaemon,keyRemovedDaemon};
+        self
+      end
+    end
+
+    @Operation getKeyFor(e:Element)
+      let keys = element.keys()
+      in
+        @Find(key,keys)
+          when element.get(key) = e
+          else null
+        end
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      @For daemon in daemons do
+        element.removeDaemon(daemon)
+      end;
+      self.daemons := Seq{}
+    end
+
+    @Operation updateNodeText(n : Node)
+      let nodeElement = n.element then
+          key = self.getKeyFor(nodeElement)
+      in
+        if key <> null then
+          n.text := key + " = " + nodeElement.labelString()
+        end
+      end
+    end
+
+  end

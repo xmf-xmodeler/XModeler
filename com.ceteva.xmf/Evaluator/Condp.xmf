@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Condp in Eval(aCondp,arg,seen)
+  if seen
+  then aCondp
+  else
+    let condition = self.dispatch(aCondp.condition,arg);
+        pattern = self.dispatch(aCondp.pattern,arg)
+    in aCondp
+    end
+  end
+end;

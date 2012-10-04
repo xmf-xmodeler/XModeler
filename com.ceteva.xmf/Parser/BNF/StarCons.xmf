@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class StarCons extends Recognizer
+
+    // Recognoses 0 or more occurrences of 'parser' and automatically 
+   	// conses them up in the order they are encountered leaving the 
+   	// resulting sequence at the head of the stack.
+   	
+   	@Attribute parser : Recognizer end
+   	@Attribute values : Seq(Element) end
+    
+    @Constructor(parser) end
+   	
+   	@Operation code(outputChannel)
+      parser.code(outputChannel);
+      format(outputChannel,"* ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+   	
+   	@Operation nextSet(grammar)
+      parser.nextSet(grammar)
+    end
+		
+	@Operation parse(machine)
+	  machine.pushStack(values);
+	  machine.choice();
+	  machine.popStack();
+	  machine.pushSuccess(Loop(parser,Seq{}));
+	  parser.parse(machine)
+	end
+	
+	@Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+	
+	@Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::StarCons(<parser.toExp(FV)>) |]
+    end
+	
+	@Operation transform(FV:Set(String),grammar):Recognizer
+      self.parser := parser.transform(FV,grammar)
+    end
+	
+  end

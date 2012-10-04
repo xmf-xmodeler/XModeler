@@ -1,0 +1,52 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class ConstructorSourceEditor extends CodeboxEditor
+  
+    @Operation checkDaemons()
+      super();
+      let contex = textbox.contex
+      in
+        @SlotValueChanged multi once ConstructorSourceEditor::daemons_contexNamesChanged(contex,"names") end;
+        if contex.owner() <> null then
+          @SlotValueChanged multi once ConstructorSourceEditor::daemons_contexOwnerNameChanged(contex.owner(),"name") end
+        end;
+
+        @SlotValueChanged multi once ConstructorSourceEditor::daemons_contexSourceChanged(contex,"source") end
+      end
+    end
+
+    @Operation daemons_contexNamesChanged(e,slot,newValue,oldValue)
+      self.setFormName();
+      self.setName(name)
+    end
+
+    @Operation daemons_contexOwnerNameChanged(elementOwner,slot,newName,oldName)
+      self.setFormName();
+      self.setName(name)
+    end
+
+    @Operation daemons_contexSourceChanged(e,slot,newValue,oldValue)
+      textbox.setText(newValue);
+      textbox.resetText()
+    end
+
+    @Operation removeDaemons()
+      super();
+      let contex = textbox.contex
+      in
+        if contex.owner() <> null then
+          contex.owner().removeDaemonsWithTarget(self,true)
+        end
+      end
+    end
+
+  end

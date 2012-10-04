@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import IO;
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class InternalDisplayEngine extends BrowserDisplayEngine
+  
+    @Attribute browser : InternalBrowser end
+    
+    @Operation addFormHandler(handler)
+      self.createBrowser();
+      browser.addFormHandler(handler)
+    end
+    
+    @Operation addPageHandler(id,select)
+      self.createBrowser();
+      browser.addPageHandler(id,select)
+    end
+    
+    @Operation createBrowser()
+      if browser = null
+      then
+        self.browser := InternalBrowser("<html></html>");
+        let client = xmf.textClient()
+        in
+          client.newBrowser(browser)
+        end
+      end
+    end
+  
+    @Operation display(page:Page)
+      self.createBrowser();
+      self.browser.resetHandlers();
+      let out = StringOutputChannel()
+      in
+        page.html(out);
+        page.addHandlers(self);
+        self.browser.setURL(out.getString())
+      end
+    end
+  
+  end

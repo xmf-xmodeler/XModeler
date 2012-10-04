@@ -1,0 +1,123 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import FileBrowser;
+import XMap;
+import IO;
+
+context Directory
+  @Operation createFile(name,type,code)
+    let path = self.fullPath() + "/" + name 
+    in
+      if not path.fileExists() 
+      then
+        self.newFile(name,type,code)
+      else
+        xmf.errorMessage("The file cannot be added as a file or directory already exists with the same name.\nThe parent directory may need to be refreshed if the browser is out of sync\nwith the file system.")
+      end
+    end
+  end
+
+context Directory
+  @Operation containerCutHandler(element)
+    element.deleteActualFile()
+  end
+
+context Directory
+  @Operation containerPastePreHandler(element)
+    if element.isKindOf(File)
+    then
+      let
+        source = element.fullPath();
+        sourceFilename = element.name() then
+        target = self.fullPath() + "/" + sourceFilename
+      in
+        if target.fileExists() then
+          let value = xmf.getString("Paste","The file " + sourceFilename + " already exists.\nPlease enter a new Filename","CopyOf"+sourceFilename)
+          in
+            if value <> null then
+              target := self.fullPath() + "/" + value
+            else
+              target = ""
+            end  
+          end
+        end;
+        if target <> "" then
+          source.copyFile(target);
+          self.refreshFileTree()
+        end
+      end
+    else
+      xmf.warning("Cannot paste the clipboard element to " + self.elementString() + ".")
+    end
+  end
+
+context Directory
+  @Operation containerPastePostHandler(element)
+    self
+  end
+
+context Directory
+  @Operation delete_client()
+    if self.fullPath().fileExists() then
+      self.deleteActualFile()
+    else
+      xmf.errorMessage("The selected file or directory does not exist.\nThe parent directory may need to be refreshed first.")
+    end
+  end
+
+context Directory
+  @Operation doubleClick()
+    self
+  end
+
+context Directory
+  @Operation newDirectory()
+    let 
+      name = self.generateDirName() then
+      path = self.fullPath() + "/" + name 
+    in
+      if not path.fileExists() then
+        self.newDirectory(name)
+      else
+        xmf.errorMessage("The directory cannot be added as a file or directory already exists with the same name.\nThe parent directory may need to be refreshed if the browser is out of sync\nwith the file system.")
+      end
+    end
+  end
+
+context File
+  @Operation delete_client()
+    if self.fullPath().fileExists() then
+      //let doDelete = xmf.question("Do you really want to delete this file or directory?\nThis action cannot be undone.") 
+      //in
+      //  if doDelete then
+          self.deleteActualFile()
+      //  end
+      //end
+    else
+      xmf.errorMessage("The selected file or directory does not exist.\nThe parent directory may need to be refreshed first.")
+    end
+  end
+
+context File
+  @Operation changeLabelGuard(newText)
+    let oldText = self.name();
+        oldFullPath = self.fullPath() then
+        newFullPath = oldFullPath.subst(newText.toString(),oldText.toString(),false)
+    in
+      if oldFullPath.fileExists()
+      then
+        if not newFullPath.fileExists()
+        then
+          true
+        else
+          xmf.errorMessage("Cannot rename "+oldText.toString()+": A file with the name you specified already exists.");
+          false
+        end
+      else
+        xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.");
+        false
+      end
+    end
+  end

@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler SetExp in AST(aSetExp,arg,seen)
+  let elements = aSetExp.elements->collect(x | self.dispatch(x,arg))
+  in ASTNode(aSetExp,elements)
+  end
+end;

@@ -1,0 +1,79 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+
+context Statements
+
+  @Class Block extends Statement
+  
+    @Attribute statements : Seq(Statement) end
+    
+    @Constructor(statements) ! end
+    
+    @Operation compile(typeEnv,varEnv,next)
+      Statements::compile(
+        statements,
+        typeEnv,
+        varEnv,
+        @Operation(localTypeEnv,localVarEnv) 
+          next(typeEnv,varEnv) 
+          end)
+    end
+    
+    @Operation desugar1(next:Performable):Performable
+      [| let b = @Operation() 
+                   <Statements::desugar1(statements,[| self |])> 
+                 end 
+         in b(); 
+            <next> 
+         end 
+      |]
+    end
+    
+    @Operation desugar2(typeEnv,next):Performable
+      [| let b = @Operation() 
+                   <Statements::desugar2(
+                     statements,
+                     typeEnv,
+                     @Operation(ignore) 
+                       [| self |] 
+                     end)> 
+                 end 
+         in b(); 
+            <next(typeEnv)> 
+         end 
+      |]
+    end
+    
+    @Operation eval(target,originalEnv,imports)
+      let env = originalEnv
+      in @For statement in statements do
+           env := statement.eval(target,env,imports)
+         end
+      end;
+      originalEnv
+    end
+    
+    @Operation maxLocals(locals:Integer,maxLocals:Integer,next:Operation):Integer
+      Statements::maxLocals(
+        statements,
+        locals,
+        maxLocals,
+        @Operation(blockLocals,maxLocals) 
+          next(locals,maxLocals) 
+        end)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"begin");
+      @For s in statements do
+        format(out,"~%~V",Seq{indent + 2});
+        s.pprint(out,indent + 2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+      
+  end

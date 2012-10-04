@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AttributeName extends Text
+  
+    @Constructor(text,x,y)
+      self.init(Seq{text,x,y,true})
+    end
+    
+    @Operation new(parent,setMenu)
+      let result = super(parent,setMenu)
+      in self.editText();
+         result
+      end
+    end
+    
+  end

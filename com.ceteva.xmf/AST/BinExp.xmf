@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler BinExp in AST(aBinExp,arg,seen)
+  let right = self.dispatch(aBinExp.right,arg);
+      left = self.dispatch(aBinExp.left,arg)
+  in ASTNode(aBinExp,Seq{left,right})
+  end
+end;

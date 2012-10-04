@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class PasteRule extends ClipboardRule
+
+    @Attribute parentVar : String end
+    @Attribute parentType : Classifier end    
+    @Attribute isCopyVar : String end
+    @Attribute preAction : Exp end
+    @Attribute postAction : Exp end
+    
+    @Constructor(parentVar,elementVar,widgetVar,isCopyVar,description,parentType,condition,preAction,postAction)
+    end
+
+    @Operation desugar():Performable
+	  [|
+	    let 
+  		   registry = xmf.registry();
+  		   id = "com.ceteva.xmf.clipboard.paste"
+		 in
+	      registry.addContribution(id,
+	        Clients::ExtensionPoints::Contribution(
+	          <parentType>,
+	          Seq{
+	            <description>,
+	            @Operation pasteCondition(<parentVar>,<elementVar>,<widgetVar>,<isCopyVar>) <condition> end,
+	            @Operation pastePreAction(<parentVar>,<elementVar>,<widgetVar>,<isCopyVar>) <preAction> end,
+	            @Operation pastePostAction(<parentVar>,<elementVar>,<widgetVar>,<isCopyVar>) <postAction> end
+	          }))
+	    end
+	  |]
+    end
+
+  end

@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context DiagramLayout
+
+  @Class Position isabstract
+
+    @Attribute y : Integer (?,!) end
+    @Attribute x : Integer (?,!) end
+
+    @Constructor(x,y) end
+
+  end

@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class Button extends Clients::Forms::FormButton, FormElement
+  
+    @Attribute target : Element      end
+    @Attribute args   : Seq(Element) end
+    
+    @Constructor(label,target,args,action) end
+  
+    @Operation actualHeight():Integer
+      self.getTextDimension(label)->at(1)
+    end
+    
+    @Operation actualWidth():Integer
+      self.getTextDimension(label)->at(0)
+    end
+    
+    @Operation buttonPressed()
+      action.invoke(target,args)
+    end
+  
+  end

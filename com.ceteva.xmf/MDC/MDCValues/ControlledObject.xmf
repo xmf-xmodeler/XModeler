@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import MDC;
+import Values;
+import Types;
+
+context ! Values
+
+  @Class ControlledObject extends Object
+  
+    // An object that is represented by a diagram and controlled by
+    // a tool...
+  
+    @Attribute tool   : MDCTool (?,!) end
+    
+    @Constructor(type,tool,element,display) end
+    
+    @Operation newNode(parentTool,node)
+    
+      // Called because a new node has been added to a diagram...
+      
+      @WithoutEvents(tool)
+        @Find(nodeMap,type.nodes())
+          when nodeMap.isKindOf(Root_x_Node) andthen nodeMap.type().nodeType() = node.type()
+          do @Find(slot,slots)
+               when slot.type() = nodeMap
+               do slot.setNode(tool,node)
+             end
+          else 
+            @Find(nodeMap,type.nodes())
+              when nodeMap.isKindOf(Free_x_Node) andthen nodeMap.type().nodeType() = node.type()
+              do nodeMap.build(tool,node,tool.diagram())
+              else node.delete()
+            end
+         end
+       end
+     end
+     
+     @Operation stateChanged(parentTool,object,slot,new,old)
+       super(tool,object,slot,new,old);
+       tool.handleObjectStateChangeInternal(object,slot,new,old)
+     end
+                
+    
+  end
+    

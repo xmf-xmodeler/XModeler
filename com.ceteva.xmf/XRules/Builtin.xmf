@@ -1,0 +1,52 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XRules;
+
+context ! Root::XRules
+
+  @Class Builtin extends XOCL::Syntax
+
+    @Attribute name     : String    (?) end
+    @Attribute handler  : Operation (?) end
+    
+    @Constructor(name,handler) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Builtin ::= name = BuiltinName '(' args = BuiltinArgs ')' '[' con = BuiltinContext ']' body = Exp {
+        let body = Let(args->collect(arg | ValueBinding(arg,[| values->at(<IntExp(args->indexOf(arg))>) |])),body) then
+            op = Operation("builtin",con,NamedType(),body)
+        in [| XRules::Builtin(<name>,<op>) |]
+        end
+      }.
+      
+      BuiltinName ::= n = Name { StrExp(n) } | d = Drop { Drop([| StrExp(<d.exp>) |]) }.
+      
+      BuiltinArgs ::= 
+        n = AName ns = (',' AName)* { Seq{n|ns} } | { Seq{} }.
+      
+      BuiltinContext ::=
+        rules = Pattern ','
+        indent = Pattern ','
+        nv = Pattern   ','
+        succ = Pattern  ','
+        fail = Pattern  ','
+        exception = Pattern
+        { Seq{rules,Varp("values"),indent,nv,succ,fail,exception} }.
+        
+    end
+        
+    @Operation buildArgs(rules,vars)
+      if args->isEmpty 
+      then Seq{}
+      else args->collect(arg | arg.build(rules,vars))
+      end
+    end
+    
+    @Operation call(rules,values,indent,env,succ,fail,exception)
+      handler(rules,values,indent,env,succ,fail,exception)
+    end
+    
+  end

@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import Expressions;
+
+context Structure
+
+  @Class Modifiers
+  
+    @Attribute visibility : String  (!,?)end
+    @Attribute isStatic   : Boolean (!,?) end
+    @Attribute isAbstract : Boolean (!,?) end
+    
+    @Constructor(visibility,isStatic,isAbstract) ! end
+    
+    @Operation pprint(out)
+      format(out,"~S ",Seq{visibility});
+      if isStatic
+      then format(out,"static ")
+      end;
+      if isAbstract
+      then format(out,"abstract ")
+      end
+    end
+    
+  end

@@ -1,0 +1,300 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class ObjectPE extends AbstractObjectEditor
+
+    @Attribute singletonAttributes : SeqOfElement = Seq{} end
+    @Attribute enumerationAttributes : SeqOfElement = Seq{} end
+    @Attribute booleanAttributes : SeqOfElement = Seq{} end
+    @Attribute collectionAttributes : SeqOfElement = Seq{} end
+    @Attribute setOrSeqAttributes : SeqOfElement = Seq{} end
+    @Attribute tableAttributes : SeqOfElement = Seq{} end
+    
+    @Attribute selfDisplay : SingletonDisplay end
+    @Attribute ofDisplay : SingletonDisplay end
+    @Attribute documentationDisplay : CodeboxDisplay end
+    @Attribute singletonDisplays : Seq(SingletonDisplay) = Seq{} end
+    @Attribute booleanDisplays : Seq(BooleanDisplay) = Seq{} end
+    @Attribute enumerationDisplays : Seq(EnumerationDisplay) = Seq{} end
+    @Attribute collectionComboBoxDisplay : CollectionComboBoxDisplay end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+        self.partitionAttributes();
+        self.setSingletonDisplays();
+        self.setBooleanDisplays();
+        self.setEnumerationDisplays();
+        self.setCollectionComboBoxDisplay();
+        layoutManager.add(self.selfDisplays());
+        layoutManager.add(self.booleanDisplays);
+        layoutManager.addSeparator();
+        layoutManager.add(self.enumerationDisplays);
+        layoutManager.addSeparator();
+        layoutManager.add(self.singletonDisplays);
+        if not collectionAttributes->isEmpty then
+          layoutManager.add(Seq{self.collectionComboBoxDisplay})
+        end;
+        if self.element.hasSlot("documentation") then
+          layoutManager.addSeparator();
+          layoutManager.add(Seq{self.documentationDisplay()})
+        end;
+        layoutManager.addSeparator();
+        layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation initialiseAttributeCollections()
+      self.setOrSeqAttributes := Seq{};
+      self.tableAttributes := Seq{};
+      self.collectionAttributes := Seq{};
+      self.booleanAttributes := Seq{};
+      self.enumerationAttributes := Seq{};
+      self.singletonAttributes := Seq{}
+    end
+
+    @Operation partitionAttributes()
+      self.initialiseAttributeCollections();
+      let attributes = self.element.of().allAttributes()->asSeq in
+        @For a inSeq attributes do
+          if a.type.isReallyKindOf(Set) or a.type.isReallyKindOf(Seq) then
+            self.setOrSeqAttributes := setOrSeqAttributes->prepend(a);
+            self.collectionAttributes := collectionAttributes->prepend(a)
+          elseif a.type.inheritsFrom(Table) then
+            self.tableAttributes := tableAttributes->prepend(a);
+            self.collectionAttributes := collectionAttributes->prepend(a)
+          elseif a.type.inheritsFrom(Boolean) then
+            self.booleanAttributes := booleanAttributes->prepend(a)
+          elseif a.type.isKindOf(Enum) then
+            self.enumerationAttributes := enumerationAttributes->prepend(a)
+          elseif not a.type.inheritsFrom(Doc) then
+            self.singletonAttributes := singletonAttributes->prepend(a)
+          end
+        end;
+        self.setOrSeqAttributes := setOrSeqAttributes->sortNamedElements_CaseIndependent();
+        self.tableAttributes := tableAttributes->sortNamedElements_CaseIndependent();
+        self.collectionAttributes := collectionAttributes->sortNamedElements_CaseIndependent();
+        self.booleanAttributes := booleanAttributes->sortNamedElements_CaseIndependent();
+        self.enumerationAttributes := enumerationAttributes->sortNamedElements_CaseIndependent();
+        self.singletonAttributes := singletonAttributes->sortNamedElements_CaseIndependent();
+        self
+      end
+    end
+
+    @Operation selfDisplays()
+      self.selfDisplay := self.newSingletonDisplay(element,"self");
+      selfDisplay.field
+        .setContex(element)
+        .setSlotName("self");
+      if element.isReallyKindOf(NamedElement) andthen not element.isKindOf(ForeignOperation) then
+        selfDisplay.field.setIsEditable(true)
+      end;
+      self.ofDisplay := self.newSingletonDisplay(element.of(),"of");
+      ofDisplay.field
+        .setIsEditable(false)
+        .setContex(element)
+        .setSlotName("of");
+      Seq{selfDisplay,ofDisplay}
+    end
+
+    @Operation documentationDisplay()
+      let
+        doc = self.element.documentation
+      then
+        text = 
+          if doc.isReallyKindOf(XCore::Doc) 
+          then doc.docString()
+          else ""
+          end
+      then
+        textbox = DocumentationTextBox(0,0,0,0,text,true)
+          .setContex(element)
+          .setSlotName("documentation")
+      in
+        self.documentationDisplay := self.newCodeboxDisplay(textbox,"documentation");
+        documentationDisplay
+      end
+    end
+
+    @Operation setSingletonDisplays()
+      self.singletonDisplays := Seq{};
+      @For sing inSeq singletonAttributes do
+        let
+          labelText = sing.name then
+          e = self.element.get(labelText) then
+          display = self.newSingletonDisplay(e,labelText)
+        in
+          display.field
+            .setContex(element)
+            .setSlotName(labelText)
+            .setType(element.of().getAttribute(labelText).type);
+          self.singletonDisplays := singletonDisplays + Seq{display}
+        end
+      end
+    end
+
+    @Operation setBooleanDisplays()
+      self.booleanDisplays := Seq{};
+      @For bool inSeq booleanAttributes do
+        let
+          labelText = bool.name then
+          b = self.element.get(labelText) then
+          display = self.newBooleanDisplay(ContextCheckBox,b,labelText)
+        in
+          display.checkBox
+            .setContex(element)
+            .setSlotName(labelText);
+          self.booleanDisplays := booleanDisplays + Seq{display}
+        end
+      end
+    end
+
+    @Operation setEnumerationDisplays()
+      self.enumerationDisplays := Seq{};
+      @For enumAtt inSeq enumerationAttributes do
+        let
+          labelText = enumAtt.name then
+          e = self.element.get(labelText) then
+          display = self.newEnumerationDisplay(e,labelText)
+        in
+          display.comboBox
+            .setContex(element)
+            .setSlotName(labelText)
+            .setEnum(enumAtt.type)
+            .addItems()
+            .setCurrentSelection();
+          self.enumerationDisplays := enumerationDisplays + Seq{display}
+        end
+      end
+    end
+
+    @Operation setCollectionDisplays()
+      self.collectionDisplays := Seq{};
+      @For coll inSeq collectionAttributes do
+        let
+          labelText = coll.name
+        then
+          collValue = 
+            if coll.type.inheritsFrom(Table) then
+              self.element.get(labelText).values()->asSeq
+            else
+              self.element.get(labelText)->asSeq
+            end         
+        in
+          self.collectionDisplays := collectionDisplays + Seq{self.newCollectionDisplay(collValue,labelText)}
+        end
+      end
+    end
+
+    @Operation setCollectionButtonDisplay()
+      let
+        list = FormList(0,0,0,0);
+        buttons = Seq{}
+      in
+        @For coll inSeq collectionAttributes do
+          let
+            collName = coll.name.toString();
+            buttonAction =
+              @Operation buttonAction()
+                collectionButtonDisplay.resetList(coll)
+              end      
+          then
+            button = FormButton(0,0,0,0,collName,buttonAction)
+          in
+            buttons := buttons + Seq{button}
+          end
+        end;
+        self.collectionButtonDisplay := CollectionButtonDisplay(buttons,list,self.element)
+      end        
+    end
+
+    @Operation setCollectionComboBoxDisplay()
+      if not collectionAttributes->isEmpty then
+        let
+          comboBox = FormActiveComboBox(0,0,0,0);
+          list = FormList(0,0,0,0);
+          label = FormLabel(0,0,"Collection Slots")
+        in
+          @For coll inSeq collectionAttributes do
+            let
+              collName = coll.name.toString();
+              action =
+                @Operation action()
+                  collectionComboBoxDisplay.resetList(coll,true)
+                end 
+            in
+              comboBox.addItem(collName,action,self)
+            end
+          end;
+          self.collectionComboBoxDisplay := CollectionComboBoxDisplay(label,comboBox,list,self.element)
+        end
+      end
+    end
+
+    @Operation setBooleanOut(slotName:String,newValue)
+      @Find(display,self.booleanDisplays)
+        when display.label.text.toString() = slotName
+        do
+          let checkBox = display.checkBox in
+            checkBox.setValue(newValue);
+            self.commandInterpreter().setBooleanCommand(checkBox,newValue)
+          end
+      end;
+      self
+    end
+
+    @Operation setEnumerationOut(slotName:String,newValue)
+      @Find(display,self.enumerationDisplays)
+        when display.label.text.toString() = slotName
+        do
+          let comboBox = display.comboBox in
+            comboBox.setSelected(newValue.name().toString())
+          end
+      end;
+      self
+    end
+
+    @Operation setTextOut(slotName:String,value)
+      let valueLabel = value.labelString() in
+        if slotName = "documentation" then
+          let
+            textbox = documentationDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        else
+          let displays = singletonDisplays + Seq{selfDisplay,ofDisplay} in
+            @Find(display,displays)
+              when display.label.text.toString() = slotName
+              do
+                let textField = display.field in
+                  textField.element := value;
+                  textField.setText(valueLabel);
+                  self.commandInterpreter().setText(textField,valueLabel)
+                end
+            end
+          end
+        end;
+        self
+      end
+    end
+
+    @Operation refresh()
+      super();
+      if not collectionComboBoxDisplay = null then
+        let combo = collectionComboBoxDisplay.comboBox in
+          if not combo.contents->isEmpty then
+            combo.selectItemAt(0)
+          end
+        end
+      end
+    end
+
+  end

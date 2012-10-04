@@ -1,0 +1,97 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Exp isabstract extends Sugar 
+  
+    @Doc 
+      An expression is a wrapped element of type Performable. An expression evaluates
+      to itself, but wraps the performable element as an operation. The wrapping ensures
+      that the element can be performed in its correct environment when the operation
+      is called. In addition the operation will be compiled by the compiler to produce
+      efficient code. Often we want to get the underlying performable element at
+      run-time. This is calculated on demand from the source code retained as a string.
+    end
+    
+    @Attribute exp    : Performable (?,!) end
+    @Attribute args   : Seq(String) (?,!) end
+    @Attribute op     : Operation   (?,!) end
+    
+    @Constructor(exp) end
+    
+    @Constructor(exp,op) end
+    
+    @Constructor(exp,args,op) end
+    
+    @Operation desugar():Performable
+      [| <Path::toPath(self.of().pathSeq())>(<exp.lift()>,<args.lift()>,<OCL::Operation("",args->collect(arg | OCL::Varp(arg)),OCL::NamedType(),exp)>) |]
+    end
+    
+    @Operation expChanged()
+    
+      // Called when the expression has changed
+      // and we want the operation to be recompiled.
+      
+      let dynamics = Seq{Seq{1 | Seq{Symbol("Root") | Root}}}
+      in self.op := Compiler::compileToFun("",exp,args,dynamics,true)
+      end
+    end
+    
+    @Operation mkEnv(names:Seq(String),values:Seq(Element))
+    
+      // Creates an environment suitable for the perform operation
+      // defined below.
+      
+      @For name,value in names,values produce
+        Seq{1 | Seq{name.asSymbol() | value}}
+      end
+      
+    end
+    
+    @Operation perform():Element
+      // No target, no args, no dynamics and no imports.
+      self.perform(Seq{})
+    end
+    
+    @Operation perform(args)
+      // Just the arguments...
+      self.perform(null,args)
+    end
+    
+    @Operation perform(target,args)
+      // Like invoke....
+      self.perform(target,args,Seq{},Seq{})
+    end
+    
+    @Operation perform(target,env,imports)
+      // For when the free vars are bound as dynamics....
+      self.perform(target,Seq{},env,imports)
+    end
+    
+    @Operation perform(target,args,env,imports)
+    
+      // Since the exp is expected to be an operation when it is performed,
+      // the env is a collection of dynamic environment components.
+      // *** Imports should be added to the dynamics *****
+      
+      if op = null
+      then self.error("Cannot perform an eval " + self.toString())
+      else 
+        op.setDynamics(env + op.dynamics());
+        op.invoke(target,args)
+      end
+      
+    end
+    
+    @Operation source():String
+      exp.pprint()
+    end
+    
+    @Operation toString():String
+      "[| " + exp.pprint() + " |]"
+    end
+    
+  end

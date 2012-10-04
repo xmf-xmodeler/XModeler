@@ -1,0 +1,78 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+import Exceptions;
+
+@Handler Apply in Eval(aApply,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     operator = aApply.operator;
+     args = aApply.args;
+     evalArgs =
+       @Operation(args,op,argValues)
+         if args->isEmpty
+         then apply(op,argValues)
+         else
+           next(args->head,
+             @Operation(nextArg,resultArg,call,return)
+               self.eval(args->head,env,target,imports,nextArg,resultArg,call,return,
+                 @Operation(value)
+                   evalArgs(args->tail,op,argValues + Seq{value})
+                 end)
+             end)
+         end
+       end;
+     apply =
+       @Operation(op,args)
+         if op.isKindOf(InterpretedOperation)
+         then applyInterpreted(op,args)
+         else
+           let value = op.invoke(target,args)
+           in result(aApply,value,cont)
+           end
+         end
+       end;
+     applyInterpreted =
+       @Operation(op,args)
+         if op.parameters->size = args->size and not op.isVarArgs
+         then 
+           let bodyEnv = op.bindParams(op.parameters,args,target,op.dynamicEnv(),imports)
+           in call(op.name(),op.body,
+                @Operation() 
+                  self.env := bodyEnv;
+                  next(op.body,
+                    @Operation(next,result,call,return)
+                      self.eval(op.body,bodyEnv,op.target,op.imports,next,result,call,return,
+                        @Operation cont(value)
+                          self.env := env;
+                          self.target := target;
+                          self.imports := imports;
+                          return(@Operation return() result(aApply,value,cont) end)
+                        end)
+                    end)
+                end)
+           end
+         elseif op.isVarArgs and args->size >= op.parameters->size - 1
+         then 
+           let value = op.body.eval(target,op.bindParams(op.parameters,args->take(op.arity() - 1) + Seq{args->drop(op.arity() - 1)},target,op.dynamicEnv(),imports),imports)
+           in result(aApply,value,cont)
+           end
+         else throw ArityMismatch(self,args)
+         end
+       end
+  in next(operator,
+       @Operation(nextOp,resultOp,call,return)
+         self.eval(operator,env,target,imports,nextOp,resultOp,call,return,
+           @Operation(op)
+             evalArgs(args,op,Seq{})
+           end)
+       end)
+  end
+end;

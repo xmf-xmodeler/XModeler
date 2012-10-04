@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormCheckBox extends FormElement
+  
+    @Attribute value : Boolean (?,!) end
+    
+    @Constructor(x,y,value) end
+    
+    @Constructor(id,x,y,value) end
+    
+    @Operation new(parent)
+      self.commandInterpreter().newCheckBoxCommand(parent,self)
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newCheckBoxCommand(parent,self)
+    end
+
+    @Operation setBooleanIn(value)
+      self.setValue(value);
+      self.commandInterpreter().setBooleanCommand(self,value)
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        value = Seq{"value",value} then
+        attributes = Seq{id,x,y,width,height,value}
+      in
+        @Command(self) startElement("checkbox",attributes) end;
+        @Command(self) endElement("checkbox") end
+      end
+    end
+
+  end

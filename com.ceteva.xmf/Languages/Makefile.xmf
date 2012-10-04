@@ -1,0 +1,27 @@
+import Compiler;
+
+compileFile("Languages/Boot",true,true);
+compileFile("Languages/Manifest",true,true);
+//compileFile("Languages/Activities/Makefile",true,true);
+compileFile("Languages/Ada/Makefile",true,true);
+//compileFile("Languages/Automata/Makefile",true,true);
+compileFile("Languages/MicroJava/Makefile",true,true);
+//compileFile("Languages/Manifest",true,true);
+//compileFile("Languages/StateMachines/Makefile",true,true);
+//compileFile("Languages/DFD/Makefile",true,true);
+//compileFile("Languages/Wizard/Makefile",true,true);
+//compileFile("Languages/MicroSQL/Makefile",true,true);
+//compileFile("Languages/ClassTool/Makefile",true,true);
+//compileFile("Languages/Processes/Makefile",true,true);
+//"Languages/Activities/Makefile.o".loadBin(false); 
+"Languages/Ada/Makefile.o".loadBin(false); 
+//"Languages/Automata/Makefile.o".loadBin(false); 
+"Languages/MicroJava/Makefile.o".loadBin(false); 
+//"Languages/StateMachines/Makefile.o".loadBin(false); 
+//"Languages/DFD/Makefile.o".loadBin(false); 
+//"Languages/Wizard/Makefile.o".loadBin(false); 
+//"Languages/MicroSQL/Makefile.o".loadBin(false); 
+//"Languages/ClassTool/Makefile.o".loadBin(false); 
+// "Languages/Commands/Makefile.o".loadBin(false);
+//"Languages/Processes/Makefile.o".loadBin(false);  
+

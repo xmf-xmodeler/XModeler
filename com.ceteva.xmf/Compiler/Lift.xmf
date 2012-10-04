@@ -1,0 +1,24 @@
+import OCL;
+
+context Lift
+  @Operation compile(env,frame,isLast,saveSource)
+    // When we compile a lift expression we must construct an expression
+    // that will produce the expression when performed.
+    exp.lift().compile(env,frame,isLast,saveSource)
+  end
+  
+context Lift
+  @Operation FV():Set(String)
+    exp.lift().FV()
+  end
+  
+context Lift
+  @Operation maxLocals():Integer
+    exp.lift().maxLocals()
+  end
+  
+context Lift
+  @Operation lift()
+    //Apply(self.typeExp(),Seq{exp.lift()})
+    exp.lift().lift()
+  end  

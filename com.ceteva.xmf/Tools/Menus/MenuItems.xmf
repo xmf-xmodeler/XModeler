@@ -1,0 +1,71 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+
+context Menus
+
+  @Class MenuItems extends MenuItem, MenuItemContainer
+  
+    // A type descriptor for a named group of menu items.
+    // Allows menus to be nested.
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      MenuItems ::= name = (Name | Str) defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::Menus::MenuItems(<OCL::StrExp(name)>) |] |
+        
+          [| <exp>.add(<def>) |])
+          
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        MenuItem do
+          self.addToItems(element)
+        end
+        else self.error("Unknown menu items component: " + element.toString())
+      end
+    end
+    
+    @Operation merge(inherited)
+    
+      // To merge items, copy down all the items with new names.
+      
+      @For inheritedItem in inherited.items() do
+        @Find(localItem,items)
+          when localItem.name().toString() = inheritedItem.name().toString()
+          do self.items := items->subst(Seq{localItem.merge(inheritedItem)},Seq{localItem},true)
+          else self.add(inheritedItem)
+        end
+      end
+    end  
+
+
+
+    @Operation new(this,tool,path)
+      let menuItems = Clients::Menus::MenuItems(name)
+      in @For item in items do
+           menuItems.add(item.new(this,tool,path))
+         end;
+         menuItems
+      end
+    end
+    
+    @Operation setToolDescriptorMenu(path:Seq(String))
+    
+      // Add a menu entry for the Tools drop down menu. The supplied
+      // path indicates where the next menu item will be added in
+      // the drop down menu.
+      
+      @For item in items do
+        item.setToolDescriptorMenu(path + Seq{name,"Main"})
+      end
+      
+    end
+    
+  end

@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Languages;
+import Commands;
+import Diagrams;
+
+context Diagrams
+
+  @Class Statement extends Node
+  
+  end

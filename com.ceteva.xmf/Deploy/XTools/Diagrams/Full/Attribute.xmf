@@ -1,0 +1,199 @@
+// This file defines a default mapping from a package and a class in the package
+// to a complete XTool definition for a diagram editor. The intention is that
+// the source code that is produced is used as the first cut for a domain specific
+// language editor for the package. The editor will create an instance of the
+// supplied class and the associated classes in the package.
+
+parserImport XOCL;
+
+import IO;
+
+context Attribute
+  @Operation writeDiagramToolHeader(out:OutputChannel)
+    format(out,"parserImport XOCL;~%");
+    format(out,"parserImport Tools::Basic;~%");
+    format(out,"parserImport Tools::DiagramTools::Types;~%");
+    format(out,"parserImport Tools::DiagramTools::Structure;~%");
+    format(out,"parserImport Tools::Menus;~%");
+    format(out,"parserImport Tools::Events;~%");
+    format(out,"parserImport Tools::DiagramTools::Types::DisplayTypes;~%~%");
+    format(out,"import Tools;~%");
+    format(out,"import DiagramTools;~%");
+    format(out,"import Structure;~%");
+    format(out,"import Graphs;~%");
+    format(out,"import DiagramEvents;~%~%")
+  end
+
+context Attribute 
+  @Operation writeDiagramHandlers(dir:String,nameSpace:String,manifest:OrderedContainer)
+    self.writeNewEdgeHandler(dir,nameSpace,manifest);
+    self.writeEdgeRemovedHandler(dir,nameSpace,manifest);
+    self.writeEdgeMovedHandler(dir,nameSpace,manifest);
+    self.writeObjectHandlers(dir,nameSpace,manifest)
+  end
+  
+context Attribute
+  @Operation writeNewEdgeHandler(dir:String,nameSpace:String,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/Change_Slot_" + name + ".xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler New_~S()~%",Seq{name});
+      format(out,"    let source = find(event.source());~%");
+      format(out,"        target = find(event.target())~%");
+      format(out,"    in register(event.edge(),Seq{source,target});~%");
+      @Case type of
+        Seq[ ] do
+          format(out,"       source.~S := source.~S->including(target)~%",Seq{name,name})
+        end
+        Set[ ] do
+          format(out,"       source.~S := source.~S->including(target)~%",Seq{name,name})
+        end
+        else format(out,"       source.~S := target~%",Seq{name})
+      end;
+      format(out,"    end~%");
+      format(out,"  end~%");
+      manifest.add("Change_Slot_" + name)
+    end
+  end
+  
+context Attribute
+  @Operation writeEdgeRemovedHandler(dir:String,nameSpace:String,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/Remove_Slot_" + name + ".xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_Removed()~%",Seq{name});
+      format(out,"    let source = find(event.source());~%");
+      format(out,"        target = find(event.target())~%");
+      format(out,"    in if source <> null then ~%");
+      @Case type of
+        Seq[ ] do
+          format(out,"         source.~S := source.~S->excluding(target)~%",Seq{name,name})
+        end
+        Set[ ] do
+          format(out,"         source.~S := source.~S->excluding(target)~%",Seq{name,name})
+        end
+        else 
+          format(out,"         source.~S := null~%",Seq{name})
+      end;
+      format(out,"       end;~%");
+      format(out,"       deregister(event.edge())~%");
+      format(out,"    end~%");
+      format(out,"  end~%");
+      manifest.add("Remove_Slot_" + name)
+    end
+  end
+  
+context Attribute
+  @Operation writeEdgeMovedHandler(dir:String,nameSpace:String,manifest:OrderedContainer)
+    self.writeTargetChanged(dir,nameSpace,manifest);
+    self.writeSourceChanged(dir,nameSpace,manifest)
+  end
+  
+context Attribute
+  @Operation writeTargetChanged(dir:String,nameSpace:String,manifest:OrderedContainer)
+     @WithOpenFile(out -> dir + "/Change_Target_" + name + ".xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_Target_Changed()~%",Seq{name});
+      format(out,"    let sourceAndTarget = find(event.edge()) then~%");
+      format(out,"        source = sourceAndTarget->at(0);~%");
+      format(out,"        target = sourceAndTarget->at(1)~%");
+      format(out,"    in sourceAndTarget->tail := Seq{find(event.new())};~%");
+      @CaseObj type of
+        Seq[ ] do
+          format(out,"       source.~S := source.~S->excluding(target);",Seq{name,name});
+          format(out,"       source.~S := source.~S->including(find(event.new()))",Seq{name,name})
+        end
+        Set[ ] do
+          format(out,"       source.~S := source.~S->excluding(target);",Seq{name,name});
+          format(out,"       source.~S := source.~S->including(find(event.new()))",Seq{name,name})
+        end
+        else format(out,"       source.~S := find(event.new())",Seq{name})
+      end;
+      format(out,"    end~%");
+      format(out,"  end~%");
+      manifest.add("Change_Target_" + name)
+    end
+  end
+  
+context Attribute
+  @Operation writeSourceChanged(dir:String,nameSpace:String,manifest:OrderedContainer)
+     @WithOpenFile(out -> dir + "/Change_Source_" + name + ".xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_Source_Changed()~%",Seq{name});
+      format(out,"    let sourceAndTarget = find(event.edge()) then~%");
+      format(out,"        source = sourceAndTarget->at(0);~%");
+      format(out,"        target = sourceAndTarget->at(1)~%");
+      format(out,"    in sourceAndTarget->head := Seq{find(event.new())};~%");
+      @CaseObj type of
+        Seq[ ] do
+          format(out,"       source.~S := source.~S->excluding(target);",Seq{name,name});
+          format(out,"       find(event.new()).~S := find(event.new()).~S->including(target)",Seq{name,name})
+        end
+        Set[ ] do
+          format(out,"       source.~S := source.~S->excluding(target);",Seq{name,name});
+          format(out,"       find(event.new()).~S := find(event.new()).~S->including(target)",Seq{name,name})
+        end
+        else 
+          format(out,"       source.~S := null;~%",Seq{name});
+          format(out,"       find(event.new()).~S := target~%",Seq{name})
+      end;
+      format(out,"    end~%");
+      format(out,"  end~%");
+      manifest.add("Change_Source_" + name)
+    end
+  end
+  
+context Attribute
+  @Operation writeObjectHandlers(dir:String,nameSpace:String,manifest:OrderedContainer)
+    // Writes out the handlers for changes to the model element...
+    @Case type of
+      Seq() do
+        if not self.underlyingType().isKindOf(DataType)
+        then self.writeObjectAddedHandler(dir,nameSpace,manifest)
+        end
+      end
+      Seq() do
+        if not self.underlyingType().isKindOf(DataType)
+        then self.writeObjectAddedHandler(dir,nameSpace,manifest)
+        end
+      end
+      else self.writeObjectChangedHandler(dir,nameSpace,manifest)
+    end
+  end
+  
+context Attribute
+  @Operation writeObjectAddedHandler(dir:String,nameSpace:String,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/" + owner.name + "_Object_" + name + "_Added.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{nameSpace});
+      format(out,"  @EventHandler ~S_Object_~S_Added()~%",Seq{owner.name,name});
+      format(out,"    @WithoutEvents(event.tool())~%");
+      format(out,"      @For target in event.new() do~%");
+      format(out,"        if find(target) = null~%");
+      format(out,"        then~%");
+      format(out,"          let targetNode = event.tool().newNode(\"~S\",10,10);~%",Seq{self.underlyingType().name});
+      format(out,"              sourceNode = find(event.object()) then~%");
+      format(out,"              sourcePort = sourceNode.port();~%");
+      format(out,"              targetPort = targetNode.port() then~%"); 
+      format(out,"              edge = event.tool().newEdge(\"~S\",sourcePort,targetPort)~%",Seq{name});
+      format(out,"           in register(target,targetNode);~%");
+      format(out,"             register(targetNode,target);~%");
+      format(out,"             register(edge,Seq{event.object(),target});~%");
+      format(out,"             target.observeBy(event.tool())~%");
+      format(out,"          end~%");
+      format(out,"        end~%");
+      format(out,"      end~%");
+      format(out,"    end~%");
+      format(out,"  end~%");
+      manifest.add(owner.name + "_Object_" + name + "_Added")
+    end
+  end
+  
+context Attribute
+  @Operation writeObjectChangedHandler(dir:String,nameSpace:String,manifest:OrderedContainer)
+    null
+  end
+    
+     

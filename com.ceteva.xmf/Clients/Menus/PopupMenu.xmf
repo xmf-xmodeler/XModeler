@@ -1,0 +1,114 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class PopupMenu extends Contained, Commandable
+  
+    @Attribute items : Seq(MenuItem) (+,-,?) end
+    
+    @Constructor() end
+    @Constructor(items) ! end
+    
+    @Operation add(item:MenuItem)
+    
+      // Add a menu item. If the menu has been initialized then
+      // send the item a new message to inform the client. Otherwise
+      // the item will be initialized as part of the menu initialization.
+      
+      let pos = self.calcItemPosition(item) in
+        self.items := self.items.linkAt(item,pos)
+      end;
+      if self.initialized() then
+        item.new(self)
+      end
+    end
+    
+    @Operation append(item:MenuItem)
+    
+      // Add a menu item to the end of the sequence. This is used instead
+      // off 'add' if order needs to be preserved.
+      
+      self.items := self.items + Seq{item};
+      if self.initialized() then
+        item.new(self)
+      end
+    end
+    
+    @Operation calcItemPosition(targetItem)
+      let
+        index = items.size();
+        found = false
+      in
+        @For item inSeq self.items do
+          if targetItem.name < item.name and not found then
+            index := items.indexOf(item);
+            found := true
+          end
+        end;
+        index
+      end
+    end
+
+    @Operation dispose()
+      @For item in items do
+        item.dispose()
+      end
+    end
+
+    @Operation findItemNamed(targetName:String)
+      @Find(item,self.items)
+        when item.name = targetName
+        else null
+      end
+    end
+
+    @Operation findOrAddMenuItems(targetName:String)
+      let target = self.findItemNamed(targetName) in
+        if target = null then
+          let new = MenuItems(targetName) in 
+            self.add(new);
+            new
+          end
+        else
+          target
+        end
+      end
+    end
+    
+    @Operation id()
+      // A popup menu does not have an id -- use the owner instead.
+      owner.id()
+    end
+
+    @Operation initialized():Boolean
+      owner <> null
+    end
+    
+    @Operation isEmpty():Boolean
+      items->isEmpty
+    end
+    
+    @Operation new(parent)
+      self.setOwner(parent);
+      @For item inSeq items do
+        item.new(self)
+      end
+    end
+    
+    @Operation remove(item)
+      self.deleteFromItems(item)
+    end
+    
+    @Operation renew(parent)
+      self.dispose();
+      @For item inSeq items do
+        item.renew(self)
+      end
+    end
+
+  end
+    
+   

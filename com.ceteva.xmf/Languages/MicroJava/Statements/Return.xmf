@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Return extends Statement
+  
+    @Attribute exp : JExp end
+    
+    @Constructor(exp) ! end
+  
+    @Operation pprint(out,indent)
+      if exp = null
+      then 
+        format(out,"return;")
+      else 
+        format(out,"return ");
+        exp.pprint(out);
+        format(out,";")
+      end
+    end
+    
+  end

@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class Dispatch extends Instr
+  
+    @Doc
+      A machine instruction that performs an indexed jump.
+      The operand to this instruction is a vector of relative
+      offsets. The value at the head of the stack is an index
+      into the vector.
+    end
+  
+    @Attribute jumpTable   : Vector  end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(jumpTable) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(jumpTable);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      constOffset
+    end
+    
+    @Operation toString():String
+      "<Dispatch>" 
+    end
+   
+  end

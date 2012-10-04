@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+
+context OleBridge
+
+  @Class OleBridgeCommandInterpreter extends CommandInterpreter
+    
+    @Operation call(oo:OleObject,operation:String,args:Seq(Element))
+      @CallCommand(self)
+        call(oo.id(),operation,args)
+      end
+    end
+    
+    @Operation callAndStore(oo:OleObject,operation:String,args:Seq(Element),newObj:OleObject)
+      let newObjId = self.allocateId(newObj)
+      in
+        @CallCommand(self)
+          callAndStore(oo.id(),newObjId,operation,args)
+        end;
+        newObj
+      end
+    end
+    
+    @Operation getObject(oo:OleObject,call:String,newObj:OleObject)
+      let newObjId = self.allocateId(newObj)
+      in
+        @CallCommand(self)
+          getObject(oo.id(),call,newObjId)
+        end;
+        newObj
+      end
+    end
+    
+    @Operation getProperty(oo:OleObject,property:String)
+      @CallCommand(self)
+        getProperty(oo.id(),property)
+      end
+    end
+      
+    @Operation newTopLevel(tl:TopLevel,target:String)
+      let tlid = self.allocateId(tl)
+      in 
+        @CallCommand(self)
+          newTopLevel(tlid,target)
+        end;
+        tl
+      end
+    end
+    
+    @Operation setObject(oo:OleObject,property:String,value:OleObject)
+      @CallCommand(self)
+        setObject(oo.id(),property,value.id())
+      end
+    end
+    
+    @Operation setProperty(oo:OleObject,property:String,value:String)
+      @CallCommand(self)
+        setProperty(oo.id(),property,value)
+      end
+    end
+    
+  end

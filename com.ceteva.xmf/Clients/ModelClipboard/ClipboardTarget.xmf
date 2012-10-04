@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class ClipboardTarget
+
+    @Attribute element : Element (?,!) end
+    @Attribute pasteHandler : PasteHandler (?,!) end
+    @Attribute validContributions : Seq(ExtensionPoints::Contribution) (?,!,+,-) end
+
+    @Constructor(element,pasteHandler)
+    end
+
+    @Operation acceptPaste(sources:Seq(ClipboardSource),isCopy)
+      let accept = true
+      in
+        @For source in sources do
+          if not PasteHandler::acceptPaste(self,source,isCopy)
+          then accept := false
+          end
+        end;
+        accept
+      end
+    end
+
+    @Operation elementString()
+      element.nameString()
+    end
+    
+    @Operation paste(sources:Seq(ClipboardSource),isCopy)
+      let message = if sources->size = 1
+                    then "Are you sure you want to move this element?"
+                    else "Are you sure you want to move these elements?"
+                    end
+      in
+        if isCopy orelse xmf.question(message)
+        then
+          PasteHandler::chooseContribution(self);
+          @For source in sources do
+            PasteHandler::preHandlePaste(self,source,isCopy);
+            if not isCopy
+            then source.cut()
+            end;
+            PasteHandler::postHandlePaste(self,source,isCopy)
+          end
+        end
+      end
+    end
+    
+  end

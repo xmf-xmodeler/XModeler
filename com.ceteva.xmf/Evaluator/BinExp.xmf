@@ -1,0 +1,54 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler BinExp in Eval(aBinExp,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aBinExp.left,
+       @Operation(nextLeft,resultLeft,call,return)
+         self.eval(aBinExp.left,env,target,imports,nextLeft,resultLeft,call,return,
+           @Operation(left)
+             if aBinExp.binOp = "andthen" andthen not left
+             then result(aBinExp,left,cont)
+             elseif aBinExp.binOp = "orelse" andthen left
+             then result(aBinExp,left,cont)
+             else
+               next(aBinExp.right,
+                 @Operation(nextRight,resultRight,call,return)
+                   self.eval(aBinExp.right,env,target,imports,nextRight,resultRight,call,return,
+                     @Operation(right)
+                       let value = 
+                         @Case aBinExp.binOp of 
+                           "+"        do left + right end
+                           "-"        do left - right end
+                           "*"        do left * right end
+                           "/"        do left / right end
+                           "and"      do left and right end
+                           "or"       do left or right end
+                           "andthen"  do left and right end
+                           "orelse"   do left or right end
+                           ">"        do left > right end
+                           "<"        do left < right end
+                           "<="       do left <= right end
+                           ">="       do left >= right end
+                           "="        do left = right end
+                           "<>"       do left <> right end
+                           "implies"  do left implies right end
+                           else       left.send(aBinExp.binOp,Seq{right})
+                         end
+                       in result(aBinExp,value,cont)
+                       end
+                     end)
+                  end)
+              end
+            end)
+        end)
+   end
+end;

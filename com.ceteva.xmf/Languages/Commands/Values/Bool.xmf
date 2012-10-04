@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Values;
+
+context Values
+
+  @Class Bool extends Value
+  
+    @Operation binAnd(Bool(b))
+      Bool(value and b)
+    end
+    
+    @Operation binOr(Bool(b))
+      Bool(value or b)
+    end
+  
+  end

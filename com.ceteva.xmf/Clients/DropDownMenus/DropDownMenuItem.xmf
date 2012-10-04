@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import DropDownMenus;
+
+context DropDownMenus
+
+  @Class DropDownMenuItem extends AbstractMenu
+  
+    @Attribute action   : DropDownMenuAction end
+    
+    @Constructor(name,action)
+    end
+
+    @Operation delete()
+      owner.remove(self);
+      self.commandInterpreter().delete(self);
+      self.dispose()
+    end 
+
+    @Operation new()
+      self.commandInterpreter().newMenuItem(self.owner,self)
+    end
+    
+    @Operation selected()
+      action.selected()
+    end
+ 
+  end

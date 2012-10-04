@@ -1,0 +1,17 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Float in Lift(i,arg,encountered)
+  i.lift()
+end; 
+
+context XCore::Float
+  @Operation lift():Performable
+    let prePoint = self.floor().toString() then
+        postPoint = self.toString().subst("",prePoint+".",false)
+    in
+      FloatExp(prePoint,postPoint)
+    end
+  end

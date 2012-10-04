@@ -1,0 +1,66 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import TextEditor;
+import LiveDocViewer;
+
+context LiveDocViewer
+
+  @Class Viewer extends HTMLViewer, ElementViewer
+  
+    @Attribute multipage : Boolean = true end
+  
+    @Constructor(element)
+      let sout = StringOutputChannel()
+      in
+        self.getHTML(sout);
+        self.url := sout.getString();
+        self.name := element.toString();
+        sout.close()
+      end
+    end
+    
+    @Operation getHTML(sout)
+      if element.isKindOf(Package) then
+        element.toHTMLDoc(sout,false)
+      else
+        element.toHTMLDoc(sout)
+      end
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newBrowser(self);
+      self.setURL(url)
+    end
+    
+    @Operation requestURL(url)
+      let path = url.subst("","about:blank",true)
+      in
+        path := path.subst("","../",true);
+        path := path.subst(":","/",true);
+        path := path.subst("",":index.html",true);
+        let element = path.splitBy(":",0,0).ref(Seq{Root})
+        in
+          if element <> null then
+            if multipage then
+              let viewer = Viewer(element)
+              in
+                self.owner.newBrowser(viewer)
+              end
+            else
+              let sout = StringOutputChannel()
+              in
+                self.element := element;
+                self.getHTML(sout);
+                self.setURL(sout.getString());
+                sout.close();
+                self.setName(element)
+              end
+            end
+          end
+        end
+      end
+    end
+  
+  end

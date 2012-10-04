@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest XMI
+  p = @File XMI end
+  @File XMI11Rose end
+  @File XMI12Poseidon end
+  @File EMFXMI end
+do p
+end;

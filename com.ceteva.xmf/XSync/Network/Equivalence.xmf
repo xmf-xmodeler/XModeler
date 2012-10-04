@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Equivalence extends Predicate
+  
+    @Attribute loc1 : Location (?) end
+    @Attribute loc2 : Location (?) end
+    
+    @Constructor(loc1,loc2) ! end
+  
+    @Operation satisfied(token:Token):Boolean
+      let value1 = loc1.value(token);
+          value2 = loc2.value(token)
+      in //if token.debug()
+         //then format(stdout,"[ EQUIV ~S = ~S (~S) ]~%",Seq{value1,value2,value1=value2})
+         //end;
+         value1 = value2
+      end
+    end
+    
+  end

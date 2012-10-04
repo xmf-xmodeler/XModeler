@@ -1,0 +1,333 @@
+parserImport XOCL;
+
+import Clients;
+
+context Forms
+
+  @Class FormEventHandler extends ModelClipboard::DroppableEventHandler
+  
+    @Doc
+       This class defines operations to handle the following incoming
+       events from the client. In each case the event is a sequence of strings
+       and integers. Each event has a fixed arity. Raising an event in the mapping
+       causes the appropriate form element (usually the containing element) to be
+       sent a message with the supplied arguments + the mapping. The form element
+       is then responsible for updating the form model and using the commands
+       listed above to update the client. Users of the mapping should always raise
+       events and not perform the commands directly. New types of form element can
+       handle the events in different ways. New types of form mapping can exten-d
+       the interface of events that can be raised.
+           [buttonPressed(buttonId)]
+           [formClosed(formId)]
+           [focusGained(formId)]
+           [focusLost(formId)]
+           [textChanged(textfieldId,text)]
+           [resetText(textcomponentId)]
+           [getEditableText(itemId)]
+           [setBoolean(checkBoxId,value)]
+           [selected(itemId)]
+           [doubleSelected(itemId)]
+           [rightClickMenuSelected(itemId)]
+           [undo(formId)]
+           [redo{formId)]
+    end
+
+    @Operation browseHistory(formId)
+      self.debug("browseHistory[~S]~%",Seq{formId});
+      self.find(formId).browseHistory()
+    end
+
+    @Operation buttonPressed(buttonId)
+      self.debug("buttonPressed[~S]~%",Seq{buttonId});
+      self.find(buttonId).buttonPressed()
+    end
+
+    @Operation clearHistory(formId)
+      self.debug("clearHistory[~S]~%",Seq{formId});
+      self.find(formId).clearHistory()
+    end
+
+    @Operation comboBoxSelection(comboBoxId,choice)
+      self.debug("comboBoxSelection[~S,~S]~%",Seq{comboBoxId,choice});
+      let comboBox = self.find(comboBoxId) in
+        comboBox.setSelected(choice)
+      end
+    end
+
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "buttonPressed"				do self.readButtonPressed(parameters) end
+        "formClosed"				   do self.readFormClosed(parameters) end
+        "focusGained"				do self.readFocusGained(parameters) end
+        "focusLost"					do self.readFocusLost(parameters) end
+        "lockForm"					do self.readLockForm(parameters) end
+        "browseHistory"				do self.readBrowseHistory(parameters) end
+        "clearHistory"				do self.readClearHistory(parameters) end
+        "nextInHistory"				do self.readNextInHistory(parameters) end
+        "previousInHistory"		do self.readPreviousInHistory(parameters) end
+        "textChanged"				do self.readTextChanged(parameters) end
+        "resetText"					do self.readResetText(parameters) end
+        "getEditableText"			do self.readGetEditableText(parameters) end
+        "setBoolean"				   do self.readSetBoolean(parameters) end
+        "deselected"					do self.readDeselected(parameters) end
+        "selected"					do self.readSelected(parameters) end
+        "doubleSelected"			do self.readDoubleSelected(parameters) end
+        "expanded"               do self.readExpanded(parameters) end
+        "rightClickMenuSelected"	do self.readRightClickMenuSelected(parameters) end
+        "comboBoxSelection"			do self.readComboBoxSelection(parameters) end
+        "acceptDrop"             do self.readAcceptDrop(parameters) end
+        "dragAndDrop"			   do self.readDragAndDrop(parameters) end
+        // "undo"					do self.readUndo() end
+        // "redo"					do self.readRedo() end
+      end;
+      self
+    end
+
+    @Operation focusGained(formId)
+      self.debug("focusGained[~S]~%",Seq{formId});
+      if xmf.clientManager().idManager.hasId(formId)
+      then self.find(formId).focusGained()
+      else self.debug("  id ~S disposed~%",Seq{formId})
+      end
+    end
+
+    @Operation focusLost(formId)
+      self.debug("focusLost[~S]~%",Seq{formId});
+      if xmf.clientManager().idManager.hasId(formId)
+      then self.find(formId).focusLost()
+      else self.debug("  id ~S disposed~%",Seq{formId})
+      end
+    end
+    
+    @Operation formClosed(formId)
+      self.debug("formClosed[~S]~%",Seq{formId});
+      self.find(formId).close()
+    end
+
+    @Operation getEditableText(textcomponentId)
+      self.debug("getEditableText[~S]~%",Seq{textcomponentId});
+      if xmf.clientManager().idManager.hasId(textcomponentId)
+      then
+        let textComponent = self.find(textcomponentId) 
+        in textComponent.getEditableText()
+        end
+      else
+        self.debug("  id ~S disposed~%",Seq{textcomponentId})
+      end
+    end
+
+    @Operation itemDeselected(itemId)
+      self.debug("deselected[~S]~%",Seq{itemId});
+      if xmf.clientManager().idManager.hasId(itemId)
+      then
+        self.find(itemId).deselected()
+      else
+        self.debug("  id ~S disposed~%",Seq{itemId})
+      end
+    end
+
+    @Operation itemDoubleSelected(itemId)
+      self.debug("doubleSelected[~S]~%",Seq{itemId});
+      self.find(itemId).doubleSelected()
+    end
+
+    @Operation itemRightClickMenuSelected(itemId) 
+      self.debug("rightClickMenuSelected[~S]~%",Seq{itemId});
+      self.find(itemId).select()
+    end
+
+    @Operation itemSelected(itemId)
+      self.debug("selected[~S]~%",Seq{itemId});
+      if xmf.clientManager().idManager.hasId(itemId)
+      then
+        self.find(itemId).selected()
+      else
+        self.debug("  id ~S disposed~%",Seq{itemId})
+      end
+    end
+
+    @Operation lockForm(formId,value)
+      self.debug("lockForm[~S,~S]~%",Seq{formId,value});
+      self.find(formId).lockForm(value)
+    end
+
+    @Operation nextInHistory(formId)
+      self.debug("nextInHistory[~S]~%",Seq{formId});
+      self.find(formId).nextInHistory()
+    end
+
+    @Operation nodeExpanded(nodeId)
+      self.debug("expanded[~S]~%",Seq{nodeId});
+      if xmf.clientManager().idManager.hasId(nodeId)
+      then
+        self.find(nodeId).expand()
+      else
+        self.debug("  id ~S disposed~%",Seq{nodeId})
+      end
+    end
+
+    @Operation previousInHistory(formId)
+      self.debug("previousInHistory[~S]~%",Seq{formId});
+      self.find(formId).previousInHistory()
+    end
+
+    @Operation readBrowseHistory(parameters)
+      let formId = parameters.at(0)
+      in self.browseHistory(formId)
+      end
+    end
+
+    @Operation readButtonPressed(parameters)
+      let buttonId = parameters.at(0)
+      in self.buttonPressed(buttonId)
+      end  
+    end
+
+    @Operation readClearHistory(parameters)
+      let formId = parameters.at(0)
+      in self.clearHistory(formId)
+      end
+    end
+
+    @Operation readComboBoxSelection(parameters)
+      let comboBoxId = parameters.at(0) in
+        let choice = parameters.at(1) in
+          self.comboBoxSelection(comboBoxId,choice)
+        end
+      end
+    end
+
+    @Operation readDeselected(parameters)
+      let itemId = parameters.at(0) in
+        self.itemDeselected(itemId)
+      end
+    end
+
+    @Operation readDoubleSelected(parameters)
+      let itemId = parameters.at(0) in
+        self.itemDoubleSelected(itemId)
+      end
+    end
+
+    @Operation readExpanded(parameters)
+      let nodeId = parameters.at(0) in
+        self.nodeExpanded(nodeId)
+      end
+    end
+
+    @Operation readFormClosed(parameters)
+      let formId = parameters.at(0)
+      in self.formClosed(formId)
+      end
+    end
+
+    @Operation readFocusGained(parameters)
+      let formId = parameters.at(0)
+      in self.focusGained(formId)
+      end
+    end
+
+    @Operation readFocusLost(parameters)
+      let formId = parameters.at(0)
+      in self.focusLost(formId)
+      end
+    end
+
+    @Operation readGetEditableText(parameters)
+      let textcomponentId = parameters.at(0) in
+        self.getEditableText(textcomponentId)
+      end
+    end
+
+    @Operation readLockForm(parameters)
+      let formId = parameters.at(0) in
+        let value = parameters.at(1) in
+          self.lockForm(formId,value)
+        end
+      end
+    end
+
+    @Operation readNextInHistory(parameters)
+      let formId = parameters.at(0)
+      in self.nextInHistory(formId)
+      end
+    end
+
+    @Operation readPreviousInHistory(parameters)
+      let formId = parameters.at(0)
+      in self.previousInHistory(formId)
+      end
+    end
+
+    @Operation readResetText(parameters)
+      let textcomponentId = parameters.at(0) in
+        self.resetText(textcomponentId)
+      end
+    end
+
+    @Operation readRightClickMenuSelected(parameters)
+      let itemId = parameters.at(0) in
+        self.itemRightClickMenuSelected(itemId)
+      end
+    end
+
+    @Operation readSelected(parameters)
+      let itemId = parameters.at(0) in
+        self.itemSelected(itemId)
+      end
+    end
+    
+    @Operation readSetBoolean(parameters)
+      let checkBoxId = parameters.at(0) in
+        let value = parameters.at(1) in
+          self.setBoolean(checkBoxId,value)
+        end
+      end
+    end
+
+    @Operation readTextChanged(parameters)
+      let textfieldId = parameters.at(0) in
+        let text = parameters.at(1) in
+          self.textChanged(textfieldId,text)
+        end
+      end
+    end
+
+    @Operation redo(formId)
+      self.debug("redo[~S]~%",Seq{formId});
+      self.find(formId).redo()
+    end
+
+    @Operation resetText(textcomponentId)
+      self.debug("resetText[~S]~%",Seq{textcomponentId});
+      if xmf.clientManager().idManager.hasId(textcomponentId)
+      then
+        let textComponent = self.find(textcomponentId) 
+        in textComponent.resetText()
+        end
+      else
+        self.debug("  id ~S disposed~%",Seq{textcomponentId})
+      end
+    end
+
+    @Operation setBoolean(checkBoxId,value)
+      self.debug("setBoolean[~S,~S]~%",Seq{checkBoxId,value});
+      let checkBox = self.find(checkBoxId) in
+        checkBox.setBooleanIn(value)
+      end
+    end
+
+    @Operation textChanged(textfieldId,text)
+      self.debug("textChanged[~S,~S]~%",Seq{textfieldId,text});
+      let textField = self.find(textfieldId) in
+        textField.setTextIn(text)
+      end
+    end
+
+    @Operation undo(formId)
+      self.debug("undo[~S]~%",Seq{formId});
+      self.find(formId).undo()
+    end
+
+ end
+ 

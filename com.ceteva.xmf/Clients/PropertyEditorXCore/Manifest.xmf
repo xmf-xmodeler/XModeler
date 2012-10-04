@@ -1,0 +1,51 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest PropertyEditorXCore
+
+  PropertyEditorXCore =
+  
+  @File PropertyEditorXCore end
+
+  @File DocumentationTextBox end
+  @File DocumentationEditor end
+  @File AbstractObjectEditor end
+  @File ObjectPE end
+  @File ObjectXForm end
+  @File DependencyXForm end
+
+  @File CompiledOperationSourceTextBox end
+  @File CompiledOperationSourceEditor end
+  @File CompiledOperationSelfTextField end
+  @File CompiledOperationPE end
+  @File CompiledOperationXForm end
+
+  @File ConstraintSourceTextBox end
+  @File ConstraintSourceEditor end
+  @File ConstraintPE end
+  @File ConstraintXForm end
+
+  @File ConstructorSourceTextBox end
+  @File ConstructorSourceEditor end
+  @File ConstructorNamesTextField end
+  @File ConstructorPE end
+  @File ConstructorXForm end
+
+  @File XMapClauseTextBox end
+  @File XMapClauseSelfTextField end
+  @File XMapClauseCodeComboBox end
+  @File XMapMapPE end
+  @File XMapMapXForm end
+  @File XMapClausePE end
+  @File XMapClauseXForm end
+  
+  @File GrammarClauseCodeComboBox end
+  @File GrammarPE end
+  @File GrammarXForm end
+  
+  @File MappingClient end
+do
+  Project(PropertyEditorXCore,dir,self)
+end;

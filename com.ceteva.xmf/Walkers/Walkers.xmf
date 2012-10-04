@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Walkers
+  
+    @Doc
+      The Walkers package defines the abstract class Walker and a number
+      of useful instances and extensions. An element walker is used to walk
+      an arbitrary value and perform a task. The walker will handle cycles in
+      the structure of the element. For example, a walker may be used to search
+      a value, or collect information about its contents.
+    end
+     
+  end 

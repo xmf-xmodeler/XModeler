@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! Types
+
+  @Class RootElementTypeNameSpace extends NameSpace
+  
+    // *** FOR LEGACY PURPOSES ONLY ***
+  
+    @Attribute refCounter : Integer = 0 (?,!) end
+    
+    @Operation newName()
+      self.refCounter := refCounter + 1;
+      ("ref" + refCounter.toString())->asSymbol
+    end
+    
+  end

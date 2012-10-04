@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Do extends Statement
+  
+    @Attribute test : JExp end
+    @Attribute body : Seq(Statement) end
+    
+    @Constructor(body,test) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"do {~%~V",Seq{indent+2});
+      @For statement in body do
+        statement.pprint(out,indent+2);
+        if not isLast
+        then format(out,"~%~V",Seq{indent+2})
+        end
+      end;
+      format(out,"~%~V } while(",Seq{indent});
+      test.pprint(out);
+      format(out,");")
+    end
+    
+  end

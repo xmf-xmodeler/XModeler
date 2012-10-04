@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+import EventHandlers;
+
+context EventHandlers
+
+  @Class EventButton extends FormButton, EventHandler
+  
+    @Constructor(value,handler) 
+      self.label := self.generateLabel()
+    end
+    
+    @Operation args()
+      handler.sig()->butLast->collect(sigEntry | sigEntry->head.toString())
+    end
+    
+    @Operation handleEvent(env)
+      if env.binds(label)
+      then 
+        let values = self.args()->collect(a | env.lookup(a))
+        in handler.invoke(handler.target(),values)
+        end
+      end
+    end
+
+  end

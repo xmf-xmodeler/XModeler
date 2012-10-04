@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+
+context OleBridge
+
+  @Class OleObject extends ContainedClientElement
+  
+    @Operation call(operation:String,args:Seq(Element))
+      self.commandInterpreter().call(self,operation,args)
+    end
+  
+    @Operation callAndStore(operation:String,args:Seq(Element)):OleObject
+      let newObj = OleObject()
+      in
+        newObj.setOwner(self);
+        self.commandInterpreter().callAndStore(self,operation,args,newObj)
+      end
+    end
+    
+    @Operation getObject(call:String):OleObject
+      let newObj = OleObject()
+      in
+        newObj.setOwner(self);
+        self.commandInterpreter().getObject(self,call,newObj)
+      end
+    end
+    
+    @Operation getProperty(property:String)
+      self.commandInterpreter().getProperty(self,property)
+    end
+    
+    @Operation setObject(property:String,object:OleObject)
+      self.commandInterpreter().setObject(self,property,object)
+    end
+    
+    @Operation setProperty(property:String,value:Element)
+      self.commandInterpreter().setProperty(self,property,value)
+    end
+  
+  end

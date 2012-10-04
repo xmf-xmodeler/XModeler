@@ -1,0 +1,28 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class ToolBarItem
+  
+    @Attribute id           : String end
+    @Attribute iconFilePath : String end
+    @Attribute isReadOnly   : Boolean end
+    @Attribute tooltip      : String end
+    @Attribute givesReport  : Boolean end
+    
+    @Constructor(id,iconFilePath,isReadOnly,tooltip,givesReport) end
+    
+    @ToXML(TOOLBAR_ITEM)[Id=id,Icon_Filepath = iconFilePath,Is_Readonly = isReadOnly,Tooltip=tooltip,Gives_Report = givesReport] end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

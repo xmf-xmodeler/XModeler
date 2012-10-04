@@ -1,0 +1,13 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class ButtonLayout extends Layout
+    
+    @ToXML(ButtonLayout)[x,y,width,height] end 
+    
+  end

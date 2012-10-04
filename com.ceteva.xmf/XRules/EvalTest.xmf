@@ -1,0 +1,40 @@
+parserImport XOCL;
+parserImport XRules;
+
+import IO;
+import OCL;
+
+context Root
+  @Rules Evaluator import OCL
+  end
+  
+context Evaluator
+  @Rule Eval(Env,IntExp[value=V],V) end
+  
+context Evaluator
+  @Rule Eval(Env,Var[name=N],V)
+    Lookup(Env,N,V)
+  end
+  
+context Evaluator
+  @Rule Eval(Env,BinExp[left=L;op="+";right=R],V)
+    Eval(Env,L,V1)
+    Eval(Env,R,V2)
+    V = V1 + V2
+  end
+  
+context Evaluator
+  @Rule Lookup(Seq{Seq{N | V} | Env},N,V) end
+  
+context Evaluator
+  @Rule Lookup(Seq{Ignore | Env},N,V)
+    Lookup(Env,N,V)
+  end
+  
+context Root
+  @Operation test1()
+    @WithRules(Evaluator)
+      Eval(Seq{Seq{"x" | 109}},< [| x + 10 |] >,V)
+      return V
+    end
+  end

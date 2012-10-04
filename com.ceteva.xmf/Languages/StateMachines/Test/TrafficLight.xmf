@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Root
+
+@Package TrafficLight
+
+  @Class TrafficLight
+    @Attribute colour : String end
+    @Attribute count : Integer end
+    @Constructor(count) end
+  end
+  
+end

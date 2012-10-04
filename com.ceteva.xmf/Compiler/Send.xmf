@@ -1,0 +1,228 @@
+parserImport XOCL;
+
+import Compiler;
+import Instrs;
+import OCL;
+
+context Send
+  @Operation FV():Element
+    target.FV()->union(args->collect(arg | arg.FV())->asSet->flatten)
+  end
+
+context Send
+  @Operation maxLocals():Element
+    target.maxLocals().max(args->collect(arg |
+      arg.maxLocals())->max)
+  end
+  
+context Send
+  @Operation compile(env,frame,isLast,saveSource)
+  
+    // Check the form of the send. If it is a known
+    // message or a send of a specific type then
+    // produce special purpose instructions otherwise
+    // just produce a SEND instruction.
+    
+    if self.isOf()
+    then self.compileOf(env,frame,isLast,saveSource)
+    elseif self.isAdd()
+    then self.compileAdd(env,frame,isLast,saveSource)
+    elseif self.isGet()
+    then self.compileGet(env,frame,isLast,saveSource)
+    elseif self.isHasKey()
+    then self.compileHasKey(env,frame,isLast,saveSource)
+    elseif self.isPut()
+    then self.compilePut(env,frame,isLast,saveSource)
+    elseif self.isRef()
+    then self.compileRef(env,frame,isLast,saveSource)
+    elseif self.isStringEqual()
+    then self.compileStringEqual(env,frame,isLast,saveSource)
+    elseif self.isTypeCheck()
+    then self.compileTypeCheck(env,frame,isLast,saveSource)
+    elseif self.isToString()
+    then self.compileToString(env,frame,isLast,saveSource)
+    elseif self.isArity()
+    then self.compileArity(env,frame,isLast,saveSource)
+    elseif self.isSendSelf()
+    then self.compileSendSelf(env,frame,isLast,saveSource)
+    elseif self.isSendLocal(env)
+    then self.compileSendLocal(env,frame,isLast,saveSource)
+    else self.compileSend(env,frame,isLast,saveSource)
+    end
+  end
+  
+context Send
+  @Operation compileOf(env,frame,isLast,saveSource)
+    target.compile(env,frame,false,saveSource) + Seq{Of()}
+  end
+  
+context Send
+  @Operation compileSend(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let argCode = args->collect(a | a.compile(env,frame,false,saveSource))->flatten; 
+        targetCode = target.compile(env,frame,false,saveSource); 
+        arity = args->size;
+        name = Symbol(message)
+    in if isLast and message <> "error"
+       then argCode + targetCode + Seq{TailSend(name,arity)}
+       else Seq{StartCall() | argCode + targetCode + Seq{Instrs::Send(name,arity)}}
+       end
+    end 
+  end
+  
+context Send
+  @Operation compileSendLocal(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let argCode = args->collect(a | a.compile(env,frame,false,saveSource))->flatten; 
+        localName = target.name then
+        localOffset = env.localIndex(localName);
+        arity = args->size;
+        name = Symbol(message)
+    in if isLast and message <> "error"
+       then self.compileSend(env,frame,isLast,saveSource)
+       else Seq{StartCall() | argCode + Seq{Instrs::SendLocal(localName,localOffset,name,arity)}}
+       end
+    end 
+  end
+  
+context Send
+  @Operation compileSendSelf(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let argCode = args->collect(a | a.compile(env,frame,false,saveSource))->flatten; 
+        arity = args->size;
+        name = Symbol(message)
+    in if isLast and message <> "error"
+       then self.compileSend(env,frame,isLast,saveSource)
+       else Seq{StartCall() | argCode + Seq{Instrs::SendSelf(name,arity)}}
+       end
+    end 
+  end
+  
+context Send
+  @Operation compileToString(env,frame,isLast,saveSource)
+    target.compile(env,frame,false,saveSource) +
+    Seq{ToString()}
+  end
+  
+context Send
+  @Operation compileArity(env,frame,isLast,saveSource)
+    target.compile(env,frame,false,saveSource) +
+    Seq{Arity()}
+  end
+  
+context Send
+  @Operation compileAdd(env,frame,isLast,saveSource)
+    target.compile(env,frame,false,saveSource) +
+    args->at(0).compile(env,frame,false,saveSource) +
+    Seq{Add()}
+  end
+  
+context Send
+  @Operation compileGet(env,frame,isLast,saveSource)
+    args->at(0).compile(env,frame,false,saveSource) +
+    target.compile(env,frame,false,saveSource) +
+    Seq{Get()}
+  end
+  
+context Send
+  @Operation compileHasKey(env,frame,isLast,saveSource)
+    args->at(0).compile(env,frame,false,saveSource) +
+    target.compile(env,frame,false,saveSource) +
+    Seq{HasKey()}
+  end
+  
+context Send
+  @Operation compileRef(env,frame,isLast,saveSource)
+    args->at(0).compile(env,frame,false,saveSource) +
+    target.compile(env,frame,false,saveSource) +
+    Seq{ArrayRef()}
+  end
+  
+context Send
+  @Operation compilePut(env,frame,isLast,saveSource)
+    args->at(0).compile(env,frame,false,saveSource) +
+    args->at(1).compile(env,frame,false,saveSource) +
+    target.compile(env,frame,false,saveSource) +
+    Seq{Put()}
+  end
+  
+context Send
+  @Operation compileTypeCheck(env,frame,isLast,saveSource)
+    args->at(0).compile(env,frame,false,saveSource) +
+    target.compile(env,frame,false,saveSource) +
+    Seq{IsKindOf()}
+  end 
+  
+context Send
+  @Operation compileStringEqual(env,frame,isLast,saveSource)
+    target.compile(env,frame,false,saveSource) +
+    args->at(0).compile(env,frame,false,saveSource) +
+    Seq{StringEqual()}
+  end 
+  
+context Send
+  @Operation isArity()
+    message = "arity" and args->size = 0
+  end 
+  
+context Send
+  @Operation isAdd()
+    message = "add" and args->size = 1
+  end
+  
+context Send
+  @Operation isStringEqual()
+    message = "stringEqual" and args->size = 1
+  end
+  
+context Send
+  @Operation isOf()
+    message = "of" and args->size = 0
+  end
+  
+context Send
+  @Operation isGet()
+    message = "get" and args->size = 1
+  end
+  
+context Send
+  @Operation isHasKey()
+    message = "hasKey" and args->size = 1
+  end
+  
+context Send
+  @Operation isPut()
+    message = "put" and args->size = 2
+  end
+  
+context Send
+  @Operation isRef()
+    message = "ref" and args->size = 1
+  end
+  
+context Send
+  @Operation isSendLocal(env)
+    if target.isKindOf(Var)
+    then env.isLocal(target.name)
+    else false
+    end
+  end
+  
+context Send
+  @Operation isSendSelf()
+    target.isKindOf(Self)
+  end
+  
+context Send
+  @Operation isTypeCheck()
+    message = "isKindOf" and args->size = 1
+  end
+  
+context Send
+  @Operation isToString()
+    message = "toString" and args->isEmpty
+  end
+  
+context Send
+  @Operation lift()
+    let message = if message.isKindOf(Performable) then message.lift() else StrExp(message) end
+    in Apply(self.typeExp(),Seq{target.lift(),message,SetExp("Seq",args->collect(arg | arg.lift()))}) 
+    end
+  end

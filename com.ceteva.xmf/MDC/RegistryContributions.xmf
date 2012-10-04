@@ -1,0 +1,65 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Tools;
+import Basic;
+import MDC;
+import Types;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(RootElementType,Seq{"XTools/RootElementType"}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Edit (Basic)" on RootElementType
+  Object::oldEdit
+end;
+
+@Menu "Save (XTD) ..." on RootElementType
+  RootElementType::save
+end;
+
+@Menu "Multiple Diagrams":"Enable" on RootElementType
+  RootElementType::enableMultipleDiagrams $ true
+end;
+
+@Menu "Multiple Diagrams":"Disable" on RootElementType
+  RootElementType::enableMultipleDiagrams $ false
+end;
+
+@Menu "Drag and Drop":"Enable Drop" on RootElementType
+  RootElementType::enableDrop $ true
+end;
+
+@Menu "Drag and Drop":"Disable Drop" on RootElementType
+  RootElementType::enableDrop $ false
+end;
+
+@Menu "Define XTool Diagram Type" on Class
+  Class::createXToolDiagramTypeDefinition
+end;
+
+@Menu "New Diagram Tool Definition" on DefinitionManager
+  DefinitionManager::createXToolDiagramTypeDefinition
+end;
+
+
+// *** LABELS EDITABLE ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.editable"
+in
+  registry.addContribution(id,
+    Contribution(RootElementType,Seq{
+      false}));
+  self
+end;

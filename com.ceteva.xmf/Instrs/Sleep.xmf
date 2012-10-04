@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Sleep extends Instr
+  
+    @Doc
+      A machine instruction that sets the current thread to sleep.
+    end
+     
+    @Operation toString():String
+      "<Sleep>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

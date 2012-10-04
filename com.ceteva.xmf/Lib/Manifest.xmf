@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest Lib
+  @File Env                  end
+  @File Format               end
+  @File ObjectWithProperties end
+  @File Sheet                end
+  @Ref Stacks                end
+  @Ref Graphs                end
+  @Ref Arrays                end
+  @File Time                 end
+end;

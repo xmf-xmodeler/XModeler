@@ -1,0 +1,57 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XMap
+
+  @Class Sync extends Sugar
+  
+    @Doc
+      This construct synchronizes two objects on respective slots. Once synchronized,
+      the values of the two slots are the same. An update to the appropriate slot of
+      either object will cause the change to be propagated to the other object.
+      
+      Constructor: Sync(object1,name1,object2,name2)
+       The objects are expressions and the names are strings.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Sync ::= '(' object1 = Exp '.' name1 = Name ',' object2 = Exp '.' name2 = Name ')' { Sync(object1,name1,object2,name2) }.
+      
+    end 
+    
+    @Attribute object1 : Performable end
+    @Attribute name1 : String end
+    @Attribute object2 : Performable end
+    @Attribute name2 : String end
+    
+    @Constructor(object1,name1,object2,name2) ! end
+    
+    @Operation desugar() 
+      [| let syncObject1 = <object1>;
+             syncObject2 = <object2>
+         in let daemon =
+              @Operation(slot,newValue,oldValue)
+                if self = syncObject1 and slot.name = <StrExp(name1)>
+                then 
+                  if syncObject2.<name2> <> newValue
+                  then syncObject2.<name2> := newValue
+                  end
+                else 
+                  if slot.name = <StrExp(name2)> and syncObject1.<name1> <> newValue
+                  then syncObject1.<name1> := newValue
+                  end
+                end
+              end
+            in syncObject1.addDaemon(daemon);
+               syncObject2.addDaemon(daemon) 
+            end
+         end
+      |]
+    end
+    
+  end

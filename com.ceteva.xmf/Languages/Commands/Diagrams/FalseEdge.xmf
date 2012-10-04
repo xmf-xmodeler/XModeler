@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Languages;
+import Commands;
+
+context Diagrams
+
+  @Class FalseEdge extends Edge
+  
+    @Constructor(source,target) 
+      self.init(Seq{source,target,0,Edge::arrow});
+      self.add(Label("false","end",10,10,false));
+      self.setMenuKey(Set{Element,self.of()})
+    end
+    
+    @Constructor() !
+      self.setMenuKey(Set{Element,self.of()})
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete",target,Seq{true},Edge::delete));
+        globalMenu
+      end
+    end
+
+  end
+  

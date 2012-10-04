@@ -1,0 +1,150 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation constraintsToMicroJava(C) 
+  
+    // Translates a set of constraints to a single method named 'check'
+    // that will run the constraints and return true or false. Each constraint
+    // turns into a method that checks the constraint. Each constraint has
+    // a method that returns the reason for the constraint failing. A method
+    // 'reasons' returns the reasons for all methods that fail
+    
+    C->asSeq->collect(c | constraintBodyToMethod(c)) +
+    C->asSeq->collect(c | constraintSourceToMethod(c)) +
+    Seq{constraintsToCheck(C)} +
+    Seq{checkConstraints()} +
+    C->asSeq->collect(c | constraintReasonToMethod(c)) +
+    Seq{constraintsToReasons(C)}
+    
+  end
+  
+context Mappings
+
+  @Operation constraintsToCheck(C)
+    let names = C.name->map("toString") then
+        calls = names->iterate(n es = Seq{[| @Statement pushStack(new Bool(true)); end |]} | 
+          es + Seq{[| @Statement pushStack(<n>()); end|],
+                   [| @Statement boolAnd(); end |]})
+    in [| @Java
+             public Value check() {
+               { <* calls *> }
+               return popStack();
+             }
+          end
+       |]
+    end
+  end  
+  
+context Mappings
+
+  @Operation checkConstraints() 
+    [| 
+      @Java 
+        public Value checkConstraints() { 
+          if (check().isTrue()) 
+            return new Str("All constraints passed."); 
+          else return reasons(); 
+        } 
+      end 
+    |]  
+  end
+  
+context Mappings
+
+  @Operation constraintBodyToMethod(c)
+    let source = c.body.source() then
+        exp = OCL::OCL.grammar.parseString(source,"Exp",Seq{XOCL}).performable
+    in [| @Java 
+            public Value <c.name.toString()>() {
+              Values locals = new Values();
+              { <* OCLtoMicroJava(exp,Seq{}) *> }
+              return popStack();
+            }
+          end
+       |]
+    end
+  end
+  
+context Mappings
+
+  @Operation constraintSourceToMethod(c)
+    let source = c.lift().pprint().subst("\\n","\n",true).subst("\\\"","\"",true)
+    in [| @Java 
+            public Value <c.name.toString() + "Source">() {
+              return new Str(<JString(source)>);
+            }
+          end
+       |]
+    end
+  end
+  
+context Mappings
+
+  @Operation constraintReasonToMethod(c)
+    let source = c.reason.source() then
+        exp = OCL::OCL.grammar.parseString(source,"Exp",Seq{XOCL}).performable
+    in [| @Java 
+            public Value <c.name.toString() + "Reason">() {
+              Values locals = new Values();
+              { <* OCLtoMicroJava(exp,Seq{}) *> }
+              return popStack();
+            }
+          end
+       |]
+    end
+  end
+  
+context Mappings
+
+  @Operation constraintsToReasons(C)
+    let names = C.name->map("toString") then
+        calls = names->iterate(n es = Seq{[| @Statement pushStack(new Str("")); end |]} | 
+          es + Seq{[| @Statement {
+                         pushStack(<n>());
+                         if(popStack().isFalse()) {
+                           pushStack(new Str(<JString("The constraint " + n + " fails.\\n")>));
+                           //pushStack(<n + "Source">());
+                           pushStack(new Str(<JString("\\nThe reason for failure is as follows:\\n")>));
+                           pushStack(<n + "Reason">());
+                           pushStack(new Str("\\n"));
+                           //add();
+                           add();
+                           add();
+                           add();
+                         }
+                       }
+                       end
+                    |]})
+    in [| @Java
+             public Value reasons() {
+               { <* calls *> }
+               return popStack();
+             }
+          end
+       |]
+    end
+  end
+  
+context Mappings
+
+  @Map TranslateConstraint(XCore::Constraint) -> Structure::Method
+  
+    @Clause MapConstraint
+    
+      Cs do constraintsToJava(Cs)
+      
+    end
+    
+  end

@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import ModelBrowserXCore;
+import ExtensionPoints;
+
+let 
+  registry  = xmf.registry();
+  slotId    = "com.ceteva.xmf.modelBrowsers.xcore.childrenSlots";
+  excludeId = "com.ceteva.xmf.modelBrowsers.xcore.excludeSlots" then
+  slotPoint    = ExtensionPoint(slotId);
+  excludePoint = MultipleExtensionPoint(excludeId)
+in
+  registry.addExtensionPoint(slotPoint);
+  registry.addExtensionPoint(excludePoint)
+end;
+
+
+

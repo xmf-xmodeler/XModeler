@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import XRules;
+//import Instrs;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Var extends Root::XRules::Term
+
+    @Attribute type  : Seq(String) = Seq{"XCore","Element"} (?,!) end
+    @Attribute name  : Root::XCore::String                  (?,!) end
+    @Attribute type  : String                               (?,!) end
+    @Attribute index : Integer                              (?,!) end
+    @Attribute seen  : Boolean                              (?,!) end
+
+    @Constructor(name,type) end
+    
+    @Constructor(name) end
+    
+    @Constructor(name,type,index,seen) ! end
+    
+    @Operation build(rules,vars)
+      vars->assoc(name)->head->tail
+    end
+    
+    @Operation eval(vars,env)
+      deref(vars->assoc(name)->head->tail,env)
+    end
+    
+    @Operation listVars()
+      Seq{self}
+    end
+    
+    @Operation vars(vars)
+      if vars->exists(var | var.name() = name)
+      then vars
+      else vars->including(self)
+      end
+    end
+
+  end

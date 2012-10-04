@@ -1,0 +1,78 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import XSync;
+import Syntax;
+
+context Syntax
+
+  @Class XSync extends Sugar
+  
+    @Attribute name    : String     (?)     end
+    @Attribute rules   : Set(Rule)  (?,+,-) end
+    @Attribute scopes  : Set(Scope) (?,+,-) end
+    @Attribute autorun : Boolean            end
+    
+    @Constructor(name,autorun) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      XSync ::= name = Name autorun = OptAutoRun defs = Exp* {
+        let xsync = XSync(name,autorun)
+        in @For d in defs do
+             xsync.add(d)
+           end;
+           xsync
+        end
+      }.
+      
+      OptAutoRun ::= 'autorun' { true } | { false }.
+      
+    end
+    
+    @Operation add(e:Element):XSync
+      @TypeCase(e)
+        Rule do
+          self.addToRules(e)
+        end
+        Scope do
+          self.addToScopes(e)
+        end
+        else self
+      end
+    end
+    
+    @Operation addScopedObjects(net:Performable):Performable
+      scopes->iterate(scope code = net |
+        [| <scope.addExp(net)>; <code> |])
+    end
+    
+    @Operation desugar():Performable
+      let net = [| net |] then
+          code = self.compileRules(net)
+      in [| import XSync::Network
+            in let net = Synchronizer(XCore::Symbol(<StrExp(name)>),<BoolExp(autorun)>);
+                   ruleSource = <SetExp("Seq",rules->asSeq->collect(r | r.source()))> then
+                   source = Source(<StrExp(name)>,ruleSource)
+               in net.setSource(source);
+                  <code>;
+                  <self.addScopedObjects(net)>
+               end
+            end
+         |]
+      end
+    end
+    
+    @Operation compileRules(net:Performable):Performable
+      rules->iterate(rule code = net |
+        let gamma = rule.network()
+        in gamma.setVars();
+           gamma.setConstraints();
+           gamma.moveConstraints();
+           [| <gamma.code(net)>;<code> |]
+        end)
+    end
+    
+  end

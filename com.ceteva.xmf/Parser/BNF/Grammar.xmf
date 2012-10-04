@@ -1,0 +1,233 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+import IO;
+
+context Parser::BNF
+
+ @Class Grammar extends NameSpace, Performable
+    
+   @Doc
+     A grammar is an owned element that describes how to recognise a sequence
+     of characters and to synthesize values. grammars are extensible elements
+     where clauses are inherited from the parents. Clauses with the same name
+     are merged using 'or'. A grammar is performable because we want to define
+     grammars as part of performable definitions. Therefore a grammar can be
+     compiled into an expression that will create the grammar when it is performed.
+     
+     Constructor: Grammar(parents,clauses,startingSymbol,imports)
+   end
+      
+      @Attribute parents : Set(Grammar)          end  // The parent grammars.
+      @Attribute clauses : Set(Clause)           end  // The clauses defining how to parse.
+      @Attribute startingSymbol : String         end  // The name of the starting clause.
+      @Attribute debug : Boolean                 end  // Whether we generate debug output or not.
+      @Attribute terminals : Set(String)         end  // The cached set of terminals for the grammar.
+      @Attribute dynamics : Seq(Element)         end  // A sequence of dynamic definitions for actions.
+      @Attribute clauseCache : Table = Table(20) end  // Used for lookup by name.
+
+      @Operation add(namedElement:NamedElement)
+        if namedElement.isKindOf(Clause)
+        then 
+          self.addClause(namedElement);
+          super(namedElement)
+        else super(namedElement)
+        end
+      end
+      
+      @Operation addClause(clause)
+        clause.setOwner(self);
+        self.clauses := clauses->including(clause)
+      end
+
+      @Operation allClauses():Set(Clause)
+        self.clauses->union(self.inheritedClauses())
+      end
+
+      @Operation allClauses(name:String):Set(Clause)
+        self.localClauses(name)->union(self.inheritedClauses(name))
+      end
+      
+      @Operation cacheTerminals() 
+        self.terminals := self.localTerminals()->union(self.inheritedTerminals())
+      end
+      
+      @Operation call(nonterminal:String,machine):Element
+      
+        @Doc
+          Call the nonterminal with respect to the current machine
+          state. The grammar will have a single clause wih the given name
+          or 'null' if no clause exists. Calling the clause is like calling
+          a procedure. We get a new stack frame, we push a debugging fail
+          choice that prints out diagnostics if we ever fail past this point,
+          we push a success continuation that prints out diagnostics if we ever 
+          succeed in completing the clause, we record the current fail state
+          in case we ever invoke '!'. Finally we invoke the parser for the clause.
+        end 
+      
+        let clause = self.getClause(nonterminal)
+        in if clause <> null
+           then clause.call(machine)      
+           else self.error("Grammar does not contain a clause named " + nonterminal)
+           end
+         end
+       end
+      
+      @Operation compile(env,frame,isLast,saveSource)
+        // Each operation (i.e. action) may refer to names that are name space
+        // references. When a grammar is initialised, each action operation will
+        // be updated so that the operation is owned by the grammar. The grammar
+        // will have an owner and therefore name space references are reconciled
+        // through the enclosing grammar.
+        self.lift().compile(env.incNameSpaceRefs(),frame,isLast,saveSource)
+      end 
+      
+      @Operation eval(target,env,imports)
+        self.dynamics := imports->collect(i | Seq{2|i.contents});
+        self.transform()
+      end
+      
+      @Operation FV():Set(String)
+        self.lift().FV()
+      end
+       
+      @Operation getClause(name:String):Clause
+        let body = 
+              self.allClauses(name)->iterate(clause parser = Fail() |
+                 Or(clause.body,parser))
+        in Clause(name,body)
+        end
+      end
+
+      @Operation inheritedClauses():Set(Clause)
+        parents->iterate(parent clauses = Set{} |
+          clauses->union(parent.allClauses()))
+      end
+
+      @Operation inheritedClauses(name:String):Set(Clause)
+        parents->iterate(parent clauses = Set{} |
+          clauses->union(parent.allClauses(name)))
+      end
+      
+      @Operation inheritedTerminals():Set(String)
+        parents->iterate(parent terminals = Set{} |
+          terminals->union(parent.terminals()))
+      end
+      
+      @Operation init(args):Element
+        super(args);
+        self.parents := args->at(0);
+        @For clause in args->at(1) do
+          self.add(clause)
+        end;
+        self.startingSymbol := args->at(2);
+        if args->size = 4
+        then self.imports := args->at(3)
+        else self
+        end
+      end
+      
+      @Operation lift()
+        // Return an expression that will create the grammar
+        // when performed. This is used by the compiler when
+        // @Grammar ... end occurs in source code. Each parser
+        // class must 'lift' itself to an equivalent expression.
+        // The PreAction's must transform themselves into
+        // operations.
+        let parentExps = SetExp("Set",parents->asSeq);
+            clauseExps = SetExp("Seq",clauses->collect(clause | clause.lift())->asSeq);
+            startingSymbolExp = StrExp(startingSymbol);
+            importExps = SetExp("Seq",imports)
+        in [| Root::Parser::BNF::Grammar(<parentExps>,<clauseExps>,<startingSymbolExp>,<importExps>) |]
+        end
+      end
+      
+      @Operation localClauses(name:String):Set(Clause)
+        clauses->select(clause | clause.name = name)
+      end
+      
+      @Operation localTerminals():Set(String)
+        // The terminals defined locally.
+        clauses->iterate(clause terminals = Set{} |
+          terminals->union(clause.body.terminals()))
+      end
+      
+      @Operation maxLocals():Integer
+        self.lift().maxLocals()
+      end
+      
+      @Operation pprint(indent)
+        let out = StringOutputChannel()
+        in self.pprint(out,indent);
+           out.getString()
+        end
+      end
+      
+      @Operation pprint(outputChannel,indent)
+        // Write out the grammar in a readable format.
+        let C = clauses->asSeq
+        in @While not C->isEmpty do
+              C->head.code(outputChannel,indent);
+              C := C->tail
+           end
+        end
+      end
+      
+      @Operation terminals():Set(String)
+        if terminals = Set{}
+        then self.cacheTerminals()
+        else self
+        end;
+        terminals
+      end
+       
+      @Operation transform()
+        // Update all the clauses to resolve the PreAction's
+        // and transform them into actions by binding all the
+        // variables bound by the clause body and turning the
+        // action expression into an operation.
+        let C = clauses->asSeq
+        in @While C <> Seq{} do
+             C->head.transform();
+             C := C->tail
+           end;
+           self
+        end
+      end
+      
+    end
+    
+// The following is an example of adding new aspects to an existing model.
+// We want all classifiers to have a new attribute 'grammar'. This is 
+// not part of the Kernel and is only added if we load the parsing aspect
+// of XMF.
+
+context Classifier
+  @Attribute grammar : Grammar end
+  
+Classifier.init();
+
+let addGrammar =
+  @Operation(addGrammar,element)
+    if element.isReallyKindOf(Classifier)
+    then Kernel_addAtt(element,"grammar",null)
+    end;
+    if element.isReallyKindOf(NameSpace)
+    then 
+      let keys = element.contents.keys()->asSeq
+      in @While keys <> Seq{} do
+           let key = keys->head
+           in let value = element.contents.get(key)
+              in if value <> element
+                 then addGrammar(addGrammar,element.contents.get(key))
+                 end;
+                 keys := keys->tail
+              end
+           end
+         end
+      end
+    end
+  end
+in addGrammar(addGrammar,Root)
+end;

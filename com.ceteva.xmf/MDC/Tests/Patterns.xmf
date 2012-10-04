@@ -1,0 +1,285 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+
+context Root
+  @Package Patterns
+  
+    @Class Models metaclass BrowsedClass
+    
+      @Attribute packages : Set(Package) (^,?,+) end
+      @Attribute patterns : Set(Pattern) (^,?,+) end
+      
+      @Interface
+  
+        @Image "User/BookClosed" end
+    
+        @Child packages end
+        @Child patterns end
+    
+        @MenuRoot Patterns::Models end
+        @Menu Edit Element::edit_redirect end
+
+        @Extend Package packages->including(Patterns::Package(name)) end
+        @Extend Pattern patterns->including(Patterns::Pattern(name)) end
+    
+      end
+    end
+    
+    @Class Named extends Contained
+      @Attribute name : String (?) end
+      @Constructor(name) ! end
+    end
+    
+    @Class Package metaclass BrowsedClass extends Named
+    
+      @Attribute classes : Set(Class) (^,+,-,?) end
+      @Attribute associations : Set(Association) (^,+,?) end
+      
+      @Interface
+  
+        @Image "XCore/Package" end
+    
+        @Child classes end
+        @Child associations end
+    
+        @MenuRoot Patterns::Package end
+        @Menu Edit Element::edit_redirect end
+
+        @Extend Class classes->including(Patterns::Class(name)) end
+        @Extend Association associations->including(Patterns::Association(name)) end
+        
+        @Delete packages end
+    
+      end
+      
+      @Operation apply(source:Package)
+        @For newc in source.classes() do
+          let oldc = self.classNamed(newc.name())
+          in if oldc = null
+             then self.addToClasses(newc)
+             else oldc.apply(newc)
+             end
+          end
+        end;
+        @For newa in source.associations() do
+          let olda = self.associationNamed(newa.name())
+          in if olda = null
+             then 
+               let source = self.classNamed(newa.source().name());
+                   target = self.classNamed(newa.target().name())
+               in newa.setSource(source);
+                  newa.setTarget(target)
+               end;
+               self.addToAssociations(newa)
+             else olda.apply(newa)
+             end
+          end
+        end
+      end
+        
+      @Operation classNamed(name):Class
+        @Find(class,classes)
+          when class.name() = name
+          else null
+        end
+      end
+      
+      @Operation associationNamed(name):Class
+        @Find(assoc,associations)
+          when assoc.name() = name
+          else null
+        end
+      end
+      
+    end
+    
+    @Class Pattern metaclass BrowsedClass extends Package
+    
+      @Interface
+  
+        @Menu Apply Patterns::Pattern::applyPattern end
+
+        @Delete patterns end
+        
+      end
+        
+        @Operation applyPattern()
+          let M = owner.packages()->asSeq
+          in if not M->isEmpty
+             then 
+               let m = xmf.select("Target Model","Select model",M,null,null)
+               in if m <> null
+                  then self.apply(m)
+                  end
+               end
+             end
+          end
+        end
+        
+        @Operation apply(target:Package)
+          let V = self.vars();
+              e = Env::NullEnv();
+              cancel = false
+          in @While not V->isEmpty and not cancel do
+               let v = xmf.select("Var","Choose var",V->asSeq,null,null)
+               in if v = null
+                  then cancel := true
+                  else 
+                    let value = xmf.getString("Value","Value for " + v,"")
+                    in if value = null
+                       then cancel := true
+                       else e := e.bind(v,value)
+                       end
+                    end
+                  end;
+                  V := V->excluding(v)
+               end
+             end;
+             if not cancel
+             then target.apply(self.instantiate(e))
+             end
+           end
+         end
+         
+         @Operation instantiate(env)
+           let p = Package("Temp")
+           in @For c in classes do
+                if env.binds(c.name())
+                then p.addToClasses(Class(env.lookup(c.name()),c.attributes()).instantiate(env))
+                else p.addToClasses(Class(c.name(),c.attributes()).instantiate(env))
+                end
+              end;
+              @For a in associations do 
+                let source = a.source();
+                    target = a.target()
+                in let newa =
+                     if env.binds(a.name())
+                     then Association(env.lookup(a.name()))
+                     else Association(a.name())
+                     end
+                   in if env.binds(source.name())
+                      then newa.setSource(p.classNamed(env.lookup(source.name())))
+                      else newa.setSource(p.classNamed(source.name()))
+                      end;
+                      if env.binds(target.name())
+                      then newa.setTarget(p.classNamed(env.lookup(target.name())))
+                      else newa.setTarget(p.classNamed(target.name()))
+                      end;
+                      p.addToAssociations(newa)
+                   end
+                end
+              end;
+              p
+           end
+         end
+         
+       @Operation vars():Set(String)
+         let attributes = classes->iterate(c A = Set{} | A + c.attributes())
+         in 
+           (attributes + classes + associations)->iterate(ne V = Set{} |
+             if ne.name()->at(0) = "*"->at(0)
+             then V->including(ne.name())
+             else V
+             end
+           )
+         end
+       end
+                    
+      
+    end
+    
+    
+    @Class Class metaclass BrowsedClass extends Named
+    
+      @Attribute attributes : Set(Attribute) (^,+,?) end
+      
+      @Constructor(name,attributes) end
+      
+      @Interface
+  
+        @Image "XCore/Class" end
+    
+        @Child attributes end
+    
+        @MenuRoot Patterns::Class end
+        @Menu Edit Element::edit_redirect end
+
+        @Extend Attribute attributes->including(Patterns::Attribute(name,type)) end
+        
+        @Delete classes end
+    
+      end
+      
+      @Operation apply(source:Class)
+        @For newa in source.attributes() do
+          let olda = self.attributeNamed(newa.name())
+          in if olda = null
+             then self.addToAttributes(newa)
+             end
+          end
+        end
+      end
+      
+      @Operation attributeNamed(name):Class
+        @Find(attribute,attributes)
+          when attribute.name() = name
+          else null
+        end
+      end
+        
+      @Operation instantiate(env)
+        let newc = Class(name)
+        in @For a in attributes do
+             if env.binds(a.name())
+             then newc.addToAttributes(Attribute(env.lookup(a.name()),a.type()))
+             else newc.addToAttributes(Attribute(a.name(),a.type()))
+             end
+           end;
+           newc
+        end
+      end
+    end
+    
+    @Class Attribute metaclass BrowsedClass extends Named 
+    
+      @Attribute type : String (?,!) end
+      
+      @Constructor(name,type) ! end
+      
+      @Interface
+  
+        @Image "XCore/Attribute" end
+    
+        @MenuRoot Patterns::Attribute end
+        @Menu Edit Element::edit_redirect end
+
+        @Delete attributes end
+    
+      end
+      
+    end
+    
+    @Class Association metaclass BrowsedClass extends Named
+    
+      @Attribute source : Class (?,!) end
+      @Attribute target : Class (?,!) end
+      
+      @Interface
+  
+        @Image "XCore/Association" end
+    
+        @MenuRoot Patterns::Association end
+        @Menu Edit Element::edit_redirect end
+
+        @Select Source source from [owner.classes] end
+        @Select Target target from [owner.classes] end
+        
+        @Delete associations end
+    
+      end
+    end
+    
+  end
+  

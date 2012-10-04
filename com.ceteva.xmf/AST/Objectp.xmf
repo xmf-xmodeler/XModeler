@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Objectp in AST(aObjectp,arg,seen)
+  let slots = aObjectp.slots->collect(x | self.dispatch(x,arg));
+      class = self.dispatch(aObjectp.class,arg)
+  in ASTNode(aObjectp,Seq{class} + slots)
+  end
+end;

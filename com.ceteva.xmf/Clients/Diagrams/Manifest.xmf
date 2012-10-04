@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Diagrams
+  Diagrams = @File Diagrams end
+  @Ref DiagramLayout end
+  @File Color end
+  @File ContainedDiagramElement end
+  @File Dimension end
+  @File Display end
+  @File DisplayContainer end
+  @File Ellipse end
+  @File Label end
+  @File Port end
+  @File WayPoint end
+  @File Edge end
+  @File Box end
+  @File Image end
+  @File Line end
+  @File Shape end
+  @File Group end
+  @File Text end
+  @File MultilineLabel end
+  @File MultilineText end
+  @File Node end
+  @File DefaultEdge end
+  @File DefaultNode end
+  @File Graph end
+  @File DiagramListener end
+  @File Diagram end
+  @File DiagramIdError end
+  @File DiagramCommandInterpreter end
+  @File DiagramEventHandler end
+  @File DiagramClient end
+  @File ToSVG end
+  @File DiagramsThemeAPI end
+  @File IconizeNode end
+  @File SyncableDiagram end
+  @File ThemableDiagram end
+  @File DiagramDropEvent end
+do Project(Diagrams,dir,self)
+end;

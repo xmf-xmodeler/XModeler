@@ -1,0 +1,687 @@
+\documentclass{article}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\lhead{}
+\chead{The XMF Meta Object protocol}
+\rhead{\thepage}
+\cfoot{(c) 2004 Ceteva Ltd.}
+
+\title{The XMF Meta Object protocol}
+
+\author{Ceteva Ltd.}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+XMF is an environment for language design and deployment. Languages control the structure and
+behaviour of the values that they denote. In this sense, language design is a {\em meta-activity}
+and requires a meta-language that represents the structure and behaviour of the language components.
+
+XMF provides a meta-circular object-oriented kernel language called XOCL. The meta-circular
+property means that XOCL is defined completely in itself. This property validates XOCL as a
+meta-language. Object-orientation provides a basis for application extension and reuse through
+inheritance and modularity through encapsulation. 
+
+XOCL is both meta-circular and object-oriented, it is suitable for language definition where 
+languages can be easily constructed as modular extensions of the basic XOCL language. Instantiations
+of XOCL are languages and extensions of XOCL are meta-languages.
+
+All languages have key semantic features that can be represented as an interface in the definition
+of the language. Consider a language with an operational semantics. In this case programs written
+in the language may be viewed as controlling a machine that contains the state of the execution
+at any given snapshot in time. The key semantic features of the language form the API of the
+machine.
+
+Given a language {\em L}, we would like to construct a new language that is {\em L}-like. If {\em L}
+is defined using object-oriented principles then it is attractive to construct the new language as
+an extension of {\em L} using inheritance. Syntax structures and values of the new language can be 
+defined by extending the appropriate features of {\em L}. We would like to construct the semantics 
+of the new language using the same approach. If we have constructed the semantics of {\em L} by
+encapsulating the key features as an implementation of the API as described above, then the new
+language semantics can be defined by inheriting and extending these operations as appropriate.
+
+Where the semantics of a language has been constructed using object-oriented principles, the
+resulting collection of classes and operations is referred to as a {\em meta-object-protocol}.
+This document describes the XOCL MOP.
+
+\section{Message Passing}
+
+XOCL performs computation in terms of messages between elements. A message consists of a name and
+some data. A message is sent from a source element to a target element. The target element receives the
+message, performs appropriate computation and returns a result. Messages between elements are
+synchronous: the source element halts computation and waits the return value from the target
+element.
+
+Message passing occurs when the source element performs an expression of the form: {\tt o.m(x,y,z,...)}
+where {\tt o} is the target element, {\tt m} is the message name and {\tt x}, {\tt y}, {\tt z} etc. is
+the data, or {\em parameters}, of the message.
+
+Message passing is defined by the MOP component referred to as the {\em massage passing protocol}.
+The protocol is defined by the meta-class of the target element and is called {\tt sendInstance}:
+\begin{verbatim}
+context Element
+  @Operation send(message,args):Element
+    self.of().sendInstance(self,message,args)
+  end
+\end{verbatim}
+A default protocol is provided by the Kernel meta-class {\tt Classifier}:
+\begin{verbatim}
+context Classifier
+  @Operation sendInstance(element,name,args)
+    // Get all the operations of element with the 
+    // correct name and arity. Select the most 
+    // specific and invoke it.
+    let arity = args->size then
+        operations = element.of().allOperations()
+          ->asSeq
+          ->select(o | o.name = name and o.arity() = arity)
+    in if operations->isEmpty
+       then element.error("Cannot handle " + message + "/" + arity)
+       else operations->head.invoke(element,args)
+       end
+    end
+  end
+\end{verbatim}
+Since {\tt Class} is a sub-class of {\tt Classifier}, any sub-class of {\tt Class} that defines a new
+{\tt sendInstance} operation will provide a specialized message passing protocol for the instances
+of its instances. This can be used to implement specialized operation lookup mechanisms, to 
+facilitiate debugging information and to change the basic message passing mechanisms (for example
+by defining a class of objects with message queues).
+
+\section{Object Creation}
+
+Objects are created by sending a {\tt new} message to a class together with some initialization
+data. The preferred way of invoking the {\tt new} operation of a class is to apply the class
+as an operator to the initialization arguments. This is preferred because it is succinct and
+because the compiler and XMF VM can handle class instantiation more efficiently in this
+form:
+\begin{verbatim}
+context Classifier
+  @Operation invoke(target:Element,args:Seq(Element)):Element
+    self.new(args)
+  end
+\end{verbatim}
+The {\tt new} operation is defined by the meta-class of the receiving class. It constitutes
+the instantiation procotol for a collection of classes. The class {\tt Classifier} defines
+the default instantiation protocol:
+\begin{verbatim}
+context Classifier
+  @Operation new(args:Seq(Element)):Element
+    self.new().init(args)
+  end
+\end{verbatim}
+where the operation {\tt new} creates an empty new instance of the receiver and {\tt init}
+initializes the new instance. 
+
+Sub-classes of {\tt Classifier} can define their own instantiation protocol. Typically
+this will use {\tt super} to create an instance using the default protocol and then perform
+some extra computation to initialize the new instance; however, in principle the instantiation
+protocol can by-pass the default protocol altogether. To create a raw instance of a class
+{\tt C} and add a single slot named {\tt "x"} with initial value {\tt 10} you can do the following:
+\begin{verbatim}
+let o = Kernel_mkObj()
+in Kernel_setOf(o,C);
+   Kernel_addAtt(o,Symbol("x",100));
+   o
+end
+\end{verbatim}
+Using the kernel-level operations, you can create a completely bespoke instantiation protocol.
+
+\section{Slot Access}
+
+Objects have internal storage in the form of named {\em slots}. Access to a slot value is via the
+object and the name of the slot. Slots are named using symbols. Access is defined by the object's 
+{\em slot access protocol}. The slot access protocol is used when an expression of the form {\tt o.a}
+is performed. Access involves checking that the slot exists and then accessing the value of
+the slot.
+
+The existence of a slot can be checked using the {\tt hasSlot} operation
+defined by {\tt Object}:
+\begin{verbatim}
+context Object 
+  @Operation hasSlot(name):Boolean
+    self.of().hasInstanceSlot(self,name)
+  end
+\end{verbatim}
+The {\tt hasSlot} operation invokes the {\tt hasInstanceSlot} operation of the object's class.
+{\tt hasInstanceSlot} forms part of the slot access protocol for the object; the operation
+is defined by the object's meta-class. The default definition is provided by {\tt Class} and uses
+the kernel operation {\tt Kernel\_hasSlot} to directly check whether there is a machine-level
+slot:
+\begin{verbatim}
+context Class
+  @Operation hasInstanceSlot(object,name)
+    Kernel_hasSlot(object,name)
+  end
+\end{verbatim}
+Access to a slot's value is provided by the operation {\tt get} defined by {\tt Object}:
+\begin{verbatim}
+context Object
+  @Operation get(name:String):Element
+    self.of().getInstanceSlot(self,name)
+  end
+\end{verbatim}
+The operation {\tt getInstanceSlot} is defined by an object's meta-class and describes how to access
+the storage associated with an object and a slot name. The default protocol is provided by {\tt Class}
+and uses the kernel operation {\tt Kernel\_getSlotValue} to access the machine-level slot (as added
+using {\tt Kernel\_addAtt}):
+\begin{verbatim}
+context Class
+  @Operation getInstanceSlot(object,name)
+    Kernel_getSlotValue(object,name)
+  end
+\end{verbatim}
+Typically a new slot access protocol is required because a collection of classes implement object
+storage in a non-standard way (for example using a table, in a data base or distributed over a network).
+
+\section{Slot Update}
+
+The value of an object's slot can be updated using the object's {\em slot update protocol}. A slot
+is updated when an expression of the form {\tt o.a := e} is performed. The class {\tt Object}
+provides an operation used to set the value of a slot:
+\begin{verbatim}
+context Object
+  @Operation set(name:String,value:Element):Element
+    self.of().setInstanceSlot(self,name,value);
+    self
+  end
+\end{verbatim}
+The object's meta-class defines an operation {\tt setInstanceSlot} that forms the update
+protocol. The default update protocol is defined by {\tt Class} and uses the kernel-level
+operation {\tt Kernel\_setSlotValue} to update the machine-level slot and to invoke any daemons
+that are defined on the object:
+\begin{verbatim}
+context Class
+  @Operation setInstanceSlot(object,name,value)
+    Kernel_setSlotValue(object,name,value)
+  end
+\end{verbatim}
+A new slot update protocol is used to circumvent the default storage. For example the storage for
+a slot may be in a database or accessed over a network. 
+
+\section{Default Parents}
+
+A class is created as an instance of a {\em meta-class}. When a class is created it must have some parents.
+The meta-class defines an operation {\tt defaultParents} that produces a set of classes that are the
+default parents for its instances. The basic definition for {\tt defaultParents} is provided by
+{\tt Classifier}:
+\begin{verbatim}
+context Classifier
+  @Operation defaultParents():Set(Classifier)
+    Set{Element}
+  end
+\end{verbatim}
+Most classes are instances of the class {\tt Class}, that overrides the definition as follows:
+\begin{verbatim}
+context Class
+  @Operation defaultParents():Set(Classifier)
+    Set{Object}
+  end
+\end{verbatim}
+
+\section{Example}
+
+Suppose that we want to define a class of objects that can have standard attribute defined 
+slots in addition to {\em dynamic slots}. Attribute defined slots are defined at the class
+level. Dynamic slots are defined at the object level and can be added and removed 
+dynamically. Both types of slot can be accessed and updated via the standard protocols using
+{\tt o.a} and {\tt o.a := e} expressions.
+
+In order to implement these objects we require a new slot access and update protocol. The
+protocol is defined at the meta-level and is to be called the {\em Elastic} protocol. We require 
+two new classes: {\tt ElasticObject} that is the super-class of all user-defined elastic
+classes; and, {\tt ElasticClass} that defines the elastic protocol.
+
+The class {\tt ElasticObject} uses a table to contain the dynamic slots:
+\begin{verbatim}
+context Root
+  @Class ElasticObject
+    @Attribute slots : Table = Table(100) end
+  end
+\end{verbatim}
+An elastic object provides operations to add and remove the dynamic slots:
+\begin{verbatim}
+context ElasticObject
+  @Operation addSlot(name:String,value)
+    slots.put(Symbol(name),value)
+  end
+\end{verbatim}
+\begin{verbatim}
+context ElasticObject
+  @Operation removeSlot(name)
+    slots.remove(Symbol(name))
+  end
+\end{verbatim}
+An elastic object can remove all the dynamic slots:
+\begin{verbatim}
+context ElasticObject
+  @Operation removeAll()
+    @For key inTableKeys slots do
+      self.removeSlot(key.toString())
+    end
+  end
+\end{verbatim}
+An elastic object can increment the values of all the dynamic slots. Note that {\tt incAll}
+uses the slot access and update protocol for the object to change the value of the dynamic
+slots:
+\begin{verbatim}
+context ElasticObject
+  @Operation incAll()
+    @For key inTableKeys slots do
+      self.set(key,self.get(key) + 1)
+    end
+  end
+\end{verbatim}
+The class {\tt ElasticClass} defines the elastic MOP:
+\begin{verbatim}
+context Root
+  @Class ElasticClass extends Class
+  end
+\end{verbatim}
+{\tt ElsaticObject} must be a parent of any elastic class:
+\begin{verbatim}
+context ElasticClass
+  @Operation defaultParents()
+    Set{ElasticObject}
+  end
+\end{verbatim}
+The elastic slot access protocol inspects the {\tt slots} table to see if
+the required slot is defined there. If not then the protocol uses {\tt super}
+to revert to the default protocol inherited from {\tt Class}:
+\begin{verbatim}
+context ElasticClass
+  @Operation getInstanceSlot(object,name)
+    if Kernel_getSlotValue(object,Symbol("slots")).hasKey(name)
+    then Kernel_getSlotValue(object,Symbol("slots")).get(name)
+    else super(object,name)
+    end
+  end
+\end{verbatim}
+\begin{verbatim}
+context ElasticClass
+  @Operation setInstanceSlot(object,name,value)
+    if Kernel_getSlotValue(object,Symbol("slots")).hasKey(name)
+    then Kernel_getSlotValue(object,Symbol("slots")).put(name,value)
+    else super(object,name,value)
+    end
+  end
+\end{verbatim}
+\begin{verbatim}
+context ElasticClass
+  @Operation hasInstanceSlot(object,name)
+    if Kernel_getSlotValue(object,Symbol("slots")).hasKey(name)
+    then true
+    else super(object,name)
+    end
+  end
+\end{verbatim}
+There is no specific need for {\tt sendInstance} in the elastic protocol,
+however it is defined for completeness and simply prints a message before
+reverting to the default protocol:
+\begin{verbatim}
+context ElasticClass
+  @Operation sendInstance(element,message,args)
+    format(stdout,"Sending message ~S(~{,~;~S~})~%",Seq{message,args});
+    super(element,message,args)
+  end 
+\end{verbatim}
+There is no specific need for {\tt new} in the elastic protocol,
+however it is defined for completeness and simply prints a message before
+reverting to the default protocol:
+\begin{verbatim}
+context ElasticClass
+  @Operation new(args)
+    format(stdout,"Creating a new instance of an elastic class~%");
+    super(args)
+  end
+\end{verbatim}
+The following is an example class definition that specifies its meta-class as
+{\tt ElasticClass}:
+\begin{verbatim}
+context Root
+  @Class C metaclass ElasticClass
+    @Attribute s : Element end
+    @Operation test()
+      self.addSlot("x",100);
+      self.addSlot("y",200);
+      self.addSlot("z",300);
+      self.x := self.x + 1;
+      self.y := self.y + 1;
+      self.z := self.z + 1;
+      self.incAll();
+      self.s := self.x + self.y + self.z;
+      self.removeAll();
+      s
+    end
+  end
+\end{verbatim}
+
+\section{Client Connections with a MOP}
+
+XMF provides extensive functionality for constructing and managing internal
+models. Data can be constructed and then saved in a number of pre-defined
+formats (for example the {\tt xar} format or XML). However, in some cases
+the data to be processed by XMF does not originate within XMF or must be
+constructed and manipulated by co-ordinating with an external system. For
+example, legacy data is often available in standard database formats where
+a database engine is used to manage access and update by many concurrent users.
+A MOP is an ideal way of hiding away the detail of {\em how} data is represented
+and {\em where} the data is maintained. 
+
+This section provides a simple example of how XMF can be used in {\em client mode} 
+where object data is provided by a server. The example server we use is very 
+simple, but is representative of a wide range of data servers that occur in
+commercial applications. A MOP allows us to hide away the details of connecting to
+the server and to hide data access and update requests. Once defined, a MOP
+allows objects to behave as though they were native XMF objects even though
+their representation is managed by an external server. 
+
+The example takes the form of the following components:
+\begin{itemize}
+\item A server that manages the data. In most cases this will be provided,
+in this example the server is defined to manage simple records with integer 
+fields. The server will have a communication protocol, in this case the
+protocol allows new records to be created and fields to be accessed and
+updated. The example server does not implement persistent storage, however
+this is easily added, and would usually be provided as part of the
+server (as would be the case in a database server).
+\item An XMF client that connects to the server and manages the communications
+protocol from XMF. The client will be used by each XMF object to communicate with
+the server in order to manage its data.
+\item An XMF MOP defined as a meta-class that uses an XMF client to manage the
+data for instances of its classes. The MOP must arrange for the approprate
+instantiation, slot access and slot update operations to be called.
+\end{itemize}
+
+\subsection{The Server}
+
+The server is defined as a Java class that is supplied with the port number as
+a command line argument, binds a server to the port and waits for a client
+connection. Once the client is connected, the server enters a command loop that
+reads and processes the commands sent by the client. The cod for the server is
+given below (slightly simplified):
+
+\begin{verbatim}
+public class Server {
+
+    // Commands performed by the server:
+
+    public static final int NEW = 1;
+    public static final int GET = 2;
+    public static final int SET = 3;
+    
+    // Communication channels:
+
+    InputStream in;
+    PrintWriter out;
+    
+    // New objects on the server side are added to the stack.
+    // Their ids on the XMF side are the stack positions.
+
+    Stack objects = new Stack();
+    
+    // A standard implementation of 'bind' for a server:
+
+    public void bind(int port) {
+      // Bind to the supplied port.
+    }
+    
+    // A standard implementation of 'accept' for a server:
+
+    public void accept() {
+      // Wait and accept a connection from a client.
+      // Bind in and out when the client connects.
+    }
+    
+    // The following command loop reads commands and
+    // dispatches to appropriate handlers.
+
+    public void loop() {
+      while (true) {
+        int command = in.read();
+        switch (command) {
+          case NEW:
+            newCommand();
+            break;
+          case GET:
+            getCommand();
+            break;
+          case SET:
+            setCommand();
+            break;
+        }
+      }
+    }
+    
+    // Command arguments are separatd by '!' and terminated by '.'.
+    // The following argument readers return values of different
+    // types.
+
+    public String readString() {
+      // Read and return the next '.' or '!' terminated string.
+    }
+    
+    public int readInt() {
+      // Read and return the next '.' or '!' terminated int.
+    }
+    
+    // The GET command is handled by the following method:
+
+    public void getCommand() {
+      int id = readInt();
+      String slot = readString();
+      Record r = (Record) objects.elementAt(id);
+      out.write(r.slotValue(slot));
+      out.flush();
+    }
+    
+    // The SET command is handled by the following method:
+
+    public void setCommand() {
+      int id = readInt();
+      String slot = readString();
+      int value = readInt();
+      Record r = (Record) objects.elementAt(id);
+      r.setSlotValue(slot, value);
+    }
+    
+    // The NEW command is handled by the following method:
+
+    public void newCommand() {
+      String name = readString();
+      Record r = new Record(name);
+      int id = objects.size();
+      objects.push(r);
+      out.write(id);
+      out.flush();
+    }
+    
+    // The following method shows how the server is initialized
+    // before the command loop is started:
+
+    public static void main(String[] args) {
+      int port = Integer.parseInt(args[0]);
+      Server server = new Server();
+      server.bind(port);
+      server.accept();
+      server.loop();
+    }
+}
+\end{verbatim}
+The Java class {\tt Record} has a name field that is the type of the record and has a 
+collection of named slots each of which is accessed using {\tt slotValue} and updated
+using {\tt setSlotValue}.
+
+\subsection{The Client}
+
+XMF provides a class {\tt Comms::Client} whose instances can connect to external servers via
+ports. A client has an input and output channel that is used to communicate with the server.
+Typically an XMF client will implement a communication protocol that is understood by the 
+server. The following class is an extension of {\tt Comms::Client} that implements a 
+simple protocol for creating records on the server and then accessing and updating the
+slots of the records:
+\begin{verbatim}
+@Class CommandClient extends Client
+
+  // When a command client is created, it immediately tries to 
+  // connect to the server. The first argument is the host 
+  // ("" means local machine) and the second argument is the 
+  // port number.
+  
+  @Constructor()
+    self.connect("",99)
+  end
+  
+  // An operation for sending commands. The commands are 
+  // encoded as integers and the args are supplied as a 
+  // sequence of strings and integers. The protocol separates 
+  // args with ! and terminates the command with .
+  
+  @Operation writeCommand(command:Integer . args:Seq(String))
+    output.write(command);
+    @For arg in args do
+      output.write(arg);
+      if not isLast then format(output,"!") end
+    end;
+    output.write(".");
+    output.flush()
+  end
+  
+  // An operation for receiving data from the server. Note that 
+  // if no data has been sent then the input channel *may* 
+  // produce -1. In this case we just want to block until some 
+  // real data is sent.
+  
+  @Operation readData()
+    let value = 0-1
+    in @While value < 0 do
+         value := input.read()
+       end;
+       value
+    end
+  end
+  
+  // A NEW command is the constant 1. The server will send the 
+  // unique id for the new instance of Record.
+  
+  @Operation newCommand(name:String):Element
+    self.writeCommand(1,name);
+    self.readData()
+  end
+  
+  // A GET command is the constant 2. We send the id of the 
+  // record and then read the slot value. In this simple 
+  // example slot values can only be a  single byte of data 
+  // in the range 0 - 255.
+  
+  @Operation getCommand(id:Integer,name:String)
+    self.writeCommand(2,id,name);
+    self.readData()
+  end
+  
+  // A SET command is the constant 3. We don't need to wait 
+  // for a result.
+  
+  @Operation setCommand(id:Integer,name:String,value:Integer)
+    self.writeCommand(3,id,name,value)
+  end
+end
+\end{verbatim}
+
+\subsection{The MOP}
+
+We have defined a Java server class and an XMF client class. If we start the server
+and create an instance of {\tt CommandClient} then the client connects to the server
+and can communicate with it. We can use this connection explicitly to implement 
+objects, however XMF facitlities that have been defined without knowledge of 
+{\tt CommandClient} must all up updated to make use of the connection. In general,
+this is unacceptable, we need a mechanism that will allow new objects whose representation
+is in the server to be seamlessly integrated with the existing XMF technologies.
+
+A MOP is a collection of operation definitions that allows a class to implement 
+its own instance creation and slot management mechanisms. The operations are integrated
+within the XMF VM so that the new definitions are used whenever instances of
+a class are referenced at the VM level. The upper levels of XMF are completely
+unaware of the hi-jacking going on at the lower levels. A MOP is a way of integrating
+completely new object representations with existing mechanisms without changing the
+mechanisms in any way.
+
+To create a MOP for our command client we need two classes. The first, {\tt ExternalObject}
+is the super-class of any class whose instances are to be managed by the server. The
+class {\tt ExternalObject} defines all the representation and operations that are necessary
+to support an external object on the client side. In the case of command client, we need
+to retain the unique id of the object:
+\begin{verbatim}
+context Root
+  @Class ExternalObject
+    @Attribute id : Integer end
+    @Constructor(id) ! end
+  end
+\end{verbatim}
+An external class has instances that are external objects. A MOP is implemented by defining a
+meta-class that optionally specifies the default parents for its instances, specifies the
+behaviour of {\tt new} for its instances and defines a slot access protocol and a message passing
+protocol for the objects that it manages (i.e. the instances of its instances). The MOP
+is implemented by {\tt ExternalClass} defined below, specific comments are in-line: 
+\begin{verbatim}
+context Root
+  @Class ExternalClass extends Class
+    
+    // An external class uses a command client to communicate
+    // with the server.
+    
+    @Attribute client : CommandClient (!) end
+    
+    // The super-classes of an external class must include the
+    // clas ExternalObject:
+    
+    @Operation defaultParents()
+      Set{ExternalObject}
+    end
+    
+    // To get the slot of an external object we use Kernel_getSlotValue
+    // when the slot is 'id' (since this is on the client side) otherwise
+    // use the client object to communicate with the server to get the
+    // slot value.
+    
+    @Operation getInstanceSlot(object,name)
+      if name.toString() = "id"
+      then Kernel_getSlotValue(object,name.asSymbol())
+      else client.getCommand(object.id,name.toString())
+      end
+    end
+    
+    // The server allows a record to have any number of slots:
+    
+    @Operation hasInstanceSlot(object,name)
+      true
+    end
+    
+    // To set the slo of an external object we user Kernel_setSlotValue
+    // when the slot is on the client side (id) otherwise use the client 
+    // object to communicate with the server to update the slot value.
+    
+    @Operation setInstanceSlot(object,name,value)
+      if name.toString() = "id"
+      then Kernel_setSlotValue(object,name.asSymbol(),value)
+      else client.setCommand(object.id,name.toString(),value)
+      end
+    end
+    
+    // To create an instance of an external class, first create a standard
+    // instance (this represents the client view of the new object) then
+    // request the server to create a record.
+    
+    @Operation new(args:Seq(Element))
+      let o = super(args)
+      in o.id := client.newCommand(self.name.toString())
+      end
+    end
+  end
+\end{verbatim}
+
+\end{document}

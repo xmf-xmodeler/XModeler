@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context Element
+  @Operation getDefaultClipboardSource()
+    ClipboardSource(self,null,null)
+  end
+
+context Element
+  @Operation getDefaultClipboardTarget()
+    ClipboardTarget(self,null)
+  end
+
+context Element
+  @Operation cutToClipboard()
+    xmf.clipboard().cut(self.getDefaultClipboardSource())
+  end
+
+context Element
+  @Operation cutToClipboard_transaction()
+    xmf.clipboard().clear();
+    xmf.clipboard().cut(self.getDefaultClipboardSource())
+  end
+
+context Element
+  @Operation copyToClipboard()
+    xmf.clipboard().copy(self.getDefaultClipboardSource())
+  end
+
+context Element
+  @Operation copyToClipboard_transaction()
+    xmf.clipboard().clear();
+    xmf.clipboard().copy(self.getDefaultClipboardSource())
+  end
+
+context Element
+  @Operation pasteFromClipboard()
+    xmf.clipboard().paste(self.getDefaultClipboardTarget())
+  end
+
+context Contained
+  @Operation getDefaultClipboardSource()
+    ClipboardSource(self,owner,null)
+  end
+  
+context SeqOfElement
+  @Operation getDefaultClipboardSource()
+    self->collect(e | e.getDefaultClipboardSource())
+  end
+  
+context SetOfElement
+  @Operation getDefaultClipboardSource()
+    self->asSeq->collect(e | e.getDefaultClipboardSource())
+  end

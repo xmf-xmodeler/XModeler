@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context Root
+  @Operation test(n)
+    let s = 0.to(n)
+    in @Count i from 0 to n do
+         s := s->excluding(i)
+       end;
+       s
+    end
+  end

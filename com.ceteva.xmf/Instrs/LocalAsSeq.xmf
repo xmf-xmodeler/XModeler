@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class LocalAsSeq extends Instr
+  
+    @Doc
+      This machine instruction references a local variable location
+      in the current stack frame and pushes its value as a sequence.
+    end
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+    @Operation toString():String
+      "<LocalAsSeq " + name + "," + offset + ">"
+    end
+    
+  end
+  

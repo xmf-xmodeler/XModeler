@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+context Mappings
+
+  @Package XCoreXSQL
+
+    @Operation testMap1()
+      let class = @Class Test
+                    @Attribute att1 : String end
+                    @Attribute att2 : Integer end
+                    @Attribute att3 : Boolean end
+                  end;
+          m = XCoreXSQL::ClassXTable()
+      in m(class).toString().println() 
+      end
+    end
+  
+  end

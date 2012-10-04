@@ -1,0 +1,76 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType(.*)_SlotMonitor"()
+  let tree = makePackageTree(Root) then
+      class = xmf.treeSelection("Please Select a Class whose slots are monitored",tree,Seq{Root},null)
+  in if class <> null
+     then 
+       let monitor = event.tool().element().addSlotMonitor(class)
+       in event.tool().register(event.value(),monitor);
+          event.tool().register(monitor,event.value());
+          event.value().setTextIn(class.path())
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType(.*)_SlotMonitor"()
+  if event.tool().isRegistered(event.value())
+  then
+    let monitor = event.tool().find(event.value())
+    in event.tool().element().deleteFromSlotMonitors(monitor)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType(.*)_SlotMonitor_Changed"()
+  if event.tool().isRegistered(event.value())
+  then
+    let monitor = event.tool().find(event.value());
+        class = event.new().lookupPath(Root)
+    in monitor.setClass(class)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType(.*)_CreationMonitor"()
+  let tree = makePackageTree(Root) then
+      class = xmf.treeSelection("Please Select a Class for instantiation monitoring",tree,Seq{Root},null)
+  in if class <> null
+     then 
+       let monitor = event.tool().element().addCreationMonitor(class)
+       in event.tool().register(event.value(),monitor);
+          event.tool().register(monitor,event.value());
+          event.value().setTextIn(class.path())
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType(.*)_CreationMonitor"()
+  if event.tool().isRegistered(event.value())
+  then
+    let monitor = event.tool().find(event.value())
+    in event.tool().element().deleteFromCreationMonitors(monitor)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType(.*)_CreationMonitor_Changed"()
+  if event.tool().isRegistered(event.value())
+  then
+    let monitor = event.tool().find(event.value());
+        class = event.new().lookupPath(Root)
+    in monitor.setClass(class)
+    end
+  end
+end;
+

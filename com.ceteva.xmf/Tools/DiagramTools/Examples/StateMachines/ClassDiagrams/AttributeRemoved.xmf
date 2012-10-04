@@ -1,0 +1,17 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Attribute_Removed()
+    let class = find(event.source());
+        attribute = find(event.edge())
+    in class.remove(attribute)
+    end
+  end
+  
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler StateMachine_nodeBox_bodyBox_attribute_Removed()
+    let attribute = find(event.display().ref1(Seq{"name"}))
+    in attribute.owner().remove(attribute)
+    end
+  end
+  

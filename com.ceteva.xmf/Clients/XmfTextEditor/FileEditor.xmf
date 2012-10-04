@@ -1,0 +1,188 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import TextEditor;
+import IO;
+import XmfTextEditor;
+
+context XmfTextEditor
+
+  @Class FileEditor extends FileTextEditor
+    
+    @Operation commitText(text)
+    
+      // saves text back out to a file
+     
+      let fout = FileOutputChannel(self.file.fullPath()) 
+      in
+        format(fout,"~S",Seq{text});
+        fout.close();
+        self.setClean()
+      end
+    end
+
+    @Operation commitTextAs()
+      // saves text back out to a file
+      let newFilePath = xmf.saveFile(file.owner,"*.xmf",file.name);
+          dir = file.owner;
+          text = self.getText() then
+          write = if newFilePath = "" 
+                  then false
+                  elseif newFilePath.fileExists()
+                  then xmf.confirm(newFilePath + " exists. Overwite?")
+                  else true
+                  end
+      in 
+         if write then
+
+           let newFileName = newFilePath.toFilePath().name;
+               xmfFileType = dir.getFileTypeForFileName("xmf") then
+               newFile = xmfFileType(dir,newFileName)
+           in
+             if file.fullPath().toLower() <> newFile.fullPath().toLower() andthen
+                xmf.fileEditorManager().hasOpenEditorFor(newFile)
+             then xmf.warning("There is already an editor open for this file. " +
+                              "This editor needs to be closed before saving into the chosen file.")
+             else
+               let fout = FileOutputChannel(newFilePath) 
+               in
+                 format(fout,"~S",Seq{text});
+                 fout.close();
+                 self.setClean();
+                 self.setName(newFile.name);
+                 dir.refreshFileTree();
+                 xmf.fileEditorManager().changeEditorFile(self,self.file,newFile);
+                 self.file := newFile
+               end
+             end
+           end
+         end
+      end
+    end
+
+    @Operation setSyntaxHighlightRules()
+      let rules = OCL::OCL.grammar.terminals()->asSeq in
+        rules->iterate(rule S="" | self.addWordRule(rule,Clients::TextEditor::Editor::blue))
+      end;
+      self.addMultilineRule("/*","*/",Editor::red);
+      self.addMultilineRule("@Doc","end",Editor::red);
+      self.addMultilineRule("\"","\"",Editor::green)
+    end
+  
+    @Operation textCommitted()
+    
+      // gets the text and saves it back out to a file
+    
+      let text = self.getText()
+      in  self.commitText(text)
+      end
+    end
+    
+    @Operation compileSaveLoad()
+      let filename = self.file.fullPath()
+      in
+        let message = "Saving, compiling and loading binary for:\n" + filename.toString() then 
+            dialog = xmf.busy(message)
+        in
+          self.textCommitted();
+          Compiler::resetCompilationErrors();
+          Compiler::compileFile(filename,true,true);
+          dialog.finished();
+          if Compiler::errors->isEmpty() then
+            filename := filename.subst(self.file.nameWithoutTag()+".o",self.file.nameWithoutTag()+".xmf",true);
+            if filename.fileExists() then
+              (filename).loadBin(true);
+              dialog.finished();
+              xmf.message(filename + " loaded")
+            else
+              xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+            end  
+          else
+            let message = filename + " compile failed" then
+                  text = ""
+            in @For error in Compiler::errors do
+                 text := text + error.message
+               end;
+               dialog.finished();
+               xmf.errorMessageWithText(message,text)
+            end   
+          end
+        end
+      end
+    end
+  
+    @Operation compileFile()
+      if not self.dirty then
+        let filename = self.file.fullPath() in
+          if filename.fileExists() then
+            let dialog = xmf.busy(("Compiling: " + filename))
+            in
+              try
+                Compiler::resetCompilationErrors();
+                Compiler::compileFile(filename,true,true);
+                dialog.finished()
+              catch(exception)
+                dialog.finished()
+              end;
+              if Compiler::errors->isEmpty() then
+                xmf.message(filename + " successfully compiled")
+              else
+                let message = filename + " compile failed" then
+                    text = ""
+                in @For error in Compiler::errors do
+                     text := text + error.message
+                    end;
+                    xmf.errorMessageWithText(message,text)
+                end     
+              end
+            end
+          else
+            xmf.errorMessage("The selected file does not exist.\nYou may need to save the file.")
+          end
+        end
+      else
+        xmf.warning("You need to save this file before attempting to compile it.")
+      end
+    end
+
+    @Operation delete_client()
+      if file.fullPath().fileExists() then
+        //let doDelete = xmf.question("Do you really want to delete this file or directory?\nThis action cannot be undone.") 
+        //in
+        //  if doDelete then
+            file.deleteActualFile()
+        //  end
+        //end
+      else
+        xmf.errorMessage("The selected file or directory does not exist.\nThe parent directory may need to be refreshed first.")
+      end
+    end
+
+    @Operation loadBinary()
+      let filename = self.file.fullPath().subst(self.file.nameWithoutTag()+".o",self.file.nameWithoutTag()+".xmf",true) in
+        if filename.fileExists() then
+          let dialog = xmf.busy(("Loading: " + filename))
+          in
+            try
+              (filename).loadBin(true);
+              dialog.finished();
+              xmf.message(filename + " loaded")
+            catch(exception)
+              exception.edit();
+              dialog.finished()
+            end
+          end
+        else
+          xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+        end
+      end
+    end
+
+    /* @Operation save(text)
+      super(text);
+      self.commitText(text)
+    end */
+
+  end

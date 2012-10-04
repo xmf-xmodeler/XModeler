@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+context XML::Parser
+
+  @Class Handler 
+  
+    @Grammar extends XCore::Operation.grammar
+    
+      Handler ::= Operation.
+      
+    end
+    
+  end

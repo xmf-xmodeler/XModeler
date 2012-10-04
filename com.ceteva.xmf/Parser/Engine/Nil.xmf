@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Nil extends Recognizer
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Nil ")
+    end
+    
+    @Operation FV()
+      Set{}
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Nil() |]
+    end
+    
+  end

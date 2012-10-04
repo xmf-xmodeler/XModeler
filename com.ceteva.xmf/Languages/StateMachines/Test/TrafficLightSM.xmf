@@ -1,0 +1,45 @@
+parserImport XOCL;
+parserImport Languages::StateMachines;
+
+import TrafficLight;
+ 
+Root::SM :=  
+   
+  @StateMachine(TrafficLight,Red) 
+    
+    @State Red 
+      @Send SM RedAmber(1) end;
+      "red".println()
+    end
+      
+    @State Amber
+      @Send SM AmberGreen(1) end;
+      "amber".println()
+    end
+    
+    @State Green
+      @Send SM GreenRed(1) end;
+      "green".println()
+    end
+    
+    @Transition RedAmber(x : Integer) (Red,Amber)
+      when true do
+        self.colour := "Amber";
+        "RedAmber".println()
+        
+    end
+    
+    @Transition AmberGreen(x : Integer) (Amber,Green)
+      when true do
+        self.colour := "Green";
+        "AmberGreen".println()
+    end
+    
+    @Transition GreenRed(x : Integer) (Green,Red)
+      when self.count < 10 do
+        self.count := self.count + 1;
+        self.colour := "Red";
+        "GreenRed".println()
+    end
+
+  end; 

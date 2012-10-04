@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Features;
+
+context ! Features
+  @Class Behaviour extends Contained
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Behaviour ::= transitions = Transition* {
+        BehaviourDef(transitions)
+      }.
+      
+      Transition ::= source = Name  '->' target = Name {
+        TransitionDef(source,target)
+      }.
+    
+    end
+    
+    @Attribute transitions : Seq(Transition) end
+    
+    @Constructor(transitions)
+    end
+    
+    @Operation getNextFeature(name:String):Seq(String)
+      let next = Seq{}
+      in
+        @For t in transitions
+        do
+          if t.source = name.toString()
+          then
+            if t.target = "Initial"
+            then
+              next := (next + self.getNextFeature("Initial")).flatten()
+            else
+              next := next.prepend(t.target)
+            end
+          end
+        end;
+        next
+      end
+    end
+    
+  end

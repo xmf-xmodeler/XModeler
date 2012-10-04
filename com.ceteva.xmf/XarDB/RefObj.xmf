@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class RefObj extends Ref
+  
+    @Operation doubleClick()
+      self.owner().find(Object,index).browse()
+    end
+    
+  end

@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class DiagramListener isabstract
+
+    @Operation deregisterFromDiagram(diagram)
+      diagram.deleteFromListeners(self)
+    end
+
+    @AbstractOp handleDiagramCloseEvent(diagram)
+    end
+
+    @AbstractOp handleDiagramDeleteEvent(diagram)
+    end
+
+    @Operation handleDiagramEvent(diagram,event)
+      let eventType = event->at(0)
+      in
+        @Case eventType of 
+          "close"  do self.handleDiagramCloseEvent(diagram) end
+          "delete" do self.handleDiagramDeleteEvent(diagram) end
+          "renew"  do self.handleDiagramRenewEvent(diagram) end
+        else self
+        end
+      end
+    end
+
+    @AbstractOp handleDiagramRenewEvent(diagram)
+    end
+
+    @Operation registerWithDiagram(diagram)
+      diagram.addToListeners(self)
+    end
+  
+  end

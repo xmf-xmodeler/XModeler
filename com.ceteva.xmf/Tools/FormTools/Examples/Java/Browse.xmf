@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+import JavaBrowser;
+import Languages::MicroJava::Structure;
+import Tools::FormTools::Structure;
+import Tools::Events;
+
+context Package
+  @Operation browse()
+    let tool = JavaBrowserTool(Browser,name,JavaEventManager,self)
+    in tool.showForm();
+       tool.setHandleEvents(false);
+       let packageNode = tool.form().ref1(Seq{"JavaTree"}).newNode("Package");
+           source = tool.form().ref1(Seq{"Source"})
+       in tool.register(packageNode,self);
+          tool.register(self,packageNode);
+          packageNode.setTextIn(name);
+          @For unit in units do
+            unit.addBrowserNode(tool,packageNode)
+          end;
+          source.setTextIn(self.pprint())
+       end;
+       tool.setHandleEvents(true);
+       tool
+    end
+  end
+  
+context CompilationUnit
+  @Operation addBrowserNode(tool,parent)
+    def.addBrowserNode(tool,parent,imports)
+  end
+  
+context Class
+  @Operation addBrowserNode(tool,parent,imports)
+    let classNode = parent.newNode("Class")
+    in @For i in imports do
+         i.addBrowserNode(classNode)
+       end;
+       @For f in features do
+         f.addBrowserNode(tool,classNode)
+       end;
+       tool.register(self,classNode);
+       tool.register(classNode,self);
+       classNode.setTextIn(name)
+    end
+  end
+  
+context Field
+  @Operation addBrowserNode(tool,parent)
+    let fieldNode = parent.newNode("Field")
+    in tool.register(self,fieldNode);
+       tool.register(fieldNode,self);
+       fieldNode.setTextIn(name)
+    end
+  end
+  
+context Import
+  @Operation addBrowserNode(tool,parent)
+    let importNode = parent.newNode("Import")
+    in tool.register(importNode,self);
+       tool.register(self,importNode);
+       importNode.setTextIn(path.names->separateWith("."))
+    end
+  end
+
+context Method
+  @Operation addBrowserNode(tool,parent)
+    let methodNode = parent.newNode("Method")
+    in tool.register(self,methodNode);
+       tool.register(methodNode,self);
+       methodNode.setTextIn(name)
+    end
+  end
+  

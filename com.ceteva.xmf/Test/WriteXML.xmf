@@ -1,0 +1,83 @@
+parserImport XOCL;
+parserImport XML::PrintXML;
+
+context Root
+  @Operation writeXML(element,out)
+  
+    // This operation writes out the supplied model element as XML
+    // to the supplied output channel.
+    
+    // Use the path for a named element as its id...
+    
+    @CaseObj element of
+      Package[name,classes,packages] do
+        @XML(out)
+          <Package name=name id=element.path()>
+            @For p in packages do
+              writeXML(p,out)
+            end;
+            @For c in classes do
+              writeXML(c,out)
+            end
+          </Package>
+        end
+      end
+      
+      // Use references to the class parents (the full XML representation)
+      // should be produced via the containing package...
+      
+      Class[name,attributes,parents,isAbstract,operations] do
+        @XML(out)
+          <Class name=name id=element.path() isAbstract=isAbstract>
+            @For p in parents do
+              @XML(out)
+                <ClassRef id=p.path()/>
+              end
+            end;
+            @For a in attributes do
+              writeXML(a,out)
+            end;
+            @For o in operations do
+              @XML(out)
+                <Operation name=o.name() id=o.path()/>
+              end
+            end
+          </Class>
+        end
+      end
+      
+      // Perform case analysis on the type of an attribute in order to
+      // determine the multiplicity attribute value. Use a class ref 
+      // for the underlying type of the attribute...
+      
+      Attribute[name,type] do
+        @Case type of
+          Seq(t) do
+            @XML(out)
+              <Attribute name=name id=element.path() multiplicity="ordered">
+                <ClassRef id=element.underlyingType().path()/>
+              </Attribute>
+            end
+          end
+          Set(t) do
+            @XML(out)
+              <Attribute name=name id=element.path() multiplicity="*">
+                <ClassRef id=element.underlyingType().path()/>
+              </Attribute>
+            end
+          end
+          else 
+            @XML(out)
+              <Attribute name=name id=element.path() multiplicity="1">
+                <ClassRef id=type.path()/>
+              </Attribute>
+            end
+        end
+      end
+      
+      // Dont produce any output for other types of element...
+      
+      else null
+    end
+  end
+      

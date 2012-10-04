@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Graphs;
+
+context Graphs
+
+  @Class Edge
+  
+    @Attribute data   : Element (!,?) end
+    @Attribute source : Node    (!,?) end
+    @Attribute target : Node    (!,?) end
+    
+    @Constructor(data) ! end
+    
+    @Constructor(source,target) end
+    
+    @Constructor(data,source,target) end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(Edge)
+      then 
+        source.equals(other.source()) and
+        target.equals(other.target())
+      else false
+      end
+    end
+    
+    @Operation pprint(out)
+      format(out,"[~<30>S] ~S ---> ~S",Seq{data,source,target})
+    end
+      
+    
+  end

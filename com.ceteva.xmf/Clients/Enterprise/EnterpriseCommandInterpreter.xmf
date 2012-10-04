@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Clients;
+import Enterprise;
+
+context Enterprise
+
+  @Class EnterpriseCommandInterpreter extends CommandInterpreter
+  
+    @Operation writeHTML(sessionId,html)
+      @SendCommand(self)
+        writeHTML(sessionId,html)
+      end
+    end
+  
+  end

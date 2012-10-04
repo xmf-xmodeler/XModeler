@@ -1,0 +1,109 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class DisplayAtomicAtt extends DisplayAtt
+
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,path,manifest)
+      renderText.writeHandlers(dir,toolDescriptorType,root,attribute.type,manifest,renderText);
+      let handlerName = path + "_" + attribute.name() + "_Changed"
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.value())~%");
+           format(out,"  then~%");
+           format(out,"    let o = event.tool().find(event.value())~%");
+           @Case attribute.type of
+             [String] do
+               format(out,"    in o.~S := event.new()~%",Seq{attribute.name()})
+             end
+             [Integer] do
+               format(out,"    in o.~S := event.new().asInt()~%",Seq{attribute.name()})
+             end
+             [Boolean] do
+               format(out,"    in o.~S := event.new().asBool()~%",Seq{attribute.name()})
+             end
+             else format(out,"    in null~%")
+           end;
+           format(out,"    end~%");
+           format(out,"  else \"NO ~S\".println()~%",Seq{attribute.name()});
+           format(out,"  end~%");
+           format(out,"end;~%")
+         end;
+         manifest.add("ElementManager/" + handlerName)
+      end
+    end
+    
+    @Operation writeMenu(out,path,indent)
+      format(out,"~V@MenuAction Change~S~%",Seq{indent,attribute.name()});
+      format(out,"~V  @WithoutRendering(tool.diagram())",Seq{indent});
+      format(out,"~V    if tool.isRegistered(self)~%",Seq{indent});
+      format(out,"~V    then tool.find(self).~S := ~S()~%",Seq{indent,attribute.name(),attribute.type.path()});
+      format(out,"~V    end~%",Seq{indent});
+      format(out,"~V  end~%",Seq{indent});
+      format(out,"~Vend~%",Seq{indent})
+    end
+    
+    @Operation writeObservationHandlers(dir,toolDescriptorType,class,att,path,map,manifest)
+      if att = attribute
+      then
+        let handlerName = class.name() + "_Object_" + att.name() + "_Changed"
+        in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+             writeToolHeader(out);
+             writeHandlerComment(out);
+             format(out,"@Observer ~S::~S::Manager(~S) ~S !~%",Seq{map.class().path(),toolDescriptorType,class.path(),att.name()});
+             format(out,"  @WithoutEvents(tool)~%");
+             format(out,"    if isRegistered(object)~%");
+             format(out,"    then~%");
+             format(out,"      let node = find(object);~%");
+             format(out,"          display = ~S~%",Seq{renderText.code("object." + attribute.name())});
+             format(out,"      in node.ref1(Seq{~{,~;\"~S\"~}}).setText(display);~%",Seq{path + Seq{attribute.name()}});
+             format(out,"         if object.~S.isReallyKindOf(Object)~%",Seq{attribute.name()});
+             format(out,"         then~%");
+             format(out,"           object.~S.observeBy(tool);~%",Seq{attribute.name()});
+             format(out,"           register(object.~S,node.ref1(Seq{~{,~;\"~S\"~}}))~%",Seq{attribute.name(),path + Seq{attribute.name()}});
+             format(out,"         end~%");
+             format(out,"      end~%");
+             format(out,"    end~%");
+             format(out,"  end~%");
+             format(out,"end;~%");
+             manifest.add("ElementManager/" + handlerName)
+           end
+        end
+      end
+    end
+    
+    @Operation writeRegister(out,path)
+      format(out,"      event.tool().register(event.node().ref1(Seq{~{,~;\"~S\"~}}),o);~%",Seq{path + Seq{attribute.name()}})
+    end
+    
+    @Operation writeRegisterCode(out,indent,path,node,object)
+      format(out,"~Vregister(~S.ref1(Seq{~{,~;\"~S\"~}}),~S);~%",Seq{indent,node,path + Seq{attribute.name()},object})
+    end
+    
+    @Operation writeDeregisterCode(out,indent,path,node)
+      format(out,"~Vderegister(~S.ref1(Seq{~{,~;\"~S\"~}}));~%",Seq{indent,node,path + Seq{attribute.name()}})
+    end
+    
+    @Operation writeCreateDiagram(out,path)
+      let path = path + Seq{attribute.name()}
+      in format(out,"                     tool.register(node.ref1(Seq{~{,~;\"~S\"~}}),n);~%",Seq{path});
+         format(out,"                     node.ref1(Seq{~{,~;\"~S\"~}}).setText(~S);~%",Seq{path,renderText.code("n." + attribute.name())});
+         format(out,"                     if n.~S.isReallyKindOf(Object)~%",Seq{attribute.name()});
+         format(out,"                     then~%");
+         format(out,"                       n.~S.observeBy(tool);~%",Seq{attribute.name()});
+         format(out,"                       tool.register(n.~S,node.ref1(Seq{~{,~;\"~S\"~}}))~%",Seq{attribute.name(),path});
+         format(out,"                     end;~%")
+      end
+    end
+    
+    @Operation writeType(out,indent)
+      format(out,"~V@Text ~S(CENTRE) \"~S\" ~%",Seq{indent,attribute.name(),attribute.name()});
+      format(out,"~V   @Menu @MenuAction Edit tool.find(self).edit() end end~%",Seq{indent});
+      format(out,"~Vend~%",Seq{indent})
+    end
+      
+  end

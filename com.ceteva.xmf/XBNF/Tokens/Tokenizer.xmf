@@ -1,0 +1,505 @@
+parserImport XOCL;
+
+import XBNF;
+import IO;
+import Tokens;
+
+context Tokens
+
+  @Class Tokenizer
+  
+    // Token types...
+  
+    @Bind STRING  = 0 end
+    @Bind NAME    = 1 end
+    @Bind INT     = 2 end
+    @Bind SYMBOL  = 3 end
+    @Bind EOF     = 4 end
+    @Bind ERROR   = 5 end 
+    @Bind LAST    = 6 end
+    
+    @Bind TokenTypeNames = 
+      Seq{"Builtin(Str)",
+          "Builtin(Name)",
+          "Builtin(Int)",
+          "Builtin(Symbol)",
+          "EOF",
+          "ERROR"} 
+    end
+    
+    @Attribute input     : InputChannel end  // The source of input characters.
+    
+    // Keeping track of where we are...
+    
+    @Attribute lineCount     : Integer = 1 end  // Keep track of the line position.
+    @Attribute charCount     : Integer = 1 end  // Keep track of the char position on the current line.
+    
+    // Making the token available...
+    
+    @Attribute token     : Element      end  // The most recently read token.
+    @Attribute type      : Integer      end  // The type of token.
+    
+    // Set to true for debugging...
+    
+    @Attribute debug : Boolean = false   end
+    
+    // The nextToken operation returns true when a token has been successfully read.
+    // Otherwise it returns false and the value of the following attribute is an
+    // error message...
+    
+    @Attribute error : String           end
+    
+    // Input is buffered in a vector of character codes....
+    
+    @Attribute buffer : Vector = Vector(1024 * 5) end
+    
+    // The following points past the last character position in the buffer...
+    
+    @Attribute charEnd : Integer end 
+    
+    // The next character to be read in the buffer...
+    
+    @Attribute charIndex : Integer end 
+    
+    // Set when we have exhausted the buffer and the input channel...
+    
+    @Constructor(input) end
+    
+    @Constructor(input,debug) end
+    
+    @Constructor(token,type) ! end
+    
+    @Operation bar(char):Boolean
+    
+      // A | has been read. Check to see if we have a ] next
+      // in which case return a |] otherwise just a | token.
+      
+      self.type := Tokenizer::NAME;
+      if self.eof()
+      then 
+        if debug then format(stdout,"BAR~%") end;
+        self.token := "|";
+        true
+      else
+        let char = self.read()
+        in if char = "]"->at(0)
+           then 
+             if debug then format(stdout,"RQUASI~%") end;
+             self.token := "|]";
+             true
+           else 
+             if debug then format(stdout,"BAR~%") end;
+             self.charIndex := self.charIndex - 1;
+             self.token := "|";
+             true
+           end
+        end
+      end
+    end
+    
+    @Operation eof():Boolean
+      if charIndex < charEnd
+      then false
+      else input.eof()
+      end
+    end
+    
+    @Operation nextToken(terminals:Table):Boolean
+    
+      // Returns true when a new token has been successfully read.
+      
+      let whiteSpace = true
+      in @While not(self.eof()) and whiteSpace do
+            let char = self.read()
+            in if @CaseInt[256] char of
+                    " "->at(0) do 
+                      false 
+                    end
+                    "\n"->at(0) do
+                      self.charCount := 1;
+                      self.lineCount := self.lineCount + 1; 
+                      false 
+                    end
+                    "\t"->at(0) do 
+                      false 
+                    end
+                    "\r"->at(0) do 
+                      false 
+                    end
+                    else true
+                  end
+               then 
+                 self.charIndex := self.charIndex - 1;
+                 self.charCount := self.charCount - 1;
+                 whiteSpace := false
+               end
+            end
+         end
+      end;
+      
+      if self.eof()
+      then self.type := Tokenizer::EOF
+      else
+        let char = self.read()
+        in @CaseInt[256] char of
+        
+             "A"->at(0) to "z"->at(0) do
+                if debug 
+                then format(stdout,"START NAMETOKEN~%") 
+                end;
+                self.type := Tokenizer::NAME;
+                self.token := Seq{char};
+                let terminated = false
+                in @While not(terminated) and not(self.eof()) do
+                     char := self.read();
+                     
+                     // The following table defines name terminating
+                     // characters....
+                     
+                     if @CaseInt[256] char of
+                          " "->at(0)  do true end
+                          "\n"->at(0) do true end
+                          "\t"->at(0) do true end 
+                          "\r"->at(0) do true end
+                          "("->at(0)  do true end
+                          ")"->at(0)  do true end
+                          " "->at(0)  do true end
+                          "\n"->at(0) do true end
+                          "\t"->at(0) do true end
+                          "\r"->at(0) do true end
+                          "{"->at(0)  do true end
+                          "}"->at(0)  do true end
+                          "\""->at(0) do true end
+                          "."->at(0)  do true end
+                          ";"->at(0)  do true end
+                          ","->at(0)  do true end
+                          "-"->at(0)  do true end
+                          "<"->at(0)  do true end
+                          ">"->at(0)  do true end
+                          else false
+                        end
+                      then
+                        terminated := true;
+                        self.charCount := self.charCount - 1;
+                        self.charIndex := self.charIndex - 1
+                      else self.token := Seq{char | token}
+                      end
+                    end;
+                    self.token := Kernel_asString(token->reverse); 
+                    if Kernel_tableHasKey(terminals,self.token)
+                    then self.type := Kernel_tableGet(terminals,self.token)
+                    end;
+                    if debug 
+                    then format(stdout,"END NAMETOKEN(~S,~S)~%",Seq{token.type,token}) 
+                    end;
+                    true
+                 end
+              end
+        
+             "\""->at(0) do
+               if debug 
+               then format(stdout,"START STRTOKEN~%") 
+               end;
+               self.type := Tokenizer::STRING;
+               self.token := Seq{};
+               let doubleQuotes = false
+               in @While not(self.eof()) and not(doubleQuotes) do
+                    let char = self.read()
+                    in if char = "\""->at(0)
+                       then doubleQuotes := true
+                       else self.token := Seq{char | token}
+                       end
+                    end
+                  end;
+                  if self.eof()
+                  then 
+                    self.error := "Unterminated string " + token->reverse->asString;
+                    false
+                  else 
+                    self.token := Kernel_asString(token->reverse); 
+                    if debug 
+                    then format(stdout,"END STRTOKEN(~S)~%",Seq{token}) 
+                    end;
+                    true
+                  end
+               end
+             end
+        
+             "0"->at(0) to "9"->at(0) do
+                if debug 
+                then format(stdout,"START NUMTOKEN~%") 
+                end;
+                self.token := char - "0"->at(0);
+                self.type := Tokenizer::INT;
+                if not(self.eof())
+                then
+                  char := self.read();
+                  @While (char >= "0"->at(0)) and (char <= "9"->at(0)) and not(self.eof()) do
+                    self.token := (token * 10) + (char - @Character 0 end);
+                    char := self.read()
+                  end
+                end;
+                if not(self.eof()) orelse (char < "0"->at(0)) or (char > "9"->at(0))
+                then 
+                  self.charCount := self.charCount - 1;
+                  self.charIndex := self.charIndex - 1
+                end;
+                if debug 
+                then format(stdout,"END NUMTOKEN(~S)~%",Seq{token}) 
+                end;
+                true
+             end 
+             
+             "("->at(0) do
+               if debug then format(stdout,"LPAREN~%") end;
+               self.token := "(";
+               if Kernel_tableHasKey(terminals,self.token)
+               then self.type := Kernel_tableGet(terminals,self.token)
+               else self.type := Tokenizer::NAME
+               end;
+               true
+             end
+           
+             ")"->at(0) do
+               if debug then format(stdout,"RPAREN~%") end;
+               self.token := ")";
+               if Kernel_tableHasKey(terminals,self.token)
+               then self.type := Kernel_tableGet(terminals,self.token)
+               else self.type := Tokenizer::NAME
+               end;
+               true
+             end
+             
+             /*
+           
+             "["->at(0) do
+               self.type := Tokenizer::NAME;
+               if self.eof()
+               then 
+                 if debug then format(stdout,"BAR~%") end;
+                 self.token := "|";
+                 true
+               else
+                 let char = self.read()
+                 in if char = "]"->at(0)
+                    then 
+                      if debug then format(stdout,"RQUASI~%") end;
+                      self.token := "|]";
+                      true
+                    else 
+                      if debug then format(stdout,"BAR~%") end;
+                      self.charCount := self.charCount - 1;
+                      self.charIndex := self.charIndex - 1;
+                      self.token := "|";
+                      true
+                    end
+                 end
+               end
+             end
+             
+             */
+             
+             /*
+             
+             "<"->at(0) do
+               self.type := Tokenizer::NAME;
+               if self.eof()
+               then 
+                 if debug then format(stdout,"LESS~%") end;
+                 self.token := "<";
+                 true
+               else
+                 let char = self.read()
+                 in if char = "*"->at(0)
+                    then 
+                      if debug then format(stdout,"LSPLICE~%") end;
+                      self.token := "<*";
+                      true
+                    else 
+                      if debug then format(stdout,"LESS~%") end;
+                      self.charCount := self.charCount - 1;
+                      self.charIndex := self.charIndex - 1;
+                      self.token := "<";
+                      true
+                    end
+                 end
+               end
+             end
+             
+             */
+             
+             /*
+             
+             "*"->at(0) do
+               self.type := Tokenizer::NAME;
+               if self.eof()
+               then 
+                 if debug then format(stdout,"STAR~%") end;
+                 self.token := "*";
+                 true
+               else
+                 let char = self.read()
+                 in if char = ">"->at(0)
+                    then 
+                      if debug then format(stdout,"RSPLICE~%") end;
+                      self.token := "*>";
+                      true
+                    else 
+                      if debug then format(stdout,"STAR~%") end;
+                      self.charCount := self.charCount - 1;
+                      self.charIndex := self.charIndex - 1;
+                      self.token := "*";
+                      true
+                    end
+                 end
+              end
+            end
+            
+            */
+            
+            "/"->at(0) do
+              if debug then format(stdout,"START SLASH~%") end;
+              if self.eof()
+              then 
+                self.type := Tokenizer::NAME;
+                self.token := "/";
+                if debug then format(stdout,"END SLASH /~%") end;
+                true
+              else
+                let char = self.read()
+                in if char = "/"->at(0)
+                   then
+                     let EOLN = false
+                     in @While not EOLN and not(self.eof()) do
+                          char := self.read();
+                          if char = "\n"->at(0)
+                          then EOLN := true
+                          end
+                        end;
+                        if debug then format(stdout,"END SLASH~%") end;
+                        self.nextToken(terminals)
+                     end
+                   elseif char = "*"->at(0)
+                   then 
+                     let terminated = false
+                     in @While not terminated and not(self.eof()) do
+                          char := self.read();
+                          if char = "*"->at(0)
+                          then
+                            if self.eof()
+                            then 
+                              self.error := "Unterminated block comment";
+                              false
+                            else 
+                              char := self.read();
+                              if char = "/"->at(0)
+                              then 
+                                terminated := true
+                              end
+                            end
+                          end
+                        end;
+                        if terminated
+                        then self.nextToken(terminals)
+                        else 
+                          self.error := "Unterminated block comment";
+                          false
+                        end
+                     end      
+                   else 
+                     self.charCount := self.charCount - 1;
+                     self.charIndex := self.charIndex - 1;
+                     self.type := Tokenizer::NAME;
+                     self.token := "/";
+                     if debug then format(stdout,"END SLASH /~%") end;
+                     true
+                   end
+                end
+              end
+            end
+            
+            else
+               if debug then format(stdout,"START NAME~%") end;
+               let chars = Seq{char};
+                   isSpecial = true
+               in @While not self.eof() and isSpecial do
+                    char := self.read();
+                    if @CaseInt[256] char of
+                         " "->at(0) do false end
+                         "\n"->at(0) do false end
+                         "\t"->at(0) do false end
+                         "\r"->at(0) do false end
+                         "("->at(0) do false end
+                         ")"->at(0) do false end
+                         ","->at(0) do false end
+                         "\""->at(0) do false end
+                         "0"->at(0) to "9"->at(0) do false end
+                         "A"->at(0) to "z"->at(0) do false end
+                         else true
+                       end
+                    then chars := Seq{char | chars}
+                    else 
+                      isSpecial := false;
+                      self.charCount := self.charCount - 1;
+                      self.charIndex := self.charIndex - 1
+                    end
+                  end;
+                  self.token := Kernel_asString(chars->reverse); 
+                  if Kernel_tableHasKey(terminals,self.token)
+                  then self.type := Kernel_tableGet(terminals,self.token)
+                  else self.type := Tokenizer::NAME
+                  end;
+                  if debug then format(stdout,"END NAME (~S,~S)~%",Seq{type,token}) end;
+                  true
+               end
+             
+           end
+        end
+      end
+    end
+    
+    @Operation pprintToken(out:OutputChannel)
+      @Case type of
+        [Tokenizer::STRING] do
+          format(out,"String(~S)",Seq{token})
+        end
+        [Tokenizer::NAME] do
+          format(out,"Name(~S)",Seq{token})
+        end
+        [Tokenizer::INT] do
+          format(out,"Int(~S)",Seq{token})
+        end
+        [Tokenizer::SYMBOL] do
+          format(out,"Symbol(~S)",Seq{token})
+        end
+        [Tokenizer::EOF] do
+          format(out,"EOF")
+        end
+        else format(out,"Terminal(~S,~S)",Seq{type,token})
+      end
+    end
+    
+    @Operation read():Integer
+      if charIndex < charEnd
+      then 
+        self.charIndex := self.charIndex + 1;
+        self.charCount := self.charCount + 1;
+        let char = Kernel_arrayRef(buffer,charIndex-1)
+        in if debug
+           then format(stdout,"READ ~C~%",Seq{char})
+           end;
+           char
+        end
+      elseif not input.eof()
+      then 
+        self.charEnd := input.read(buffer);
+        self.charIndex := 0;
+        self.read()
+      else self.error("Attempt to read past EOF.")
+      end
+    end
+   
+  end
+  
+  
+ 

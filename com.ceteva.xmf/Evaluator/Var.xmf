@@ -1,0 +1,32 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+import Exceptions;
+
+@Handler Var in Eval(aVar,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in if env.binds(aVar.name)
+     then result(aVar,env.lookup(aVar.name),cont)
+     // Otherwise try the slots of the target (if defined and legal)...
+     elseif target.isReallyKindOf(Object) andthen target.hasSlot(aVar.name)
+     then result(aVar,target.get(aVar.name),cont)
+     else 
+       // Otherwise try the imported name spaces in turn...
+       let nameSpaces = imports->select(nameSpace | nameSpace.hasElement(Symbol(aVar.name)))
+       in if nameSpaces->isEmpty
+          then throw UnboundVar(aVar.name,aVar.lineCount,aVar.charCount)
+          else 
+            let value = nameSpaces->sel.getElement(Symbol(aVar.name))
+            in result(aVar,value,cont)
+            end
+          end
+      end
+    end
+  end
+end;

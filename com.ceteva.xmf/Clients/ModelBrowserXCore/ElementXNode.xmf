@@ -1,0 +1,246 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class ElementXNode extends Contained, Commandable, MappingCreator
+  
+    @Bind testDaemon = null end
+
+    @Attribute element : Element (?,!) end
+    @Attribute node : ModelBrowserNode (?,!) end
+    @Attribute elementMaps : Seq(ElementXNode) end
+    
+    @Constructor(element,node,owner)
+      self.init(Seq{element,node})
+    end
+
+    @Constructor(element,node) ! 
+      self.setHotLoad(true)
+    end
+
+    @Operation addElementMap(mapping)
+      self.elementMaps := elementMaps->linkAt(mapping,0);
+      mapping.setOwner(self);
+      mapping.addMappings();
+      mapping.checkDaemons();
+      mapping
+    end 
+ 
+    @Operation addMappings()
+      @For n inSeq node.nodes do
+        if not elementMaps->exists(mapping | mapping.node = n) andthen not n.element.isKindOf(Dummy)
+        then
+          self.updateNodeText(n);
+          n.textChangedOut();
+          let mapping = self.createMapping(n.element,n)
+          in  self.addElementMap(mapping)
+          end
+        end
+      end;
+      self
+    end
+
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ModelBrowserXCore::ElementXNode::daemons_nodeExpandedChanged(node,"expanded") end;
+      self
+    end
+
+    @Operation childNodeShouldBeAddedFor(e:Element):Boolean
+      node.getChildren(element)->includes(e) andthen
+        if e.isReallyKindOf(Object)
+        then not elementMaps->exists(mapping | mapping.element = e) andthen
+             not node.isCyclicChild(e)
+        else not elementMaps->exists(mapping | mapping.element = e)
+        end
+    end
+
+    @Operation childNodeShouldBeRemovedFor(e:Element):Boolean
+      not node.getChildren(element)->includes(e)
+    end
+
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else
+        xmf.findClient(ModelBrowserClient).commandInterpreter
+      end
+    end
+
+    @Operation createNode(e:Element)
+      let n = ModelBrowserNode(e)
+      in
+        self.updateNodeText(n);
+        self.node.addNode(n);
+        //n.textChangedOut();
+        //self.node.expand();
+        n.new(self.node);
+        let mapping = self.createMapping(e,n)
+        in  self.addElementMap(mapping);
+            mapping.handleNodeCreation()
+        end;
+        n.expand();
+        //This was producing emtpy child nodes under Project nodes
+        //let grandChildren = n.getChildren(e)
+        //in
+        //  if not grandChildren->isEmpty
+        //  then
+        //    n.addDummyNode();
+        //    n.dummyNode.new(n)
+        //  end
+        //end;
+        n
+      end
+    end
+
+    @Operation daemons_nodeExpandedChanged(n,slot,newExpanded,oldExpanded)
+      if newExpanded
+      then
+        self.handleNodeExpansion()
+      end
+    end
+
+    @Operation debug(debug)
+      owner.debug(debug)
+    end
+
+    @Operation elementAdded(e)
+
+      // Handle own node expansion...
+      self.node.expand();
+      if not xmf.modelBrowserNodeExpansionSuppressed()
+      then self.forceNodeExpansion()
+      end;
+
+      // Handle child node creation...      
+      if self.childNodeShouldBeAddedFor(e)
+      then
+        self.createNode(e)
+      else
+        let foundNode = self.findModelBrowserNode(e)
+        in
+          if foundNode <> null
+          then foundNode.setSelected(true,true)
+          end
+        end
+      end;
+      self
+    end
+
+    @Operation elementRemoved(e)
+      @Find(mapping,elementMaps)
+        when mapping.element = e andthen self.childNodeShouldBeRemovedFor(e)
+        do
+          self.removeElementMap(mapping);
+          mapping.node.delete()
+      end
+    end
+
+    @Operation findModelBrowserMapping(element):Element
+      let selfFoundMapping = 
+        if self.element = element
+        then self
+        else null
+        end
+      in
+        if selfFoundMapping <> null then
+          selfFoundMapping
+        else
+          let foundMapping = null
+          in
+            @For map in elementMaps do
+              if foundMapping = null
+              then
+                foundMapping := map.findModelBrowserMapping(element)
+              end
+            end;
+            foundMapping
+          end
+        end
+      end  
+    end
+
+    @Operation findModelBrowserNode(element):Element
+      let selfFoundNode = 
+        if self.element = element
+        then node
+        else null
+        end
+      in
+        if selfFoundNode <> null then
+          selfFoundNode
+        else
+          let foundNode = null
+          in
+            @For map in elementMaps do
+              if foundNode = null andthen map.element = element
+              then
+                foundNode := map.node
+              end
+            end;
+            @For map in elementMaps do
+              if foundNode = null
+              then
+                foundNode := map.findModelBrowserNode(element)
+              end
+            end;
+            foundNode
+          end
+        end
+      end  
+    end
+    
+    @Operation forceNodeExpansion()
+      @WithoutDaemons(self)
+        node.expand()
+      end;
+      self.handleNodeExpansion() // avoids timing issues this way
+    end
+
+    @Operation handleNodeCreation()
+      node.setSelected(true,true)
+    end
+
+    @Operation handleNodeExpansion()
+      self.addMappings()
+    end
+
+    @Operation hotLoaded() 
+      self.checkDaemons()
+    end
+
+    @Operation removeDaemons()
+      node.removeDaemonsWithTarget(self,true);
+      @For map in elementMaps do
+        map.removeDaemons()
+      end
+    end
+
+    @Operation removeElementMap(mapping)
+      mapping.removeDaemons();
+      self.elementMaps := elementMaps->excluding(mapping);
+      mapping.setOwner(null);
+      mapping
+    end
+
+    @Operation setToolTipText(childNode)
+      let text = element.getToolTipText(childNode.element)
+      in
+        if text <> null
+        then
+          childNode.setToolTipText(text)
+        end
+      end
+    end
+
+    @Operation updateNodeText(n : Node)
+      // override this operation in sub-classes (e.g. SnapshotXNode)
+      n.updateText()
+    end
+
+  end

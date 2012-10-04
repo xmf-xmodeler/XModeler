@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class ElementXNode extends DiagramsMapping::ElementXNode, RightClickableProxy
+  
+    @Attribute element : Element (?) end
+    @Attribute node    : ElementNode (?) end
+    
+    @Constructor(element,node,owner)
+      self.init(Seq{element,node})
+    end
+    
+    @Constructor(element,node) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{element.of(),node.of()})
+    end
+
+    @Operation buildGlobalMenu(rightClickable)     
+      let globalMenu = rightClickable.globalMenu(false);
+          type = element.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  ElementXNode::proxyElementTarget);
+        globalMenu.add(MenuAction("Delete from Diagram Only",RightClickableProxy::proxyTarget,Seq{},DiagramsMapping::ElementXNode::deleteNodeFromDiagram));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).element
+    end
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once ElementXNode::ownerChanged_classDiagramDaemon(element,"owner") end
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{element.of(),node.of()},false)
+    end
+
+    @Operation ownerChanged_classDiagramDaemon(element,slot,newOwner,oldOwner)
+      if newOwner <> oldOwner andthen newOwner = null
+      then self.deleteNodeFromDiagram()
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.removeDaemonsWithTarget(self,true);
+      node.removeDaemonsWithTarget(self,true)
+    end
+    
+  end

@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Pop extends Instr
+  
+    @Doc
+      A machine instruction that pops the stack.
+    end
+     
+    @Operation toString():String
+      "<Pop>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

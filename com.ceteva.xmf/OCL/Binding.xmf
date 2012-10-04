@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Binding extends OCL::OCL
+  
+    @Doc
+      Binding is an abstract class that represents an association
+      between a name and a value. Bindings occur in syntax expressions
+      such as let.
+    end
+  
+    @Attribute name : String end
+    
+  end

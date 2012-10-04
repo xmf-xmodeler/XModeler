@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import Clients;
+import XOCL;
+
+context BrowserInterface
+
+  @Class InterfaceElement isabstract extends SyntaxConstant
+    
+  end

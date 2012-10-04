@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context Diagram
+  @Operation labelString()
+    self.name().toString()
+  end
+
+context Diagram
+  @Operation toString()
+    let fullText = name;
+        elements = xmf.diagramManager().elementsFor(self)
+    in
+      if not elements->isEmpty
+      then
+        fullText := elements->head.nameString() + "(" + fullText + ")"
+      end;
+      fullText
+    end
+  end

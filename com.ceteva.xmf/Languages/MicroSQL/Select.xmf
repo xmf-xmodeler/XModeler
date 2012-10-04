@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import XOCL;
+import Languages;
+import MicroSQL;
+
+context MicroSQL
+
+  @Class Select
+  
+    @Attribute select : Seq(String) end
+    @Attribute from   : Seq(String) end
+    @Attribute where  : SQLExpression  end
+    
+    @Constructor(select,from,where) end
+  
+    @Operation toString()
+      let string = "SELECT " in
+        self.toStringSelect(string);
+        string := string + " FROM ";
+        self.toStringWhere(string);
+        string := string + ";"
+      end
+    end
+    
+    @Operation toStringSelect(string)
+      let first = true in
+        @For s in select do
+          if not first then
+            string := string + ","
+          else
+            first := false
+          end;
+          string := string + s
+        end
+      end
+    end
+    
+    @Operation toStringWhere(string)
+      let first = true in
+        @For w in where do
+          if not first then
+            string := string + ","
+          else
+            first := false
+          end;
+          string := string + w
+        end
+      end
+    end
+  end

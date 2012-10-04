@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::DiagramTools::Types::DisplayTypes;
+import IO;
+
+context MDC
+
+  @Class Theme
+  
+    // A theme is applied to all the elements of a tool when the
+    // state changes. 
+  
+    @Attribute name      : String    (?,!) end
+    @Attribute predicate : Operation (?,!) end
+    @Attribute handler   : Operation (?,!) end
+    @Attribute remove    : Operation (?,!) end
+    
+    @Constructor(name,predicate,handler,remove) end
+    
+    @Constructor(name) ! end
+    
+    @Operation handleValue(tool,value,adding:Boolean):Boolean
+    
+      // Use the predicate to check whether the theme applies.
+      // If so then handle the theme and return true to say
+      // that no further processing is required into this value.
+      
+      try
+        if predicate(tool,value)
+        then 
+          if adding
+          then 
+            handler(tool,value);
+            true
+          else 
+            remove(tool,value);
+            true
+          end
+        else false
+        end
+      catch(x)
+        xmf.message(x.toString());
+        true
+      end
+    end
+    
+    @Operation save()
+      let file = xmf.saveFile(xmf.projDir(),"Theme File","*.thm")
+      in if (not file.fileExists()) orelse xmf.question("Overwrite " + file)
+         then 
+           @Busy("Saving Theme")
+             @WithOpenFile(fout -> file)
+               let excludedNameSpaces = Root.allContentsOf(XCore::NameSpace)->including(Root)->asSeq;
+                   out = ElementOutputChannel(fout)
+               in out.write(self,excludedNameSpaces);
+                  out.flush()
+               end
+             end
+           end;
+           xmf.message("Saved Theme")
+         end
+      end
+    end
+      
+    
+  end

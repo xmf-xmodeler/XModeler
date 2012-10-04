@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Exceptions;
+import Clients;
+
+context Forms
+
+  @Class FormIdError extends Exception
+  
+    @Attribute id : Element end
+    @Attribute value : Element end
+    
+    @Constructor(id,value) 
+      self.setBacktrace();
+      self.message := "No form id " + id + " found in " + value 
+    end
+    
+  end

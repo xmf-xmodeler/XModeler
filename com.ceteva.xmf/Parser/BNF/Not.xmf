@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Not extends Recognizer
+
+	// Succeeds when the component parser fails (and does not consume input).
+	// Fails otherwise.
+
+    @Attribute parser : Recognizer end
+    
+    @Constructor(parser) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel,"not(");
+      parser.code(outputChannel);
+      format(outputChannel,")")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      parser.nextSet(grammar)
+    end
+    
+    @Operation parse(machine)
+      machine.choice();
+      machine.pushSuccess(NotSuccess(machine.fail));
+      machine.pushSuccess(parser)
+    end
+    
+    @Operation terminals():Set(String)
+      parser.terminals()
+    end
+    
+    @Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Not(<parser.toExp(FV)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self.parser := parser.transform(FV,grammar)
+    end
+    
+  end

@@ -1,0 +1,135 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+
+context Menus
+
+  @Class Menu extends MenuItemContainer
+  
+    // Menu defines a menu type. It is a container for menu items
+    // and menu actions. The type of a right clickable element is
+    // associated with a menu type. When the element is instantiated
+    // call the setGlobalMenu operation of the menu type supplying
+    // it with the right clickable element.
+    //
+    // Menu types may also be used to define tool descriptor menus.
+    // These are instantiated once and add an entry into the Tools
+    // drop down menu from the toolbar of XMF-Mosaic.
+  
+    
+    // Set 'applyDefault' to true if you want the menu 
+    // to include the default parent type's menu (such as 
+    // 'straighten' for edge).
+
+    @Attribute applyDefault : Boolean = false (?,!) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Menu ::= appDef = ApplyDefault defs = Exp* { 
+      
+        defs->iterate(def exp = [| Tools::Menus::Menu(<OCL::BoolExp(appDef)>) |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+      ApplyDefault ::= 'default' { true } | { false }.
+      
+    end
+    
+    @Constructor(applyDefault) 
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        MenuItem do
+          self.addToItems(element)
+        end
+        else self.error("Unknown menu component: " + element.toString())
+      end
+    end
+    
+    @Operation addItems(itemContainer,this,tool,path)
+    
+      // Deprecated...
+      
+      @For item in items do
+        itemContainer.add(item.new(this,tool,path))
+      end
+    end
+    
+    @Operation applyDefault(value:Boolean)
+      self.applyDefault := value
+    end
+
+    @Operation setGlobalMenu(rightClickable,this,tool,path,menuKey,sendSetCommand:Boolean)
+    
+      // Used to add the menu items to the right clickable 
+      // element. Usually called as part of the right clickable
+      // element type instantiation...
+      
+      if not items->isEmpty
+      then
+        rightClickable.setMenuKey(menuKey);
+        let menuManager = xmf.menuManager() then
+            globalMenu = 
+              if menuManager.hasMenu(menuKey)
+              then menuManager.getMenu(menuKey)
+              else
+                let gm = rightClickable.globalMenu(false,not applyDefault)
+                in
+                  @For item in items do
+                    gm.append(item.new(this,tool,path))
+                  end;
+                  rightClickable.clearRightClickMenu(false);
+                  gm.new();
+                  gm
+                end
+              end
+        in
+          rightClickable.clearRightClickMenu();
+          if sendSetCommand
+          then
+            globalMenu.commandInterpreter().setGlobalMenuCommand(globalMenu,rightClickable)
+          end
+        end
+      end
+    end
+
+    @Operation setGlobalMenu(rightClickable,this,tool,path,menuKey)
+      self.setGlobalMenu(rightClickable,this,tool,path,menuKey,true)
+    end
+
+    @Operation setGlobalMenu(rightClickable,this,tool,path)
+      self.setGlobalMenu(rightClickable,this,tool,path,rightClickable,true)
+    end
+
+    @Operation setGlobalMenu(rightClickable,tool,path)
+      self.setGlobalMenu(rightClickable,rightClickable,tool,path)
+    end
+    
+    @Operation setToolDescriptorMenu(name:String)
+    
+      // Add a menu entry for the Tools drop down menu for
+      // the supplied tool name.
+      
+      @For item in items do
+        item.setToolDescriptorMenu(Seq{"&Tools","Main",name,"Main"})
+      end
+      
+    end
+    
+    @Operation merge(inherited)
+    
+      // To merge menus, copy down all the items with new names.
+      
+      @For inheritedItem in inherited.items() do
+        @Find(localItem,items)
+          when localItem.name().toString() = inheritedItem.name().toString()
+          do self.items := items->subst(Seq{localItem.merge(inheritedItem)},Seq{localItem},true)
+          else self.add(inheritedItem)
+        end
+      end
+    end
+    
+  end

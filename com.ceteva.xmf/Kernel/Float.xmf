@@ -1,0 +1,210 @@
+parserImport XOCL;
+
+context Float
+  @Operation abs():Float
+    @Doc
+      Returns the absolute value of a float.
+    end
+    if self < 0 
+    then 0 - self  
+    else self
+    end
+  end 
+  
+context Float
+  @Operation add(other)
+    @Doc
+      Adds a float to other.
+    end
+    if other.isKindOf(Integer)
+    then self + Float(other,0)
+    else other.add(self)
+    end
+  end
+  
+context Float
+  @Operation asFloat():Float
+    self
+  end
+  
+context Float 
+  @Operation ceiling():Integer
+    @Doc
+      Returns the smallest (closest to negative infinity) 
+      integer value that is not less than the argument.
+    end
+    Kernel_ceiling(self)
+  end
+
+context Float
+  @Operation cos()
+    @Doc
+      Returns the cosine of a float.
+    end
+    Kernel_cos(self)
+  end
+  
+context Float 
+  @Operation div(other)
+    @Doc
+      Divides a rounded float by the result
+      of rounding other.
+    end
+    self.round().div(other)
+  end
+  
+context Float 
+  @Operation floor():Integer
+    @Doc
+      Returns the largest (closest to positive infinity) 
+      integer value that is not greater than the argument.
+    end
+    Kernel_floor(self)
+  end
+  
+context Float
+  @Operation greater(other)
+    @Doc
+      Returns true if a float is greater than other.
+    end
+    if other.isKindOf(Integer)
+    then self > Float(other,0)
+    else self.error("Float::greater: illegal operand " + other.toString())
+    end
+  end
+  
+context Float
+  @Operation init(args)
+    Float(args->at(0),args->at(1))
+  end
+  
+context Float
+  @Operation less(other)
+    @Doc
+      Returns true if a float is less than other.
+    end
+    if other.isKindOf(Integer)
+    then self < Float(other,0)
+    else self.error("Float::less: illegal operand " + other.toString())
+    end
+  end
+  
+context Float
+  @Operation max(other:Integer):Integer
+    @Doc
+      Compares a float with other and returns
+      the maximum value.
+    end
+    if self > other
+    then self
+    else other
+    end
+  end
+  
+context Float
+  @Operation min(other:Integer):Integer
+     @Doc
+      Compares a float with other and returns
+      the minimum value.
+    end
+    if self < other
+    then self
+    else other
+    end
+  end
+  
+context Float 
+  @Operation mod(other)
+    @Doc
+      Returns a float modulo other after rounding
+      down to integers.
+    end
+    self.round().mod(other)
+  end 
+  
+context Float
+  @Operation mul(other)
+    @Doc
+      Multiply a float by other.
+    end
+    if other.isKindOf(Integer)
+    then self * Float(other,0)
+    else self.error("Float::mul: illegal operand " + other.toString())
+    end
+  end
+  
+context Float
+  @Operation pow(other):Float
+    if other.isKindOf(Integer)
+    then self.pow(Float(other,0))
+    elseif other.isKindOf(Float)
+    then Kernel_pow(self,other)
+    //then Kernel_forName("java.lang.Math",Seq{}).pow(self,other)
+    else other.pow(self)
+    end
+  end
+  
+context Float
+  @Operation random()
+  
+    // returns a random float between 0.0 and 1.0
+    
+    Kernel_random()
+  
+  end
+  
+context Float 
+  @Operation round()
+    @Doc
+      Returns the result of rounding a float down.
+    end
+    Kernel_round(self)
+  end
+  
+context Float
+  @Operation sin()
+    @Doc
+      Returns the sin() of a float.
+    end
+    Kernel_sin(self)
+  end
+  
+  
+context Float
+  @Operation slash(other)
+    @Doc
+      Divided a float by other.
+    end
+    if other.isKindOf(Integer)
+    then self / Float(other,0)
+    else self.error("Float::slash: illegal operand " + other.toString())
+    end
+  end
+  
+context Float
+  @Operation sqrt()
+    @Doc
+      Returns the square root of a float.
+    end
+    Kernel_sqrt(self)
+  end
+  
+context Float
+  @Operation sub(other)
+    @Doc
+      Subtracts an integer from a float.
+    end
+    if other.isKindOf(Integer)
+    then self - Float(other,0)
+    else self.error("Float::sub: illegal operand " + other.toString())
+    end
+  end
+  
+context Float
+  @Operation toString():String
+    @Doc
+      Converts and integer to a string.
+    end
+    Kernel_valueToString(self)
+  end
+    

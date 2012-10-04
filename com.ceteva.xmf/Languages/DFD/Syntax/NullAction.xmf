@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+    
+  @Class NullAction extends ProcessBody
+    
+    // No action is taken when this is evaluated.  
+      
+    @Grammar extends OCL::OCL.grammar
+      
+      NullAction ::=
+      {
+        [| Languages::DFD::Syntax::NullAction() |]
+      }.
+        
+    end
+      
+    @Operation eval(env)
+      self
+    end
+      
+    @Operation code(indent:Integer):String
+      "@NullAction end"
+    end    
+  end

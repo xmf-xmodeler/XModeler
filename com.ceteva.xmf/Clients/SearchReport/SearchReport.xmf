@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package SearchReport
+  
+    @Operation test()
+      let root = SearchNodes("Some Results","XCore/Class")
+      in root.add(SearchResult("OK",Class,@Operation(x) x.element.edit() end));
+         root.add(SearchResult("NO",Object,@Operation(x) x.element.edit() end));
+         root.edit()
+      end
+    end
+        
+  
+  end

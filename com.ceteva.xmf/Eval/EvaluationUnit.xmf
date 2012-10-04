@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Evaluator;
+
+context Evaluator
+
+  @Class EvaluationUnit
+      
+    @Attribute imports : Seq(Import)      end
+    @Attribute exps    : Seq(Performable) end
+    
+    @Constructor(imports,exps) end
+      
+    @Operation eval(target,env,imports)
+      let newImports = self.evalImports(target,env,imports) then
+          imports = newImports + imports;
+          value = null
+      in @For exp in exps do
+           value := exp.eval(target,env,imports)
+         end;
+         value
+      end
+    end
+    
+    @Operation evalImports(target,env,nameSpaces)
+      //self.imports->collect(exp | exp.eval(target,env,imports))
+      @For exp in imports produce
+        let nameSpace = exp.eval(target,env,nameSpaces)
+        in nameSpaces := Seq{nameSpace | nameSpaces};
+           nameSpace
+        end
+      end
+    end
+      
+  end    

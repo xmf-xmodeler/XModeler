@@ -1,0 +1,6 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler StateMachine_Removed()
+    event.tool().element().remove(find(event.node()))
+  end

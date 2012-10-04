@@ -1,0 +1,16 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SlotValue extends Text
+  
+    @Constructor(text,x,y)
+      self.init(Seq{text.toString(),x,y,true})
+    end
+    
+  end

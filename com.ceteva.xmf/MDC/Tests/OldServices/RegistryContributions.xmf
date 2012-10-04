@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+
+
+// *** MENUS ***
+
+let 
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.menus"
+in
+  registry.addContribution(id,
+    Contribution(Services::Model,Seq{
+      Seq{},
+      Services::Model::addCandidate,
+      Seq{"New","Candidate"},"",false
+    }));
+  registry.addContribution(id,
+    Contribution(Services::Candidate,Seq{
+      Seq{},
+      Services::Candidate::show,
+      Seq{"Show"},"",false
+    }));
+  self
+end;

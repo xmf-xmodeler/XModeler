@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Aspects;
+
+context AllAspects::ToHTML
+
+  @Class String
+  
+    @Operation asHTML():String
+    
+      @Doc
+        Transforms a string literal to HTML replacing any illegal HTML
+        characters so that the string is faithfully printed.
+      end
+      
+      self.subst("&lt;","<",true)
+        .subst("&gt",">",true)
+          .subst("<br>","\n",true)
+            .subst("&#160;&#160;","\t",true)
+              .subst("&#160;"," ",true)
+    end
+    
+  end
+  

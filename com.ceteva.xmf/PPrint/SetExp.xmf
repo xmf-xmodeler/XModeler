@@ -1,0 +1,21 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler SetExp in PPrint(aSetExp,out,seen)
+  self.mark(
+    @Operation()
+      format(out,"~S{",Seq{aSetExp.collType});
+      self.indent(
+        @Operation()
+          @For exp in aSetExp.elements do
+            self.dispatch(exp,out);
+            if not isLast
+            then format(out,",")
+            end
+          end;
+          format(out,"}")
+        end)
+      end)
+end;

@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest XOCLGrammar
+  @File Scanner end
+  @File Grammar end
+  @File Classifier end
+  @File Operation end
+  @Ref Extensions end
+  @File Test end
+  @File Compiler end
+  @File TopLevel end
+end;

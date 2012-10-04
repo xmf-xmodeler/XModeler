@@ -1,0 +1,43 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest IO
+  @File IO                     end
+  @File InputChannel           end
+  @File OutputChannel          end
+  @File ElementInputChannel    end
+  @File ElementOutputChannel   end
+  @File EvalInputChannel       end
+  @File File                   end
+  @File Position               end
+  @File ResourcePosition       end
+  @File FilePosition           end
+  @File DirectoryPosition      end
+  @File BinaryInputChannel     end
+  @File FileInputChannel       end
+  @File FileOutputChannel      end
+  @File GZipInputChannel       end
+  @File GZipOutputChannel      end
+  @File ZipOutputChannel       end
+  @File ZipFile                end
+  @File SAXInputChannel        end
+  @File SAXAttribute           end
+  @File StandardInputChannel   end
+  @File StandardOutputChannel  end
+  @File StringInputChannel     end
+  @File StringOutputChannel    end
+  @File TokenInputChannel      end
+  @File StandardChannels       end
+  @File Directory              end
+  @File MessageChannel         end
+  @File URLInputChannel        end
+  @File StandardMessageChannel end
+  @File URLInputChannel        end
+  @File XMLData			       end
+  @File XMLInput		       end
+  @File XMLOutput		       end
+do
+  Project(IO,dir,self)
+end;

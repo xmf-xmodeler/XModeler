@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Automata
+  Automata = @File Automata   end
+             @File State      end
+             @File Transition end
+             @File Automaton  end
+             @File Inspect    end
+do
+  Project(Languages::Automata,dir,self)
+end;

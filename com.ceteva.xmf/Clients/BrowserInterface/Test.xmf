@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+
+context Root
+  @Class C metaclass BrowsedClass
+    @Interface
+      @Image "XCore/Class" end
+      @Child x end
+      @Child y end
+      @Menu a::b::c f end
+    end
+    @Attribute x : String = "spam" end
+    @Attribute y : Integer = 100 end
+    @Attribute z : Integer = 100 end
+    @Operation f() "hooray".println() end
+  end

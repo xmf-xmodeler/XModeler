@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class SlotPattern 
+  
+    @Attribute name  : String (?) end
+    @Attribute value : Value  (?) end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation constraints(boundVars:Set(String)):Set(Constraint)
+      @Case value of
+        Const(c) do
+          Set{Equivalence(SlotRef(name),Const(c))}
+        end
+        Var(v) do
+          if boundVars->includes(v)
+          then Set{}
+          else Set{Equivalence(SlotRef(name),Var(v))}
+          end
+        end
+      end
+    end
+    
+    @Operation source():String
+      name + "=" + value.source()
+    end
+    
+    @Operation varEnv(boundVars:Set(String),varEnv:Env):Env
+      if value.isKindOf(Var)
+      then
+        if boundVars->includes(value.name)
+        then varEnv.bind(value.name,SlotRef(name))
+        else varEnv
+        end
+      else varEnv
+      end
+    end
+    
+    @Operation vars():Set(String)
+      value.vars()
+    end
+    
+  end

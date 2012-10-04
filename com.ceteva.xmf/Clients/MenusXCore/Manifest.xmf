@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MenusXCore
+  @File Element end
+  @File Contained end
+  @File Container end
+  @File Classifier end
+  @File Package end
+  @File Snapshot end
+  @File Class end
+  @File Attribute end
+  @File Constructor end
+  @File Enum end
+end;

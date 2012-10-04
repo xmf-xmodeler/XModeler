@@ -1,0 +1,134 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+
+context BinExp
+  @Operation FV():Element
+    left.FV()->union(right.FV())
+  end
+
+context BinExp
+  @Operation maxLocals():Element
+    left.maxLocals().max(right.maxLocals())
+  end
+
+context BinExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if binOp = "and" 
+    then self.compileAnd(env,frame,isLast,saveSource) 
+    elseif binOp = "or"  
+    then self.compileOr(env,frame,isLast,saveSource)
+    elseif binOp = "-"
+    then self.compileSub(env,frame,isLast,saveSource)
+    elseif binOp = "+"
+    then self.compileAdd(env,frame,isLast,saveSource)
+    else self.compileBasicBinOp(env,frame,isLast,saveSource)
+    end
+  end
+    
+context BinExp 
+  @Operation compileAdd(env,frame,isLast,saveSource)
+    if (left.isKindOf(OCL::Var) andthen env.isLocal(left.name)) and 
+       (right.isKindOf(IntExp) andthen right.value = 1)
+    then Seq{AddLocal(left.name,env.localIndex(left.name))}
+    elseif (right.isKindOf(OCL::Var) andthen env.isLocal(right.name)) and 
+           (left.isKindOf(IntExp) andthen left.value = 1)
+    then Seq{AddLocal(right.name,env.localIndex(right.name))}
+    else 
+      left.compile(env,frame,false,saveSource) +
+      right.compile(env,frame,false,saveSource) +
+      Seq{Add()}
+    end
+  end
+  
+context BinExp
+  @Operation compileBasicBinOp(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let leftCode = left.compile(env,frame,false,saveSource); 
+        rightCode = right.compile(env,frame,false,saveSource)
+    in if binOp = "*" then leftCode + rightCode + Seq{Mul()}
+       elseif binOp = "/" then leftCode + rightCode + Seq{Div()}
+       elseif binOp = "implies" then leftCode + rightCode + Seq{Implies()}
+       elseif binOp = "<" then leftCode + rightCode + Seq{Less()}
+       elseif binOp = ">" then leftCode + rightCode + Seq{Greater()}
+       elseif binOp = "=" then leftCode + rightCode + Seq{Eql()}
+       else self.desugar().compile(env,frame,isLast,saveSource)
+       end
+    end
+  end
+  
+context BinExp
+  @Operation compileAnd(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if left.isKindOf(BoolExp)
+    then 
+      if left.value
+      then right.compile(env,frame,isLast,saveSource)
+      else [| false |].compile(env,frame,isLast,saveSource)
+      end
+    elseif right.isKindOf(BoolExp)
+    then 
+      if right.value
+      then left.compile(env,frame,isLast,saveSource)
+      else [| false |].compile(env,frame,isLast,saveSource)
+      end
+    else
+      left.compile(env,frame,false,saveSource) +
+      right.compile(env,frame,false,saveSource) +
+      Seq{And()}
+    end
+  end
+  
+context BinExp
+  @Operation compileOr(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if left.isKindOf(BoolExp)
+    then 
+      if left.value
+      then [| true |].compile(env,frame,isLast,saveSource)
+      else right.compile(env,frame,isLast,saveSource)
+      end
+    elseif right.isKindOf(BoolExp)
+    then 
+      if right.value
+      then [| true |].compile(env,frame,isLast,saveSource)
+      else left.compile(env,frame,isLast,saveSource)
+      end
+    else
+      left.compile(env,frame,false,saveSource) +
+      right.compile(env,frame,false,saveSource) +
+      Seq{Or()}
+    end
+  end
+  
+context BinExp 
+  @Operation compileSub(env,frame,isLast,saveSource)
+    if (left.isKindOf(OCL::Var) andthen env.isLocal(left.name)) and 
+       (right.isKindOf(IntExp) andthen right.value = 1)
+    then Seq{SubLocal(left.name,env.localIndex(left.name))}
+    elseif (right.isKindOf(OCL::Var) andthen env.isLocal(right.name)) and 
+           (left.isKindOf(IntExp) andthen left.value = 1)
+    then Seq{SubLocal(right.name,env.localIndex(right.name))}
+    else 
+      left.compile(env,frame,false,saveSource) +
+      right.compile(env,frame,false,saveSource) +
+      Seq{Sub()}
+    end
+  end
+  
+context BinExp
+  @Operation desugar():Performable
+    if binOp = "<>" then [| not(<left> = <right>) |]
+    elseif binOp = ">=" then [| <left> > <right> or <left> = <right> |]
+    elseif binOp = "<=" then [| <left> < <right> or <left> = <right> |]
+    elseif binOp = "andthen" then [| if <left> then <right> else false end |]
+    elseif binOp = "orelse" then [| if <left> then true else <right> end |]
+    else self.error("Unknown binary operator in " + self.pprint())
+    end
+  end
+  
+context BinExp
+  @Operation lift()
+    if binOp.isKindOf(String)
+    then Apply(self.typeExp(),Seq{left.lift(),StrExp(binOp),right.lift()})
+    else Apply(self.typeExp(),Seq{left.lift(),binOp.lift(),right.lift()})
+    end
+  end

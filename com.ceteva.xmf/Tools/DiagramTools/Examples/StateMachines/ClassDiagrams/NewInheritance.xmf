@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler New_Inheritance()
+    let parent = find(event.target());
+        child = find(event.source())
+    in child.addParent(parent);
+       register(event.edge(),Seq{child,parent})
+    end
+  end
+  

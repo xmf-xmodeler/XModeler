@@ -1,0 +1,174 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XMap
+
+  @Class SlotValueChanged extends Sugar
+  
+    @Doc
+      This construct adds a daemon that fires when the given slot value changes. The
+      construct allows the new value and old value to be bound. The body of the
+      construct is any expression. Modifiers allow this construct to control whether
+      it is fired when a slot value changes, when new values are added or when existing
+      values are removed.
+      
+      Constructor: SlotValueChanged(modifier,persistent,name,object,slot,names,body)
+        The object and body should be expressions. The slot is any expression whose
+        value is a string or symbol. Modifier should be a string containing +, - or empty.
+        If + then names should be a single name bound to each element that is added 
+        to the slot. If - then names should be a single name bound to each value that is
+        removed from the slot. If empty then names should be two names the first is bound
+        to the new value and the second to the old value whn the slot value changes.
+        If the daemon is persistent then the 'persistentDaemon' property is set causing
+        the daemon to be saved when the containing object is saved.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      SlotValueChanged ::= mod = Modifier persistent = Persistent name = DaemonName '(' object = Exp ',' slot = Exp ',' names = Names ')' body = Exp
+        { SlotValueChanged(mod,persistent,name,object,slot,names,body) }.
+      Modifier ::= '+' { "+" } | '-' { "-" } | { "" } | Drop.
+      Names ::= name = AName names = (',' AName)* { Seq{ name | names } }.
+      DaemonName ::= Name | { "AnonymousDaemon" }.
+      Persistent ::= '!' { true } | { false }.
+      
+    end 
+    
+    @Attribute modifier : String end
+    @Attribute persistent : Boolean end
+    @Attribute name : String (?,!) end
+    @Attribute object : Performable end
+    @Attribute slot : Performable end
+    @Attribute names : Seq(String) end
+    @Attribute body : Performable end
+    
+    @Constructor(modifier,persistent,name,object,slot,names,body) end
+    
+    @Constructor(modifier,name,object,slot,names,body) end
+    
+    @Operation desugar() 
+      @Case modifier of 
+        "+" do self.desugarAdd() end
+        "-" do self.desugarRemove() end
+        else self.desugarChanged()
+      end
+    end
+    
+    @Operation desugarAdd()
+      [| let svcslot = <slot>;
+             svcobject = <object>
+         in let svcdaemon =
+              @Operation(s,newValue,oldValue)
+                let svcname = svcslot.toString()
+                in if svcname = s.toString()
+                   then 
+                     let new = newValue - oldValue
+                     in if not new->isEmpty
+                        then 
+                          @For <names->at(0)> in new do
+                            <body>
+                          end 
+                        end
+                     end
+                   end
+                end
+              end
+            in <if persistent
+                then [| svcobject.addPersistentDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                else [| svcobject.addDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                end>
+            end
+         end
+      |]
+    end
+    
+    @Operation desugarChanged()
+      if names->size = 2
+      then
+        let newValue = names->at(0);
+            oldValue = names->at(1)
+        in [| let svcslot = <slot>;
+                 svcobject = <object>
+              in let svcdaemon =
+                   @Operation <name> (s,<newValue>,<oldValue>)
+                     let svcname = svcslot.toString()
+                     in if svcname = s.toString()
+                        then 
+                          if <Var(newValue)> <> <Var(oldValue)>
+                          then <body>
+                          end
+                        end
+                     end
+                   end
+                 in <if persistent
+                     then [| svcobject.addPersistentDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                     else [| svcobject.addDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                     end>
+                 end
+              end
+           |]
+        end
+      else self.error("Syntax error in SlotValueChanged, expecting 2 names: " + names.toString())
+      end
+    end
+    
+    @Operation desugarRemove()
+      [| let svcslot = <slot>;
+             svcobject = <object>
+         in let svcdaemon =
+              @Operation <name> (s,newValue,oldValue)
+                let svcname = svcslot.toString()
+                in if svcname = s.toString()
+                   then 
+                     let old = oldValue - newValue
+                     in if not old->isEmpty
+                        then 
+                          @For <names->at(0)> in old do
+                            <body>
+                          end
+                        end
+                     end
+                   end
+                end
+              end
+            in <if persistent
+                then [| svcobject.addPersistentDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                else [| svcobject.addDaemon(@Operation <name> (s,newValue,oldValue) svcdaemon(s,newValue,oldValue) end) |]
+                end>
+            end
+         end
+      |]
+    end
+    
+    @Operation lift():Performable
+      XCore::Element::lift.invoke(self,Seq{})
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@SlotValueChanged ");
+      if modifier.isKindOf(Performable)
+      then modifier.pprint(out,0)
+      else format(out,"~S ",Seq{modifier})
+      end;
+      format(out,"~S(",Seq{modifier,if persistent then " ! " else "" end,name});
+      object.pprint(out,0);
+      format(out,",");
+      slot.pprint(out,0);
+      format(out,",");
+      @For name in names do
+        if name.isKindOf(Performable)
+        then name.pprint(out,0)
+        else format(out,"~S",Seq{name})
+        end;
+        if not isLast then format(out,",") end
+      end;
+      format(out,")~%~V",Seq{indent + 2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class DiagramContribution
+
+    @Constructor(name,contributesTo,handler)
+    end
+
+    @Attribute name : String end
+    @Attribute contributesTo : Element end
+    @Attribute handler : Performable end
+    @Attribute singleDiagram : Boolean = false (?,!) end
+    @Attribute dropEnabled : Boolean = false (?,!) end
+
+    @Operation newDiagram(element,name)
+      self.newDiagram(element,name,true)
+    end
+
+    @Operation newDiagram(element,name,showDiagram)
+      let diagramManager = xmf.diagramManager()
+      in
+        if self.singleDiagram andthen not diagramManager.diagramsFor(element)->isEmpty
+        then
+          xmf.warning("Only one diagram can be created for this element.")
+        else
+          let diagram = 
+              if showDiagram
+              then handler.invoke(null,Seq{element,name})
+              else DiagramStub(name,element,handler).createToolStub()
+              end
+          in
+            diagramManager.addDiagram(element,diagram);
+            diagram.setName(name); // this forces a refresh on the diagram tab
+            if self.dropEnabled
+            then diagram.enableDrop()
+            end;
+            diagram
+          end
+        end
+      end
+    end
+
+    @Operation setName(newName:String)
+      if newName <> self.name
+      then
+        let oldLabelSeq = Seq{"Create Diagram",self.name};
+            newLabelSeq = Seq{"Create Diagram",newName}
+        in
+          self.name := newName;
+          
+          // Add the new menu contribution before deleting the old on
+          // to preserve the position of the "Create Diagram" menu group...
+          xmf.menuManager().setGlobalMenuItem(contributesTo,
+                                              Seq{newName},
+                                              Element::createDiagramType,
+                                              newLabelSeq,
+                                              "",
+                                              false,
+                                              true);
+          xmf.menuManager().removeGlobalMenuItem(contributesTo,oldLabelSeq)
+        end
+      end
+    end
+
+    @Operation toString()
+      "DiagramContribution(" + name.toString() + ")"
+    end
+
+  end

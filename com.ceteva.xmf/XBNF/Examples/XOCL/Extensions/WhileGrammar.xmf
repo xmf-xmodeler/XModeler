@@ -1,0 +1,9 @@
+parserImport XBNF::Grammars;
+
+import XOCL;
+
+context While
+  @Grammar extends OCL::OCL.grammar()
+    While ::= test = Exp 'do' body = Exp
+    { While(test,body) }.
+  end

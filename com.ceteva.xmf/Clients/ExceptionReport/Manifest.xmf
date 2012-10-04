@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ExceptionReport
+  ExceptionReport = @File ExceptionReport end
+  @File ExceptionNode end
+  @File ArgNode end
+  @File LocalNode end
+  @File FrameNode end
+  @File ResourceNode end
+  @File OperationNode end
+  @File SelfNode end
+  @File ReportTree end
+  @File ExceptionForm end
+do Project(ExceptionReport,dir,self)
+end;

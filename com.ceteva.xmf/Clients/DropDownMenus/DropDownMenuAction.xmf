@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Root;
+import Clients;
+import DropDownMenus;
+
+context DropDownMenus
+
+  @Class DropDownMenuAction
+  
+   	@Attribute target : Element      end  // The target for the action.
+  	@Attribute args   : Seq(Element) end  // The args for the action.
+  	@Attribute action : Operation    end  // The action to be performed.
+  	
+  	// @Constructor(target,args,action)
+    // end
+    
+    @Constructor(action)
+    end
+    
+    @Operation selected()
+      // action.invoke(target,args)
+      action()
+    end	
+  
+  end

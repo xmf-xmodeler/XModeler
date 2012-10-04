@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class IndexOutOfBounds extends Exception
+  
+    @Attribute vector : Vector end
+    @Attribute index  : Integer end
+    
+    @Constructor(vector,index) !
+      self.setBacktrace();
+      self.message := "Vector index " + index + " not in the range[0," + (vector.size()-1) + "]"
+    end
+    
+  end
+      
+    

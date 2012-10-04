@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import XSync;
+import Env;
+import OCL;
+import Syntax;
+
+context Syntax
+
+  @Class Self extends Value
+  
+    @Operation code(varEnv:Env):Performable
+      [| Self() |]
+    end
+    
+    @Operation relocate(direction:String)
+      @Case direction of
+        "LEFT" do Left(self) end
+        "RIGHT" do Right(self) end
+      end
+    end
+    
+    @Operation source():String
+      "self"
+    end
+    
+    @Operation vars():Set(String)
+      Set{}
+    end
+    
+  end

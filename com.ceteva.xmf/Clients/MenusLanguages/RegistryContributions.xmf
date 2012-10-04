@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Clients::PropertyEditorXCore;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(Associations::Association,Seq{"XCore/Association"}));
+  registry.addContribution(id,Contribution(Associations::End,Seq{"XCore/End"}));
+  registry.addContribution(id,Contribution(XMap::Map,Seq{"Mapping/Map"}));
+  registry.addContribution(id,Contribution(XMap::Clause,Seq{"Mapping/Clause"}));
+  registry.addContribution(id,Contribution(Parser::BNF::Grammar,Seq{"Parser/Grammar"}));
+  registry.addContribution(id,Contribution(Parser::BNF::Clause,Seq{"Parser/Clause"}));
+  self
+end;
+
+
+// *** NODE SORTING ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution(Associations::Association,Seq{2500}));
+  registry.addContribution(id,Contribution(Associations::End,Seq{3080}));
+  registry.addContribution(id,Contribution(XMap::Map,Seq{2150}));
+  registry.addContribution(id,Contribution(XMap::Clause,Seq{3050}));
+  registry.addContribution(id,Contribution(Parser::BNF::Grammar,Seq{4400}));
+  registry.addContribution(id,Contribution(Parser::BNF::Clause,Seq{2150}));
+  self
+end;
+
+@Menu "Add Element":"Clause" on Root::XMap::Map
+  Root::XMap::Map::newClause
+end;
+
+@Menu "Add Element":"Map" on Root::XCore::Package
+  Root::XCore::Package::newMap
+end;
+
+@Menu "Apply Mapping" on Root::XCore::Object
+  Root::XCore::Object::applyMapping_client
+end;
+
+
+// *** PROPERTY EDITORS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.propertyEditors.propertyEditors"
+in
+  registry.addContribution(id,
+    Contribution(Associations::End,Seq{
+      ObjectPE,ObjectXForm
+    }));
+  self
+end;

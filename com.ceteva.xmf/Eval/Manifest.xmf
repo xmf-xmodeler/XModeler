@@ -1,0 +1,43 @@
+parserImport Manifests;
+
+@Manifest Eval
+  @File Apply end
+  @File BinExp end
+  @File BoolExp end
+  @File CollExp end
+  @File ConsExp end
+  @File ContextDef end
+  @File Dot end
+  @File FloatExp end
+  @File Evaluator end
+  @File Import end
+  @File EvaluationUnit end
+  @File FloatExp end
+  @File HeadUpdate end
+  @File If end
+  @File ImportIn end
+  @File IntExp end
+  @File Instantiate end
+  @File IterExp end
+  @File Iterate end
+  @File Let end
+  @File Lift end
+  @File LoadFile end
+  @File Negate end
+  @File Operation end
+  @File Order end
+  @File Parentheses end
+  @File ParserImport end
+  @File Path end
+  @File PathUpdate end
+  @File Self end
+  @File Send end
+  @File SetExp end
+  @File SlotUpdate end
+  @File StrExp end
+  @File TailUpdate end
+  @File Throw end
+  @File Try end
+  @File Var end
+  @File VarUpdate end
+end;

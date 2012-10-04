@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+
+// This file adds features to the XMF class that provide 
+// tool manager property and associated helper operations.
+
+xmf.setProperty("toolManager",ToolManager());
+
+context XMF
+  @Operation toolManager()
+    self.property("toolManager")
+  end
+
+context XMF
+  @Operation toolBrowser()
+    xmf.toolManager().toolBrowser()
+  end

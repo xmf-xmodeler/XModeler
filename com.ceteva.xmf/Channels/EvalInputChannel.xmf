@@ -1,0 +1,86 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class EvalInputChannel extends InputChannel
+    
+    @Doc
+      This channel is initialised with a grammar, an input channel and a sequence
+      of imports. When requested for a value via 'readValue', the channel will parse the
+      next input from the channel and evaluate it.
+      
+      Constructor: EvalInputChannel(grammar,start,channel,imports)
+    end
+        
+    @Attribute grammar : Element end
+    @Attribute start : String end
+    @Attribute channel : InputChannel end
+    @Attribute imports : Seq(NameSpace) end
+    @Attribute state : Element end
+    @Attribute env : Element end
+    
+    @Constructor(grammar,start,channel,imports) 
+      self.state := Parser::Machine::State(grammar,channel);
+      self.env := Env::NullEnv()
+    end
+    
+    @Constructor(grammar,start)
+      self.channel := stdin;
+      self.imports := Seq{XCore,Root};
+      self.state := Parser::Machine::State(grammar,stdin);
+      self.env := Env::NullEnv()
+    end
+      
+    @Operation asString():String
+      Kernel_readString(channel)
+    end
+    
+    @Operation channel()
+      channel
+    end
+        
+    @Operation close()
+      Kernel_close(channel)
+    end
+      
+    @Operation eof():Boolean
+      Kernel_eof(channel)  
+    end 
+    
+    @Operation peek():Integer
+      Kernel_peek(channel)
+    end
+       
+    @Operation read():Integer
+       Kernel_read(channel)
+    end
+    
+    @Operation readValue()
+      try
+        let exp = state.run(start)
+        in if state.failed
+           then 
+             state.parseError("Reading " + self.toString());
+             state.resetInputChannel(channel);
+             state.reset();
+             self.error("Parse error.")
+           else 
+             let value = exp.eval(self,env,imports)
+             in state.resetInputChannel(channel);
+                value
+             end
+           end
+        end
+      catch(exception)
+        state.resetInputChannel(channel);
+        throw exception
+      end
+    end
+    
+    @Operation setChannel(channel)
+      self.channel := channel
+    end
+     
+  end

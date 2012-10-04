@@ -1,0 +1,72 @@
+import Instrs;
+import OCL;
+
+context VarUpdate
+  @Operation FV():Set(String)
+    value.FV()->including(name)
+  end
+  
+context VarUpdate
+  @Operation maxLocals():Integer
+    value.maxLocals()
+  end
+  
+context VarUpdate
+  @Operation compile(env,frame,isLast,saveSource)
+    if self.isIncLocal(env)
+    then Seq{IncLocal(name,env.localIndex(name))}
+    elseif self.isDecLocal(env)
+    then Seq{DecLocal(name,env.localIndex(name))}
+    else 
+      value.compile(env,frame,isLast,saveSource) +
+      env.setVarCode(name)
+    end
+  end
+  
+context VarUpdate
+  @Operation isDecLocal(env):Boolean
+    if env.isLocal(name)
+    then 
+      if value.isKindOf(BinExp)
+      then
+        if value.binOp = "-" and value.left.isKindOf(Var)
+        then 
+          if name = value.left.name and value.right.isKindOf(IntExp)
+          then value.right.value = 1
+          else false
+          end
+        else false
+        end
+      else false
+      end
+    else false
+    end
+  end
+    
+context VarUpdate
+  @Operation isIncLocal(env):Boolean
+    if env.isLocal(name)
+    then 
+      if value.isKindOf(BinExp)
+      then
+        if value.binOp = "+" and value.left.isKindOf(Var)
+        then 
+          if name = value.left.name and value.right.isKindOf(IntExp)
+          then value.right.value = 1
+          else false
+          end
+        else false
+        end
+      else false
+      end
+    else false
+    end
+  end
+  
+context VarUpdate 
+  @Operation lift()
+    if name.isKindOf(Drop) or name.isKindOf(DropPattern)
+    then Apply(Path(Var("OCL"),Seq{"update"}),Seq{name.lift(),value.lift()})
+    else Apply(self.typeExp(),Seq{StrExp(name),value.lift()})
+    end
+  end

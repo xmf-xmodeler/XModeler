@@ -1,0 +1,184 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Constructor extends Sugar
+  
+    @Doc
+      A constructor describes how to initialise a newly created instance of
+      a class. Each class may define a number of constructors that are used
+      when an instance of the class is sent an 'init/1' message. The constructor
+      is a sequence of attribute names and an optional body. When an instance
+      is initialised, the matching constructor is selected from the class.
+      A constructor matches the initialisation arguments when it defines the
+      same number of attribute names as the length of the initialization 
+      arguments. The effect of using the selected constructor is to set
+      the slots with the appropriate names in the constructor from the 
+      initialization arguments and then to perform the body of the constructor.
+      If defined, the body of the constructor must return 'self'. A constructor
+      may optionally specify that it is a template for transforming an object
+      into a string, it does so by including the optional modifier '!' after
+      the sequence of names. If present, the body of the constructor is evaluated
+      in a scope where the names of the object slots specified in the name list are
+      bound to the supplied values.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      AttNames ::= name = Name names = (',' Name)* { Seq{name | names} } | { Seq{} }.
+    
+      Constructor ::= '(' names = AttNames ')' toString = ToString body = Exp* { Constructor(names,toString).add(body) }.
+      
+      ToString ::= '!' { true } | { false }.
+      
+    end
+    
+    @Attribute names    : Seq(String)              end
+    @Attribute toString : Boolean                  end
+    @Attribute doc      : Performable              end
+    @Attribute body     : Performable = [| self |] end
+    
+    @Constructor(names,toString)
+      @Doc
+        The names are a sequence of strings, toString defines whether or not
+        the constructor produces a 'toString/0' operation. Other components 
+        of a constructor are added using the 'add/1' operation.
+      end
+    end
+    
+    @Constructor(names,toString,doc,body) ! 
+      @Doc
+        This constructor is used to initialise all components and to define
+        the toString operation.
+      end
+    end
+    
+    @Operation add(element)
+    
+      @Doc
+        Elements can be added to a constructor. This allows sub-classes
+        of constructor to add new features if required. The basic constructor
+        can receive documentation expressions and body expressions.
+      end
+      
+      @TypeCase(element)
+        XOCL::Doc do
+          self.doc := element
+        end
+        Performable do
+          self.body := element
+        end
+        Seq(Element) do
+          @For e in element do
+            self.add(e)
+          end;
+          self
+        end
+      end
+    end
+    
+    @Operation bodyOp():Performable
+      if body = null
+      then [| null |]
+      else
+        let bodyInScope = names->iterate(name exp = body | [| let <name> = self.<name> in <exp> end |])
+        in [| @Operation() <bodyInScope> end |]
+        end
+      end
+    end
+    
+    @Operation desugar()
+      
+      @Doc
+        A constructor expressions is sugar for the instantiation of
+        the XCore::Constructor class. Note that the documentation
+        expression may be null if it has not been initialised. All
+        of the constructor names are placed in scope for the constructor
+        operation (careful since this will mean that self.NAME <> NAME
+        in the constructor body.
+      end
+      
+      let nameExps = SetExp("Seq",names->collect(n | StrExp(n)));
+          docExp = if doc = null then [| noDoc() |] else doc end;
+          sourceExp = if body = null then [| null |] else StrExp(body.pprint()) end
+      in [| XCore::Constructor(<nameExps>,<self.bodyOp()>,<docExp>,<sourceExp>) |]
+      end
+       
+	end
+	
+	@Operation namesToString(names:Seq(String)):Performable
+	
+	  @Doc
+	    Produce a sequence of comma separated names as an expression
+	    for the 'toString/0' operation produced by including '!' in the
+	    constructor definition.
+	  end
+	  
+	  if names->isEmpty 
+	  then [| "" |]
+	  else
+	    if names->tail->isEmpty
+	    then [| self.<names->head>.toString() |]
+	    else [| self.<names->head>.toString() + "," + <self.namesToString(names->tail)> |]
+	    end
+	  end
+	end
+    
+    @Operation operations(name:String):Seq(Operation)
+      self.toStringOperation(name)
+    end
+    
+    @Operation pprint(out,indent)
+    
+      @Doc
+        Write out the text of the constructor definition expression
+        to the supplied output channel at the given indent.
+      end
+      
+      format(out,"@Constructor(~{,~;~S~})~[ !~;~]",Seq{names,toString});
+      if doc <> null 
+      then 
+        format(out,":~%~V",Seq{indent+4});
+        doc.pprint(out,indent+2);
+        format(out,"~%~V",Seq{indent+2})
+      else format(out,"~%~V",Seq{indent+2})
+      end;
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation toStringOperation(name:String):Seq(Operation)
+    
+      @Doc
+        Produce the 'toString/0' operation def that is added to a
+        class definition if the '!' char is included in the
+        constructor definition.
+      end
+      
+      if toString
+      then Seq{
+          [| 
+            @Operation toString():String
+              try
+                self.of().name.toString() + "(" + <self.namesToString(names)> + ")"
+              catch(exception)
+                try
+                  exception.toString()
+                catch(exception)
+                  "toString() failed"
+                end
+              end
+            end
+          |]}
+      else Seq{}
+      end
+    end
+    
+  end
+    
+      

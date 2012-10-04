@@ -1,0 +1,591 @@
+parserImport XOCL;
+parserImport Aspects;
+
+import IO;
+
+// This file defines an aspect that allows standard model elements to be transformed
+// and exported to HTML. This is used to document the system. Use Root.writeHTML()
+// to construct a copy of the entire system as HTML documentation. The documentation
+// is placed in the directory xmf.docDir() by default (this can be set using the
+// Windows environment variable XMFDOC).
+
+@Aspect ToHTML
+
+  @Class XCore::Class
+  
+    @Operation toHTMLDoc(fout:OutputChannel)
+      self.toHTMLDoc(fout,xmf.preference("ShowLongDocumentation"))
+    end
+  
+    @Operation toHTMLDoc(fout:OutputChannel,showOpBody:Boolean)
+    
+      // Write the doc file ...
+      
+      format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">~%");
+      format(fout,"<HTML>~%<HEAD>~%<TITLE>~%~S~%</TITLE>~%</HEAD>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+2\"><B>~S</B></FONT><BR><BR><HR>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+1\"><B>Overview</B></FONT><BR>~%");
+      format(fout,"<P>~%~S~%",Seq{self.doc().doc});
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the parents ...
+         
+      format(fout,"<B>Parents</B>~%");
+      @For p in self.allParents() do
+         format(fout,"<A HREF=\"~S\">~S</A>~%",Seq{p.href(self.pathSeq()),p.name.toString()});
+         if not isLast then format(fout,",") end
+      end;
+         
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the constructors ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Constructors</B></FONT></TD>~%</TR>~%");
+      @For c in constructors do
+         format(fout,"<TR><TD>~S(~S)</TD><TD>~S</TD></TR>~%",Seq{name,c.names->separateWith(","),c.doc().doc})
+      end;
+      format(fout,"</TABLE>~%");
+         
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the attributes ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=3><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Attributes</B></FONT></TD>~%</TR>~%");
+      @For a in attributes->asSeq->sortNamedElements do
+         format(fout,"<TR><TD><B>~S</B></TD><TD><A HREF=\"~S\">~S<\A></TD><TD>~S</TD></TR>~%",Seq{a.name(),a.underlyingType().href(self.pathSeq()),a.type.name().toString(),a.doc().doc})
+      end;
+      format(fout,"<TR>~%<TD COLSPAN=3>~%<FONT SIZE=\"-1\">~%");
+      @For p in self.allParents() do
+         if not p.attributes->isEmpty
+         then
+           format(fout,"From <A HREF=\"~S\">~S</A>: ",Seq{p.href(self.pathSeq()),p.name.toString()});
+           @For a in p.attributes do
+             format(fout,"~S",Seq{a.name});
+             if not isLast then format(fout,", ") else format(fout,". ") end
+           end
+         end
+      end;
+      format(fout,"</FONT>~%</TD>~%</TR>~%");
+         
+      format(fout,"</TABLE>~%");
+         
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the operations ...
+      
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Operations</B></FONT></TD>~%</TR>~%");
+      
+      if showOpBody then
+        @For o in operations->asSeq->sortNamedElements do
+          format(fout,"<TR><TD>");
+          if o.isKindOf(Operation)
+          then
+            format(fout,"<FONT FACE=\"Courier\" SIZE=\"1\">~S</FONT>~%",Seq{o.source().asHTML()})
+          end;
+          format(fout,"</TD><TD>~S</TD></TR>~%",Seq{o.doc().doc})
+        end
+      else
+        @For o in operations->asSeq->sortNamedElements do
+          format(fout,"<TR><TD><B>~S(",Seq{o.name()});
+          @For p,t in o.paramNames(),o.paramTypes() do
+            @TypeCase(t)
+              Set do
+                format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.elementType.href(self.pathSeq()),t.name()})
+              end
+              Seq do
+                format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.elementType.href(self.pathSeq()),t.name()})
+              end
+              else 
+                format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.href(self.pathSeq()),t.name()})
+              end;
+              if not isLast then format(fout,",") end
+          end;
+          format(fout,"):");
+          @TypeCase(o.type())
+            Set do
+              format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().elementType.href(self.pathSeq()),o.type().name()})
+            end
+            Seq do
+              format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().elementType.href(self.pathSeq()),o.type().name()})
+            end
+            else 
+             format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().href(self.pathSeq()),o.type().name()})
+          end;
+          format(fout,"</B></TD><TD>~S</TD></TR>~%",Seq{o.doc().doc})
+        end;
+        format(fout,"<TR>~%<TD COLSPAN=2>~%<FONT SIZE=\"-1\">~%");
+        @For p in self.allParents() do
+          if not p.operations->isEmpty
+          then
+            format(fout,"From <A HREF=\"~S\">~S</A>: ",Seq{p.href(self.pathSeq()),p.name.toString()});
+            @For o in p.operations do
+              format(fout,"~S",Seq{o.name});
+              if not isLast then format(fout,", ") else format(fout,". ") end
+            end
+          end
+        end
+      end;
+      format(fout,"</FONT>~%</TD>~%</TR>~%");
+      format(fout,"</TABLE>~%"); 
+         
+      if grammar <> null
+      then
+        format(fout,"<BR><HR><BR>~%");
+         
+        // Write the grammar ...
+         
+        format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+        format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+        format(fout,"<TD COLSPAN=1><FONT SIZE=\"+2\">~%");
+        format(fout,"<B>Grammar</B></FONT></TD>~%</TR>~%");
+        format(fout,"<TD><PRE>~%");
+        grammar.pprint(fout,0);
+        format(fout,"</PRE></TD>~%");
+        format(fout,"</TABLE>~%")  
+      end;
+         
+      format(fout,"</HTML>~%")
+   
+    end
+  end
+  
+  @Class XCore::DataType
+  
+     @Operation toHTML(root:String)
+    
+      // Ensure the directory for this datatype exists:
+      
+      if (root + "/" + name.toString()).mkDir()
+      then
+        let fout = FileOutputChannel(root + "/" + name.toString() + "/index.html")
+        in
+          self.toHTMLDoc(fout);
+          fout.close()
+        end
+      end
+      
+    end
+  
+    @Operation toHTMLDoc(fout:OutputChannel)
+    
+      // Write the doc file ...
+      
+      format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">~%");
+      format(fout,"<HTML>~%<HEAD>~%<TITLE>~%~S~%</TITLE>~%</HEAD>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+2\"><B>~S</B></FONT><BR><BR><HR>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+1\"><B>Overview</B></FONT><BR>~%");
+      format(fout,"<P>~%~S~%",Seq{self.doc().doc});
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the operations ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Operations</B></FONT></TD>~%</TR>~%");
+      /* @For o in operations->asSeq->sortNamedElements do
+        format(fout,"<TR><TD><B>~S(~{,~;~S~})</B></TD><TD>~S</TD></TR>~%",Seq{o.name(),o.paramNames(),o.doc().doc})
+      end; */
+      
+      @For o in operations->asSeq->sortNamedElements do
+         format(fout,"<TR><TD><B>~S(",Seq{o.name()});
+         @For p,t in o.paramNames(),o.paramTypes() do
+           @TypeCase(t)
+             Set do
+               format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.elementType.href(self.pathSeq()),t.name()})
+             end
+             Seq do
+               format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.elementType.href(self.pathSeq()),t.name()})
+             end
+             else format(fout,"~S:<A HREF=\"~S\">~S<\A>",Seq{p,t.href(self.pathSeq()),t.name()})
+           end;
+           if not isLast then format(fout,",") end
+         end;
+         format(fout,"):");
+         @TypeCase(o.type())
+           Set do
+             format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().elementType.href(self.pathSeq()),o.type().name()})
+           end
+           Seq do
+             format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().elementType.href(self.pathSeq()),o.type().name()})
+           end
+           else format(fout,"<A HREF=\"~S\">~S<\A>",Seq{o.type().href(self.pathSeq()),o.type().name()})
+         end;
+         format(fout,"</B></TD><TD>~S</TD></TR>~%",Seq{o.doc().doc})
+      end;
+      
+      format(fout,"</TABLE>~%");
+      format(fout,"</HTML>~%")
+    end
+    
+  end
+      
+
+  @Class Element
+  
+    @Operation allHTMLEntries():Seq(NamedElement)
+    
+      // Return all the entries that will occur in the
+      // index file.
+      Seq{}
+    end
+    
+    @Operation allHTMLPackages():Seq(Package)
+    
+      // Return all the entries that will occur in the
+      // packages index file.
+      Seq{}
+    end
+  
+    @Operation toHTML(root:String)
+    
+      // By default do nothing...
+      
+      self
+    end
+  
+    @Operation writeHTML()
+    
+      // Write HTML documentation to the system specified
+      // documentation directory.
+      
+      self.writeHTML(xmf.docDir())
+    end
+  
+    @Operation writeHTML(root:String)
+      
+      // If documentation is generated on a class lower down the 
+      // package hierarchy than Root then URLs fail because URLs 
+      // are relative to Root.  The following code ensurs all HTML 
+      // is relative to Root.
+      
+      let 
+        path = self.pathSeq().butLast();
+        psuedoRoot = root;
+        dirsCreatedOkay = true 
+      in
+        dirsCreatedOkay := root.mkDir(); 
+        @For p in path do
+          psuedoRoot := psuedoRoot + "/" + p;
+          dirsCreatedOkay := psuedoRoot.mkDir()
+        end;
+      
+        if dirsCreatedOkay
+        then
+          
+          // Write the directory structure and entries...
+        
+          self.toHTML(psuedoRoot)
+        else
+          self.error("Cannot create HTML root directory: " + root)
+        end
+      end;
+      
+      // Write the index file ...
+      
+      self.writeHTMLIndex(root);
+      
+      // Write all the entries to a frame ...
+      
+      self.writeHTMLAllEntries(root);
+      
+      // Write all the packages to a frame ...
+      
+      self.writeHTMLAllPackages(root);
+      
+      // Write the overview file ...
+      
+      self.writeHTMLOverview(root)
+      
+    end
+    
+    @Operation writeHTMLAllEntries(root:String)
+      
+      let fout = FileOutputChannel(root + "/" + "AllEntries.html");
+          allEntries = self.allHTMLEntries()->sortNamedElements
+      in format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">");
+         format(fout,"<HTML>~%<HEAD>~%<TITLE>~%All Entries ~S~%</TITLE>~%",Seq{xmf.version()});
+         format(fout,"<LINK REL =\"stylesheet\" TYPE=\"text/css\" HREF=\"../stylesheet.css\" TITLE=\"Style\">~%");
+         format(fout,"</HEAD>~%<BODY BGCOLOR=\"white\">~%<FONT size=\"+1\" CLASS=\"FrameHeadingFont\">~%<B>All Entries</B></FONT>~%<BR>~%");
+         format(fout,"<TABLE BORDER=\"0\" WIDTH=\"100%\" SUMMARY=\"\">~%<TR>~%<TD NOWRAP>~%");
+         @For entry in allEntries do
+           let href = entry.pathSeq()->separateWith("/") + "/index.html";
+               path = entry.owner.path()
+           in format(fout,"<A HREF=\"~S\" target=\"DocFrame\">~S</A> (in ~S)~%",Seq{href,entry.name,path});
+              format(fout,"<BR>")
+           end
+         end;
+         format(fout,"</FONT>~%</TD>~%</TR>~%</TABLE>~%</BODY>~%");
+         format(fout,"</HTML>~%");
+         fout.close()
+      end
+      
+    end
+    
+    @Operation writeHTMLAllPackages(root:String)
+      
+      let fout = FileOutputChannel(root + "/" + "AllPackages.html");
+          allPackages = self.allHTMLPackages()
+      in format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">");
+         format(fout,"<HTML>~%<HEAD>~%<TITLE>~%All Entries ~S~%</TITLE>~%",Seq{xmf.version()});
+         format(fout,"<LINK REL =\"stylesheet\" TYPE=\"text/css\" HREF=\"../stylesheet.css\" TITLE=\"Style\">~%");
+         format(fout,"</HEAD>~%<BODY BGCOLOR=\"white\">~%<FONT size=\"+1\" CLASS=\"FrameHeadingFont\">~%<B>All Name Spaces</B></FONT>~%<BR>~%");
+         format(fout,"<TABLE BORDER=\"0\" WIDTH=\"100%\" SUMMARY=\"\">~%<TR>~%<TD NOWRAP>~%");
+         @For entry in allPackages do
+           let href = entry.pathSeq()->separateWith("/") + "/index.html";
+               path = entry.owner.path()
+           in format(fout,"<A HREF=\"~S\" target=\"DocFrame\">~S</A> (in ~S)~%",Seq{href,entry.name,path});
+              format(fout,"<BR>")
+           end
+         end;
+         format(fout,"</FONT>~%</TD>~%</TR>~%</TABLE>~%</BODY>~%");
+         format(fout,"</HTML>~%");
+         fout.close()
+      end
+      
+    end
+    
+    @Operation writeHTMLIndex(root:String)
+    
+      // Write the file that is the starting point for the documentation...
+      
+      let fout = FileOutputChannel(root + "/index.html")
+      in format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" \"http://www.w3.org/TR/html4/frameset.dtd\">~%");
+         format(fout,"<HTML>~%<HEAD>~%<TITLE>~%XMF ~S~%</TITLE>~%</HEAD>~%",Seq{xmf.version()});
+         format(fout,"<FRAMESET cols=\"20%,80%\">~%<FRAMESET rows=\"30%,70%\">~%");
+         format(fout,"<FRAME src=\"AllPackages.html\" name=\"AllPackagesFrame\" title=\"All Packages\">~%");
+         format(fout,"<FRAME src=\"AllEntries.html\" name=\"AllEntriesFrame\" title=\All Entries\">~%");
+         format(fout,"</FRAMESET>~%");
+         format(fout,"<FRAME src=\"Overview.html\" name=\"DocFrame\" scrolling=\"yes\">~%");
+         format(fout,"</FRAMESET>~%");
+         format(fout,"</HTML>~%");
+         fout.close()
+      end
+      
+    end
+    
+    @Operation writeHTMLOverview(root:String)
+    
+      let fout = FileOutputChannel(root + "/Overview.html");
+          title = "Documentation"
+                  + if self.isKindOf(NamedElement) then " for " + self.path() else "" end
+      in format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" \"http://www.w3.org/TR/html4/frameset.dtd\">~%");
+         format(fout,"<HTML>~%<HEAD>~%<TITLE>~%XMF ~S~%</TITLE>~%</HEAD>~%",Seq{xmf.version()});
+         format(fout,"<br><br><br>");
+         format(fout,"<center><h1>~S</h1></center>",Seq{title});
+         format(fout,"<center>Click on a link on the left to view details.</center>");
+         format(fout,"</HTML>~%");
+         fout.close()
+      end
+      
+    end
+             
+  end
+  
+  @Class XCore::NamedElement
+  
+    @Operation href(currentPath):String
+    
+      @Doc
+        Returns the path used in an href to the receiver. It assumes
+        that we are relative to a root that contains the root name space.
+      end
+      
+      currentPath->collect( x | "..")->separateWith("/") + "/" +
+        self.pathSeq()->separateWith("/") + 
+        "/index.html"
+      
+    end
+    
+  end
+  
+  @Class XCore::NameSpace
+  
+    @Operation allHTMLEntries():Seq(NamedElement)
+      Seq{self | self.contentsOf(NamedElement)
+                   ->excluding(self)
+                   ->asSeq
+                   ->collect(x | x.allHTMLEntries())
+                   ->flatten}
+    end
+    
+    @Operation allHTMLPackages():Seq(NamedElement)
+      Seq{self | self.contentsOf(Package)
+                   ->excluding(self)
+                   ->asSeq
+                   ->collect(x | x.allHTMLPackages())
+                   ->flatten}->sortNamedElements
+    end
+  
+    @Operation toHTML(root:String)
+    
+      // Ensure the directory for this nameSpace exists:
+      
+      if (root + "/" + name.toString()).mkDir()
+      then
+      
+        // Handle each contained element:
+        
+        @For element in self.contents()->excluding(self) do
+          element.toHTML(root + "/" + name.toString())
+        end;
+        let fout = FileOutputChannel(root + "/" + name.toString() + "/index.html")
+        in 
+          if self.isKindOf(Package) then
+            let diagrams = xmf.diagramManager().diagramsFor(self)
+            in
+              @For d in diagrams do
+                d.writeJpeg(root + "/" + name.toString()
+                                 + "/" + name.toString()
+                                 + "_" + d.name.toString()
+                                 + ".jpg")
+              end;
+              self.toHTMLDoc(fout)
+            end
+          else
+            self.toHTMLDoc(fout)
+          end;
+          fout.close()
+        end
+      end
+      
+    end
+
+    @Operation toHTMLDoc(fout:OutputChannel)
+    
+      // Write the doc file ...
+      
+      format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">~%");
+      format(fout,"<HTML>~%<HEAD>~%<TITLE>~%~S~%</TITLE>~%</HEAD>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+2\"><B>~S</B></FONT><BR><BR><HR>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+1\"><B>Overview</B></FONT><BR>~%");
+      format(fout,"<P>~%~S~%",Seq{self.doc().doc});
+      format(fout,"<BR><HR><BR>~%");
+
+      // Write the contents ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Contents</B></FONT></TD>~%</TR>~%");
+      
+      @For c in self.contents()->asSeq->sortNamedElements do
+        format(fout,"<TR><TD><B>~S",Seq{c.labelString()});
+        let docString = 
+          if c.hasSlot("documentation") and not c.isKindOf(ForeignOperation)
+          then
+            c.doc().doc
+          else
+            "No Documentation Specified"
+          end
+        in
+          format(fout,"</B></TD><TD>~S</TD></TR>~%",Seq{docString})
+        end
+      end;
+      
+      format(fout,"</TABLE>~%");
+      format(fout,"</HTML>~%")
+    end    
+     
+  end
+  
+   @Class XCore::Package
+  
+    @Operation toHTMLDoc(fout:OutputChannel)
+    
+      // Write the doc file ...
+      
+      format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">~%");
+      format(fout,"<HTML>~%<HEAD>~%<TITLE>~%~S~%</TITLE>~%</HEAD>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+2\"><B>~S</B></FONT><BR><BR><HR>~%",Seq{name});
+      format(fout,"<FONT SIZE=\"+1\"><B>Overview</B></FONT><BR>~%");
+      format(fout,"<P>~%~S~%",Seq{self.doc().doc});
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the diagram references. If the diagrams are not present then an
+      // error will be reported by the viewer.
+      
+      let diagrams = xmf.diagramManager().diagramsFor(self)
+      in
+        @For d in diagrams do
+          format(fout,"<center>");
+          // format(fout,"<IMG SRC=\"~S_S.jpg\" HEIGHT=\"-\" WIDTH=\"-\">~%",Seq{name.toString(),d.name.toString()});
+          format(fout,"<IMG SRC=\"~S_~S.jpg\">~%",Seq{name.toString(),d.name.toString()});
+          format(fout,"</center>");
+          format(fout,"<BR><HR><BR>~%")
+        end
+      end;
+         
+      // Write the packages ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Packages</B></FONT></TD>~%</TR>~%");
+      @For p in packages->asSeq->sortNamedElements do
+         // format(fout,"<TR><TD><B><A HREF=\"~S\" TARGET=\"DocFrame\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{p.href(self.pathSeq()),p.name(),p.doc().doc})
+         format(fout,"<TR><TD><B><A HREF=\"~S\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{p.href(self.pathSeq()),p.name(),p.doc().doc})
+      end;
+      format(fout,"</TABLE>~%");
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the classes ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Classes</B></FONT></TD>~%</TR>~%");
+      @For c in classes->asSeq->sortNamedElements do
+         // format(fout,"<TR><TD><B><A HREF=\"~S\" TARGET=\"DocFrame\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{c.href(self.pathSeq()),c.name(),c.doc().doc})
+         format(fout,"<TR><TD><B><A HREF=\"~S\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{c.href(self.pathSeq()),c.name(),c.doc().doc})
+      end;
+      format(fout,"</TABLE>~%");
+      format(fout,"<BR><HR><BR>~%");
+         
+      // Write the data types ...
+         
+      if self.contents()->exists(d | d <> null and d.isKindOf(DataType))
+      then
+         
+        format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+        format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+        format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+        format(fout,"<B>DataTypes</B></FONT></TD>~%</TR>~%");
+        @For d in self.contents()->select(d | d <> null and d.isKindOf(DataType))->asSeq->sortNamedElements do
+           // format(fout,"<TR><TD><B><A HREF=\"~S\" TARGET=\"DocFrame\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{d.href(self.pathSeq()),d.name(),d.doc().doc})
+           format(fout,"<TR><TD><B><A HREF=\"~S\">~S</A></B></TD><TD>~S</TD></TR>~%",Seq{d.href(self.pathSeq()),d.name(),d.doc().doc})
+        end;
+        format(fout,"</TABLE>~%");
+        format(fout,"<BR><HR><BR>~%")
+         
+      end;
+         
+      // Write the operations ...
+         
+      format(fout,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(fout,"<TR BGCOLOR=\"#CCCCFF\" CLASS=\"TableHeadingColor\">~%");
+      format(fout,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(fout,"<B>Operations</B></FONT></TD>~%</TR>~%");
+      @For o in operations->asSeq->sortNamedElements do
+         format(fout,"<TR><TD><B>~S(~{,~;~S~})</B></TD><TD>~S</TD></TR>~%",Seq{o.name(),o.paramNames(),o.doc().doc})
+      end;
+      format(fout,"</TABLE>~%");
+      format(fout,"</HTML>~%")
+         
+    end
+    
+  end
+      
+  
+  
+  
+end;

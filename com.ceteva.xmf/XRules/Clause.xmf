@@ -1,0 +1,262 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+import Env;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Clause extends XOCL::Syntax
+
+    @Attribute head          : Seq(Term)   (?,!,+,-) end
+    @Attribute body          : Seq(Action) (?,!,+,-) end
+    @Attribute vars          : Seq(Var)              end
+    @Attribute permanentVars : Integer     (?,!)     end
+    @Attribute instrs        : Seq(Instr)  (?,!)     end
+
+    @Constructor(head,body) ! 
+      self.setVars()
+    end
+    
+    @Operation allocVars()
+      vars->iterate(var V = Seq{} | 
+        Seq{Seq{var.name() | Kernel_copy(var)} | V})
+    end
+    
+    @Operation call(name,rules,values,indent,env,succ,fail,cut,exception)
+      let vars = self.allocVars() then
+          env = self.unifyHead(rules,vars,values,env)
+      in if env = null
+         then fail()
+         else 
+           if rules.debug
+           then format(stdout,"~VTry ~S(~{,~;~S~})~%",Seq{indent,name,recons(values,env)})
+           end;
+           self.performBody(rules,values,body,vars,indent+2,env,succ,fail,cut,exception)
+         end
+      end
+    end
+    
+    @Operation compile()
+      self.markVars();
+      self.instrs :=
+        Seq{Allocate(permanentVars)} +
+        self.compileHead() +
+        self.compileBody() +
+        Seq{Return()}
+    end
+    
+    @Operation compileBody()
+      body->iterate(action I = Seq{} | I + self.compileGoal(action))
+    end
+    
+    @Operation compileGoal(action)
+      @Case action of
+        XRules::Call[name=n,args=A] do
+          A->iterate(term I = Seq{} | I + self.compileGoalArg(term)) +
+          Seq{Call(n,A->size)}
+        end
+        else action.error("Unknown goal for compilation.")
+      end
+    end
+    
+    @Operation compileGoalArg(term)
+      @Case term of
+        XRules::Const[value=v] do
+          Seq{Const(v)}
+        end
+        Record[path=p,fields=F] do
+          F->iterate(field I = Seq{} | I + self.compileGoalArg(field.value())) +
+          Seq{Obj(p,F.name)}
+        end
+        Terms[head=h,tail=t] do
+          self.compileGoalArg(h) +
+          self.compileGoalArg(t) +
+          Seq{Pair()}
+        end
+        Var[name=n,type="LOCAL",index=i,seen=false] do
+          Seq{LocVar(i)}
+        end
+        Var[name=n,type="LOCAL",index=i,seen=true] do
+          Seq{RefLocVar(i)}
+        end
+        Var[name=n,type="PERM",index=i,seen=false] do
+          Seq{PermVar(i)}
+        end
+        Var[name=n,type="PERM",index=i,seen=true] do
+          Seq{RefPermVar(i)}
+        end
+        else term.error("Unknown body term for compilation.")
+      end
+    end
+    
+    @Operation compileHead()
+      head->reverse->iterate(term I = Seq{} | I + self.compileHeadTerm(term))
+    end
+    
+    @Operation compileHeadTerm(term)
+      @Case term of
+        XRules::Const[value=v] do
+          Seq{UnifyConst(v)}
+        end
+        Record[path=p,fields=F] do
+          Seq{UnifyObj(p,F.name)} +
+          F->reverse->iterate(field I = Seq{} | I + self.compileHeadTerm(field.value()))
+        end
+        Terms[head=h,tail=t] do
+          Seq{UnifyPair()} +
+          self.compileHeadTerm(h) +
+          self.compileHeadTerm(t) 
+        end
+        Var[name=n,type="LOCAL",index=i,seen=false] do
+          Seq{BindLocVar(i)}
+        end
+        Var[name=n,type="LOCAL",index=i,seen=true] do
+          Seq{UnifyLocVar(i)}
+        end
+        Var[name=n,type="PERM",index=i,seen=false] do
+          Seq{BindPermVar(i)}
+        end
+        Var[name=n,type="PERM",index=i,seen=true] do
+          Seq{UnifyPermVar(i)}
+        end
+        else term.error("Unknown head term for compilation.")
+      end
+    end
+    
+    @Operation listVars()
+    
+      // Returns all the vars in the clause retaining the
+      // structure of a clause in the form: H := G1,G2,...,Gn
+      // such that we return [Hv,G1v,G2v,...,Gnv] where each
+      // element is a sequence of variables
+      
+      Seq{self.listHeadVars()} + self.listBodyVars()
+    end
+    
+    @Operation listHeadVars()
+      head->iterate(term V = Seq{} | V + term.listVars())
+    end
+    
+    @Operation listBodyVars()
+      body->collect(action | action.listVars())
+    end
+    
+    @Operation markVars()
+    
+      // Each variable is either LOCAL or PERM depending on whether
+      // or not the variable needs to persist between body calls.
+      // In both cases the variable is allocated an index into a
+      // sequence of local or permanent vars. This is a destructive
+      // operation on the vars...
+      
+      let vars = self.listVars() then
+          headVars = vars->head;
+          bodyVars = vars->tail;
+          seenLocals = Seq{};
+          seenPerms = Seq{}
+      in // For the purposes of marking, head vars can be
+         // considered part of the first goal.
+         if not bodyVars->isEmpty
+         then vars := Seq{headVars + bodyVars->head} + bodyVars->tail
+         end;
+         self.markVars(vars->head,seenLocals,vars->tail,seenPerms)
+      end
+    end
+    
+    @Operation markVars(vars,seenLocals,goalVars,seenPerms)
+      if vars->isEmpty
+      then
+        if not goalVars->isEmpty
+        then self.markVars(goalVars->head,Seq{},goalVars->tail,seenPerms)
+        else self.permanentVars := seenPerms->size
+        end
+      else
+        let var = vars->head
+        in // If the var is used in a subsequent goal or has already
+           // been designated permanent then it is permanent...
+           @Find(n,seenPerms)
+             when n = var.name()
+             do var.index := seenPerms->indexOf(n);
+                var.type := "PERM";
+                var.seen := true;
+                self.markVars(vars->tail,seenLocals,goalVars,seenPerms)
+             else
+               @Find(Gv,goalVars)
+                 when Gv->exists(gv | gv.name() = var.name())
+                 do var.index := seenPerms->size;
+                    var.type := "PERM";
+                    var.seen := false;
+                    self.markVars(vars->tail,seenLocals,goalVars,seenPerms + Seq{var.name()})
+                 else
+                   // If the var has been previously designated local or has never
+                   // been seen before then it is local...
+                   if seenLocals->includes(var.name())
+                   then 
+                     var.index := seenLocals->indexOf(var.name());
+                     var.type := "LOCAL";
+                     var.seen := true;
+                     self.markVars(vars->tail,seenLocals,goalVars,seenPerms)
+                   else
+                     var.index := seenLocals->size;
+                     var.type := "LOCAL";
+                     var.seen := false;
+                     self.markVars(vars->tail,seenLocals + Seq{var.name()},goalVars,seenPerms)
+                   end
+               end
+           end
+        end
+      end
+    end
+    
+    @Operation performBody(rules,values,body,vars,indent,env,succ,fail,cut,exception)
+      if body->isEmpty
+      then
+        if rules.debug()
+        then format(stdout,"~VSucceed(~{,~;~S~})~%",Seq{indent,recons(values,env)})
+        end; 
+        succ(env,fail)
+      elseif body->tail->isEmpty
+      then
+        body->head.perform(rules,vars,indent,env,succ,fail,cut,exception)
+      else 
+        body->head.perform(rules,vars,indent,env,
+          @Operation(env,fail) 
+            self.performBody(rules,values,body->tail,vars,indent,env,succ,fail,cut,exception) 
+          end,
+          fail,
+          cut,
+          exception)
+      end
+    end
+    
+    @Operation setVars()
+      @For term in head do
+        self.vars := term.vars(vars)
+      end;
+      @For action in body do
+        self.vars := action.vars(vars)
+      end
+    end
+    
+    @Operation unifyHead(rules,vars,values,env)
+      if head->size = values->size
+      then
+        @For arg,value in head,values when env <> null do
+          env := unify(arg.build(rules,vars),value,env)
+        end;
+        env
+      else null
+      end
+    end
+    
+  end

@@ -1,0 +1,109 @@
+parserImport XOCL;
+
+context Constraint
+  @Constructor(name,body,fail) 
+    self.success := @Operation success(classifier) "" end;
+    body.owner := self;
+    fail.owner := self;
+    success.owner := self;
+    self
+  end
+
+context Constraint
+  @Constructor(name,body,success,fail) 
+    body.owner := self;
+    success.owner := self;
+    fail.owner := self;
+    self
+  end
+  
+context Constraint
+  @Constructor()
+    self.init(Seq{"A Constraint",
+                  @Operation(classifier) true end,
+                  @Operation(classifier) "" end,
+                  @Operation(classifier) "" end
+              })
+  end
+
+context Constraint
+  @Operation body()
+    body
+  end
+
+context Constraint
+  @Operation invoke(target,Seq{candidate,classifier})
+    if body.invoke(candidate,Seq{classifier})
+    then 
+      ConstraintReport(candidate,self,true,self.success().invoke(candidate,Seq{classifier}))
+    else 
+      ConstraintReport(candidate,self,false,self.fail().invoke(candidate,Seq{classifier}))
+    end
+  end
+  
+context Constraint  
+  @Operation init()
+  
+    // The body and fail/success reasons are operations; the names defined
+    // in owner and its owners are scoped over the bodies of the operations. 
+    // Import these name spaces.
+    
+    self.initBody();
+    self.initFail();
+    self.initSuccess();
+    super()
+  end
+  
+context Constraint
+  @Operation initBody()
+    if owner <> null
+    then
+      body.importNameSpace(owner);
+      body.importNameSpaces(owner.allOwners())
+    end;
+    self
+  end
+  
+context Constraint
+  @Operation initFail()
+    if owner <> null
+    then
+      fail.importNameSpace(owner);
+      fail.importNameSpaces(owner.allOwners())
+    end;
+    self
+  end
+  
+context Constraint
+  @Operation initSuccess()
+    if owner <> null
+    then
+      success.importNameSpace(owner);
+      success.importNameSpaces(owner.allOwners())
+    end;
+    self
+  end  
+  
+context Constraint
+  @Operation fail()
+    if self.fail = null
+    then self.fail := 
+           if self.hasStructuralFeature("reason")
+           then self.reason
+           else @Operation fail(classifier) "Unspecified Reason" end
+           end;
+         fail.owner := self;
+         self.initFail()
+    end;
+    fail
+  end
+  
+context Constraint
+  @Operation success()
+    if self.success = null
+    then self.success := @Operation success(classifier) "" end;
+         success.owner := self;
+         self.initSuccess()
+    end;
+    success
+  end

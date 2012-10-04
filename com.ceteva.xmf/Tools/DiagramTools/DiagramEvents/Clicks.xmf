@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class Clicks extends DiagramEvent
+  
+    // Occurs when an element is clicked on.
+  
+    @Attribute value     : Element    (?) end
+    
+    // The following attribute designates the state change.
+    // If true then the value has just been selected. If
+    // false then the value has just been deselected.
+    
+    @Attribute clicks : Integer (?) end 
+    
+    @Constructor(value,clicks) ! end
+    
+    @Operation raisedName():String
+      value.type().name() + "_Clicked"
+    end
+    
+  end

@@ -1,0 +1,44 @@
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Package
+
+  @Grammar extends O
+  
+    Package ::= 
+    
+      name = AName 
+      
+      meta = MetaClass
+      
+      metaPackage = MetaPackage 
+      
+      parents = Parents 
+      
+      defs = Defs 
+      
+      'end'
+      
+      { 
+      
+        Package(name,meta,metaPackage,parents,defs) 
+        
+    }.
+    
+    MetaPackage ::= 'metapackage' Exp | { null }.
+    
+    MetaClass ::= 'metaclass' Exp | { null }.
+    
+    Parents ::= 'extends' p = Exp ps = (',' Exp)* { Seq{p|ps} } | { Seq{} }.
+    
+    Defs ::= 
+    
+      Exp* | 
+      
+      '<*' e = Exp '*>' { Drop(e) } | 
+      
+      '<*|' p = Pattern '|*>' { DropPattern(p) }.
+   
+  end

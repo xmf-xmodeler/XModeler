@@ -1,0 +1,80 @@
+parserImport XOCL;
+
+import IO;
+
+// This file contains a test of the basic tokenizer.
+// It is used as the source of the tokens and therefore
+// contains a number of token types.
+
+format(stdout,"A basic token input channel chops up an input channel into tokens.~%");
+format(stdout,"you should see this file printed as a sequence of tokens.~%");
+
+let tokens = Kernel_mkBasicTokenChannel(Kernel_fileInputChannel("Test/Tokens.xmf"));
+    token = null
+in 100 * 0 >= 10; true; Seq{@Class X end};
+   @While (token := Kernel_nextToken(tokens)) <> null do
+     token.println()
+   end
+end;
+
+format(stdout,"For parsing we want to construct a lazy channel of tokens.~%");
+format(stdout,"you should see this file printed as a sequence of tokens in two passes.~%");
+
+context Root
+  @Operation tokens(input)
+    let tokens = Kernel_mkBasicTokenChannel(input.channel)
+    in tokens0(tokens)
+    end
+  end
+  
+context Root
+  @Operation tokens0(tokens)
+    let pair = null
+    in @Operation()
+          if pair = null
+          then 
+            let token = Kernel_nextToken(tokens)
+            in if token = null
+               then 
+                 pair := Seq{};
+                 pair
+               else
+                 pair := Seq{token | tokens0(tokens)};
+                 pair
+               end
+            end
+          else pair
+          end
+        end
+    end
+  end 
+  
+let tokens = tokens(FileInputChannel("Kernel/Object.xmf"))
+in let pair = tokens()
+   in @While not pair->isEmpty do
+        format(stdout,"Pass1: ~S~%",Seq{pair->head});
+        pair := (pair->tail)()
+      end
+   end;
+   let pair = tokens()
+   in @While not pair->isEmpty do
+        format(stdout,"Pass2: ~S~%",Seq{pair->head});
+        pair := (pair->tail)()
+      end
+   end
+end;
+
+// Comment the following in when testing tokenization. You can then type
+// text and observe the tokens that are produced.
+/*
+format(stdout,"Type tokens. Kill off the process to finish.~%");
+
+let tokens = tokens(stdin)
+in let pair = tokens()
+   in @While not pair->isEmpty do
+        format(stdout,"Pass1: ~S~%",Seq{pair->head});
+        pair := (pair->tail)()
+      end
+   end
+end;
+*/

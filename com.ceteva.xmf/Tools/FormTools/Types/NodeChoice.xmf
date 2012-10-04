@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class NodeChoice extends TreeElement
+ 
+    @Attribute types : Seq(TreeElement) (+,?) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      NodeChoice ::= name = Name defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::FormTools::Types::NodeChoice(<OCL::StrExp(name)>) |] | 
+          [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        TreeElement do
+          element.setOwner(self);
+          self.addToTypes(element)
+        end
+        Ref do
+          self.addToTypes(element)
+        end
+      end
+    end
+    
+    @Operation hasTypeNamed(name:String):Boolean
+      self.typeNamed(name) <> null
+    end
+    
+    @Operation new(parent,path,env,tool)
+      let env = types->iterate(t env = env | t.bind(env)) then
+          node = types->at(0).new(parent,path + Seq{name.toString()},env,tool)
+      in node.setOrHandler(self,parent,path,env,tool);
+         parent.setOrHandler(self,parent,path,env,tool,node);
+         node
+      end
+    end
+    
+    @Operation typeNamed(name:String):DisplayType
+      @Find(type,types)
+        when type.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation underlyingTypes(env):Set(DisplayType)
+      types->iterate(type T = Seq{} | T + type.underlyingTypes(env))
+    end
+end

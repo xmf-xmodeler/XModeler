@@ -1,0 +1,25 @@
+import OCL;
+import Instrs;
+
+context ConsExp
+  @Operation FV():Element
+    head.FV()->union(tail.FV())
+  end
+
+context ConsExp
+  @Operation maxLocals():Element
+    head.maxLocals().max(tail.maxLocals())
+  end
+
+context ConsExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let headCode = head.compile(env,frame,false,saveSource); 
+        tailCode = tail.compile(env,frame,false,saveSource)
+    in headCode + tailCode + Seq{Cons()}
+    end
+  end
+  
+context ConsExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{head.lift(),tail.lift()})
+  end

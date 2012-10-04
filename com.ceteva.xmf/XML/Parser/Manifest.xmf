@@ -1,0 +1,61 @@
+parserImport Manifests;
+
+@Manifest Parser
+  p = @File Parser end
+  @File Attribute end
+  @File Pattern end
+  @File GuardExp end
+  @File Const end
+  @File AttRef end
+  @File Guard end
+  @File BoolNot end
+  @File BoolOr end
+  @File BoolAnd end
+  @File Equals end
+  @File CaseClause end
+  @File Case end
+  @File Clause end
+  @File Grammar end
+  @File Command end
+  @File Commands end
+  @File CommandArg end
+  @File CommandVar end
+  @File CommandConst end
+  @File VarRef end
+  @File Cons end
+  @File Nil end
+  @File Event end
+  @File Cons end
+  @File Action end
+  @File And end
+  @File Any end
+  @File Bind end
+  @File BindAtt end
+  @File BindVar end
+  @File Call end
+  @File Element end
+  @File Empty end
+  @File End end
+  @File EndAny end
+  @File Opt end
+  @File Or end
+  @File Paren end
+  @File Handler end
+  @File EventManager end
+  @File ParserChannel end
+  @File Plus end
+  @File Predicate end
+  @File Ref end
+  @File RepeatClause end
+  @File Repeat end
+  @File ResolveRefs end
+  @File Return end
+  @File Star end
+  @File Strip end
+  @File Tag end
+  @File Text end
+  @File Unordered end
+  @File Update end
+  @File UpdateVar end
+do p
+end;

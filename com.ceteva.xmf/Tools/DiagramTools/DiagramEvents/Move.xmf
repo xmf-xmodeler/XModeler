@@ -1,0 +1,29 @@
+parserImport XOCL;
+//parserImport Tools::Basic;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class Move extends DiagramEvent
+  
+    // Occurs when an element is clicked on.
+  
+    @Attribute value : Element    (?) end
+    @Attribute newx  : Integer    (?) end
+    @Attribute newy  : Integer    (?) end
+    @Attribute oldx  : Integer    (?) end
+    @Attribute oldy  : Integer    (?) end
+    
+    // A value has been moved on a diagram...
+    
+    @Constructor(value,newx,newy,oldx,oldy) ! end
+    
+    @Operation raisedName():String
+      value.type().name() + "_Moved"
+    end
+    
+  end

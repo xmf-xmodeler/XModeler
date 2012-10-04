@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class RenderText isabstract 
+  
+    @AbstractOp code(value:String):String
+    end
+    
+    @AbstractOp writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText)
+    end
+    
+  end

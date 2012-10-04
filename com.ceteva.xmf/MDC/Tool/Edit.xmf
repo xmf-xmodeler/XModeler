@@ -1,0 +1,415 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::DiagramTools::Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+import MDC;
+import Types;
+import Tools::Menus;
+
+context MDC
+  @Operation buildMenuTree(tool,menu,parent)
+    @CaseObj menu of
+      Menu[items] do
+        @For item in items do
+          buildMenuTree(tool,item,parent)
+        end
+      end
+      MenuAction[name] do
+        let path = MenuAction::getNodePath(menu.action,"Items:Item") then
+            node = parent.newNode(path)
+        in node.setTextIn(name);
+           tool.register(node,menu);
+           tool.register(menu,node)
+        end
+      end
+      MenuItems[name,items] do
+        let node = parent.newNode("Items:Items")
+        in node.setTextIn(name);
+           tool.register(node,menu);
+           tool.register(menu,node);
+           @For item in items do
+             buildMenuTree(tool,item,node)
+           end
+        end
+      end
+      else menu.edit()
+    end
+  end
+  
+context MDC
+  @Operation buildToolBar(tool,toolBar,parent)
+    @CaseObj toolBar of
+      ToolBar[groups] do
+        @For group in groups do
+          buildToolBar(tool,group,parent)
+        end
+      end
+      ToolGroup[name,buttons] do
+        let node = parent.newNode("Groups:Group")
+        in node.setTextIn(name);
+           tool.register(node,toolBar);
+           tool.register(toolBar,node);
+           @For button in buttons do
+             buildToolBar(tool,button,node)
+           end
+        end
+      end
+      ToolButton[name,isEdge] do
+        let node = 
+          if isEdge 
+          then parent.newNode("Buttons:EdgeButton")
+          else parent.newNode("Buttons:NodeButton")
+          end
+        in node.setTextIn(name);
+           tool.register(node,toolBar);
+           tool.register(toolBar,node)
+        end
+      end
+    end
+  end
+
+context RootElementType
+  @Operation edit()
+  
+    // Overrides the basic editor to produce a browser display
+    // of a root element type. The tree is then populated from
+    // the components of the mapping...
+
+      let formsClient = xmf.findClient(Clients::Forms::FormClient);
+          matchedForm = null
+      in if formsClient <> null
+         then
+           @For form in formsClient.forms do
+             if form.isReallyKindOf(Tools::FormTools::Forms::Form) andthen form.element() = self
+             then matchedForm := form
+             end
+           end;
+           if matchedForm <> null
+           then
+             formsClient.showForm(matchedForm)
+           else
+             let tool = super() then
+                 form = tool.form() then
+                 tree = form.ref1(Seq{"Tree"}) then
+                 node = tree.ref1(Seq{"RootElementType"})
+             in self.editNode(tool,node);
+                tree.maximise();
+                tool
+             end   
+           end
+         end
+      end;
+      self
+  end
+  
+context RootElementType
+  @Operation edit(tool,parentNode)
+    let rootNode = parentNode.newNode("Displays:RootElementType")
+    in self.editNode(tool,rootNode)
+    end
+  end
+  
+context RootElementType
+  @Operation editNode(tool,rootNode)
+    let menuNode = rootNode.ref1(Seq{"Menu"});
+        toolBarNode = rootNode.ref1(Seq{"ToolBar"});
+        menu = displayType.menu();
+        toolBar = displayType.toolBar()
+    in @WithoutEvents(tool)
+         @For node in nodes do
+           node.edit(tool,rootNode)
+         end;
+         @For edge in edges do
+           edge.edit(tool,rootNode)
+         end;
+         @For classEdge in classEdges do
+           classEdge.edit(tool,rootNode)
+         end;
+         @For intelliLinkType in self.displayType().intelliLinkTypes do
+           intelliLinkType.edit(tool,rootNode)
+         end;         
+         
+         // to be removed once MDC stabilises
+         self.shortTermLegacyInitialise();
+         
+         @For monitor in slotMonitors do
+           monitor.edit(tool,rootNode)
+         end;
+         @For monitor in creationMonitors do
+           monitor.edit(tool,rootNode)
+         end;
+         
+         // Set up node label...
+         
+         rootNode.setTextIn(self.classifier().toString());
+         
+         // Set up root menu...
+         
+         buildMenuTree(tool,menu,menuNode);
+         
+         // Set up toolBar...
+         
+         buildToolBar(tool,toolBar,toolBarNode);
+         
+         // Register the root nodes...
+         
+         tool.register(menuNode,menu);
+         tool.register(menu,menuNode);
+         tool.register(self,rootNode);
+         tool.register(rootNode,self);
+         
+         // Return the tool...
+         tool
+       end
+    end
+  end
+  
+context Root_x_Node
+  @Operation edit(tool,tree)
+  
+    // Add a new root node to the tree and then
+    // edit the type associated with the node type...
+    
+    let node = tree.newNode("RootNodes:RootNode") then
+        menuNode = node.ref1(Seq{"Menu"});
+        menu = type.nodeType().menu()
+    in node.setTextIn(attribute.name() + ":" + type.classifier().name());
+       tool.register(node,self);
+       tool.register(self,node);
+       tool.register(menu,menuNode);
+       tool.register(menuNode,menu);
+       buildMenuTree(tool,menu,menuNode);
+       type.edit(tool,node)
+    end
+  end
+  
+context Free_x_Node
+  @Operation edit(tool,tree)
+  
+    // Add a new free node to the tree and then
+    // edit the type associated with the node type...
+    
+    let node = tree.newNode("RootNodes:FreeNode") then
+        menuNode = node.ref1(Seq{"Menu"});
+        menu = type.nodeType().menu()
+    in node.setTextIn(type.classifier().toString());
+       tool.register(node,self);
+       tool.register(self,node);
+       tool.register(menu,menuNode);
+       tool.register(menuNode,menu);
+       buildMenuTree(tool,menu,menuNode);
+       type.edit(tool,node)
+    end
+  end
+  
+context Classifier_x_Node
+  @Operation edit(tool,parentNode)
+    @For display in displays do
+      display.edit(tool,parentNode)
+    end
+  end
+  
+context Display_x_Display
+  @Operation edit(tool,parentNode)
+  
+    // Create a display node based on the type of
+    // the display type. NB We can do this with a
+    // CaseObj once legacy tool types have been
+    // expunged (for efficiency)...
+    
+    @Case displayType of
+      Ellipse[ ] do
+        let ellipseNode = parentNode.newNode("Displays:Ellipse") then
+            menuNode = ellipseNode.ref1(Seq{"Menu"});
+            menu = displayType.menu()
+        in tool.register(menu,menuNode);
+           tool.register(menuNode,menu);
+           buildMenuTree(tool,menu,menuNode);
+           tool.register(ellipseNode,self);
+           tool.register(self,ellipseNode)
+        end
+      end
+      Image[ ] do
+        let imageNode = parentNode.newNode("Displays:Image") then
+            menuNode = imageNode.ref1(Seq{"Menu"});
+            menu = displayType.menu()
+        in tool.register(menu,menuNode);
+           tool.register(menuNode,menu);
+           buildMenuTree(tool,menu,menuNode);
+           tool.register(imageNode,self);
+           tool.register(self,imageNode)
+        end
+      end
+      Shape[points=points] do
+        let shapeNode = parentNode.newNode("Displays:Shape") then
+            menuNode = shapeNode.ref1(Seq{"Menu"});
+            menu = displayType.menu()
+        in tool.register(menu,menuNode);
+           tool.register(menuNode,menu);
+           buildMenuTree(tool,menu,menuNode);
+           tool.register(shapeNode,self);
+           tool.register(self,shapeNode);
+           @For point in points do
+             let pointNode = shapeNode.newNode("Points:Point")
+             in tool.register(point,pointNode);
+                tool.register(pointNode,point);
+                pointNode.setTextIn("(" + point.x() + "," + point.y() + ")")
+             end
+           end
+        end
+      end
+      Text[text=text] do
+        let textNode = parentNode.newNode("Displays:Text") then
+            menuNode = textNode.ref1(Seq{"Menu"});
+            menu = displayType.menu()
+        in tool.register(menu,menuNode);
+           tool.register(menuNode,menu);
+           buildMenuTree(tool,menu,menuNode);
+           tool.register(textNode,self);
+           tool.register(self,textNode);
+           textNode.setTextIn(text)
+        end
+      end
+    end
+  end
+  
+context Ref_x_Display
+  @Operation edit(tool,parentNode)
+     let refNode = parentNode.newNode("Displays:Ref")
+     in tool.register(refNode,self);
+        tool.register(self,refNode);
+        refNode.setTextIn(map.displayType().name().toString())
+     end
+   end
+  
+context Box_x_Box
+  @Operation edit(tool,parentNode)
+    let boxNode = parentNode.newNode("Displays:Box") then
+        menuNode = boxNode.ref1(Seq{"Menu"});
+        menu = displayType.menu()
+    in tool.register(boxNode,self);
+       tool.register(self,boxNode);
+       tool.register(menu,menuNode);
+       tool.register(menuNode,menu);
+       buildMenuTree(tool,menu,menuNode);
+       @For display in contents do
+         display.edit(tool,boxNode)
+       end
+    end
+  end
+  
+context Attribute_x_Display
+  @Operation edit(tool,parentNode)
+  
+    // Create an attribute node. The type associated
+    // with an attribute has a display type that is
+    // absorbed into the attribute node. Contents of
+    // this display type will be added to the att node.
+    
+    let attNode = parentNode.newNode("Displays:Attribute")
+    in attNode.setTextIn(attribute.name() + ":" + attribute.type.name());
+       tool.register(attNode,self);
+       tool.register(self,attNode);
+       type.display().edit(tool,attNode)
+    end
+  end
+  
+context MDC
+  @Operation buildLabelMaps(tool,labels,node,labelName)
+    @For labelMap in labels do
+      let labelType = labelMap.label();
+          labelNode = node.newNode(labelName)
+      in labelNode.setTextIn(labelType.text());
+         tool.register(labelNode,labelMap);
+         tool.register(labelMap,labelNode);
+         @For listener in labelMap.listeners() do
+           let listenerNode = labelNode.newNode("Listeners:Listener")
+           in tool.register(listener,listenerNode);
+              tool.register(listenerNode,listener)
+           end
+         end
+      end
+    end
+  end
+  
+context Attribute_x_Edge
+  @Operation edit(tool,tree)
+  
+    // Add a new edge node to the tree.
+    
+    let node = tree.newNode("RootNodes:Link") then
+        menuNode = node.ref1(Seq{"Menu"});
+        menu = edgeType.menu()
+    in node.setTextIn(self.toString());
+       buildMenuTree(tool,menu,menuNode);
+       tool.register(node,self);
+       tool.register(self,node);
+       tool.register(menu,menuNode);
+       tool.register(menuNode,menu);
+       buildLabelMaps(tool,labels,node,"Labels:Label")
+    end
+  end
+  
+context Class_x_Edge
+  @Operation edit(tool,tree)
+  
+    // Add a new edge node to the tree.
+    
+    let node = tree.newNode("RootNodes:Association") then
+        menuNode = node.ref1(Seq{"Menu"});
+        menu = edgeType.menu()
+    in node.setTextIn(self.toString());
+       buildMenuTree(tool,menu,menuNode);
+       tool.register(node,self);
+       tool.register(self,node);
+       tool.register(menu,menuNode);
+       tool.register(menuNode,menu);
+       buildLabelMaps(tool,labels,node,"Labels:Label");
+       buildLabelMaps(tool,attributes,node,"Labels:AttributeLabel")
+    end
+  end
+
+context IntelliLinkType
+  @Operation edit(tool,tree)
+  
+    // Add a new intellilink edge node to the tree.
+    
+    let node = tree.newNode("RootNodes:Intellilink")
+    in node.setTextIn(self.name());
+       tool.register(node,self);
+       tool.register(self,node)
+    end
+  end
+
+context AllEdgesIntelliLinkType
+  @Operation edit(tool,tree)
+  
+    // Add a new all-edges-intellilink edge node to the tree.
+    
+    let node = tree.newNode("RootNodes:Alledgesintellilink")
+    in node.setTextIn(self.name());
+       tool.register(node,self);
+       tool.register(self,node)
+    end
+  end
+
+context SlotMonitor
+  @Operation edit(tool,tree)
+    let node = tree.newNode("RootNodes:SlotMonitor")
+    in node.setTextIn(class.path());
+       tool.register(node,self);
+       tool.register(self,node)
+    end
+  end
+  
+context CreationMonitor
+  @Operation edit(tool,tree)
+    let node = tree.newNode("RootNodes:CreationMonitor")
+    in node.setTextIn(class.path());
+       tool.register(node,self);
+       tool.register(self,node)
+    end
+  end
+  
+  

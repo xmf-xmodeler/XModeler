@@ -1,0 +1,77 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context Root
+  @Class Spec
+    // Implements a simple specification as an operation
+    // with a pre and post condition. The conditions are
+    // checked on entry and exit to the operation.
+    @Grammar extends OCL::OCL.grammar
+      // Careful when extending an existing grammar not to define
+      // clauses with overlapping names. For example the OCL grammar
+      // defines a clause with the name Args- use SpecArgs here.
+      Spec ::= n = Name a = SpecArgs pre = Pre body = Exp post = Post {
+      
+        // Change:
+        // @Spec n(args)
+        //   pre p1
+        //     e
+        //   post p2
+        // end
+        // to
+        // @Operation n(args)
+        //   if p1
+        //   then
+        //     let preSelf = self.copy()
+        //     in let result = e
+        //        in if p2
+        //           then result
+        //           else self.error("post fails"
+        //           end
+        //        end
+        //     end
+        //   else self.error("pre fails")
+        //   end
+        // end
+        
+        Operation(n,a,NamedType(),
+          If(pre,
+             Let(Seq{ValueBinding("preSelf",Send(Self(),"copy",Seq{}))},
+                 Let(Seq{ValueBinding("result",body)},
+                     If(post,
+                        Var("result"),
+                        Send(Self(),"error",Seq{StrExp("post fails")})))),
+             Send(Self(),"error",Seq{StrExp("pre fails")})))
+      }.
+      SpecArgs ::= NoArgs | SomeArgs.
+      NoArgs ::= '(' ')' { Seq{} }.
+      SomeArgs ::= '(' n = SpecArg ns = (',' SpecArg)* ')' { 
+        Seq{n | ns} 
+      }.
+      SpecArg ::= n = Name { Varp(n) }.
+      Pre ::= 'pre' Exp.
+      Post ::= 'post' Exp.
+    end
+  end
+  
+context Root
+  @Class Test
+    @Attribute x : Integer end
+    @Spec incx(dx)
+      pre dx > 0
+        self.x := x + dx
+      post x = preSelf.x + dx
+    end
+  end
+  
+context Root
+  @Spec test2(elements)
+    pre elements->forAll(e | e.isKindOf(Integer))
+      elements := elements.qsort(@Operation(x,y) x < y end)
+    post 
+      not 0.to(elements->size - 1)->exists(i |
+        elements->drop(i + 1)->exists(e | 
+          e < elements->at(i)))
+  end 

@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Call extends Root::XRules::Action
+
+    @Attribute name : String    (?) end
+    @Attribute args : Seq(Term) (?) end
+    
+    @Constructor(name,args) ! end
+    
+    @Operation buildArgs(rules,vars)
+      if args->isEmpty 
+      then Seq{}
+      else args->collect(arg | arg.build(rules,vars))
+      end
+    end
+    
+    @Operation listVars()
+      args->iterate(term V = Seq{} | V + term.listVars())
+    end
+    
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+      rules.call(name,self.buildArgs(rules,vars),indent,env,succ,fail,exception)
+    end
+    
+    @Operation vars(vars)
+      @For arg in args do
+        vars := arg.vars(vars)
+      end;
+      vars
+    end
+
+  end

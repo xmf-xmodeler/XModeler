@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+context Performable
+  @AbstractOp compile(env,frame,isLast,saveSource)
+    @Doc
+      Every performable thing must be able to be compiled.
+      The arguments are as follows: env contains information about the context;
+      frame defines how statically nested inside binding contours we are;
+      isLast is a boolean determining whether we are the last performable thing;
+      saveSource controls whether or not source is dumped to the output.
+    end
+  end
+  
+context Performable
+  @AbstractOp eval(target,env,imports)
+    @Doc
+      Every performable thing can be evaluated (as opposed to compiled and 
+      then performed).Evaluation occurs in a context that includes the value
+      of 'self' (i.e. the target of the evaluating message), an
+      environment of local variables and a sequence of imported name spaces.
+    end
+  end
+  
+context Performable
+  @Operation FV():Set(String)
+    @Doc
+      All performable things contain variables. If the variables are not
+      bound then they are free. This returns the set of free variables
+      in a performable thing.
+    end
+    Set{}
+  end
+  
+context Performable
+  @Operation maxLocals():Integer
+    @Doc
+      Any performable thing requires some local storage. This will
+      occur in the machine stack frame. It is possible to statically 
+      determine how much storage is required and this operation returns
+      the amount of storage needed.
+    end
+    0
+  end
+
+context Performable
+  @Operation pprint(out,indent:Integer):String
+    @Doc
+      Any performable thing can be turned into code. The default
+      behaviour is to produce a comment. All performable subclasses
+      should redefined this operation as appropriate.
+    end
+    format(out,"// ~S~%~V",Seq{self.toString(),indent})
+  end
+  
+context Performable
+  @Operation pprint(indent):String
+    @Doc
+      Pretty prints the receiver to a string.
+    end
+    let out = IO::StringOutputChannel()
+    in self.pprint(out,indent);
+       out.getString()
+    end
+  end
+  
+context Performable
+  @Operation pprint():String
+    @Doc
+      Pretty prints the receiver to a string.
+    end
+    self.pprint(0)
+  end
+  

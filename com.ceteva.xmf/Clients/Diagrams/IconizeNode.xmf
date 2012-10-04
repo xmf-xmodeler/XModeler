@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+
+context XOCL
+
+  @Class IconizeNode extends Sugar
+  
+    @Grammar extends XCore::Operation.grammar
+    
+      IconizeNode ::= filename = Str 'when' exp = Exp {
+        IconizeNode(filename,exp)
+      }.
+      
+    end
+    
+    @Attribute filename : String end
+    @Attribute exp		: Exp end
+    
+    @Constructor(filename,exp)
+    end
+    
+    @Operation desugar():Performable
+      [|
+        @Operation(element,diagramElement)
+          if element.isKindOf(<exp>)
+          then
+            Clients::Diagrams::DiagramsThemeAPI::showNodeAsIcon(diagramElement,<StrExp(filename)>)
+          end;
+          false
+        end
+      |]
+    end
+    
+  end

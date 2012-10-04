@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import <NAMESPACE>;
+
+context <CLASSIFIER>
+
+  @Grammar extends <PARENT GRAMMARS>
+  
+    <NAME> ::= <PATTERNS>.
+    
+  end

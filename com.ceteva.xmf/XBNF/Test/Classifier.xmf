@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import XBNF::Grammars;
+
+context Classifier
+  @Operation grammar()
+    // Intended to allow legacy and new grammars to co-exist.
+    // Assumes legacy grammars are always referenced via the 
+    // grammar slot. New grammar references should always go
+    // through this operation.
+    let grammar = null
+    in @For v inTableValues contents do
+         if v.isReallyKindOf(Grammar)
+         then grammar := v
+         end
+       end;
+       if grammar = null
+       then self.grammar
+       else grammar
+       end
+    end
+  end

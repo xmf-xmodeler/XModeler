@@ -1,0 +1,17 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class DropDownOption extends Option
+  
+    @Attribute id : String end
+    
+    @Constructor(id,display,value) end
+  
+    @ToXML(DROPDOWN_OPTION)[Id=id,Display_Member = display,Value_Member = value] end
+    
+  end 

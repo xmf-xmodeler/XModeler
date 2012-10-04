@@ -1,0 +1,7 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Languages/Activities/Boot",true,true);
+compileFile(xmf.homeDir() + "/Languages/Activities/ToolDefinition",true,true);
+compileFile(xmf.homeDir() + "/Languages/Activities/Activities",true,true);
+compileFile(xmf.homeDir() + "/Languages/Activities/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Languages/Activities/UseCases",true,true);

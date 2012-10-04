@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Name extends Recognizer 
+
+    // Succeeds when the next sequence of characters constitute a name. 
+    // Leaves the name the head of the stack as a string.
+    
+    @Operation code(outputChannel)
+      format(outputChannel," Name ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+    
+	@Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+
+    @Operation parse(machine)
+      if machine.eof()
+      then 
+        if machine.grammar.debug then machine.debug("EOF encountered, expecting a name.") end;
+        machine.fail()
+      else
+        let token = machine.next()
+        in if token->at(0) = 6 and not machine.isTerminal(token->at(1))
+           then 
+             if machine.grammar.debug then machine.debug("Name succeeds: " + token->at(1)) end;
+             machine.pushStack(token->at(1));
+             machine.consumedChars := token->at(2)
+           else
+             if machine.grammar.debug then machine.debug("Fail: Expected a name, received " + token) end;
+             machine.fail()
+           end
+        end
+      end
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Name() |]
+    end
+     
+   end

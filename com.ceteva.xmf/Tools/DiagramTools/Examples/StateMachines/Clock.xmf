@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import StateMachines;
+
+context StateMachines
+
+  @Class Clock extends StateMachine
+  
+     @Grammar extends OCL::OCL.grammar
+      
+        Clock ::= n = Name '(' c = Name ')' { 
+          [| StateMachines::Clock(<StrExp(n)>).add(XCore::Attribute("consumer",@Operation() <Var(c)> end)) |] }.
+        
+      end
+  
+    @Operation init(args)
+       let pred = XOCL::Exp([| n > 0 |],Seq{"n"},@Operation(n) n > 0 end);
+           action = XOCL::Exp([| consumer.event(); self.trace(n); self.tick(n-1) |],Seq{},@Operation() consumer.event(); self.trace(n); self.tick(n-1) end)
+       in super(args);
+          self.add(InitialState("Timing"));
+          self.add(Transition("tick",Seq{Arg("n",NamedType("Integer"))},"Timing","Timing",pred,action))
+       end
+    end
+    
+  end

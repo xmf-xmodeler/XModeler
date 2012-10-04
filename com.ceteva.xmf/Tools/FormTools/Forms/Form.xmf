@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Form extends Root::Clients::Forms::Form, FormContainer
+
+  @Attribute element : Element (?,!) end
+
+  @Operation contents()
+    Root::Clients::Forms::Form.getOperation("contents").invoke(self,Seq{})
+  end
+
+  @Operation move(x,y)
+    null
+  end
+  
+  @Operation new()
+  
+    // A basic form does not have a right click menu.
+    // This operation overrides the basic new and
+    // ensures that the menu is newed.
+    
+    super();
+    self.setRightClickMenu()
+  end
+    
+  @Operation setSize(width,height)
+    null
+  end
+  
+end

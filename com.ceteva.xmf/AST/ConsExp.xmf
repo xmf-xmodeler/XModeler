@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ConsExp in AST(aConsExp,arg,seen)
+  let tail = self.dispatch(aConsExp.tail,arg);
+      head = self.dispatch(aConsExp.head,arg)
+  in ASTNode(aConsExp,Seq{head,tail})
+  end
+end;

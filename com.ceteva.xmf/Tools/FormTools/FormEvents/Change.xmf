@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Tools;
+import Events;
+import FormTools;
+
+context FormEvents
+
+  @Class Change extends Event
+  
+    @Attribute path  : Seq(String) (?) end
+    @Attribute value : Element     (?) end
+    @Attribute new   : Element     (?) end
+    @Attribute old   : Element     (?) end
+    
+    @Constructor(path,value,new,old) end
+    
+    @Operation raisedName():String
+      path->separateWith("_") + "_Changed"
+    end
+  
+  end

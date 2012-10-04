@@ -1,0 +1,481 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class Edge isabstract extends RightClickable, ContainedDiagramElement
+  
+    // Constants used for source and target heads.
+  
+    @Bind noArrow        = 0 end
+    @Bind arrow          = 1 end
+    @Bind blackDiamond   = 2 end
+    @Bind whiteDiamond   = 3 end
+    @Bind blackArrow     = 4 end
+    @Bind whiteArrow     = 5 end
+    
+    // Constants used for edge types
+    
+    @Bind normal		 = "normal"  end
+    @Bind splined		 = "splined" end
+    
+    @Attribute renderType : String					end
+    @Attribute source     : Port (?)                end
+    @Attribute target     : Port (?)                end
+    @Attribute refx       : Integer (?)             end
+    @Attribute refy       : Integer (?)             end
+    @Attribute sourceHead : Integer (?,!)           end
+    @Attribute targetHead : Integer (?,!)           end
+    @Attribute labels     : Set(Label) (+)          end
+    @Attribute wayPoints  : Seq(WayPoint) (+)       end
+    @Attribute lineStyle  : Integer (?)             end
+    @Attribute width	  : Integer = 1 (?)        	 end
+    @Attribute hidden     : Boolean (?)             end 
+    @Attribute selected   : Boolean = false (?,!)   end
+    @Attribute color	  : Color = static Color() (?,!)      end
+    
+    @Constructor(source,target,sourceHead,targetHead,color) 
+      self.lineStyle := Line::solidLine;
+      if source = target then
+        self.addSelfWaypoints()
+      end
+    end
+   
+    @Constructor(id,source,target,sourceHead,targetHead,labels,wayPoints,color) ! 
+      self.lineStyle := Line::solidLine;
+      if source = target then
+        self.addSelfWaypoints()
+      end
+    end 
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Label do self.addToLabels(element) end
+        MultilineLabel do self.addToLabels(element) end
+        WayPoint do self.addWayPoint(element) end
+      end
+    end
+    
+    @Operation addSelfWaypoints()
+      let x = source.owner().x + source.x();
+          y = source.owner().y + source.y()
+      in
+        self.addWayPoint(WayPoint(0,x+source.width+20,(y+(source.height/3)*2).round()));
+        self.addWayPoint(WayPoint(1,x+source.width+20,y+source.height+20));
+        self.addWayPoint(WayPoint(2,(x+(source.width/3)*2).round(),y+source.height+20))        
+      end
+    end
+    
+    @Operation addWayPoint(wayPoint)
+      // Waypoints have an index and must occur in the sequence
+      // at the appropriate point.
+      self.wayPoints := wayPoints->insertAt(wayPoint,wayPoint.index);
+      self.resetWaypointIndices();
+      self
+    end
+    
+    @Operation applyDelta(delta:Dimension)
+      @For wayPoint in wayPoints
+      do
+        wayPoint.applyDelta(delta)
+      end
+    end
+    
+    @Operation applyLayout(layout:XML::Element)
+      
+      // The layout element contains children corresponding to
+      // the appropriate parts of an edge.
+      
+      let wayPointLayout = layout.children->select(e | e.tag = "WayPoint");
+          labelLayout = layout.children->select(e | e.tag = "Label");
+          refx = layout.getAtt("refx",refx).asInt();
+          refy = layout.getAtt("refy",refy).asInt();
+          sourceHead = layout.getAtt("sourceHead",sourceHead).asInt();
+          targetHead = layout.getAtt("targetHead",targetHead).asInt();
+          lineStyle = layout.getAtt("lineStyle",lineStyle).asInt();
+          red = layout.getAtt("red",color.red()).asInt();
+          green = layout.getAtt("green",color.green()).asInt();
+          blue = layout.getAtt("blue",color.blue()).asInt()
+      in self.applyWayPointLayout(wayPointLayout);
+         self.applyLabelLayout(labelLayout);
+         self.setRefPoint(refx,refy);
+         self.sourceHead := sourceHead;
+         self.targetHead := targetHead;
+         self.setStyle(lineStyle);
+         self.setColor(Color(red,green,blue));
+         self
+      end
+    end
+    
+    @Operation applyLabelLayout(layout:Seq(XML::Element))
+      @For labelLayout in layout do
+        let text = labelLayout.getAtt("text");
+            relx = labelLayout.getAtt("relx").asFloat().floor();
+            rely = labelLayout.getAtt("rely").asFloat().floor()
+        in @Find(label,labels)
+             when label.text = text
+             do label.move(relx,rely)
+           end
+        end
+      end
+    end
+    
+    @Operation applyWayPointLayout(layout:Seq(XML::Element))
+      @Count index from 0 to layout->size do
+        let wayPointLayout = layout->at(index) then
+            x = wayPointLayout.getAtt("x").asFloat().floor();
+            y = wayPointLayout.getAtt("y").asFloat().floor()
+        in @Find(wayPoint,wayPoints) 
+             when wayPoint.index = index
+             do wayPoint.move(x,y)
+             else
+               let wayPoint = WayPoint(index,x,y)
+               in self.addWayPoint(wayPoint);
+                  wayPoint.new(self)
+               end
+            end;
+            @For wayPoint in wayPoints->drop(layout->size) do
+              wayPoint.delete()
+            end
+         end
+      end
+    end
+    
+    @Operation availableRenderTypes()
+      Seq{Edge::normal,Edge::splined}
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Hide",target,Seq{},Edge::hide));
+        globalMenu.add(MenuAction("Render Mode",target,Seq{},Edge::selectRenderType));
+        globalMenu.add(MenuAction("Straighten",target,Seq{},Edge::straighten));
+        globalMenu
+      end
+    end
+
+    @Operation clicks(clicks:Integer)
+    
+      // called when the edge has been selected by
+      // the user
+    
+      self
+    end
+    
+    @Operation delete()
+      @For wayPoint in wayPoints do
+        wayPoint.delete()
+      end;
+      @For label in labels do
+        label.delete()
+      end;
+      @Command(self) deleteCommand(self) end;
+      self.removeFromOwner()
+    end
+
+    @Operation deselect()
+    
+      // The edge has been deselected. Mark it as deselected and
+      // inform the diagram.
+      
+      self.setSelected(false)
+    end
+
+    @Operation diagramId()
+      if owner <> null
+      then owner.diagramId()
+      else self.error("Edge::diagramId: no owner.")
+      end
+    end
+
+    @Operation dispose()
+      self.disposeCollection(labels);
+      self.disposeCollection(wayPoints);
+      source.dispose();
+      target.dispose();
+      // self.clearRightClickMenu();
+      super()
+    end
+    
+    @Operation disposeId(disposeChildren)
+      if disposeChildren
+      then
+        self.disposeIdCollection(labels,disposeChildren);
+        self.disposeIdCollection(wayPoints,disposeChildren);
+        source.disposeId(disposeChildren);
+        target.disposeId(disposeChildren)
+      end;
+      self.clearRightClickMenu();
+      super(disposeChildren)
+    end
+
+    @Operation findElement(id) 
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+    @Operation hide() 
+      if not hidden
+      then 
+        self.hidden := true;
+        @Command(self) hideCommand(self) end
+      end
+    end
+    
+    @Operation layoutData():DiagramLayout::Edge
+      DiagramLayout::Edge(
+        self.layoutId(),
+        self.sourceNode().layoutId(),
+        self.targetNode().layoutId(),
+        sourceHead,
+        targetHead,
+        lineStyle,
+        refx,
+        refy,
+        hidden,
+        color.red,
+        color.green,
+        color.blue,
+        wayPoints->collect(w | w.layoutData()),
+        labels->asSeq->collect(l | l.layoutData()))
+    end
+    
+    @Operation layoutId():String
+    
+      // Returns an identifier that is unique for this edge and
+      // that can be used to relocate the edge even if the diagram
+      // is regenerated. The id is relative to the layout ids of 
+      // source and target nodes. Used to save layout information 
+      // that can be re-applied.
+      
+      "UNKNOWN"
+    end
+
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newEdgeCommand(parent,self) end;
+      @For label in labels do
+        label.new(self,setMenu)
+      end;
+      @For wayPoint in wayPoints do
+        wayPoint.new(self,setMenu)
+      end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation newWayPoint(index,x,y)
+      let waypoint = WayPoint(index,x,y)
+      in 
+        waypoint.new(self);
+        self.addWayPoint(waypoint)
+      end
+    end
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        Label do self.removeLabel(element) end
+        WayPoint do self.removeWayPoint(element) end
+      end
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.remove(self)
+      else self.error("Edge::removeFromOwner: no owner.")
+      end
+    end
+    
+    @Operation removeLabel(label)
+      self.labels := labels->excluding(label)
+    end
+    
+    @Operation removeTheme()
+      self
+    end
+    
+    @Operation removeWayPoint(wayPoint)
+      self.wayPoints := wayPoints->excluding(wayPoint);
+      self.resetWaypointIndices();
+      self
+    end
+
+    @Operation renew(parent)
+      @Command(self) newEdgeCommand(parent,self) end;
+      @Command(self) setEdgeType(self,self.renderType) end;
+      @For label in labels do
+        label.renew(self)
+      end;
+      @For wayPoint in wayPoints do
+        wayPoint.renew(self)
+      end;
+      self.setRightClickMenu();
+      if hidden then @Command(self) hideCommand(self) end end;
+      self
+    end
+    
+    @Operation resetWaypointIndices()
+      // Set the index of each element in the sequence.
+      @For wayPoint in wayPoints do
+        wayPoint.index := wayPoints->indexOf(wayPoint)
+      end
+    end 
+    
+    @Operation select()
+    
+      // The edge has been selected. Mark it as selected and
+      // inform the diagram.
+      
+      self.setSelected(true)
+    end
+
+    @Operation selectRenderType()
+      let types = Edge::availableRenderTypes() then
+          mode = xmf.select("Render Mode","Select Mode",types,null,null)
+      in if mode <> null
+         then self.setRenderType(mode)
+         end
+      end
+    end
+
+    @Operation setColor(color:Color)
+      self.color := color;
+      @Command(self) setColor(self,color) end
+    end
+    
+    @Operation setWidth(width)
+      self.width := width;
+      @Command(self) setEdgeWidth(self,width) end
+    end
+    
+    @Operation setStyle(style)
+      self.lineStyle := style;
+      @Command(self) setEdgeStyle(self,style) end
+    end
+    
+    @Operation setRefPoint(refx,refy)
+      self.refx := refx;
+      self.refy := refy;
+      @Command(self) setRefPointCommand(self,refx,refy) end
+    end
+    
+    @Operation setRenderType(renderType)
+      self.renderType := renderType;
+      @Command(self) setEdgeType(self,renderType) end
+    end
+    
+    @Operation show() 
+      if hidden andthen not self.sourceNode().hidden() andthen not self.targetNode().hidden()
+      then
+        self.hidden := false;
+        @Command(self) showCommand(self) end
+      end
+    end
+    
+    @Operation showAnyway() 
+      if hidden
+      then
+        self.hidden := false;
+        @Command(self) showCommand(self) end
+      end
+    end
+    
+    @Operation sourceMoved(node,newx,newy,oldx,oldy)
+      // Called when the source of the edge moves...
+      null
+    end
+    
+    @Operation sourceNode()
+      source.owner
+    end
+    
+    @Operation sourceReconnected(port)
+      self.source := port;
+      @Command(self) setEdgeSourceCommand(self,self.source) end
+    end
+    
+    @Operation straighten()
+      if not wayPoints->isEmpty
+      then
+        self.straightenEdge(wayPoints.head(),wayPoints.tail())
+      end
+    end
+    
+    @Operation straightenEdge(waypoint,wayPoints)
+      if not wayPoints->isEmpty
+      then
+        let 
+          next = wayPoints.head() then
+          xDiff = (waypoint.x - next.x).abs();
+          yDiff = (waypoint.y - next.y).abs()
+        in
+          if xDiff > yDiff then
+            next.move(next.x,waypoint.y)
+          else
+            next.move(waypoint.x,next.y)
+          end;
+          self.straightenEdge(next,wayPoints.tail())
+        end
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        renderType = Seq{"renderType",renderType};
+        source = Seq{"source",source.id};
+        target = Seq{"target",target.id};
+        refx = Seq{"refx",refx};
+        refy = Seq{"refy",refy};
+        sourceHead = Seq{"sourceHead",sourceHead};
+        targetHead = Seq{"targetHead",targetHead};
+        lineStyle = Seq{"lineStyle",lineStyle};
+        width = Seq{"width",width};
+        hidden = Seq{"hidden",hidden};
+        selected = Seq{"selected",selected} then
+        attributes = Seq{id,renderType,source,target,refx,refy,sourceHead,targetHead,lineStyle,width,hidden,selected}
+      in
+        
+        // color ignored
+        
+        @Command(self) startElement("edge",attributes) end;
+        
+        @For label in labels
+        do
+          label.synchronise()
+        end;
+        
+        @For waypoint in wayPoints
+        do
+          waypoint.synchronise()
+        end;
+        
+        @Command(self) endElement("edge") end
+        
+      end
+    end
+    
+    @Operation targetMoved(node,newx,newy,oldx,oldy)
+      // Called when the target of the edge moves...
+      null
+    end
+    
+    @Operation targetNode()
+      target.owner
+    end
+    
+    @Operation targetReconnected(port)
+      self.target := port;
+      @Command(self) setEdgeTargetCommand(self,self.target) end
+    end
+    
+  end

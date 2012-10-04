@@ -1,0 +1,88 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+
+context BNF
+  @Bind PREV_FRAME = 0 end 
+  
+context BNF
+  @Bind GRAMMAR    = 1 end
+  
+context BNF
+  @Bind CODE       = 2 end
+   
+context BNF
+  @Bind INDENT     = 3 end
+  
+context BNF
+  @Bind TARGET     = 4 end
+  
+context BNF
+  @Bind CUT        = 5 end
+  
+context BNF
+  @Bind LOCALS     = 6 end
+  
+context BNF
+  @Bind LOC0       = 7 end
+  
+context BNF
+  @Bind FAIL_PREV    = 0 end
+  
+context BNF
+  @Bind FAIL_FAIL    = 1 end
+  
+context BNF
+  @Bind FAIL_CHARPOS = 2 end
+  
+context BNF
+  @Bind FAIL_GRAMMAR = 3 end
+  
+context BNF
+  @Bind FAIL_CODE    = 4 end
+  
+context BNF
+  @Bind FAIL_INDENT  = 5 end
+  
+context BNF
+  @Bind FAIL_TARGET  = 6 end
+  
+context BNF
+  @Bind FAIL_CUT     = 7 end
+  
+context BNF
+  @Bind FAIL_NAME    = 8 end
+  
+context BNF
+  @Bind FAIL_TOKEN   = 9 end
+  
+context BNF
+  @Bind FAIL_TYPE    = 10 end
+  
+context BNF
+  @Bind FAIL_ARGS    = 11 end
+  
+context BNF
+  @Bind FAIL_ARG0    = 12 end
+  
+context BNF
+  @Bind EOI     = 1 end
+  
+context BNF
+  @Bind TERM    = 2 end
+  
+context BNF
+  @Bind FLOAT   = 4 end
+  
+context BNF
+  @Bind STRING  = 5 end
+  
+context BNF
+  @Bind NAME    = 6 end
+  
+context BNF
+  @Bind INT     = 7 end
+  
+context BNF
+  @Bind SPECIAL = 8 end

@@ -1,0 +1,20 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+import Parser::BNF;
+
+context Constraint
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      Constraint ::= name = Name body = Exp success = Success fail = Fail { Constraint(name,body,success,fail) }.
+      
+      Fail ::= 'fail' Exp | { [| "Unspecified Reason" |] }.
+      
+      Success ::= 'success' Exp | { [| "" |] }.
+      
+    end
+    
+    

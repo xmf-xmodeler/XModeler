@@ -1,0 +1,9 @@
+parserImport XOCL;
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Self in TypeChecker(exp,env,encountered)
+  TypeCheckExp(exp,self.selfType(),Seq{})
+end;

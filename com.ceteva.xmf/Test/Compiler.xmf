@@ -1,0 +1,31 @@
+"A simple test of the compiler. You should see some object code.".println();
+Compiler::compileExp([| 
+  if f(true) 
+  then x.a 
+  else  
+   20 + 3;
+   x->includes(p); 
+   S->includes(P)
+    ->iterate(x y = 10 | 
+        x + y) 
+  end
+|],Seq{},true).println();
+
+"A simple test of the assembler. You should see 100.".println();
+let instrs = Compiler::compileExp([| let x = 10 in x * x end |],Seq{},true)
+in let codeBox = Assembler::assemble(instrs,1,"")
+   in let fun = codeBox.toMachineFun(0,Seq{})
+      in fun().println();
+         Kernel_save(codeBox.toMachineCodeBox(),"Test/CompilerTestTmpFile.o")
+      end
+   end
+end;
+
+"The compiler can write out object files. You should see 100 after".println();
+"the file is loaded.".println();
+("Test/CompilerTestTmpFile.o").loadBin(true); 
+
+"Compile file will load a compilation unit, compile it and then write the file out".println();
+"You should see the result of compiling a file then loading it in.".println();
+Compiler::compileFile("Test/SourceCode",true,true);
+("Test/SourceCode.o").loadBin(true);

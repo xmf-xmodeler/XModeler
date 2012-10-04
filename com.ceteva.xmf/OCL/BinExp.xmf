@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class BinExp extends OCL::OCL
+  
+    @Doc
+      A binary expression consists of two sub-expressions and a binary operator.
+      XMT support extensible operators. For example if '+' is supplied with
+      integer operands then the XMT machine handles this natively. Otherwise, 
+      if the machine does not understand the operand types, the left handl operand
+      is se-nd a message including the right operand. This allows the user to 
+      overload the binary operators for their own types.
+    
+      Constructor: BinExp(left,binOp,right)
+        The left and right operands are expressions. The binary operator is a string
+        that names the operator.  
+    end
+  
+    @Attribute left : OCL::OCL end
+    @Attribute binOp : String end
+    @Attribute right : OCL::OCL end
+    
+    @Constructor(left,binOp,right) ! end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      if binOp.isKindOf(String)
+      then format(out," "+ binOp + " ")
+      else binOp.pprint(out,indent)
+      end;
+      right.pprint(out,indent)
+    end
+    
+  end

@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class EdgeAttributeChanged extends Change
+  
+    @Attribute edge   : Edge        (?) end
+    @Attribute source : Node        (?) end
+    @Attribute target : Node        (?) end
+    @Attribute path   : Seq(String) (?) end 
+    @Attribute value  : Display     (?) end
+    @Attribute new    : Element     (?) end
+    @Attribute old    : Element     (?) end
+    
+    @Constructor(edge,source,target,path,value,new,old) ! end   
+    
+    @Operation raisedName():String
+      path->separateWith("_") + "_Changed"
+    end
+  
+  end

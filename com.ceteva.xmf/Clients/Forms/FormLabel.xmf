@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormLabel extends FormElement
+  
+    @Attribute text : String (?) end
+    
+    @Constructor(x,y,text) end
+    
+    @Constructor(id,x,y,text) end
+    
+    @Constructor(x,y,width,height,text) end
+    
+    @Operation new(parent)
+      self.commandInterpreter().newTextCommand(parent,self);
+      self
+    end
+    
+    @Operation setText(text)
+      self.text := text;
+      self.commandInterpreter().setText(self,text)
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newTextCommand(parent,self);
+      self
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        text = Seq{"text",text} then
+        attributes = Seq{id,x,y,width,height,text}
+      in
+        @Command(self) startElement("label",attributes) end;
+        @Command(self) endElement("label") end
+      end
+    end    
+    
+  end

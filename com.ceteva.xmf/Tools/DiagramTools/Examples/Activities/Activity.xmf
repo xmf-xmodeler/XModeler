@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Activities;
+
+context ! Root::Activities
+
+// Class deployed by Tony Clark on Wed Feb 16 21:46:20 GMT 2005
+
+@Class Activity metaclass Root::XCore::Class  extends Root::XCore::Operation
+  @Attribute actor : Root::Activities::Actor end
+  @Attribute pre : Root::Activities::Pre end
+  @Attribute body : Root::Activities::Body end
+  @Attribute post : Root::Activities::Post end
+  @Operation add(element)
+    @TypeCase(element)
+      Actor do self.actor := element end
+      Pre   do self.pre   := element end
+      Body  do self.body  := element end
+      Post  do self.post  := element end
+    end
+  end
+  @Operation invoke(target,args)
+    if pre.perform()
+    then 
+      let value = body.perform()
+      in if post.perform()
+         then value
+         else self.error("Post failed.")
+         end
+      end
+    else self.error("Pre failed")
+    end
+  end
+  @Operation target()
+    null
+  end
+end

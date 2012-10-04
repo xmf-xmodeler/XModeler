@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Row
+  
+    @Attribute value : String end
+    
+  end

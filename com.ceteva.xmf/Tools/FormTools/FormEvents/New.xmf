@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Tools;
+import Events;
+import FormTools;
+
+context FormEvents
+
+  @Class New extends Event
+  
+    @Attribute path    : Seq(String) (?) end
+    @Attribute parent  : Element     (?) end
+    @Attribute value   : Element     (?) end
+    
+    @Constructor(path,parent,value) end
+    
+    @Operation raisedName():String
+      "New_" + path->separateWith("_")
+    end
+  
+  end

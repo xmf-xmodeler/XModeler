@@ -1,0 +1,63 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import XMap;
+
+context SnapshotMapping
+
+  @Class SetValueXEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute object  : Object end
+    @Attribute slot    : String end
+    @Attribute value   : Object end
+    @Attribute edge    : SetEdge (?) end
+    
+    @Constructor(object,slot,value,edge,owner)
+      self.setHotLoad(true);
+      self.checkEdgeDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()})
+    end
+    
+    @Operation hotLoaded() 
+      self.checkEdgeDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()},false)
+    end
+    
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once SlotXEdge::slotSourceChanged(edge,"source") end;
+      @SlotValueChanged multi once SlotXEdge::slotTargetChanged(edge,"target") end
+    end
+    
+    @Operation element()
+      Seq{object,slot}
+    end
+    
+    @Operation remove()
+      if object.hasSlot(slot)
+      then
+        let set = object.get(slot) in
+          object.set(slot,set->excluding(value))
+        end
+      end
+    end
+    
+    @Operation slotSourceChanged(element,slot,newValue,oldValue)
+      // not implemented
+      self
+    end
+    
+    @Operation slotTargetChanged(element,slot,newPort,oldPort)
+      self.owner.slotTargetChanged(self,newPort,oldPort,self.slot)
+    end
+    
+    @Operation removeDaemons()
+      edge.removeDaemonsWithTarget(self,true)
+    end
+    
+  end 

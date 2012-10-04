@@ -1,0 +1,124 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+
+import Walkers;
+
+context Walkers
+
+  @Class Find extends Walker
+  
+    @Doc
+      An instance of this class can be used to find all element in a given XMF
+      value that satisfy the supplied predicate. To use this, construct with a 
+      single argument predicate and supply the root of the walk to the 'walk'
+      operation. The second argument to 'walk' may be an integer to limit the depth
+      of the walk or null for no limit.
+    end
+  
+    @Attribute predicate : Operation end      // An operation.
+    @Attribute results : Set(Element) (+) end // The values that satisfy the predicate.
+    
+    @Constructor(predicate) ! 
+      self.initWalker()
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+      Find ::= n = Name 'in' v = Exp 'when' p = Exp 'limit' l = (Exp | { [| null |] }) b = ('do' Exp | { OCL::Var(n) }) {
+        [| let walker = Walkers::Find(@Operation(<n>) <p> end) 
+           in walker.walk(<v>,<l>);
+              walker.results->collect(<n> | <b>)
+           end |] 
+      }.
+    end
+  
+    @Operation defaultWalk(e:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation results()
+      results
+    end
+    
+    @Operation reWalk(v:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation walk(element:Element,limit:Element):Element
+      if limit <> 0
+      then
+        if predicate(element)
+        then self.addToResults(element)
+        end;
+        super(element,limit)
+      end
+    end
+    
+    @Operation walkBoolean(b:Boolean,limit:Element):Element 
+      null
+    end
+     
+    @Operation walkInteger(i:Integer,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkNull(limit:Element):Element 
+      null
+    end
+    
+    @Operation walkOperation (o:Operation,limit:Element):Element
+      null
+    end
+    
+    @Operation walkPreObject(o:Object,limit:Element)
+      null
+    end
+     
+    @Operation walkPostObject(o:Object,limit:Element)
+      o
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,limit:Element):Element 
+      if not s->isEmpty
+      then
+        self.walk(s->head,if limit = null then null else limit - 1 end);
+        self.walk(s->tail,if limit = null then null else limit - 1 end)
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,limit:Element):Element 
+      @For x in s do
+        self.walk(x,if limit = null then null else limit - 1 end)
+      end
+    end
+     
+    @Operation walkSlot(o:Object,s:String,limit:Element)
+      let value = o.get(s)
+      in self.walk(value,if limit = null then null else limit - 1 end)
+      end
+    end
+    
+    @Operation walkString(s:String,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkSymbol(s:Symbol,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkTable(t:Table,limit:Element):Element
+      @For key in t.keys() do
+        self.walk(key,if limit = null then null else limit - 1 end);
+        self.walk(t.get(key),if limit = null then null else limit - 1 end)
+      end;
+      t
+    end
+    
+    @Operation walkVector(v:Vector,limit:Element):Element
+      @Count i from 0 to v.size() - 1 do
+        self.walk(v.ref(i),if limit = null then null else limit - 1 end)
+      end
+    end
+     
+  end
+     

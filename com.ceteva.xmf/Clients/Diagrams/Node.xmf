@@ -1,0 +1,606 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class Node isabstract extends RightClickable, ContainedDiagramElement, DraggableClientElement, DisplayContainer
+  
+    @Bind defaultIcon = "logo.jpg" end
+  
+    @Attribute icon		  : Image			(?)   end
+    @Attribute ports      : Seq(Port)       (+,?) end
+    @Attribute x          : Integer         (!,?) end
+    @Attribute y          : Integer         (!,?) end
+    @Attribute width      : Integer         (!,?) end
+    @Attribute height     : Integer         (!,?) end
+    @Attribute iconised   : Boolean = false (?)   end
+    @Attribute hidden     : Boolean = false (?)   end
+    @Attribute selected   : Boolean = false (?,!) end
+    @Attribute selectable : Boolean = true  (?,!) end
+    
+    @Constructor(x,y,width,height) 
+    end
+    
+    @Constructor(x,y,width,height,selectable) end
+    
+    @Constructor(id,x,y,width,height,ports,displays) ! end
+    
+    @Operation add(element)
+      @TypeCase(element)
+         Display do self.addToDisplays(element) end
+         Port    do self.addToPorts(element) end
+      end
+    end
+    
+    @Operation addPorts()
+      // By default this does nothing. Redefine it
+      // in sub-classes to add the ports. It is called
+      // when the node is created.
+      self
+    end
+
+    @Operation buildGlobalMenu()
+      let 
+        globalMenu = super();
+        viewMenu = MenuItems("View As");
+        target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Hide",target,Seq{},Node::hide));
+        globalMenu.add(viewMenu);
+        viewMenu.add(MenuAction("Icon",target,Seq{null},Node::showAsIcon));
+        viewMenu.add(MenuAction("Node",target,Seq{},Node::showAsNode));
+        globalMenu
+      end
+    end
+    
+    @Operation clicks(clicks:Integer)
+    
+      // called when the node has been selected by
+      // the user
+    
+      self
+    end
+    
+    @Operation deepContains(node:Node)
+      @Find(display,displays)
+        when display.deepContains(node)
+        do true 
+        else false
+      end
+    end
+
+    @Operation delete()
+      @For display in displays do
+        display.delete()
+      end;
+      @For port in ports do
+        port.delete()
+      end;
+      @Command(self) deleteCommand(self) end;
+      self.removeFromOwner()
+    end
+
+    @Operation deselect()
+    
+      // The node has been deselected. Mark it as deselected and
+      // inform the diagram.
+      
+      self.setSelected(false)
+    end
+
+    @Operation diagramId()
+      if owner <> null
+      then owner.diagramId()
+      else self.error("Cannot find the diagram id of " + self.toString())
+      end
+    end
+    
+    @Operation displayHeight()
+      
+      // Calculate the total height needed to display the 
+      // display elements.
+      
+      let maxHeight = 0
+      in @For display in displays do
+            let height = display.maxHeight() + display.y()
+            in maxHeight := maxHeight.max(height)
+            end
+         end;
+         maxHeight
+      end
+      
+    end
+    
+    @Operation displayWidth()
+      
+      // Calculate the total width needed to display the 
+      // display elements.
+      
+      let maxWidth = 0
+      in @For display in displays do
+            let width = display.maxWidth() + display.x()
+            in maxWidth := maxWidth.max(width)
+            end
+         end;
+         maxWidth
+      end
+    end
+
+    @Operation dispose()
+      self.disposeCollection(displays);
+      self.disposeCollection(ports);
+      // self.clearRightClickMenu();
+      super()
+    end
+    
+    @Operation disposeId(disposeChildren)
+      if disposeChildren
+      then
+        self.disposeIdCollection(displays,disposeChildren);
+        self.disposeIdCollection(ports,disposeChildren)
+      end;
+      self.clearRightClickMenu();
+      super(disposeChildren)
+    end
+
+    @Operation expand()
+      
+      // Expand ensures that the node is large enough
+      // to display its internal components
+      
+      self.expandHeight();
+      self.expandWidth()
+    end
+    
+    @Operation expandHeight()
+    
+      // Causes the node and its displays to expand
+      // (where necessary) on the y axis to fit the 
+      // contents.
+    
+      @For display in displays do
+        display.expandHeight()
+      end;
+      
+      if height < self.displayHeight() then
+        self.resize(width,self.displayHeight())
+      end
+    end
+    
+    @Operation expandWidth()
+    
+      // Causes the node and its displays to expand
+      // (where necessary) on the x axis to fit the 
+      // contents.
+    
+      @For display in displays do
+        display.expandWidth()
+      end;
+      
+      if width < self.displayWidth() then
+        self.resize(self.displayWidth(),height)
+      end
+    end
+        
+    @Operation findElement(id) 
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+    @Operation getDisplay(name:String)
+    
+      // needs to be made more efficent
+    
+      @Find(display,displays)
+        when display.refname() = name
+        else
+          let target = null
+          in
+            @For display in displays
+            do
+              if display.getDisplay(name) <> null
+              then
+                target := display.getDisplay(name)
+              end
+            end;
+            target
+          end
+      end
+    end
+    
+    @Operation hide() 
+    
+      // Cause the node to disappear from the diagram. 
+      // Find all the edges incident on the node and make
+      // them disappear too.
+      
+      if not hidden
+      then 
+        self.hidden := true;
+        @Command(self) hideCommand(self) end;
+        @For edge in self.incidentEdges() do
+          edge.hide()
+        end
+      end
+    end
+    
+    @Operation incidentEdges()
+    
+      // Returns edges that are connected to this node...
+       
+      let edges = self.diagram().edges()
+      in edges->select(edge | edge.sourceNode() = self or edge.targetNode() = self)
+      end
+    end
+    
+    @Operation layoutData():DiagramLayout::Node
+      DiagramLayout::Node(
+        self.layoutId(),
+        x,
+        y,
+        width,
+        height,
+        hidden)
+    end
+    
+    @Operation layoutId():String
+    
+      // Returns an identifier that is unique for this node and
+      // that can be used to relocate the node even if the diagram
+      // is regenerated. Used to save layout information that can
+      // be re-applied.
+      
+      "UNKNOWN"
+      
+    end
+    
+    @Operation maxHeight()
+      let maxHeight = 0
+      in @For display in displays do
+           maxHeight := maxHeight.max(display.maxHeight() + display.y())
+         end;
+         maxHeight
+      end
+    end
+    
+    @Operation maxWidth()
+      let maxWidth = 0
+      in @For display in displays do
+           maxWidth := maxWidth.max(display.maxWidth() + display.x())
+         end;
+         maxWidth
+      end
+    end
+    
+    @Operation minHeight()
+    
+      // Returns the smallest height that the node
+      // can occupy.
+      
+      0
+    end
+    
+    @Operation minWidth()
+    
+      // Returns the smallest width that the node 
+      // can ocupy.
+      
+      0
+    end
+    
+    @Operation move(newx,newy)
+    
+      // Move the node and inform any incident edges
+      // that the source or target of the edge has
+      // moved.
+      @When newx <> x or newy <> y do
+        let oldx = x;
+            oldy = y
+        in self.x := newx;
+           self.y := newy;
+           @Command(self) moveCommand(self,newx,newy) end;
+           @For edge in self.diagram().edges()do
+             if edge.sourceNode() = self 
+             then edge.sourceMoved(self,newx,newy,oldx,oldy)
+             elseif edge.targetNode() = self
+             then edge.targetMoved(self,newx,newy,oldx,oldy)
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation new(parent,setMenu)
+    
+      // This is responsible for initializing all the
+      // elements of the node and issuing all the 'new'
+      // commands to the client. Don't re-initialise.
+      
+      if id = null
+      then
+      
+        // Ensure that we have a legal id...
+      
+        self.setOwner(parent);
+        @Command(self) newNodeCommand(parent,self) end;
+      
+        // Construct the internal structure of the node...
+      
+        self.addDisplays();
+        self.addPorts();
+        self.enableDrag();
+      
+        // Issue the new commands...
+      
+        self.newPorts(setMenu);
+        self.newDisplays(setMenu);
+        
+        // Layout the elements ...
+        
+        self.pack();
+          
+        if setMenu
+        then self.setRightClickMenu()
+        end;
+        self
+      
+      end
+    end
+    
+    @Operation newPorts(setMenu)
+      @For port in ports do
+        port.new(self,setMenu)
+      end
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.remove(self)
+      else self.error("Node::removeFromOwner: no owner.")
+      end
+    end
+    
+    @Operation renewPorts()
+      @For port in ports do
+        port.renew(self)
+      end
+    end
+    
+    @Operation removeTheme()
+      self.showAsNode();
+      @For display in displays
+      do
+        display.removeTheme()
+      end
+    end
+    
+    @Operation renewDisplays()
+      @For display in displays do
+        display.renew(self)
+      end
+    end
+    
+    @Operation pack()
+      
+      // Call pack to layout the internal display
+      // elements in a node. Pack can only be called
+      // once the node has been created via 'new'.
+      // Use pack to re-construct the layout of a
+      // node after a change.
+      
+      self.packHeight();
+      self.packWidth()
+    end
+    
+    @Operation packHeight()
+    
+      // Causes the node and its displays to shrink/expand
+      // to fit the contents. By default this does not
+      // change the ports of the node since we don't know
+      // how they should change. Extend this in sub-classes
+      // to handle ports as appropriate.
+    
+      @For display in displays do
+        display.packHeight()
+      end;
+      
+      self.resize(width,self.displayHeight())
+      
+    end
+    
+    @Operation packWidth()
+    
+      // Causes the node and its displays to shrink/expand
+      // to fit the contents. By default this does not
+      // change the ports of the node since we don't know
+      // how they should change. Extend this in sub-classes
+      // to handle ports as appropriate.
+    
+      @For display in displays do
+        display.packWidth()
+      end;
+      
+      self.resize(self.displayWidth(),height)
+      
+    end
+    
+    @Operation preferenceChange()
+      @For display in displays
+      do
+        display.preferenceChange()
+      end
+    end
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        Port do self.removePort(element) end
+        Display do self.removeDisplay(element) end
+      end
+    end
+    
+    @Operation removeDisplay(display)
+      self.displays := displays.excluding(display)
+    end
+    
+    @Operation removePort(port)
+      @For edge in self.diagram().edges() do
+        if edge.source = port or edge.target = port
+        then edge.delete()
+        end
+      end;
+      self.ports := ports.excluding(port)
+    end
+    
+    @Operation renew(parent)
+    
+      @Command(self) newNodeCommand(parent,self) end;
+      
+      // Issue the new commands...
+      
+      self.renewPorts();
+      self.renewDisplays();
+      self.renewIcon();
+      self.enableDrag();
+      self.setRightClickMenu();
+      
+      if hidden then @Command(self) hideCommand(self) end end;
+      self
+    end
+    
+    @Operation renewIcon()
+      if self.icon <> null
+      then self.icon.renew(self)
+      end
+    end
+    
+    @Operation resize(width,height)
+      
+      // Resizing a node, by default does nothing to
+      // the contents of the node. Sub-classes of
+      // node should handle their contents appropriately.
+      
+      // if width <> self.width or height <> self.height()
+      // then
+        let width = width.max(self.minWidth());
+            height = height.max(self.minHeight())
+        in @When self.width <> width or self.height <> height do
+             @Command(self) resizeCommand(self,width,height) end;
+             self.width := width;
+             self.height := height
+           end
+        end
+      // end
+      
+    end
+    
+    @Operation resized(display)
+    
+      // The display has resized
+      // make sure everything still fits.
+      
+      self.expand()
+    end
+    
+    @Operation select()
+    
+      // The node has been selected. Mark it as selected and
+      // inform the diagram.
+
+      self.setSelected(true)
+    end
+    
+    @Operation setIcon(filename:String)
+      if icon = null
+      then 
+        let ico = Image(filename,0,0,self.width,self.height)
+        in 
+          self.icon := ico.new(self,true);
+          icon.hide()
+          // self.add(icon)
+        end
+      else
+        self.add(icon);
+        icon.setImage(filename)
+      end
+    end
+
+    @Operation show() 
+    
+      // Cause the node to reappear on the diagram.
+      
+      if hidden
+      then 
+        self.hidden := false;
+        @Command(self) showCommand(self) end
+      end
+    end
+    
+    @Operation showAsIcon(filename:String)
+      if not self.iconised
+      then
+        let fn = if filename <> null 
+                 then filename 
+                 else Node::defaultIcon 
+                 end
+        in self.setIcon(fn);
+           self.iconised := true;
+           @For display in displays do
+             display.hide()
+           end;
+           icon.show()
+        end
+      elseif icon.filename() <> filename
+      then
+        self.showAsNode();
+        self.showAsIcon(filename)
+      end
+    end
+    
+    @Operation showAsNode()
+      if iconised then
+        @For display in displays
+        do
+          display.show()
+        end;
+        self.remove(icon);
+        icon.delete();
+        self.icon := null;
+        self.iconised := false
+      end
+    end
+    
+    @Operation synchronise()
+      
+      // icon ignored
+    
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        iconised = Seq{"iconised",iconised};
+        hidden = Seq{"hidden",hidden};
+        selectable = Seq{"selectable",selectable} then
+        attributes = Seq{id,x,y,width,height,iconised,hidden,selectable}
+      in
+        @Command(self) startElement("node",attributes) end;
+        @For port in ports
+        do
+          port.synchronise()
+        end;
+        @For display in displays
+        do
+          display.synchronise()
+        end;
+        @Command(self) endElement("node") end
+      end
+    end
+   
+  end

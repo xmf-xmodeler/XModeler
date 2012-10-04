@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MappingMapping
+  MappingMapping = @File MappingMapping end
+  @File MapXNode end
+  @File DomainXDomainEdge end
+  @File RangeXRangeEdge end
+  @File MapXInheritanceEdge end
+  @File PackageXMappingDiagram end
+  @File MappingClient end
+do Project(MappingMapping,dir,self)
+end;

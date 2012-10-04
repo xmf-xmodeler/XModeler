@@ -1,0 +1,169 @@
+\documentclass{article}
+
+\newenvironment{attribute}[1]{\noindent{\tt #1}\begin{quote}}{\end{quote}}
+\newenvironment{operation}[1]{\noindent{\tt #1}\begin{quote}}{\end{quote}}
+
+\title{XML Support in XMF}
+
+\author{Tony Clark}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+XML is a standard data format for storage and application communication. XMF
+provides extensive support for XML: models can be written and read using the 
+XMF XML format; XML parsers can be constructed that read XML input and
+synthesize XMF values; XMF models can be annotated with mappings describing
+how to export instances of the models in XML format; XMF contains a model of
+XML allowing the features of XMF to be used to construct, manipulate and
+transform XML documents.
+
+\section{XML Model}
+
+This section defines the classes defined in the package {\tt XML}.
+
+\subsection{\tt Document}
+Represents an XML document containing single root element node. A document is
+an XMF resource and therefore has a resource name string that describes the
+location of the document (empty if unknown). The following attributes are defined:\\\\
+\begin{attribute}{resourceName:String}
+Defines the name of the resource containing the document.
+\end{attribute}
+\begin{attribute}{root:Node}
+The root node of the document.
+\end{attribute}
+The following operations are defined:\\\\
+\begin{operation}{Document(resourceName:String)}
+Constructs an instance.
+\end{operation}
+\begin{operation}{Document(resourceName:String,root:Node)}
+Constructs an instance.
+\end{operation}
+\begin{operation}{print()}
+Prints the XML document to its resource. An error occurs if no resource is set.
+\end{operation}
+\begin{operation}{print(out:OutputChannel)}
+Prints the XML document to the supplied output channel.
+\end{operation}
+\begin{operation}{pprint(out:OutputChannel)}
+Prints the XML document to the supplied output channel using indentation to 
+show nesting.
+\end{operation}
+\begin{operation}{stripWhiteSpace():Document}
+Removes any occurrences of {\tt Text} elements in the document that contain
+just white-pace characters. Returns a fresh copy of the document containing
+no white-space.
+\end{operation}
+\begin{operation}{reduce():Element}
+Translates an XML document that conforms to the XMF.dtd (see appendix \ref{DTD}) to
+the appropriate XMF element.
+\end{operation}
+
+\subsection{\tt Node}
+An abstract class that is used as the super class of all document nodes.
+
+\subsection{\tt Element}
+A sub-class of {\tt Node} that has a tag, a set of attributes and a sequence
+of child nodes. The following attributes are defined:\\\\
+\begin{attribute}{tag:String}
+The tag of the element.
+\end{attribute}
+\begin{attribute}{attributes:Set(Attribute)}
+The attributes for the element.
+\end{attribute}
+\begin{attribute}{children:Seq(Node)}
+The child nodes of the element.
+\end{attribute}
+The following operations are defined for elements:\\\\
+\begin{operation}{filter(tag:String):Seq(Element)}
+Returns the sequence of children with the given tag in the order that
+they occur in the element.
+\end{operation}
+\begin{operation}{getAtt(name:String):String}
+Returns the value of the attribute with the given name. Throws an exception if
+no attribute with the given name exists.
+\end{operation}
+\begin{operation}{hasAtt(name:String):Boolean}
+Tests whether the element has an attribute with the given name.
+\end{operation}
+\begin{operation}{print(out:OutputChannel)}
+Prints the element to the supplied output channel.
+\end{operation}
+\begin{operation}{put(name:String,value:String)}
+Sets the value of the attribute with the given name. Throws an exception if
+no attribute with the given name exists.
+\end{operation}
+\subsection{\tt Attribute}
+An XML attribute that consists of a name and a value. Both the name
+and value are strings.
+
+\subsection{\tt Text}
+A sub-class of {\tt Node} that represents text. An instance of this class has
+a single attribute {\tt text} of type string.
+
+
+\section{XML Input and Output}
+
+\section{Parsing XML Files}
+
+\section{XML Mappings}
+
+\appendix
+
+\section{The XMF DTD}
+
+\label{DTD}
+
+\begin{verbatim}
+<!DEFINE Value 
+  (Boolean     | 
+   Integer     | 
+   String      | 
+   Object      | 
+   IdRef       | 
+   Set         |
+   Seq         | 
+   Null        | 
+   Operation   |
+   EmptySeq)>
+
+<!ELEMENT Boolean ()>
+<!ATTLIST Boolean value PCDATA #REQUIRED> 
+
+<!ELEMENT EmptySeq ()>
+
+<!ELEMENT IdRef ()>
+<!ATTLIST IdRef id ID #REQUIRED> 
+
+<!ELEMENT Integer ()>
+<!ATTLIST Integer value PCDATA #REQUIRED> 
+
+<!ELEMENT NameSpaceRef ()>
+<!ATTLIST NameSpaceRef name PCDATA #REQUIRED> 
+
+<!ELEMENT Null ()>
+
+<!ELEMENT Object (Ref Slot*)>
+<!ATTLIST Object id ID #REQUIRED> 
+
+<!ELEMENT Operation ()>
+<!ATTLIST Operation name PCDATA #REQUIRED> 
+
+<!ELEMENT Ref (NameSpaceRef*)>
+<!ATTLIST Ref root PCDATA #REQUIRED> 
+
+<!ELEMENT Set (Value)*>
+
+<!ELEMENT Seq (Value Value)>
+
+<!ELEMENT Slot (Value)>
+<!ATTLIST Slot name PCDATA #REQUIRED> 
+
+<!ELEMENT String ()>
+<!ATTLIST String value PCDATA #REQUIRED> 
+\end{verbatim}
+
+\end{document}

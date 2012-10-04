@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Clients::BrowserInterface::Displays;
+
+context Displays
+
+  @Class Navigate extends Display
+  
+    @Attribute path : Seq(String) (?) end
+    
+    @Constructor(path) ! end
+    
+    @Operation map(object)
+      let O = Seq{object}
+      in @For name in path do
+           O := O->iterate(o S = Seq{} |
+             @Find(a,o.of().allAttributes())
+               when a.name().toString() = name
+               do if a.hasSetType() or a.hasSeqType()
+                  then S + (o.get(name)->asSeq)->excluding(null)
+                  else 
+                    let value = o.get(name)
+                    in if value = null
+                       then S
+                       else S->including(value)
+                       end
+                    end
+                  end
+               else S
+             end)
+         end;
+         O
+      end
+    end  
+    
+  end

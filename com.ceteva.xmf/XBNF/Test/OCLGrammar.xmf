@@ -1,0 +1,257 @@
+parserImport XBNF::Grammars;
+
+import Compiler;
+import OCL;
+
+Root::OCLGrammar := 
+
+  @Grammar builtin Float scanner OCL::Scanner
+  
+    AddPattern ::= p1 = AtomicPattern ('+' p2 = AddPattern { Addp(p1,p2) } | { p1 }).
+ 
+    AName ::= Name | Drop | 'of' { "of" } | 'to' { "to" }. 
+
+    Apply ::= exp = PathExp ApplyTail^(exp).
+    
+    ApplyTail(operator) ::= args = Args { Apply(operator,args) } | args = KeyArgs { Instantiate(operator,args) } | { operator }.
+
+    ArithExp ::= e1 = RefExp ( op = ArithOp e2 = ArithExp { BinExp(e1,op,e2) } | { e1 }).
+
+    ArithOp ::= '+' { "+" } | '-' { "-" } | '*' { "*" } | '/' { "/" }.
+
+    Args ::= '(' (')' { Seq{} } | arg = Exp args = (',' Exp)* ')' { Seq{arg | args} }).
+
+    AtExp ::= '@' AtPath @ 'end'.
+
+    AtPath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+
+    Atom ::= VarExp | Self | StrExp | IntExp | FloatExp | IfExp | BoolExp | LetExp | AtExp | Drop | Lift | Parentheses | Try | ImportIn.
+
+    AtomicPattern ::= Dropp | Constp | Consp | Syntaxp | '(' Pattern ')'.
+    
+    Binding ::= name = AName '=' value = LogicalExp { ValueBinding(name,value) }.
+
+    Bindings ::= binding = Binding bindings = (';' Binding)* { Seq{ binding | bindings } }.
+
+    BoolExp ::= 'true' { BoolExp(true) } | 'false' { BoolExp(false) }.
+
+    Boolp ::= 'true' { Constp(BoolExp(true)) } | 'false' { Constp(BoolExp(false)) }.
+    
+    CollExp(n) ::=  '{' (
+    
+      '}' { SetExp(n,Seq{}) } | 
+      
+      e = Exp (
+      
+        es = (',' Exp)* '}' { SetExp(n,Seq{e|es}) }
+        
+        | '|' t = Exp '}' { ConsExp(e,t) }
+        
+      )
+      
+    ).
+    
+    CompareExp ::= e1 = ArithExp (op = CompareOp e2 = CompareExp { BinExp(e1,op,e2) } | { e1 }).
+
+    CompareOp ::= '=' { "=" } | '<' { "<" } | '>' { ">" } | '<>' { "<>" } | '>=' { ">=" } | '<=' { "<=" }. 
+
+    CompilationUnit ::= ParserImport* imports = Import* exps = (Def | TopLevelExp)* EOF { CompilationUnit(imports,exps) }.
+
+    Consp ::= n = Name (Objectp^(n) | Collp^(n) | Varp^(n)).
+    
+    Varp(name) ::= pattern = ('=' Pattern ';' | { null } ) type = (':' TypeExp | { NamedType() }) { 
+    
+      Varp(name,pattern,type) 
+      
+    }.
+    
+    
+    Collp(n) ::= '{' (
+    
+      '}' { Constp(SetExp(n,Seq{})) } | 
+      
+      // A bug in setLocals in grammar processing
+      // means that local var offsets are set too
+      // early (and then not adjusted) before disjuncts
+      // are lifted out of clauses. Not binding over 
+      // disjuncts gets round this problem for now. 
+      
+      head = Pattern CollpTail^(head)
+      
+    ).
+    
+    CollpTail(head) ::= '|' tail = Pattern '}' { Consp(head,tail) } | tail = SeqpTail { Consp(head,tail) }.
+    
+    Constp ::=  Intp | Strp | Boolp | Expp.
+
+    Def ::= 'context' isForward = ('!' { true } | { false }) path = PathExp exp = Atom { ContextDef(path,exp,isForward) }. 
+ 
+    Drop ::= '<' e = ArithExp '>' { Drop(e) } | '<|' p = Pattern '|>' { DropPattern(p) }. 
+    
+    Dropp ::= name = Drop pattern = ('=' Pattern ';' | { null } ) type = (':' TypeExp | { NamedType() }) { Varp(name,pattern,type) }.
+    
+    Exp ::= OrderedExp.
+    
+    Exp1 ::= Exp EOF.
+    
+    Expp ::= '[' exp = Exp ']' { Constp(exp) }.
+    
+    FloatExp ::= f = Float { FloatExp(f.splitBy(".",0,0)->at(0),f.splitBy(".",0,0)->at(1)) }.
+    
+    Import ::= 'import' exp = TopLevelExp { Import(exp) }.
+
+    ImportIn ::= 'import' exp = Exp 'in' body = Exp 'end' { ImportIn(exp,body) }.
+
+    IntExp ::= n = Int { IntExp(n) }. 
+
+    Intp ::= i = Int { Constp(i) }.
+
+    IfExp ::= 'if' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) }.
+
+    IfTail ::= 'else' Exp 'end' | 'elseif' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) } | 'end' { BoolExp(false) }.
+
+    KeyArgs ::= '[' (']' { Seq{} } | arg = KeyArg args = (',' KeyArg)* ']' { Seq{arg | args} }).
+    
+    KeyArg ::= name = Name '=' exp = Exp { KeyArg(name,exp) }.
+    
+    Keyps ::= key = Keyp keys = (',' Keyp)* { Seq{key | keys} } | { Seq{} }.
+    
+    Keyp ::= name = Name '=' pattern = Pattern { Keyp(name,pattern) }.
+    
+    Lift ::= '[|' e = Exp '|]' { Lift(e) }.
+
+    LetBody ::= 'in' body = Exp { body } | 'then' bindings = Bindings body = LetBody { Let(bindings,body) }.
+
+    LetExp ::= 'let' bindings = Bindings body = LetBody 'end' { Let(bindings,body) }.
+    
+    LogicalExp ::= e1 = NotExp (op = LogicalOp e2 = LogicalExp { BinExp(e1,op,e2) } | { e1 }).
+
+    LogicalOp ::= 'and' {"and"} | 'or' {"or"} | 'implies' {"implies"} | 'andthen' {"andthen"} | 'orelse' {"orelse"}.
+
+    NotExp ::= CompareExp | 'not' exp = CompareExp { Negate(exp) }.
+
+    Objectp(name) ::= names = ('::' Name)* (
+    
+      '(' slots = Patterns ')' { Objectp(name,names,slots) } |
+      
+      '[' keys = Keyps ']' { Keywordp(name,names,keys) }
+      
+    ).
+
+    OCL ::= Exp.
+
+    OrderedExp ::= e1 = ThrowExp (';' e2 = OrderedExp { Order(e1,e2) } | { e1 }).
+
+    OptionallyArgs ::= Args | { Seq{} }.
+    
+    OpType ::= domains = TypeArgs '->' range = TypeExp { OpType(domains,range) }.
+
+    Parentheses ::= '(' e = Exp ')' { Parentheses(e) }.
+    
+    ParserImport ::= 'parserImport' name = Name names = ('::' Name)* ';' { Seq{name | names} } ImportAt.
+
+    PathExp ::= atom = Atom ('::' name = AName names = ('::' AName)* { Path(atom,Seq{name | names}) } | { atom }).
+
+    Pattern ::= p = AddPattern PatternTail^(p).
+    
+    PatternTail(p) ::= 
+    
+      '->' Name '(' e = Pattern ')' x = { Includingp(p,e) } PatternTail^(x) 
+      
+    | 'when' e = Exp x = { Condp(p,e) } PatternTail^(x)
+    
+    | { p }.
+
+    Patterns ::= head = Pattern tail = (',' Pattern)* { Seq{head | tail} } | { Seq{} }.
+    
+    RefExp ::= exp = Apply ('->' RefColl^(exp) | '.' RefDot^(exp) | { exp }) .
+    
+    RefTail(exp) ::= '->' RefColl^(exp) | '.' RefDot^(exp) | { exp }.
+    
+    RefColl(exp) ::= RefIterate^(exp) | RefCollExp^(exp).
+    
+    RefIterate(exp) ::= 
+      
+      'iterate' '(' v1 = AName v2 = AName '=' init = Exp '|' body = Exp ')' exp2 = { 
+      
+        Iterate(exp,v1,v2,init,body) 
+        
+      } RefTail^(exp2).
+      
+    RefCollExp(exp) ::= 
+      
+      iterOp = AName ( 
+      
+        '(' (
+          
+          ')' x = { CollExp(exp,iterOp,Seq{}) } RefTail^(x) |
+          
+          e = Exp (
+          
+            '|' body = Exp ')' x = {
+            
+              let bound = if e.isKindOf(Drop)
+                          then e
+                          elseif e.isKindOf(Var)
+                          then e.name
+                          else self.error("Illegal bound name in collection operation " + e.toString())
+                          end
+              in IterExp(exp,iterOp,bound,body)
+              end
+            } RefTail^(x) |
+            
+            es = (',' Exp)* ')' x = { CollExp(exp,iterOp,Seq{e | es}) } RefTail^(x)
+            
+          )
+        ) |
+        
+        y = { CollExp(exp,iterOp,Seq{}) } RefTail^(y)
+        
+      ).
+          
+    RefDot(exp) ::= RefField^(exp) | RefFloat^(exp).
+    
+    RefField(exp) ::= field = AName (
+      
+       args = Args exp2 = { Send(exp,field,args) } RefTail^(exp2) |   
+           
+       exp2 = { Dot(exp,field) } RefTail^(exp2)
+    ).  
+    
+    RefFloat(n1) ::= n2 = Int {
+    
+      if n1.isKindOf(IntExp)
+      then FloatExp(n1.value().toString(),n2.value().toString())
+      else self.error("?.<INT> expects ? to be an integer: " + n1.toString())
+      end
+      
+    }.
+  
+    SeqpTail ::= ',' head = Pattern tail = SeqpTail { Consp(head,tail) } | '}' { Constp(SetExp("Seq",Seq{})) }.
+    
+    StrExp ::= e = Str { StrExp(e) }. 
+
+    Strp ::= s = Str { Constp(StrExp(s)) }.
+   
+    Self ::= 'self' { Self() }. 
+
+    Syntaxp ::= '[|' e = Exp '|]' { Syntaxp(e) }.
+
+    ThrowExp ::= 'throw' value = LogicalExp { Throw(value) } | UpdateExp.
+
+    TopLevelExp ::= ThrowExp ';'.
+
+    Try ::= 'try' body = Exp 'catch' '(' name = Name ')' handler = Exp 'end' { Try(body,name,handler) }.
+
+    TypeExp ::= path = TypePath (args = TypeArgs { ParametricType(path,args) } | { NamedType(path) }) | Drop | OpType.
+    
+    TypeArgs ::= '(' arg = TypeExp args = (',' TypeExp)* ')' { Seq{arg | args} }.
+    
+    TypePath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+    
+    UpdateExp ::= location = LogicalExp (':=' value = LogicalExp { OCL::update(location,value) } | { location }).
+    
+    VarExp ::= s = pState n = Name (CollExp^(n) | { Var(n,s.scanner_().line(),s.scanner_().char()-(n->size)) }).
+
+    
+  end;

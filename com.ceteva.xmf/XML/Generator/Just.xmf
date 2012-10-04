@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Generator;
+
+context Generator
+
+  @Class Just extends ElementMap
+  
+    @Attribute name : String end
+    
+    @Constructor(name) ! end
+    
+    @Operation changeName(name)
+      Just(name).setMapName(mapName)
+    end
+    
+    @Operation desugar()
+      [| Seq{<Var(name)>.<mapName>(idTable)} |]
+    end
+    
+    @Operation mappedName()
+      name
+    end
+    
+  end

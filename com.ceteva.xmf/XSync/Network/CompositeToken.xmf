@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class CompositeToken extends Token
+  
+    @Attribute left  : Token (?) end
+    @Attribute right : Token (?) end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(CompositeToken)
+      then other.left.equals(left) and other.right.equals(right)
+      else false
+      end
+    end
+    
+    @Operation timestamp(o:Object,s:Symbol):Integer
+      let date1 = left.timestamp(o,s);
+          date2 = right.timestamp(o,s)
+      in date1.max(date2)
+      end
+    end
+  
+  end

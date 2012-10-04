@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ProjectBrowser
+  @File Diagram end
+  ProjectBrowser = @File ProjectBrowser end
+  @File Ops end
+  @File Menus end
+  @File ProjectXNode end
+do Project(ProjectBrowser,dir,self)
+end;

@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler KeyArg in AST(aKeyArg,arg,seen)
+  let value = self.dispatch(aKeyArg.value,arg)
+  in ASTNode(aKeyArg,Seq{value})
+  end
+end;

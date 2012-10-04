@@ -1,0 +1,59 @@
+parserImport XOCL;
+
+context Root
+
+@Package DrinksMachine
+ 
+ // A simple example of a package containing a class and
+ // a single test operation.
+
+ @Class Machine
+    @Attribute cans : Integer end
+    @Attribute money : Integer end
+    @Attribute price : Integer end
+    @Attribute change : Integer end
+    
+    @Operation toString()
+      "DrinksMachine(" + cans + "," + money + "," + price + "," + change + ")"
+    end
+    @Operation incPrice()
+      self.price := price + 5
+    end
+    @Operation decPrice() 
+      self.price := price - 5
+    end
+    @Operation insert10p()
+      self.money := money + 10
+    end
+    @Operation insert5p()
+      self.money := money + 5
+    end
+    @Operation vend() : Element
+      if cans > 0 and (money > price or money = price)
+      then 
+        self.cans := cans - 1;
+        self.change := money - price;
+        self.money := 0
+      else "more money please".println()
+      end
+    end
+    @Operation addCan()
+      self.cans := cans + 1
+    end
+  end
+  @Operation test()
+    let o = Machine()
+    in o.cans := 100;
+       o.price := 15;
+       o.insert10p();
+       o.insert10p();
+       o.vend();
+       o
+    end
+  end
+end
+
+"The drinks machine test checks that a simple package of definitions".println();
+"can be added to Root, classes instantiated and methods called.".println();
+"You should see a drinks machine printed out describing its internal state.".println();
+Root::DrinksMachine::test().toString().println();

@@ -1,0 +1,6 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Deploy/XTools/Diagrams/Full/Boot",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XTools/Diagrams/Full/Attribute",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XTools/Diagrams/Full/Class",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XTools/Diagrams/Full/Package",true,true);

@@ -1,0 +1,375 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XMatch::Pattern;
+import OCL;
+import Parser::BNF;
+import Compiler;
+import TopLevel;
+
+context TopLevel
+
+  @Class Command extends Performable
+  
+    @Doc
+      A top level command is typed at a top level loop and is
+      preceded by '?'. A command is a name optionally followed
+      by some arguments. If arguments are present then they must
+      be terminated by ';'. Each argument is an expression.
+    end
+     
+    @Grammar extends OCL::OCL.grammar
+    
+      Command ::= '?' CommandExp | TopLevelExp.
+      
+      CommandExp ::= chars = (char = Char ?(not char = "\r"->at(0)))* { Command(chars->asString) }.
+      
+    end
+    
+    @XOCL::Bind handlers = Table(10) end
+    
+    @Attribute command : String end
+    @Attribute name    : String end
+    @Attribute args    : Seq(String) end
+    
+    @Constructor(command) ! 
+      let components = command->splitBy(" ",0,0)
+      in if components->size = 0
+         then self.error("Commands must be typed on a single line.")
+         else 
+           self.name := components->at(0);
+           self.args := components->tail
+         end
+      end
+    end
+     
+    @Operation eval(target,env,imports)
+      if Command::handlers.hasKey(name)
+      then
+        let handler = Command::handlers.get(name)
+        in try 
+             handler(args,target,env,imports)
+           catch(exception)
+             format(stdout,"Top level command error: ~S~%",Seq{exception})
+           end;
+           true
+        end
+      else self.error("Unknown type of top level command: " + name)
+      end
+    end
+    
+  end
+  
+// The following definitions add handlers for the commands.
+// Define your own top level commands by additing them to 
+// the handlers table.
+  
+Command::handlers.put("h", 
+  @Operation(args,target,env,imports) 
+    @Doc 
+      ?h                   Top level command help.
+    end
+    format(stdout,"Top Level Loop Help~%");
+    format(stdout,"-------------------~%~%");
+    format(stdout,"The XMF top level loop is a command interpreter that reads~%");
+    format(stdout,"commands typed at a console, evaluates the commands and then~%");
+    format(stdout,"prints the result. The interpreter understands any valid XMF syntax~%");
+    format(stdout,"(such as XOCL) including language extensions that have been defined~%");
+    format(stdout,"using XBNF and accessed using '@'. When you type these commands~%");
+    format(stdout,"you must terminate them with a ';' before pressing return (note that~%");
+    format(stdout,"';' is the command terminator and commands may span several lines).~%");
+    format(stdout,"Note if a single quote (') is used in a command it should be part of~%");
+    format(stdout,"of a pair. If not, input will be halted until another one is entered.~%~%");
+    format(stdout,"The command interpreter has its own state: it remembers the most~%");
+    format(stdout,"recently evaluated values and the last error that occurred.~%");
+    format(stdout,"The variables v0, v1 and v2 are the last three values produced~%");
+    format(stdout,"by the top level. These variables can be useful when you want to~%");
+    format(stdout,"navigate to or compute a value and then use it in a subsequent~%");
+    format(stdout,"command. Errors may occur in commands typed at the top level.~%");
+    format(stdout,"When an error occurs, an exception is thrown and caught by the top~%");
+    format(stdout,"level loop. The loop then prints out error diagnostics. The value~%");
+    format(stdout,"of the variable xx is the most recently raised exception.~%~%");
+    format(stdout,"The XMF Console uses the Escape key as an interrupt. This can be~%");
+    format(stdout,"useful if you have caused XMF to enter an infinite loop or to start~%");
+    format(stdout,"a lengthy calculation that you wish to terminate. Interrupts are~%");
+    format(stdout,"handled by XMF on the next instruction cycle, the interrupt will~%");
+    format(stdout,"throw an exception.~%~%");
+    format(stdout,"The command interpreter has its own command language.~%");
+    format(stdout,"Each top level command starts with a '?'. Top level commands must~%");
+    format(stdout,"occur on a single line and are terminated by return rather than ';'.~%~%");
+    format(stdout,"Top level commands~%");
+    format(stdout,"------------------~%~%  ");
+    
+    let keys = Command::handlers.keys()->asSeq->sortNames() in
+       @For key in keys do
+        let handler = Command::handlers.get(key) in
+          handler.doc().pprint(stdout,2)
+        end
+      end
+    end;
+    format(stdout,"~%")
+  end);
+  
+Command::handlers.put("ah",
+  @Operation(args,target,env,imports)
+    @Doc
+      ?ah                  Help on the syntax of patterns for ?a.
+    end
+    format(stdout,"~S~%",Seq{XMatch::Pattern.doc().doc})
+  end);
+  
+Command::handlers.put("a",
+  @Operation(args,target,env,imports)
+    @Doc
+      ?a <PATTERN>          Named elements apropos the pattern.
+    end
+    let pattern = parse(args->separateWith(" "))
+    in @Letrec match = 
+         @Operation(nameSpace)
+           @For e inTableValues nameSpace.contents do
+             if e <> null and e.isKindOf(NamedElement) and e <> nameSpace
+             then 
+               let matched = pattern.match(e.name().toString());
+                   owner = e.owner()
+               in if matched <> null
+                  then format(stdout,"~<40>S in ~S~%",Seq{e,if owner = null then "unknown parent." else e.owner().path() end})
+                  end;
+                  if e.isKindOf(NameSpace)
+                  then match(e)
+                  end
+               end
+              end
+           end
+         end
+       in match(Root)
+       end  
+    end 
+  end);
+  
+Command::handlers.put("c",
+  let fileName = ""
+  in @Operation(args,target,env,imports) 
+       @Doc 
+         ?c <FILE>             Compile the file.
+         ?c                   Compile the most recently compiled file.
+       end
+       @Case args of
+         Seq{} do
+           if fileName <> ""
+           then 
+             try 
+               Compiler::resetCompilationErrors();
+               compileFile(fileName,true,true);
+               if Compiler::compilationErrors()
+               then 
+                 Compiler::pprintCompilationErrors(stdout);
+                 Compiler::resetCompilationErrors()
+               end
+             catch(exception)
+               format(stdout,"Compilation error: ~S~%",Seq{exception.message})
+             end
+           end
+         end
+         Seq{s | moreArgs} do
+           if (s + ".xmf").fileExists()
+           then 
+             fileName := s;
+             try
+               Compiler::resetCompilationErrors();
+               compileFile(fileName,true,true);
+               if Compiler::compilationErrors()
+               then 
+                 Compiler::pprintCompilationErrors(stdout);
+                 Compiler::resetCompilationErrors()
+               end
+             catch(exception)
+               format(stdout,"Compilation error: ~S~%",Seq{exception.message})
+             end  
+           else format(stdout,"The file ~S does not exist.~%",Seq{s})
+           end
+         end
+       end
+     end
+  end);
+  
+Command::handlers.put("cl",
+  @Operation(args,target,env,imports)
+    @Doc
+      ?cl [<FILE>]         Combines ?c and ?l.
+    end
+    let compile = Command::handlers.get("c");
+        load = Command::handlers.get("l")
+    in compile(args,target,env,imports);
+       let value = load(args,target,env,imports)
+       in if Compiler::compilationErrors()
+          then 
+            Compiler::pprintCompilationErrors(stdout);
+            Compiler::resetCompilationErrors()
+          end;
+          value
+       end
+    end
+  end);
+  
+Command::handlers.put("l",
+  let fileName = ""
+  in @Operation(args,target,env,imports) 
+       @Doc
+         ?l <FILE>             Load the binary file.
+         ?l                   Load the most recently loaded binary.
+       end
+       @Case args of
+         Seq{} do
+           if fileName <> ""
+           then fileName.loadBin(true)
+           end
+         end
+         Seq{s | moreArgs} do
+           let env = matchValue("name = ('../' | './' | not('.') .)* type = ('.' .* | E) EOI",s) then
+               name = env.lookup("name");
+               type = env.lookup("type")
+           in if type = ""
+              then 
+                if (name+".o").fileExists()
+                then 
+                  fileName := (name+".o");
+                  fileName.loadBin(true)
+                elseif (name+".xmf").fileExists()
+                then
+                  fileName := (name+".xmf");
+                  fileName.loadXMF()
+                else format(stdout,"The file ~S does not exist.~%",Seq{s})
+                end
+              else
+               if s.fileExists()
+               then 
+                 fileName := s;
+                 if type = "o"
+                 then
+                   fileName.loadBin(true)
+                 else 
+                   fileName.loadXMF()
+                 end
+               else format(stdout,"The file ~S does not exist.~%",Seq{s})
+               end
+              end
+            end
+         end
+       end
+     end
+  end);
+  
+Command::handlers.put("s",
+  @Operation(args,target,env,imports) 
+    @Doc
+      ?s <FILE>             Saves a system image in the file.
+      ?s <FILE> <FILE>       Saves an image that boots from the second file.
+    end
+    if args->size > 0
+    then
+      if args->at(0).isKindOf(String)
+      then 
+       xmf.saveState(
+         args->at(0),
+         @Operation(ignore) 
+           if args->size = 1
+           then args
+           else 
+             @Fork
+               args->at(1).loadBin(true)
+             end;
+             self.die()
+           end
+         end)
+      end
+    end
+  end);
+  
+Command::handlers.put("stats",
+  @Operation(args,target,env,imports) 
+    @Doc
+      ?stats               Print machine stats.
+    end
+    Kernel_stats()
+  end);
+  
+Command::handlers.put("x",
+  @Operation(args,target,env,imports) 
+    @Doc
+      ?x                   Exit current XMF level.
+    end
+    let exit = env.lookup("exit")
+    in exit()
+    end
+  end);
+  
+Command::handlers.put("i",
+  @Operation(args,target,env,imports) 
+    @Doc
+      ?i [+|-] <PATH>*     Import(+) or remove(-) a name space at the top level.
+    end
+    if args->size > 0 and xmf.hasProperty("topLevel")
+    then
+      let arg1 = args->at(0) then
+          mode = if arg1 = "+" then "+" elseif arg1 = "-" then "-" else "+" end then
+          nameSpaces = if arg1 = "+" or arg1 = "-" then args->tail else args end then
+          paths = nameSpaces->collect(ns | ns.subst(",","::",true).splitBy(",",0,0))
+      in @For path in paths do
+           let nameSpace = path->ref(xmf.topLevel().imports())
+           in if nameSpace <> null
+              then 
+                if mode = "+"
+                then xmf.topLevel().importNameSpace(nameSpace)
+                else xmf.topLevel().deleteNameSpace(nameSpace)
+                end
+              else format(stdout,"?i error: ~{::~;~S~} does not exist.~%",Seq{path})
+              end
+           end
+         end
+      end
+    end     
+  end);
+  
+Command::handlers.put("sh",
+  @Operation(args,target,env,imports) 
+    @Doc
+      ?sh                  Start a dos shell. Enter exit to return.
+    end  
+    let inout = Kernel_exec("cmd",Seq{}) then
+        inch = inout->head;
+        outch = inout->tail;
+        thread = xmf.thread();
+        alive = Seq{true} then
+        inputThread =
+          @Fork(Input)
+            @While alive->head do 
+              let c = Kernel_read(inch)
+              in if c < 0
+                 then 
+                   alive->head := false; 
+                   thread.wake(null)
+                 else format(stdout,"~C~F",Seq{c}) 
+                 end
+              end
+            end
+          end;
+        outputThread = 
+          @Fork(Output)
+            @While alive->head do 
+              let c = stdin.read()
+              in Kernel_write(outch,c);
+                 if c = "\r"->at(0)
+                 then Kernel_write(outch,"\n"->at(0))
+                 end;
+                 Kernel_flush(outch)
+              end
+            end
+          end
+      in thread.sleep();
+         Kernel_close(inch);
+         Kernel_close(outch);
+         Kernel_threadKill(inputThread);
+         Kernel_threadKill(outputThread)
+      end
+   end);
+   

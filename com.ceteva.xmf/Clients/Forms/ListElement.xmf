@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class ListElement extends DraggableClientElement
+
+    @Attribute text     : String  (!,?) end
+    @Attribute selected : Boolean (!) end
+    
+    @Constructor(text) end
+  
+//    @Constructor(id,text) end
+    
+    @Operation doubleSelected()
+      //"Double selected".println();
+      self
+    end
+
+    @Operation new(parent)
+      self.commandInterpreter().addItem(parent,self);
+      self
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().addItem(parent,self);
+      self
+    end
+    
+    @Operation selected()
+      owner.deselectAll();
+      self.setSelected(true)
+    end
+
+
+    @Operation synchronise()
+      let
+        identity = Seq{"identity",id};
+		text = Seq{"text",text};
+		selected = Seq{"selected",selected} then
+        attributes = Seq{identity,text,selected}
+      in
+        @Command(self) startElement("value",attributes) end;
+        @Command(self) endElement("value") end
+      end
+    end
+  end

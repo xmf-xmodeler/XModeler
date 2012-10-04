@@ -1,0 +1,142 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class PackageNode extends ClassifierNode
+  
+    @Attribute name     : Text end
+    @Attribute package  : String = "" end  // Used in case the package is imported.
+    @Attribute typePath : Seq(String) end
+    @Attribute tab      : Box end
+    @Attribute nodeBox  : Box end
+    
+    @Constructor(name,typePath,x,y)
+      self.init(Seq{name,"",typePath,x,y})
+    end
+    
+    @Constructor(name,package,typePath,x,y)
+      let stereotype = "<<" + typePath->last + ">>"
+      in self.name := Text(name,5,16,not self.isDropped());
+         self.tab := Box(0,0,40,16,0,Color(),Color());
+         self.nodeBox := Box(0,10,150,self.boxHeight(),0,Color(),Color());
+         nodeBox.add(self.name);
+         let stereotypePos = 
+           if self.isDropped()
+           then nodeBox.add(Text(package,5,16*2,false)); 3
+           else 2
+           end
+         in
+           if self.isStereotype() 
+           then nodeBox.add(Text(stereotype,5,16*stereotypePos,false))
+           end
+         end;
+         // Add a separator at the base of the name box...
+         nodeBox.add(Text("  ",5,0,false));
+         self.width := 150;
+         self.height := self.boxHeight() + 16
+       end
+    end
+    
+    @Operation addDisplays()
+    
+      // Add the tag at the top of the box...
+      
+      self.add(tab);
+      
+      // Add the main box containing the package name..
+      
+      self.add(nodeBox)
+      
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation boxHeight()
+      // Calculates the height of a box depending on
+      // whether or not a stereotype tag must be displayed.
+      let factor = 3
+      in
+        if self.isDropped() 
+        then factor := factor + 1
+        end;
+        if self.isStereotype() 
+        then factor := factor + 1
+        end;
+        16 * factor
+      end
+    end
+    
+    @Operation editName()
+      name.editText()
+    end
+
+    @Operation isDropped():Boolean
+      self.package <> ""
+    end   
+  
+    @Operation isStereotype():Boolean
+      not typePath->asSet = XCore::Package.pathSeq()->asSet
+    end   
+    
+    @Operation layoutId():String
+     
+       // Returns an id that is unique for nodes in this diagram. The id is
+       // used to relocate the node when layout data is read in.
+       
+       self.name()
+     end
+     
+     @Operation maxWidth()
+      // Pad the right hand side of the name.
+      super() + 3 
+    end
+    
+    @Operation name():String
+      name.text
+    end
+    
+    @Operation packHeight()
+      // Don't pack the tab box since it has nothing in it!
+      nodeBox.packHeight();
+      self.resize(width,self.maxHeight())
+    end
+    
+    @Operation packWidth()
+      // Don't pack the tab box since it has nothing in it!
+      nodeBox.packWidth();
+      self.resize(self.maxWidth(),height)
+    end
+  
+    @Operation resize(width,height)
+    
+      // Maintain a minimum width and height...
+    
+      width := width.max(tab.width * 2);
+      
+      height := height.max(tab.height + self.boxHeight());
+      
+      @For port in ports do
+        port.resize(width,height)
+      end;
+      
+      // Resize the main box, but not the tab...
+      
+      super(width,height);
+      
+      nodeBox.resize(width,height - tab.height)
+      
+    end
+    
+    @Operation setName(name:String)
+      self.name.textChanged(name)
+    end
+    
+  end

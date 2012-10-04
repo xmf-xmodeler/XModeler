@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DroppableClientElement isabstract extends ContainedClientElement, DropHandler
+
+    @Attribute dropEnabled : Boolean (?,!) end
+    
+    @Operation enableDrop()
+      if not self.dropEnabled()
+      then
+        self.setDroppable()
+      end
+    end
+
+    @Operation setDroppable()
+      self.dropEnabled := true;
+      self.commandInterpreter().enableDrop(self)
+    end
+    
+    @Operation acceptDrop(dragSource:DragHandler,mode:Boolean)
+      if self.isKindOf(ElementViewerInterface) andthen dragSource.isKindOf(ElementViewerInterface)
+      then
+        let isCopy = (mode = "copy");
+            pasteTarget = self.getClipboardTarget();
+            cutCopySource = dragSource.getClipboardSource()
+        in
+          self.acceptPaste(pasteTarget,cutCopySource,isCopy)
+        end
+      end
+    end
+
+    @Operation acceptMultipleDrop(dragSources:Set(DragHandler),mode:Boolean)
+      if self.isKindOf(ElementViewerInterface) andthen dragSources->forAll(src | src.isKindOf(ElementViewerInterface))
+      then
+        let isCopy = (mode = "copy");
+            pasteTarget = self.getClipboardTarget();
+            cutCopySources = dragSources->collect(src | src.getClipboardSource());
+            accept = false
+        in
+          @For cutCopySource in cutCopySources do
+            if self.acceptPaste(pasteTarget,cutCopySource,isCopy)
+            then accept := true
+            end
+          end;
+          accept
+        end
+      else super(dragSources,mode)
+      end
+    end
+
+    @Operation drop()
+      @WithoutRendering(*,100)
+        super()
+      end
+    end
+
+  end

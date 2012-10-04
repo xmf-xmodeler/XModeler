@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class NewHandler
+  
+    @Attribute newHandlers : Table = Table(10) end
+  
+    @Operation defineNewHandler(name:String,handler:Operation)
+      // Defines a new handler for the named type.
+      newHandlers.put(name,handler)
+    end
+    
+    @Operation handleNewRequest(name:String)
+    
+      // Handle the request for a new element
+      
+      if newHandlers.hasKey(name)
+      then (newHandlers.get(name))()
+      else self.error("Cannot create node type " + name + " the following types are known: " + newHandlers.keys().toString())
+      end
+    end
+    
+  end
+    
+    
+    

@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Lift in PPrint(aLift,out,seen)
+  format(out,"[| ");
+  self.mark(
+    @Operation()
+      self.dispatch(aLift.exp,out)
+    end);
+  format(out," |]")
+end;

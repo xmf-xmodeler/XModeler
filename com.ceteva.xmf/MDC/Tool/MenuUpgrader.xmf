@@ -1,0 +1,136 @@
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools::Types;
+import DisplayTypes;
+import MDC::Types;
+
+
+// For upgrading legacy xtd's menu actions so they replace their handlers with the standard handlers where appropriate ...
+
+context MDC
+  @Bind menuUpgraderTable = null end
+ 
+context MDC
+  @Bind menuUpgraderEnabledFlag = false end
+  
+context MDC
+  @Operation menuUpgraderEnabled()
+    MDC::menuUpgraderEnabledFlag
+  end
+
+context MDC
+  @Operation enableToolDefinitionMenuUpgrader()
+    MDC::menuUpgraderEnabledFlag := true;
+    
+    if MDC::menuUpgraderTable = null
+    then
+      let menuUpgraderTable = Table(10)
+      in
+        MDC::menuUpgraderTable := menuUpgraderTable;
+      
+        menuUpgraderTable.put(MDC::Browser::menuEditor.source(),               MDC::Browser::menuEditor);
+        menuUpgraderTable.put(MDC::Browser::menuBrowser.source(),              MDC::Browser::menuBrowser);
+        menuUpgraderTable.put(MDC::Browser::menuDelete.source(),               MDC::Browser::menuDelete);
+        menuUpgraderTable.put(MDC::Browser::checkOp.source(),                  MDC::Browser::checkOp);
+        menuUpgraderTable.put(MDC::Browser::menuClipboardCopy.source(),        MDC::Browser::menuClipboardCopy);
+        menuUpgraderTable.put(MDC::Browser::menuClipboardCut.source(),         MDC::Browser::menuClipboardCut);
+        menuUpgraderTable.put(MDC::Browser::menuClipboardPaste.source(),       MDC::Browser::menuClipboardPaste);
+        menuUpgraderTable.put(MDC::Browser::copyDiagramToClipboardOp.source(), MDC::Browser::copyDiagramToClipboardOp);
+        menuUpgraderTable.put(MDC::Browser::hideDialogOp.source(),             MDC::Browser::hideDialogOp);
+        menuUpgraderTable.put(MDC::Browser::showDialogOp.source(),             MDC::Browser::showDialogOp);
+        menuUpgraderTable.put(MDC::Browser::renderModeOp.source(),             MDC::Browser::renderModeOp);
+        menuUpgraderTable.put(MDC::Browser::zoomInOp.source(),                 MDC::Browser::zoomInOp);
+        menuUpgraderTable.put(MDC::Browser::zoomOutOp.source(),                MDC::Browser::zoomOutOp);
+        menuUpgraderTable.put(MDC::Browser::zoomTo.source(),                   MDC::Browser::zoomTo);
+        menuUpgraderTable.put(MDC::Browser::zoomToFitOp.source(),              MDC::Browser::zoomToFitOp);
+        menuUpgraderTable.put(MDC::Browser::newTheme.source(),                 MDC::Browser::newTheme);
+        menuUpgraderTable.put(MDC::Browser::applyTheme.source(),               MDC::Browser::applyTheme);
+        menuUpgraderTable.put(MDC::Browser::deleteTheme.source(),              MDC::Browser::deleteTheme);
+        menuUpgraderTable.put(MDC::Browser::removeTheme.source(),              MDC::Browser::removeTheme);
+        menuUpgraderTable.put(MDC::Browser::editTheme.source(),                MDC::Browser::editTheme);
+        menuUpgraderTable.put(MDC::Browser::saveTheme.source(),                MDC::Browser::saveTheme);
+        menuUpgraderTable.put(MDC::Browser::loadTheme.source(),                MDC::Browser::loadTheme)
+      end
+    end
+  end
+
+context MDC
+  @Operation disableToolDefinitionMenuUpgrader()
+    MDC::menuUpgraderEnabledFlag := false
+  end
+
+context MDC
+  @Operation upgradeMenuTree(menu)
+    @CaseObj menu of
+      Tools::Menus::Menu[ ] do
+        @For item in menu.items do
+          upgradeMenuTree(item)
+        end
+      end
+      Tools::Menus::MenuAction[ ] do
+        let menuActionHandler = menu.action then
+            menuActionHandlerSource = menuActionHandler.source()
+        in
+          if MDC::menuUpgraderTable.hasKey(menuActionHandlerSource)
+          then
+            menu.setAction(MDC::menuUpgraderTable.get(menuActionHandlerSource))
+          end
+        end
+      end
+      Tools::Menus::MenuItems[ ] do
+        @For item in menu.items do
+          upgradeMenuTree(item)
+        end
+      end
+      else null
+    end
+  end
+
+context RootElementType
+  @Operation checkMenuUpgrader()
+    if MDC::menuUpgraderEnabled()
+    then displayType.upgradeMenuTree()
+    end
+  end
+
+context ToolType
+  @Operation upgradeMenuTree()
+    MDC::upgradeMenuTree(self.menu);
+    @For nodeType in nodeTypes do
+      nodeType.upgradeMenuTree()
+    end;
+    @For nodeType in nodeTypes do
+      nodeType.upgradeMenuTree()
+    end    
+  end
+
+context NodeType
+  @Operation upgradeMenuTree()
+    MDC::upgradeMenuTree(self.menu);
+    @For displayType in displays do
+      displayType.upgradeMenuTree()
+    end
+  end
+
+context EdgeType
+  @Operation upgradeMenuTree()
+    MDC::upgradeMenuTree(self.menu)
+  end
+
+context DisplayType
+  @Operation upgradeMenuTree()
+    MDC::upgradeMenuTree(self.menu)
+  end
+
+
+context XMF
+  @Operation enableToolDefinitionMenuUpgrader()
+    MDC::enableToolDefinitionMenuUpgrader()
+  end
+
+context XMF
+  @Operation disableToolDefinitionMenuUpgrader()
+    MDC::disableToolDefinitionMenuUpgrader()
+  end

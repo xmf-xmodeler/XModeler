@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class BarType extends DisplayType
+  
+    @Attribute type   : String = "HORIZONTAL" end
+    @Attribute length : Integer               end
+   
+    @Constructor(type,length) ! end
+   
+    @Constructor(length) end
+    
+    @Operation new(tool,parent,x,y,w,h,name)
+      let line = self.newLine(x,y) then
+          object = ToolObject(self,line)
+      in parent.add(object.element);
+         object.element.new(parent);
+         object
+      end
+    end
+    
+    @Operation newLine(x,y)
+      @Case type of
+        "HORIZONTAL" do
+          Line(x,y,x+length,y)
+        end
+        "VERTICAL" do
+          Line(x,y,x,y+length)
+        end
+      end
+    end
+    
+  end

@@ -1,0 +1,52 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler New_ToolBar()
+    let toolBar = ToolBar()
+    in register(event.node(),toolBar);
+       event.tool().element().add(toolBar)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler Add_To_ToolBar_toolBarType_groupType()
+    let toolBar = find(event.root());
+        group = ToolGroup("G")
+    in register(event.value(),group);
+       toolBar.add(group)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler ToolBar_toolBarType_groupType_groupAttribute_name_Changed()
+    let group = event.value().owner().owner()
+    in find(group).setName(event.new())
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler Add_To_ToolBar_toolBarType_groupType_buttonBox()
+    let group = event.value().owner();
+        button = ToolButton("B")
+    in find(group).add(button);
+       register(event.value().ref1(Seq{"button","name"}),button)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler ToolBar_toolBarType_groupType_buttonBox_button_name_Changed()
+    let button = find(event.value())
+    in button.setName(event.new())
+    end
+  end
+  

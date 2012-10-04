@@ -1,0 +1,39 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context For
+ 
+  @Grammar extends O
+   
+       For ::= 
+    
+         names = ForNames 
+         dir = ForDirective 
+         colls = ForColls 
+         guard = ('when' Exp | { null })
+         isExp = ForType 
+         body = Exp 
+         'end'
+         { For(names,dir,colls,guard,body,isExp) }. 
+       
+       ForColls ::= exp = Exp exps = (',' Exp)* { Seq{exp | exps} }.
+    
+       ForDirective ::= 
+    
+         'classifiedBy'  { "classifiedBy" }  |
+         'in'            { "in" }            | 
+         'inReverse'     { "inReverse" }     |
+         'inTableKeys'   { "inTableKeys" }   | 
+         'inTableValues' { "inTableValues" } | 
+         'inSeq'         { "inSeq" }.
+         
+       ForNames ::= name = AName names = (',' AName)* { Seq{name | names} }.
+         
+       ForType ::= 'do' { false } | 'produce' { true }.
+    
+     end  
+     
+    

@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Const extends Location
+  
+    @Attribute value : Element (?) end
+    
+    @Constructor(value) ! end
+    
+    @Operation value(token:Token):Element
+      value
+    end
+    
+  end

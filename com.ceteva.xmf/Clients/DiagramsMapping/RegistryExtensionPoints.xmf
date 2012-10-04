@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+// Introduces an extension point for storing theme definitions
+
+let 
+  registry = xmf.registry();
+  themes = "com.ceteva.xmf.themes" then
+  point = ExtensionPoint(themes)
+in
+  registry.addExtensionPoint(point)
+end;

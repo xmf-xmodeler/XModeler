@@ -1,0 +1,5 @@
+parserImport XOCL;
+
+xmf.definePreference("EnableMeta",true,Boolean,false);
+xmf.definePreference("AddMissingSlots",true,Boolean,false);
+xmf.definePreference("AllowCyclicBrowserRefs",false,Boolean,false);

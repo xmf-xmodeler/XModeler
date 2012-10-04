@@ -1,0 +1,117 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import IO;
+
+context ModelBrowsers
+
+  @Class ModelBrowser extends ContainedClientElement
+  
+    @Attribute element : Element end
+    @Attribute name : String (?) end
+    @Attribute rootNode : ModelBrowserNode (?) end
+    @Attribute closable : Boolean end
+    @Attribute isOpen : Boolean (!,?) end
+    @Attribute hasFocus : Boolean end
+    
+    @Constructor(element)
+      self.name := element.labelString();
+      self.closable := true
+    end
+    
+    @Constructor(id,name,rootNode) ! end
+    
+    @Operation addContents()
+      self.rootNode := ModelBrowserNode(self.element);
+      rootNode.setOwner(self);
+      //rootNode.addContents();
+      self
+    end
+
+    @Operation close()
+      if owner.isReallyKindOf(ModelBrowserClient)
+      then
+        self.owner.remove(self)
+      end;
+      self.isOpen := false
+    end
+
+    @Operation closeCommand()
+      self.commandInterpreter().closeModelBrowserCommand(self)
+    end
+
+    @Operation dispose()
+      self.owner := null;
+      rootNode.dispose();
+      xmf.findClient(ModelBrowserClient).deleteFromBrowsersWithFocus(self);
+      super()
+    end
+
+    @Operation focusGained()
+      xmf.findClient(ModelBrowserClient).addToBrowsersWithFocus(self);
+      self.hasFocus := true
+    end
+
+    @Operation focusLost()
+      xmf.findClient(ModelBrowserClient).deleteFromBrowsersWithFocus(self);
+      self.hasFocus := false
+    end
+
+    @Operation new()
+      self.commandInterpreter().newModelBrowserCommand(self);
+      self.isOpen := true;
+      self.addContents();
+      self.newContents();
+      self
+    end 
+    
+    @Operation newContents()
+      self.rootNode.new(self);
+      self.rootNode.expand()
+    end    
+
+    @Operation remove(element)
+      self.error("ModelBrowser::remove: Cannot remove root node of a model browser tree.")
+    end
+    
+    @Operation renew()
+    
+      // this may need working (although I don't think it's currently used)
+      // due to the complication of both adding and newing contents on node
+      // expansion from the GUI. (Paul 6/05)
+      
+      if isOpen
+      then
+        self.removeFromIdManager();
+        self.commandInterpreter().newModelBrowserCommand(self);
+        rootNode.dispose();
+        rootNode.renew(self)
+      end
+    end
+    
+    @Operation setFocus()
+      self.commandInterpreter().setFocus(self)
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        type = Seq{"type",self.type()};
+        name = Seq{"name",name};
+        closable = Seq{"closable",closable};
+        isOpen = Seq{"isOpen",isOpen};
+        hasFocus = Seq{"hasFocus",hasFocus} then
+        attributes = Seq{id,type,name,closable,isOpen,hasFocus}
+      in
+        @Command(self) startElement("browser",attributes) end;
+        rootNode.synchronise();
+        @Command(self) endElement("browser") end
+      end
+    end
+        
+    @Operation type()
+      "com.ceteva.browser"
+    end
+
+  end

@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class SyncShape extends Shape
+  
+    @Constructor(x,y,width,height) 
+      self.outline := true;
+      self.calculatePoints()
+    end
+    
+    @Operation calculatePoints()
+      self.createPoints(width-1,height-2)
+    end
+    
+    @Operation createPoints(w,h)
+      self.addPoint(Point(w,h/2));
+      self.addPoint(Point((w/3)*2,0));
+      self.addPoint(Point(w/3,0));
+      self.addPoint(Point(0,h/2));
+      self.addPoint(Point(w/3,h));
+      self.addPoint(Point((w/3)*2,h))
+    end
+    
+    @Operation resize(width,height)
+      super(width,height);
+      self.resetShape();
+      self.calculatePoints();
+      self.redrawShape() 
+    end
+  
+  end

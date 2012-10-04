@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Node isabstract
+  
+    @AbstractOp code(net:Performable):Performable end
+    
+    @AbstractOp exportedVarEnv():Env end
+  
+    @AbstractOp moveConstraints(boundLater:Set(String)) end
+  
+    @AbstractOp setConstraints() end
+  
+    @AbstractOp setVars(preBound:Set(String)) end
+    
+    @AbstractOp varEnv():Env end
+  
+  end

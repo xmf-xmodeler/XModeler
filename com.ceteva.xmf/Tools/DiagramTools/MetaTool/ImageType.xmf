@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool 
+
+  @PaddedBox ImageType(ALIGN)
+    pad = 3
+    @Box imageAttribute(ALIGN,HORIZONTAL,hideTop,hideLeft,hideRight,hideBottom)
+      padLeft = 3
+      padRight = 3
+      padTop = 3
+      //@Image imageImage(LEFT) "Image.gif" width = 15 height = 15 end
+      @Image image(LEFT) "Image.gif" width = 15 height = 15 end
+      @PaddedText name(CENTRE)
+        "Image Attribute Name"
+        pad = 3
+        @Menu
+          @MenuAction Delete self.owner().owner().delete(true) end
+          @MenuItems Edit
+            @MenuAction Diagram self.owner().owner().edit() end
+            @MenuAction Model tool.find(self.owner().owner()).edit() end
+          end
+        end
+      end
+      Justification
+      MenuType
+    end
+    @PaddedText file(CENTRE) "Filename" pad = 3 end
+  end

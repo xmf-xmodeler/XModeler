@@ -1,0 +1,94 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;   
+
+@Manifest Clients
+                               @File[not Root.hasElement("Clients")] MiscOps                 end
+                               @File[not Root.hasElement("Clients")] Registry                end
+                               @File[not Root.hasElement("Clients")] RegistryExtensionPoints end
+                               @File[not Root.hasElement("Clients")] Preferences             end
+                               @File[not Root.hasElement("Clients")] Clients                 end
+                               @File[not Root.hasElement("Clients")] Point                   end
+                               @File[not Root.hasElement("Clients")] ClientElement           end
+                               @File[not Root.hasElement("Clients")] ElementViewerInterface  end
+                               @File[not Root.hasElement("Clients")] ElementViewer           end
+                               @File[not Root.hasElement("Clients")] Commandable             end
+                               @File[not Root.hasElement("Clients")] ContainedClientElement  end
+                               @File[not Root.hasElement("Clients")] CommandInterpreter      end
+                               @File[not Root.hasElement("Clients")] EventHandler            end
+                               @File[not Root.hasElement("Clients")] Client                  end
+                               @File[not Root.hasElement("Clients")] ExternalClient          end
+                               @File[not Root.hasElement("Clients")] IdManager               end
+                               @File[not Root.hasElement("Clients")] ClientManager           end  
+  ExtensionPoints            = @File ExtensionPoints/Manifest end
+  ModelClipboard             = @File ModelClipboard/Manifest end
+  Menus                      = @File Menus/Manifest end
+  Undo                       = @File Undo/Manifest end
+                               @File MenusXCore/Manifest end
+                               @File MenusLanguages/Manifest end
+  BrowserInterface           = @File BrowserInterface/Manifest end
+  Forms                      = @File Forms/Manifest end
+  ReportConstraint           = @File ReportConstraint/Manifest end
+  ExceptionReport            = @File ExceptionReport/Manifest end
+  SearchReport               = @File SearchReport/Manifest end
+  TypeCheck                  = @File TypeCheck/Manifest end
+  PropertyEditors            = @File PropertyEditors/Manifest end
+  PropertyEditorXCore        = @File PropertyEditorXCore/Manifest end
+  CollectionViewer           = @File CollectionViewer/Manifest end
+  Diagrams                   = @File Diagrams/Manifest end
+  DiagramsMapping            = @File DiagramsMapping/Manifest end
+  ClassDiagrams              = @File ClassDiagrams/Manifest end
+  ClassMapping               = @File ClassMapping/Manifest end
+  MappingDiagrams            = @File MappingDiagrams/Manifest end
+  MappingMapping             = @File MappingMapping/Manifest end
+  SnapshotDiagrams           = @File SnapshotDiagrams/Manifest end
+  SnapshotMapping            = @File SnapshotMapping/Manifest end
+  ModelBrowsers              = @File ModelBrowsers/Manifest end
+  DialogBoxes                = @File DialogBoxes/Manifest end
+  ModelBrowserXCore          = @File ModelBrowserXCore/Manifest end 
+  ProjectBrowser             = @File ProjectBrowser/Manifest end
+  FileBrowser                = @File FileBrowser/Manifest end 
+  TextEditor                 = @File TextEditor/Manifest end
+  XmfTextEditor              = @File XmfTextEditor/Manifest end 
+  PackageTextEditor          = @File PackageTextEditor/Manifest end 
+  LiveDocViewer              = @File LiveDocViewer/Manifest end
+  XmfFileTree                = @File XmfFileTree/Manifest end
+  Graphs                     = @File Graphs/Manifest end 
+  PerfMon                    = @File PerfMon/Manifest end 
+do
+  let Mosaic = ProjectManager("Mosaic",dir,self)
+  in Mosaic.add(Project(Clients::ExtensionPoints,xmf.homeDir() + "/Clients/ExtensionPoints",ExtensionPoints));
+     Mosaic.add(Project(Clients::ModelClipboard,xmf.homeDir() + "/Clients/ModelClipboard",ModelClipboard));
+     Mosaic.add(Project(Clients::Menus,xmf.homeDir() + "/Clients/Menus",Menus));
+     Mosaic.add(Project(Clients::BrowserInterface,xmf.homeDir() + "/Clients/BrowserInterface",BrowserInterface));
+     Mosaic.add(Project(Clients::Forms,xmf.homeDir() + "/Clients/Forms",Forms));
+     Mosaic.add(Project(Clients::ReportConstraint,xmf.homeDir() + "/Clients/ReportConstraint",ReportConstraint));
+     Mosaic.add(Project(Clients::ExceptionReport,xmf.homeDir() + "/Clients/ExceptionReport",ExceptionReport));
+     Mosaic.add(Project(Clients::SearchReport,xmf.homeDir() + "/Clients/SearchReport",SearchReport));
+     Mosaic.add(Project(Clients::TypeCheck,xmf.homeDir() + "/Clients/TypeCheck",TypeCheck));
+     Mosaic.add(Project(Clients::PropertyEditors,xmf.homeDir() + "/Clients/PropertyEditors",PropertyEditors));
+     Mosaic.add(Project(Clients::PropertyEditorXCore,xmf.homeDir() + "/Clients/PropertyEditorXCore",PropertyEditorXCore));
+     Mosaic.add(Project(Clients::CollectionViewer,xmf.homeDir() + "/Clients/CollectionViewer",CollectionViewer));
+     Mosaic.add(Project(Clients::Diagrams,xmf.homeDir() + "/Clients/Diagrams",Diagrams));
+     Mosaic.add(Project(Clients::DiagramsMapping,xmf.homeDir() + "/Clients/DiagramsMapping",DiagramsMapping));     
+     Mosaic.add(Project(Clients::ClassDiagrams,xmf.homeDir() + "/Clients/ClassDiagrams",ClassDiagrams));
+     Mosaic.add(Project(Clients::ClassMapping,xmf.homeDir() + "/Clients/ClassMapping",ClassMapping));
+     Mosaic.add(Project(Clients::MappingDiagrams,xmf.homeDir() + "/Clients/MappingDiagrams",MappingDiagrams));
+     Mosaic.add(Project(Clients::MappingMapping,xmf.homeDir() + "/Clients/MappingMapping",MappingMapping));
+     Mosaic.add(Project(Clients::SnapshotDiagrams,xmf.homeDir() + "/Clients/SnapshotDiagrams",SnapshotDiagrams));
+     Mosaic.add(Project(Clients::SnapshotMapping,xmf.homeDir() + "/Clients/SnapshotMapping",SnapshotMapping));
+     Mosaic.add(Project(Clients::ModelBrowsers,xmf.homeDir() + "/Clients/ModelBrowsers",ModelBrowsers));
+     Mosaic.add(Project(Clients::DialogBoxes,xmf.homeDir() + "/Clients/DialogBoxes",DialogBoxes));
+     Mosaic.add(Project(Clients::ModelBrowserXCore,xmf.homeDir() + "/Clients/ModelBrowserXCore",ModelBrowserXCore));
+     Mosaic.add(Project(Clients::ProjectBrowser,xmf.homeDir() + "/Clients/ProjectBrowser",ProjectBrowser));
+     Mosaic.add(Project(Clients::FileBrowser,xmf.homeDir() + "/Clients/FileBrowser",FileBrowser));
+     Mosaic.add(Project(Clients::TextEditor,xmf.homeDir() + "/Clients/TextEditor",TextEditor));
+     Mosaic.add(Project(Clients::XmfTextEditor,xmf.homeDir() + "/Clients/XmfTextEditor",XmfTextEditor));
+     Mosaic.add(Project(Clients::PackageTextEditor,xmf.homeDir() + "/Clients/PackageTextEditor",PackageTextEditor));
+     Mosaic.add(Project(Clients::LiveDocViewer,xmf.homeDir() + "/Clients/LiveDocViewer",LiveDocViewer));
+     Mosaic.add(Project(Clients::XmfFileTree,xmf.homeDir() + "/Clients/XmfFileTree",XmfFileTree));
+     Mosaic.add(Project(Clients::Graphs,xmf.homeDir() + "/Clients/Graphs",Graphs));
+     Mosaic.add(Project(Clients::PerfMon,xmf.homeDir() + "/Clients/PerfMon",PerfMon))
+  end
+end;

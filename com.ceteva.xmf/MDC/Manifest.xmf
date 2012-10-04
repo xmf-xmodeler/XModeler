@@ -1,0 +1,16 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MDC
+  m = @File MDC end
+  @Ref Displays end
+  @Ref Types end
+  @Ref MDCValues end
+  @Ref MDCTool end
+  @Ref Tool end
+  @Ref Util end
+  @File Extensions end
+  @File RegistryContributions end
+do Project(m.init(),dir,self) 
+end; 

@@ -1,0 +1,17 @@
+context Element
+  @Operation lift():Performable
+    @Doc 
+      Returns an expresion that when performed reconstructs
+      the receiver including any sharing in the receiver. This
+      is inten-ded to support the lifting of relatively small
+      values into their equivalent expressions.
+    end
+    let var = "table";
+        lifter = Walkers::Lift()
+    in [| let <var> = Stacks::Stack()
+          in <lifter.dispatch(self,OCL::Var(var))>
+          end
+       |]
+    end
+  end
+          

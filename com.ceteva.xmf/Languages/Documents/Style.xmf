@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  // A style associates a name and type with a specific render
+  // operation
+
+  @Class Style metaclass BrowsedClass extends DocumentElement
+      @Attribute name : String (?,!) end
+      @Attribute description : String (?,!) end
+      @Attribute type : Element (?,!) end
+      @Attribute renderOp : CompiledOperation (?,!) end
+  end

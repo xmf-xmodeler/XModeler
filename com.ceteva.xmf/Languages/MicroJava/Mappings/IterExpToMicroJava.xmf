@@ -1,0 +1,36 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation iterExpToMicroJava(C,op,x,e,locals) 
+  
+    let name = newName() then
+        var = OCL::Var(name)
+    in 
+  
+      @Case op of
+    
+        "exists" do OCLtoMicroJava([| <C> -> iterate(<x> <name> = false | <var> or <e>) |],locals) end
+       
+        "forAll" do OCLtoMicroJava([| <C> -> iterate(<x> <name> = true | <var> and <e>) |],locals) end
+      
+        "select" do OCLtoMicroJava([| <C> -> iterate(<x> <name> = <C>.emptyCopy() | if <e> then <var>->including(<OCL::Var(x)>) else <var> end) |],locals) end
+      
+        else CommentLine("Unknown iteration operator: " + op)
+      
+      end
+       
+    end
+    
+  end

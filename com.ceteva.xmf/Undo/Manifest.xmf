@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Undo
+  @File Undo end
+  @File UndoExecutionListener end
+  @File UndoStackListener end
+  @File UndoEngine end
+  @File Contribution end
+  @File Undoable end
+end;
+

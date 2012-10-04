@@ -1,0 +1,45 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class NameSpace extends Sugar
+  
+    @Doc
+       A name space is a named container of named elements. This construct allows a name
+       space to be defined statically together with some bindings. Once created, new
+       named elements can be added or existing ones removed.
+     
+       Constructor: NameSpace(bindings)
+         Each binding is an instance of OCL::ValueBinding.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      NameSpace ::= name = Name bindings = NameSpaceBindings { NameSpace(name,bindings) }.
+      NameSpaceBindings ::= Bindings | { Seq{} }.
+      
+    end 
+    
+    @Attribute name : String end
+    @Attribute bindings : Seq(ValueBinding) end
+    
+    @Constructor(name,bindings) end
+    
+    @Operation desugar() 
+      bindings->iterate(b e = [| XCore::NameSpace(<StrExp(name)>) |] | [| <e>.putElement(<StrExp(b.name)>,<b.value>) |])
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@NameSpace ~S~%~V",Seq{name,indent + 2});
+      @For b in bindings do
+        b.pprint(indent + 2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

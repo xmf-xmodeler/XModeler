@@ -1,0 +1,74 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+import Interfaces;
+
+context Interfaces
+
+  @Class Interface extends XCore::NameSpace, Performable
+  
+    @Doc 
+    
+      An interface is a collection of names, their types and their properties.
+      This class is also an example of how a class can act as its own syntax
+      definition. The class is a sub-class of Performable and therefore implements
+      the compile, maxLocals, FV and eval operations.
+      
+    end
+  
+    @Attribute defs : Seq(Def) end
+    
+    @Constructor(name,defs) end
+    
+    @Constructor(name) ! end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Interface ::= name = Name defs = Def* { Interface(Symbol(name),defs) }.
+      
+      Def ::= name = Name ':' type = TypeExp props = Properties 'end' { Def(Symbol(name),type,props) }.
+      
+      Properties ::= p = Property ps = (';' Property)* { Seq{p | ps} } | { Seq{} }.
+      
+      Property ::= name = Name ('=' value = LogicalExp { Property(name,value) } | { Property(name) }).
+      
+    end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      self.lift().compile(env,frame,isLast,saveSource)
+    end
+    
+    @Operation eval(target,env,imports)
+      self.lift().eval(target,env,imports)
+    end
+    
+    @Operation findDef(name:String):Def
+      @Find(def,defs)
+        when def.name.toString() = name
+        else null
+      end
+    end
+    
+    @Operation FV():Element
+      self.lift().FV()
+    end
+
+    @Operation lift():Performable
+      // Add the defs and properties...
+      let exp = super()
+      in defs->iterate(def exp = exp | 
+           [| let x = <exp> 
+              in <def.setProps([| x.findDef(<StrExp(def.name.toString())>) |])>;
+                 x.add(x.findDef(<StrExp(def.name.toString())>)) 
+              end 
+           |])
+      end
+    end
+    
+    @Operation maxLocals():Element
+      self.lift().maxLocals()
+    end
+      
+  end

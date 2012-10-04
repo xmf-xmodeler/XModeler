@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Const extends Recognizer
+  
+    // Pushes a constant onto the machine stack.
+    
+    @Attribute value : Element end
+    
+    @Constructor(value) end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      machine.pushStack(value)
+    end
+    
+    @Operation toExp()
+      [| Root::Parser::BNF::Const(<value.lift()>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import OCL;
+
+context Negate
+  @Operation FV():Element
+    exp.FV()
+  end
+
+context Negate
+  @Operation maxLocals():Element
+    exp.maxLocals()
+  end
+
+context Negate
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    @Case exp of
+      BinExp(left,"and",right) do
+        BinExp(Negate(left),"or",Negate(right)).compile(env,frame,isLast,saveSource)
+      end
+      BinExp(left,"or",right) do
+        BinExp(Negate(left),"and",Negate(right)).compile(env,frame,isLast,saveSource)
+      end
+      BoolExp(true) do
+        BoolExp(false).compile(env,frame,isLast,saveSource)
+      end
+      BoolExp(false) do
+        BoolExp(true).compile(env,frame,isLast,saveSource)
+      end
+      else
+        if self.isNotEmpty()
+        then exp.collection.compile(env,frame,false,saveSource) + Seq{Instrs::IsNotEmpty()}
+        else exp.compile(env,frame,false,saveSource) + Seq{Instrs::Negate()}
+        end
+    end
+  end
+  
+context Negate
+  @Operation isNotEmpty()
+    exp.isKindOf(CollExp) andthen
+    exp.collOp = "isEmpty"
+  end
+  
+context Negate
+  @Operation lift()
+    Apply(self.typeExp(),Seq{exp.lift()})
+  end

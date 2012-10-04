@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler SeqOfElement in Lift(s,arg,encountered)
+  if s->isEmpty
+  then [| Seq{} |]
+  else [| Seq{<self.dispatch(s->head,arg)> | <self.dispatch(s->tail,arg)>} |]
+  end
+end;

@@ -1,0 +1,104 @@
+parserImport XOCL;
+
+import MDC;
+import Values;
+import Types;
+import Clients;
+import Diagrams;
+
+context ! Values
+
+  @Class EdgeSlot
+  
+    @Attribute source : Object           (?,!) end
+    @Attribute type   : Attribute_x_Edge (?,!) end
+    @Attribute target : Value            (?,!) end
+    @Attribute edge   : Edge             (?,!) end
+    
+    @Constructor(edge,type,source,target) 
+    end
+    
+    @Operation labelChanged(tool,label,new,old)
+      
+      // Called when one of the labels on the edge has been
+      // modified. Fire all the listeners for the label...
+      
+      @Find(labelMap,type.labels())
+        when labelMap.label() = label.type()
+        do labelMap.fireListeners(tool,source.element(),target.element(),new,old)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"EdgeSlot~%~V",Seq{indent+2});
+      format(out,"Source: ~S~%~V",Seq{source,indent+2});
+      format(out,"Target:~%~V",Seq{indent+4});
+      target.pprint(out,indent+4);
+      format(out,"~%~Vend",Seq{indent+2})
+    end
+        
+    @Operation remove(tool,sourceNode,targetNode)
+    
+      // Called when the edge has been removed from the diagram
+      // and we want to perform the appropriate change to the
+      // underlying object...
+
+      type.edgeRemoved(tool,source.element(),target.element())
+    end
+    
+    @Operation sourceReconnected(tool,newValue,oldValue)
+    
+      // Called when the diagram has been edited. Change
+      // the source object and update the appropriate slot.
+      // checks that the type of the new node is compatible.
+
+
+      if newValue.display().type().inheritsFrom(type.edgeType.source().name.toString(),tool)
+      then
+        let result = type.sourceReconnected(tool,target.element(),newValue.element(),oldValue.element())
+        in
+          self.setSource(newValue);
+          result
+        end
+      else
+        xmf.message("Cannot reconnect source - illegal node type.");
+        edge.sourceReconnected(oldValue.display().port())
+      end
+    end
+    
+    @Operation stateChanged(tool,object,slot,newValue)
+    
+      // A message that is broadcast each time a slot
+      // is updated. If the source of the edge is the
+      // modified object and the edge represents the slot
+      // then we must take action. Assumes that the newValue
+      // corresponds to a node that already exists on the 
+      // diagram ...
+      
+      if source.element() = object and
+         type.attribute().name() = slot
+      then
+        edge.targetReconnected(newValue.display().port());
+        self.target := newValue
+      end
+    end
+    
+    @Operation targetReconnected(tool,newValue,oldValue)
+    
+      // Called whenthe diagram has been edited. Change the
+      // value in the slot.
+      
+      if newValue.display().type().inheritsFrom(type.edgeType.target().name.toString(),tool)
+      then
+        let result = type.targetReconnected(tool,source.element(),newValue.element(),oldValue.element())
+        in
+          self.setTarget(newValue);
+          result
+        end
+      else
+        xmf.message("Cannot reconnect target - illegal node type.");
+        edge.targetReconnected(oldValue.display().root().port())
+      end
+    end
+    
+  end

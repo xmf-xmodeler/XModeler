@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context Root
+  @Package Processes
+    @Class Model
+      @Attribute processes : Set(Process) end
+    end
+    @Class Process
+      @Attribute ports : Set(Port) end
+      @Attribute out : Port end
+      @Attribute model : Model = Model() end
+    end
+    @Class Port isabstract
+    end
+    @Class InPort extends Port 
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class OutPort extends Port
+    end
+  end
+  
+context Root
+  @Operation processTool()
+    RootElementType(Processes::Model,"Process Diagram").edit()
+  end

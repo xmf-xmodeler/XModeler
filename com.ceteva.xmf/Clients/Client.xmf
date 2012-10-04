@@ -1,0 +1,148 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Class Client isabstract extends Contained
+  
+    @Doc
+      XMF acts as a server for a number of clients. Clients are connected to XMF via
+      XOS and communicate via messages. Outgoing messages from XMF are called commands
+      and are handled by the clients command interpreter. Incoming messages are called
+      events and are handled by the clients event handler.
+    end
+  
+    @Attribute name               : String                 end
+    @Attribute commandInterpreter : CommandInterpreter (?) end
+    @Attribute eventHandler       : EventHandler (?)       end
+    
+    @Operation allocateId(element:ClientElement)
+      if owner <> null
+      then owner.allocateId(element)
+      else self.error("Client has no owner.")
+      end
+    end
+    
+    @Operation debug(debug)
+      if commandInterpreter <> null
+      then commandInterpreter.debug(debug)
+      end;
+      if eventHandler <> null
+      then eventHandler.debug(debug)
+      end
+    end
+    
+    @Operation find(id)
+      if owner <> null
+      then owner.find(id)
+      else self.error("Client::find: no owner.")
+      end
+    end
+    
+    @Operation flush()
+      commandInterpreter.flush()
+    end
+    
+    @Operation handles(type)
+      false
+    end
+    
+    @Operation hasCommandInterpreter()
+      self.commandInterpreter <> null
+    end
+    
+    @Operation mappingsFor(package)
+      Set{}
+    end
+    
+    @Operation preSave()
+      // Clients contain message interpreters and event handlers that cannot be saved
+      // and which are linked to the elements in the client that can be saved (via
+      // their 'owner' slot). Prior to saving, all contained elements are delinked from
+      // the client.
+      self
+    end
+    
+    @Operation postSave()
+      // Relink contained elements.
+      self
+    end
+    
+    @Operation readLayout(file:String)
+    
+      // Reads layout information from the supplied XML file.
+      // Careful to remove any whitespace in the file after it
+      // is read. Whitespace may have been written out if the
+      // output has been formatted.
+      
+      if file.fileExists()
+      then
+        @WithOpenFile(fin <- file)
+          let xin = DOMInputChannel(fin)
+          in xin.parse().stripWhiteSpace().root()
+          end
+        end
+      else null
+      end
+    end
+    
+    @Operation renew() 
+    
+      // Called when the system wants to re-send all the messages to the clients to
+      // recreate the state of the client. This happens, for example, when an image
+      // is loaded. The behaviour will depend on the client. The default is to do 
+      // nothing.
+      
+      null
+    end
+
+    @Operation renew(element) 
+    
+      // Called when the system wants to re-send all the messages to the clients to
+      // recreate the state of the client. This happens, for example, when an image
+      // is loaded. The behaviour will depend on the client. The default is to do 
+      // nothing.
+      
+      null
+    end
+
+    @Operation renewAll(elements : SeqOfElement) 
+
+      // Called when the system wants to re-send all the messages to the clients to
+      // recreate the state of the client. This happens, for example, when an image
+      // is loaded. The behaviour will depend on the client. The default is to call
+      // renew on each of the elements.
+
+      @For e in elements do
+        self.renew(element)
+      end
+    end
+
+    @Operation setCommandInterpreter(c:CommandInterpreter)
+      self.commandInterpreter := c;
+      if c.owner = null then c.setOwner(self) end
+    end
+    
+    @Operation setEventHandler(e:EventHandler)
+      self.eventHandler := e;
+      if e.owner = null then e.setOwner(self) end
+    end
+    
+    @Operation start()
+      eventHandler.start()
+    end
+    
+    @Operation synchronise()
+    
+      // All clients can synchronise their external state with their internal
+      // state
+    
+      self
+    end
+    
+    @Operation toString():String
+      "Client(" + name + ")"
+    end
+    
+  end

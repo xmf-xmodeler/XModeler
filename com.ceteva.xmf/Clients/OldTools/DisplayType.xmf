@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class DisplayType isabstract extends RightClickable
+  
+    @Attribute operations : Seq(Operation)        (+,-) end
+    
+    @Operation layout(object,x,y,width,height) 
+      object.layout(x,y,width,height)
+    end
+    
+    @AbstractOp new(tool,parent,x,y,width,height,name) end
+    
+    @Operation sendMessage(target,message,args)
+      @Find(operation,operations)
+        when operation.name.toString() = message
+        do operation.invoke(target,args)
+        else self.error("Cannot find operation with name " + message)
+      end
+    end
+  
+    
+  end

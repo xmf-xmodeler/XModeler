@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class This extends JExp
+  
+    @Operation pprint(out)
+      format(out,"this")
+    end
+    
+  end

@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Walkers
+  @File Walkers end
+  @File Walker end
+  @File Handler end
+  @File ConstraintReporter end
+  @File DispatchError end
+  @File DispatchingObject end
+  @File Dispatcher end
+  @File Find end
+  @File FindBound end
+  @File Flatten end
+  @File Fix end
+  @File RelinkOwner end
+  @File Subst end
+  @File SyntaxPattern end
+  @File TypeCheckReport end
+  @File TypeCheckError end
+  @File TypeChecker end
+  @File Walk end
+  @Ref Lift end
+  @Ref RefFinder end
+do
+  Project(Walkers,dir,self)
+end;
+    

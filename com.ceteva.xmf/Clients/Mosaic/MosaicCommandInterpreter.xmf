@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Clients;
+import Mosaic;
+
+context Mosaic
+
+  @Class MosaicCommandInterpreter extends CommandInterpreter
+  
+    @Operation newPerspective(perspective:Perspective)
+      let id = self.allocateId(perspective) 
+      in
+        @SendCommand(self)
+          newPerspective(id,perspective.title(),perspective.image())
+        end
+      end
+    end
+    
+    @Operation newPlaceHolder(placeholder:PlaceHolder)
+      let id = self.allocateId(placeholder)
+      in
+        @SendCommand(self)
+          newPlaceHolder(placeholder.owner.id(),id,placeholder.position(),placeholder.relative(),placeholder.ratio())
+        end
+      end
+    end
+    
+    @Operation newPlaceHolderType(placeholder:PlaceHolder,type:String)
+      @SendCommand(self)
+        newPlaceHolderType(placeholder.id(),type)
+      end
+    end
+    
+    @Operation setFilenameRedirect(source:String,target:String)
+      @SendCommand(self)
+        setFilenameRedirect(source,target)
+      end
+    end
+  
+    @Operation showPerspective(perspective:Perspective)
+      @SendCommand(self)
+        showPerspective(perspective.id())
+      end
+    end
+  
+    @Operation shutdown()
+      @SendCommand(self)
+        shutdown()
+      end
+    end
+    
+  end

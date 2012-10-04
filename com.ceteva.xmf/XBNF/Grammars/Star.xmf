@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Star extends Recognizer
+  
+    @Attribute base : Recognizer end
+    
+    @Constructor(base) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      base.CNF(grammar,BV,
+        @Operation(base,baseBV,newClauses)
+          let newName = grammar.newNT();
+              FV = BV->select(v | self.base.FV()->includes(v)) then
+              BOA = FV->collect(a | BV->indexOf(a)) then
+              call = Call(newName,FV,BOA) then
+              clause = Clause(newName,FV,Seq{Seq{Empty(),NilAction()},base + Seq{call,ConsAction()}},FV->size + baseBV->size)
+          in handler(Seq{call},BV,newClauses->including(clause))
+          end
+        end)
+    end
+  
+    @Operation FV():Set(String)
+      base.FV()
+    end
+    
+    @Operation pprint(out,indent)
+      base.pprint(out,indent);
+      format(out,"*")
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      base.setLocals(locals,next)
+    end
+    
+    @Operation terminals():Set(String)
+      base.terminals()
+    end
+   
+  end

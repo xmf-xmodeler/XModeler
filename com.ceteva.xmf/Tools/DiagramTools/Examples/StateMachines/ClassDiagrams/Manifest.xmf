@@ -1,0 +1,23 @@
+parserImport Manifests;
+
+@Manifest ClassDiagrams
+  @File ToolDescriptor end
+  @File ToolType end
+  @File ElementManager end
+  @File AddAttribute end
+  @File AttributeNameChanged end
+  @File AttributeTypeChanged end
+  @File AttributeRemoved end
+  @File AttributeTargetChanged end
+  @File AttributeSourceChanged end
+  @File ClassNameChanged end
+  @File ClassRemoved end
+  @File InheritanceSourceChanged end
+  @File InheritanceTargetChanged end
+  @File NewAttribute end
+  @File NewClass end
+  @File NewClock end
+  @File NewConsumer end
+  @File NewInheritance end
+  @File ShowDiagram end
+end;

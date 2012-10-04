@@ -1,0 +1,192 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+
+import Parser::BNF;
+import XML;
+import IO;
+
+context XML
+
+// Defines a grammar for XMI that is targeted at XMI 1.1
+// and Rose XDE.
+
+@Grammar XMI
+
+  XMI ::= <XMI> [ Header ] model = Content </XMI>.
+  
+  Header ::= <XMI.header/>.
+  
+  Content ::= <XMI.content> defs = Def* </XMI.content>.
+  
+  Def ::= Model | ANY.
+  
+  Model ::= 
+    <UML:Model id = xmi.id
+      name = name> owned = Owned 
+    </UML:Model> id := {owned->select(o | 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package) or
+      o.isReallyKindOf(Associations::Association))->
+        iterate(o p = XCore::Package(name) | p.add(o))}.
+   
+   Package ::= 
+    <UML:Package id = xmi.id
+      name = name> 
+      owned = Owned 
+    </UML:Package> id := {owned->select(o | 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package) or
+      o.isReallyKindOf(Associations::Association))->iterate(o p = XCore::Package(name) | p.add(o))}.
+   
+  Owned ::=  
+    <UML:Namespace.ownedElement> 
+      elements = Element* 
+    </UML:Namespace.ownedElement>.
+    
+  Element ::= DataType | Class | Package | Association | Interface | AssociationClass | ANY.
+    
+  DataType ::= 
+    <UML:DataType id = xmi.id name = name> 
+    </DataType> id := { 
+    @Case name of
+      "Boolean" do XCore::Boolean end
+      "Integer" do XCore::Integer end
+      "String" do XCore::String end
+      else XCore::Class(name)
+    end
+  }.
+  
+  Class ::= 
+    <UML:Class id = xmi.id name = name isAbstract = isAbstract> 
+      genElements = (OwnedGenElement | {Seq{}}) 
+      features = (ClassifierFeature | {Seq{}})
+    </UML:Class> id := { 
+      features->select(f | f.isKindOf(XCore::Attribute))->iterate(f c = 
+        XCore::Class[name = name, 
+                     parents = genElements->asSet, 
+                     isAbstract = if isAbstract = "true" 
+                                  then true 
+                                  else false end] | c.add(f))}.
+   OwnedGenElement ::= 
+    <UML:Namespace.ownedElement> 
+      elements = Gen*  
+    </UML:Namespace.ownedElement>.    
+      
+   Interface ::= 
+    <UML:Interface id = xmi.id name = name> 
+    </UML:Interface> id := {XCore::Class[name = name]}. 
+    
+   AssociationClass ::= 
+    <UML:AssociationClass id = xmi.id name = name> 
+    </UML:AssociationClass> id := {XCore::Class[name = name]}.     
+      
+  Gen ::= <UML:Generalization id = xmi.id parent = parent/> {XML::Parser::Ref(parent)}.
+
+  ClassifierFeature ::= 
+    <UML:Classifier.feature> 
+      feature = Feature* 
+    </UML:Classifier.feature> {feature}. 
+  
+  Feature ::= Attribute | Operation.
+  
+  Attribute ::= 
+    <UML:Attribute id = xmi.id name = name> 
+      type = (FeatureType | {XCore::String}) 
+    </Attribute> 
+    {XCore::Attribute(name,type)}.
+    
+  FeatureType ::= 
+    <UML:StructuralFeature.type> 
+      type = Type 
+    </UML:StructuralFeature.type> {type}.
+  
+  Type ::= <UML:DataType id = xmi.idref/> {XML::Parser::Ref(type)}.
+    
+  Operation ::= 
+    <UML:Operation id = xmi.id name = name> 
+    </UML:Operation> {@Operation() self end}.
+        
+  Association ::= 
+    <UML:Association id = xmi.id nameid = xmi.id name = name> 
+      connection = Connection 
+    </UML:Association> id := { 
+      let a = Associations::Association(if name = "" then nameid else name end);
+          end1 = connection->at(0); 
+          end2 = connection->at(1)
+      in if end1.name.toString() = "" then end1.setName("end1") end; 
+            a.setEnd1(end1); 
+         if end2.name.toString() = "" then end2.setName("end2") end;   
+            a.setEnd2(end2)
+      end}.
+      
+  Connection ::= 
+    <UML:Association.connection> 
+      ends = End* 
+    </UML:Association.connection> {ends}.
+    
+  End ::= 
+    <UML:AssociationEnd id = xmi.id name = name participant = participant> 
+      endmult = (EndMultiplicity | {Associations::One()}) 
+    </UML:AssociationEnd> id := {
+      Associations::End(name,XML::Parser::Ref(participant),endmult)}.
+       
+  EndMultiplicity ::= 
+    <UML:AssociationEnd.multiplicity> 
+      mult = Multiplicity 
+    </UML:AssociationEnd.multiplicity> {mult}.
+    
+  Multiplicity ::= 
+    <UML:Multiplicity>  
+      range1 = Range1 
+    </UML:Multiplicity> {range1}.
+    
+  Range1 ::= 
+    <UML:Multiplicity.range> 
+      range2 = Range2 
+    </UML:Multiplicity.range> {range2}.
+    
+  Range2 ::=  
+    <UML:MultiplicityRange lower = lower upper = upper> 
+    </UML:MultiplicityRange> {
+      if lower = "1" and upper = "1" then 
+        Associations::One()
+      elseif lower = "0" and upper = "n" then 
+        Associations::Star() 
+      elseif lower = "0" and upper = "1" then 
+        Associations::Opt() 
+      elseif lower = "1" and upper = "n" then 
+        Associations::Mandatory()
+      else
+        Associations::Star()  
+      end}.
+            
+  Classifier ::= <UML:Class id = xmi.idref/> {id}.  
+  
+end
+   
+context Package
+  @Operation loadXMI()
+    @Doc
+      Prompts for an XMI file and loads the XMI transforming it to the
+      equivalent XMF representation of models and adding them to the
+      receiver of the message.
+    end
+    let file = xmf.openFile(xmf.homeDir(),"*.xmi")
+    in if file.fileExists()
+       then 
+         let i = XMLInputChannel(FileInputChannel(file)) then
+             models = XMI.parse(Seq{i.read().stripWhiteSpace().root},"XMI")
+         in @For model in models do
+              if model.isReallyKindOf(XCore::Package)
+              then 
+                self.add(model);
+                model.init()
+              end
+            end
+         end
+       end
+     end
+   end
+ 

@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler Transition_action_Changed()
+    let transition = find(event.value());
+        action = event.value().exp() 
+    in transition.setAction(action)
+    end
+  end

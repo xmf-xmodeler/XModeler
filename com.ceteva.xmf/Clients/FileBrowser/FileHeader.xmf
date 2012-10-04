@@ -1,0 +1,122 @@
+parserImport XOCL;
+
+import IO;
+
+context Directory
+  @Operation addHeaders()
+    xmf.message("Choose the file containing the header you wish to apply");
+    let headerfile = xmf.openFile(xmf.projDir(),"")
+    in
+      let extst = xmf.input("Enter file extensions","Enter a comma separated list of the file extensions to apply the header to","")
+      in
+        if extst <> null
+        then
+          let exts = extst.splitBy(",",0,0)
+          in
+            if headerfile <> "" and not exts.isEmpty()
+            then
+            
+              // get the header text and apply it
+        
+              let 
+                inch = FileInputChannel(headerfile) then
+                headertext = inch.asString()
+              in
+                self.addHeader(headertext,exts);
+                inch.close()
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+context Directory
+  @Operation addHeader(header:String,exts:Seq(String))
+    @For content in self.contents.values()
+    do
+      content.addHeader(header,exts)
+    end
+  end
+  
+context File
+  @Operation addHeader(header:String,exts:Seq(String))
+    let extension = self.getExtension()
+    in
+      @For e in exts
+      do
+        if extension = e
+        then
+        
+          // remove existing header information
+          
+          // self.removeHeader(exts);
+        
+          // get the current contents of the file
+        
+          let 
+            filename = self.fullPath() then
+            inch = FileInputChannel(filename) then
+            filetext = inch.asString()
+          in
+            inch.close();
+            
+            // write to the same filename the header + contents
+            
+            let outch = FileOutputChannel(filename)
+            in 
+              format(outch,"~S~S",Seq{header,filetext});
+              outch.close()
+            end
+          end
+        end
+      end
+    end
+  end
+  
+context File
+  @Operation removeHeader(exts:Seq(String))
+    let extension = self.getExtension()
+    in
+      @For e in exts
+      do
+        if extension = e
+        then
+         
+           // get the current contents of the file
+        
+          let 
+            filename = self.fullPath() then
+            inch = FileInputChannel(filename) then
+            filetext = inch.asString()
+          in
+            inch.close();
+            
+            // find position of first parserImport
+            
+            let position = filetext.indexOf("parserImport",0)
+            in
+              if position <> 0-1
+              then
+              
+                // remove everything before the parserImport
+              
+                filetext := filetext.subString(position,filetext.size())
+                
+              end
+            end;
+            
+            // write to the same filename less the header
+            
+            let outch = FileOutputChannel(filename)
+            in 
+              format(outch,"~S",Seq{filetext});
+              outch.close()
+            end
+            
+          end
+        end
+      end
+    end
+  end

@@ -1,0 +1,182 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class AttributeXAttributeEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute attribute      : XCore::Attribute end
+    @Attribute edge           : AttributeEdge (?) end
+    @Attribute changingSource : Boolean = false end
+    @Attribute constraint	  : Constraint end
+    
+    @Constructor(attribute,edge) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{attribute.of(),edge.of()});
+      self.setGlobalMenu(edge.name,Symbol("Attribute Edge Name Diagram Label"));
+      self.setGlobalMenu(edge.mult,Symbol("Attribute Edge Mult Diagram Label"))
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = attribute.of();
+          clientType = rightClickable.of()
+      in
+        if rightClickable = edge
+        then
+          xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                    AttributeXAttributeEdge::proxyElementTarget)
+        elseif rightClickable = edge.name
+        then
+          globalMenu.add(MenuAction("Set Multiplicity",RightClickableProxy::proxyTarget,Seq{},AttributeXAttributeEdge::setMultiplicity))
+        else // mult
+          globalMenu.add(MenuAction("Edit",RightClickableProxy::proxyTarget,Seq{},AttributeXAttributeEdge::setMultiplicity))
+        end;
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).attribute
+    end
+    
+    @Operation attributeMultChangedDaemon(attribute,slot,newMult,oldMult)
+      if newMult <> oldMult and newMult.isReallyKindOf(XCore::Multiplicity)
+      then edge.setMult(self.calcMultLabelString(newMult))
+      end
+    end
+    
+    @Operation attributeSourceChangedDaemon(edge,slot,newPort,oldPort)
+      owner.attributeSourceChanged(self,newPort.owner)
+    end
+    
+    @Operation attributeTargetChangedDaemon(edge,slot,newPort,oldPort)
+      owner.attributeTargetChanged(self,newPort.owner)
+    end
+    
+    @Operation checkAttributeDaemons()
+      @SlotValueChanged multi once AttributeXAttributeEdge::nameChanged_classDiagramDaemon(attribute,"name")   end;
+      @SlotValueChanged multi once AttributeXAttributeEdge::attributeMultChangedDaemon(attribute,"mult")  	   end;
+      @SlotValueChanged multi once AttributeXAttributeEdge::ownerChanged_classDiagramDaemon(attribute,"owner") end;
+      @SlotValueChanged multi once AttributeXAttributeEdge::typeChanged_classDiagramDaemon(attribute,"type")   end
+    end
+    
+    @Operation checkDaemons()
+      super();
+      self.checkAttributeDaemons();
+      self.checkEdgeDaemons()
+    end
+    
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once AttributeXAttributeEdge::nameChangedDaemon(edge.name,"text")         end;
+      @SlotValueChanged multi once AttributeXAttributeEdge::attributeSourceChangedDaemon(edge,"source") end;
+      @SlotValueChanged multi once AttributeXAttributeEdge::attributeTargetChangedDaemon(edge,"target") end
+    end
+    
+    @Operation checkMult()
+      if not attribute.mult.isReallyKindOf(XCore::Multiplicity)
+      then
+        let multLabelString = edge.mult.text
+        in
+          @Case multLabelString of
+            "{ordered}" do
+              edge.setMult("* <<ordered>>");
+              attribute.setMultString("$")
+            end
+            "Mandatory 1" do
+              edge.setMult("1 <<mandatory>>");
+              attribute.setMultString("!")
+            end
+          else
+              attribute.setMultString(multLabelString)
+          end
+        end
+      end
+    end
+    
+    @Operation deleteEdgeFromDiagram()
+      edge.delete();
+      self.owner.remove(self)
+    end
+    
+    @Operation hotLoaded()
+      self.checkMult();
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{attribute.of(),edge.of()},false);
+      self.setGlobalMenu(edge.name,Symbol("Attribute Edge Name Diagram Label"),false);
+      self.setGlobalMenu(edge.mult,Symbol("Attribute Edge Mult Diagram Label"),false)
+    end
+    
+    @Operation nameChangedDaemon(obj,slot,newName,oldName)
+      if attribute.name.toString() <> newName
+      then 
+        attribute.setName(newName)
+      end
+    end
+    
+    @Operation nameChanged_classDiagramDaemon(attribute,slot,newName,oldName)
+      if edge.name() <> newName.toString()
+      then edge.setName(newName.toString())
+      end
+    end
+    
+    @Operation ownerChanged_classDiagramDaemon(attribute,slot,newOwner,oldOwner)
+      if oldOwner <> null and newOwner <> oldOwner
+      then owner.attributeOwnerChanged(self)
+      end
+    end
+    
+    @Operation typeChanged_classDiagramDaemon(attribute,slot,newType,oldType)
+      if oldType <> null and newType <> oldType
+      then owner.attributeTypeChanged(self)
+      end
+    end
+    
+    @Operation removeDaemons()
+    
+      // Called when this mapping is no longer valid.
+      
+      super();
+      attribute.removeDaemonsWithTarget(self,true);
+      edge.removeDaemonsWithTarget(self,true);
+      edge.name.removeDaemonsWithTarget(self,true);
+      edge.mult.removeDaemonsWithTarget(self,true)
+      
+    end
+    
+    @Operation calcMultLabelString(mult):String
+      @TypeCase(mult)
+        SingleMult do
+          if mult.isMandatory
+          then "1 <<mandatory>>"
+          else ""
+          end
+        end
+        CollectionMult do
+          if mult.isOrdered
+          then mult.simpleMultString() + " <<ordered>>"
+          else mult.simpleMultString()
+          end
+        end
+        else mult.toString()
+      end
+    end
+
+    @Operation setMultiplicity()
+      attribute.setMultString_client()
+    end
+
+    @Operation element()
+      attribute
+    end
+
+  end

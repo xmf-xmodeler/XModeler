@@ -1,0 +1,60 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class CallCommand extends Sugar
+  
+    @Doc
+      Use this form to perform calls to a command interpreter. It allows a variable
+      number of arguments to be sent as part of the call without allocating any
+      storage for them.
+    end
+    
+    @Attribute commandInterpreter : Performable      end
+    @Attribute name               : String           end
+    @Attribute args               : Seq(Performable) end
+    
+    @Constructor(commandInterpreter,name,args) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      CallCommand ::= '(' commandInterpreter = Exp ')'
+        name = Name '(' args = CommandArgs ')' { 
+          CallCommand(commandInterpreter,name,args) 
+      }.
+      
+      CommandArgs ::= arg = Exp args = (',' Exp)* { Seq{ arg | args } } | { Seq{} }.
+      
+    end
+    
+    @Operation desugar():Performable
+     [| let 
+          scci = <commandInterpreter>
+        in
+          <let 
+             op = [| Kernel_call |] then
+             arg1 = [| scci.owner.name |] then
+             headArg = StrExp(name) then
+             arg2 = SetExp("Seq",Seq{headArg | args})
+           in
+             Apply(op,Seq{arg1,[| <arg2>->asVector |] })
+           end>
+        end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@CallCommand(");
+      commandInterpreter.pprint(out,indent);
+      format(out,")~%~V~S(",Seq{indent+2,name});
+      @For arg in args do
+        arg.pprint(out,indent+2);
+        if not isLast then format(out,",") end
+      end;
+      format(out,")~%~Vend",Seq{indent})
+    end
+    
+  end

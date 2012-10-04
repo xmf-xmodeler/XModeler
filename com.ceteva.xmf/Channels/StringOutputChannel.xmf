@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class StringOutputChannel extends OutputChannel
+    
+    @Doc
+      An output channel that buffers its chars up in a string.
+      Use 'getString/0' to get the string from the channel.
+      
+      Constructor: StringOutputChannel()
+    end
+       
+     @Attribute chars : Seq(Integer) end
+           
+     @Operation close():Element
+      
+       @Doc
+         Call this operation when use of the channel is complete.
+       end
+         
+       self
+     end
+     
+     @Operation flush() 
+       self
+     end
+       
+     @Operation getString():String
+       
+       @Doc
+         Get the string managed by a string output channel.
+       end
+         
+       let string = Kernel_mkString(chars->size);
+           index = chars->size - 1;
+           chars = self.chars
+       in @While not chars->isEmpty do
+             Kernel_setCharAt(string,index,chars->head);
+             chars := chars->tail;
+             index := index - 1
+          end;
+          string
+       end
+     end
+       
+     @Operation write(char)
+       self.chars := Seq{char | chars}
+     end
+       
+   end

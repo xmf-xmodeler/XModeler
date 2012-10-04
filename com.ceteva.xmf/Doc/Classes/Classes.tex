@@ -1,0 +1,190 @@
+\documentclass{article}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\lhead{}
+\chead{Classes, Classification and Meta-classes in XMF}
+\rhead{\thepage}
+\cfoot{(c) 2004 Ceteva Ltd.}
+
+\title{Classes, Classification and Meta-classes in XMF\\(Incomplete Draft)}
+
+\author{Ceteva Ltd.}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+XMF is a class-based object-oriented modelling environment. Each value in XMF has a type or {\em classifier}
+that describes its structure and behaviour. Values in XMF are divided into objects and non-objects. Object
+types are called {\em classes} and non-object types are called {\em classifiers}. If a value {\em v} is of a 
+type {\em c} then we say that {\em v} is an instance of {\em c}. XMF is provided with a large number of classes 
+and classifiers; XMF developers can define their own classes and classifiers as extensions of those provided.
+
+Classes and classifiers {\em classify} their instances by running {\em constraints}. A constraint is a
+boolean valued expression that runs in the context of the current state of the candidate instance. The
+outcome of constraint checking is a constraint report containing details of the constraints that were
+performed, the candidates, the outcome and a reason for any constraints that failed. Constraint checking is
+a powerful mechanism for checking whether a model or a model scenario is correctly formed.
+
+XMF is a meta-modelling environment. Values are instances of classes and classifiers. Classes and classifiers 
+are themselves instances of meta-classes; the meta-classes describe the structure and behaviour of their
+instances - including information relating to constraint checking. New types of classes can be created by
+extending the basic meta-classes provided by XMF. Meta-extensions are a powerful tool that allows XMF to be
+extended with new modelling features.
+
+This note describes features of XMF classes and classifiers. 
+
+\section{Classes}
+
+A class describes the structure and behaviour of its instances. A class has a name and lives in a name-space.
+The following is a basic class that lives in the name-space {\tt Root}:
+\begin{verbatim}
+context Root
+  @Class EmptyClass end
+\end{verbatim}
+By default, the class {\tt EmptyClass} specializes the XMF class {\tt Object} and provides a single
+constructor for creating instances: {\tt EmptyClass()}. If we perform the following expression:
+\begin{verbatim}
+EmptyClass().isKindOf(EmptyClass)
+\end{verbatim}
+then the result is {\tt true} since the newly created instance is directly an instance of {\tt EmptyClasss}.
+In addition, the expression:
+\begin{verbatim}
+EmptyClass().isKindOf(Object) and EmptyClass().isKindOf(Element)
+\end{verbatim}
+returns true since {\tt EmptyClass} inherits (bu default) from {\tt Object} and {\tt Object} inherits
+from {\tt Element} (the class {\tt Element} does not inherit from anywhere). The class {\tt EmptyClass}
+is itself a value:
+\begin{verbatim}
+EmptyClass.isKindOf(Class) and 
+EmptyClass.isKindOf(Classifier) and 
+EmptyClass.isKindOf(NamedElement) and
+EmptyClass.isKindOf(Object) and 
+EmptyClass.isKindOf(Element)
+\end{verbatim}
+returns {\tt true}.
+
+\subsection{Attributes}
+
+A class typically defines some attributes that correspond to slots in the instancs of the class.
+Each attribute has a name and a type and may optionally have some modifiers and an initial value.
+The following is a simple example of a class with attributes:
+\begin{verbatim}
+context Root
+  @Class Point 
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    @Constructor(x,y) ! end
+  end
+\end{verbatim}
+A new point is creates using the constructor defined by {\tt Point}. A class may define any number of
+constructors; each constructor must have a different number of arguments. Each constructor argument
+corresponds to one of the attributes in the class. The optional modifier {\tt !} declares that the
+printed representation for a point is defined by that constructor.
+A new {\tt Point} is constructed:
+\begin{verbatim}
+Point(100,200)
+\end{verbatim}
+where {\tt 100} is the value of the slot {\tt x} and {\tt 200} is the value of the slot {\tt y}.
+Accessor and updater operations are automatically produced by including attribute modifiers:
+\begin{verbatim}
+context Root
+  @Class Point 
+    @Attribute x : Integer (?,!) end
+    @Attribute y : Integer (?,!) end
+    @Constructor(x,y) ! end
+  end
+\end{verbatim}
+The modifier {\tt ?} defines that operations {\tt getX} and {\tt getY} are automatically provided;
+modifier {\tt !} defines that operations {\tt setX} and {\tt setY} are automatically provided:
+\begin{verbatim}
+let p = Point(100,200)
+in p.setX(p.getX() - 1);
+   p.setY(p.getY() - 1)
+end
+\end{verbatim}
+
+\subsection{Inheritance}
+
+All classes are specializations or {\em sub-classes} of at least one other class. By default
+a class is a sub-class of {\tt Object}. A class inherits constructors, attributes, operations
+and constraints from its parent. For example the following class specializes {\tt Point}
+with a {\tt z} co-ordinate:
+\begin{verbatim}
+context Root
+  @Class Point3D extends Point
+    @Attribute z : Integer (?,!) end
+    @Constructor(x,y,z) ! end
+  end
+\end{verbatim}
+An instance of {\tt Point3D} may be constructed using a two-place constructor or a three-place 
+constructor (the three-place is probably more useful). An instance of the class {\tt Point3D} is
+also an instance of the parent class {\tt Point}:
+\begin{verbatim}
+let p = Point3D(1,2,3)
+in p.isKindOf(Point)
+end
+\end{verbatim}
+returns {\tt true}.
+
+\subsection{Operations}
+
+Object-oriented execution proceeds by message passing; a message consists of a name and
+some argument values. When a message is sent to an object, the name is looked up in the class
+of the object (and its parents); if an operation is found then it is invoked otherwise an
+error is reported. Operations may be defined as part of a class or a package definition or 
+added to existing classes and packages via a {\tt context} defintion.
+
+The following defines a class of stacks and adds the definition to a package named {\tt Stacks}.
+The example shows the complete contents of a file containing the definition. XMF can be used
+in a file-based mode where files contain source code that is compiled using the XMF compiler.
+The compiled binary is then loaded into XMF.
+\begin{verbatim}
+parserImport XOCL;
+
+context Stacks
+
+  @Class Stack
+  
+    @Attribute elements : Seq(Element) end
+    @Attribute index : Integer end 
+    
+    @Operation isEmpty():Boolean
+      self.elements->isEmpty
+    end
+    
+    @Operation pop()
+      if self.isEmpty()
+      then throw StackUnderflow(self)
+      else 
+        let head = elements->head
+        in self.elements := elements->tail;
+           head
+        end
+      end
+    end
+    
+    @Operation push(e:Element)
+      self.elements := Seq{e | elements}
+    end
+    
+   @Operation top()
+      if self.isEmpty()
+      then throw StackUnderflow(self)
+      else elements->head
+      end
+    end
+    
+  end
+\end{verbatim}  
+
+\section{Constraints}
+
+\section{Classifiers}
+
+\section{Meta-classes}
+
+\end{document}

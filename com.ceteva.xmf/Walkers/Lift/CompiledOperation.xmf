@@ -1,0 +1,18 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::CompiledOperation in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::CompiledOperation
+  @Operation lift():Performable
+    try
+      OCL::OCL.grammar.parseString(self.source(),"Exp",Seq{XOCL})
+    catch(exception)
+      format(stdout,"Error ~S lifing compiled operation ~S",Seq{exception,self});
+      [| self.error(<StrExp("Missing operation " + self.name().toString())>) |]
+    end
+  end

@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Menus
+  Menus = @File Menus end
+  @File MenuEventHandler end
+  @File MenuCommandInterpreter end
+  @File MenuItem end
+  @File MenuAction end
+  @File MenuItems end
+  @File MenuDef end
+  @File PopupMenu end
+  @File GlobalMenu end
+  @File MenuManager end
+  @File MenuRegistryHandler end
+  @File RightClickable end
+  @File RightClickableWithElement end
+  @File RightClickableProxy end
+  @File MenuClient end
+do Project(Menus,dir,self)
+end;

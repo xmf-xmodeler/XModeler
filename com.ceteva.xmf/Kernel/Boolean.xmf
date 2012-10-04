@@ -1,0 +1,35 @@
+context Boolean
+  @Operation asBool():Boolean
+    self
+  end
+
+context Boolean
+  @Operation booland(other)
+    @Doc
+      Types that can be compared with binary and must implement the operator
+      booland. The type Boolean implements this operator to perform the usual
+      logical operator.
+    end
+    if other.isKindOf(Boolean)
+    then self and other
+    else self.error("Boolean::booland expects a boolean " + other.toString())
+    end
+  end
+  
+context Boolean
+  @Operation boolor(other)
+    @Doc
+      Types that can be compared with binary or must implement the operator
+      boolor. The type Boolean implements this operator to perform the usual
+      logical operator.
+    end
+    if other.isKindOf(Boolean)
+    then self or other
+    else self.error("Boolean::boolor expects a boolean " + other.toString())
+    end
+  end
+    
+context Boolean
+  @Operation toString():String
+    Kernel_valueToString(self)
+  end

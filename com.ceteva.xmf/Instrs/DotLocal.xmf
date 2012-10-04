@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class DotLocal extends Instr
+  
+    @Doc
+      A machine instruction that performs object navigation.
+      Like DOT only the target of the reference is a local
+      whose index is in the instruction.
+    end
+  
+    @Attribute localName   : String end 
+    @Attribute name        : String end
+    @Attribute localOffset : Integer end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(localName,localOffset,name) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(localOffset,constOffset.byte(2),constOffset.byte(1))
+    end
+    
+    @Operation toString():String
+      "<DotLocal " + name.toString() + " " + localOffset">"
+    end
+    
+  end

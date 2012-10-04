@@ -1,0 +1,19 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import MApProjects;
+import Documents;
+
+context Definition
+
+  @Interface
+  
+    @Image "FileBrowser/Definition" end
+    
+    @MenuRoot MApProjects::Documents::Definition end
+    @Menu Change::Style MApProjects::Documents::Definition::setStyle end
+  
+     
+    @Delete elements end
+        
+  end

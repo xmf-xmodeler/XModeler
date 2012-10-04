@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class SyntaxConstant isabstract extends Syntax 
+  
+    @Doc 
+      A syntax constant evaluates to itself. The difference
+      between XOCL::Syntax and XOCL::SyntaxConstant is that
+      the constant expects to be literal data whereas basic
+      syntax may include operations. The difference lies in
+      getting variables into scope in the operations. Operations
+      must be evaluated to produce a closure and therefore
+      XOCL::Syntax uses lift() to produce an expression to
+      be evaluated whereas XOCL::SyntaxConstant treats the data
+      as a literal with no subsequent evaluation and no run-time
+      evaluation.
+    end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      
+      // By default we will call the evaluator of the syntax element each
+      // time we encounter it. This should be specialized in specific
+      // sub-classes of Syntax. One strategy is to define a desugar operation
+      // that produces XOCL code and compile the result of desugaring the
+      // syntax construct.
+      
+      [| <Const(self)>.syntaxInit() |].compile(env,frame,isLast,saveSource)
+      
+    end
+     
+   end 

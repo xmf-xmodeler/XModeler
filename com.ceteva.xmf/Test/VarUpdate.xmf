@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+"XMF allows variables to be updated using :=. You should see 100 returned.".println();
+let x = 10
+in x := x * x;
+   x.println()
+end;
+
+"XMF supports while loops. You should see the numbers 1 to 10 printed.".println();
+let x = 1
+in @While x <= 10 do
+     x.println();
+     x := x + 1
+   end
+end; 

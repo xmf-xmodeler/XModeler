@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import DocTables;
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  @Class ElementRef metaclass BrowsedClass isabstract extends DocumentElement
+
+    @Attribute refObject : Object (?,!) end
+
+    @Constructor(refObject) ! end
+    
+    @Operation labelString()
+      // Just show the refObject name in the browser...
+      refObject.name
+    end
+
+  end

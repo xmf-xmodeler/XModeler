@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+import IO;
+
+context XOCL
+
+  @Class Clause
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Clause ::= name = Name patterns = ClausePatterns 'do' body = Exp bindings = ClauseBindings { Clause(name,patterns,body,bindings) }.
+      
+      ClausePatterns ::= p = Pattern ps = (',' Pattern)* { Seq{p | ps } }.
+      
+      ClauseBindings ::= 'where' Bindings | { Seq{} }.
+      
+    end
+    
+    @Attribute name : String end
+    @Attribute patterns : Seq(Pattern) end
+    @Attribute body : Performable end
+    @Attribute bindings : Seq(Binding) end
+    
+    @Constructor(name,patterns,body,bindings) end
+    
+    @Operation desugar()
+      if bindings->isEmpty
+      then CaseArm(patterns,body)
+      else CaseArm(patterns,Let(bindings,body))
+      end
+    end
+    
+    @Operation pprint():String
+      let out = StringOutputChannel()
+      in self.pprint(out,0);
+         out.getString()
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Clause ~S~%~V",Seq{name,indent+2});
+      @For pattern in patterns do
+        pattern.pprint(out);
+        if not isLast then format(out,",") end
+      end;
+      format(out,"~%~Vdo~%~V",Seq{indent,indent+2});
+      body.pprint(out,indent+2);
+      if not bindings->isEmpty
+      then 
+        format(out,"~%~Vwhere~%~V",Seq{indent,indent+2});
+        @For binding in bindings do
+          binding.pprint(out,indent+2);
+          if not isLast then format(out,";~%~V",Seq{indent+2}) end
+        end
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

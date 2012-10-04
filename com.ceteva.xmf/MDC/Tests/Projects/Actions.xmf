@@ -1,0 +1,214 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+import MyProjects;
+import Guards;
+
+context MyProjects
+
+  @Package Actions
+  
+    @Class Action isabstract extends Syntax
+    
+      @Grammar extends Guard.grammar
+      
+        Action1 ::= Action EOF.
+      
+        Action ::= a = Block ('where' q = Sides { Block(a,q) } | { Block(a,Seq{}) }).
+        
+        Block ::= a = Change as = (',' Change)* { Seq{a|as} }.
+        
+        Change ::= New | Update | Send | Noop.
+        
+        New ::= NewObj | NewLink.
+        
+        Noop ::= 'noop' { Block(Seq{},Seq{}) }.
+        
+        NewObj ::= 'obj' n = Name '[' f = Fields ']' { NewObj(n,f) }.
+        
+        NewLink ::= 'link' n = Name '[' f = Fields ']' { NewLink(n,f) }.
+        
+        Fields ::= f = Field fs = (',' Field)* { Seq{f|fs} } | { Seq{} }.
+        
+        Field ::= n = Name '=' g = Guard { Field(n,g) }.
+        
+        Update ::= o = Guard '.' n = Name ':=' v = Guard { Update(o,n,v) }.
+        
+        Sides ::= q = Side qs = (',' Side)* { Seq{q|qs} }. 
+        
+        Side ::= BindFrom | BindAction | Test.
+        
+        BindFrom ::= n = Name '<-' g = Guard { BindFrom(n,g) }.
+        
+        BindAction ::= n = Name ':=' a = Action { BindAction(n,a) }.
+        
+        Test ::= '?' g = Guard { Predicate(g) }.
+        
+        Send ::= '->' g = Guard '.' n = Name '(' as = Args ')' { Send(g,n,as) }.
+        
+        Args ::= g = Guard gs = (',' Guard)* { Seq{g|gs} } | { Seq{} }.
+        
+      end
+      
+    end
+    
+    @Class Block extends Action
+    
+      @Attribute actions : Seq(Action) (?,!) end
+      @Attribute qualifs : Seq(Qualifier) (?,!) end
+      
+      @Constructor(actions,qualifs) end
+      
+      @Operation eval(target,env,snapshot)
+        let result = null
+        in if qualifs->isEmpty
+           then
+             @For action in actions do
+               if isLast
+               then result := action.eval(target,env,snapshot)
+               else action.eval(target,env,snapshot)
+               end
+             end;
+             result
+           else qualifs->head.eval(target,env,snapshot,Block(actions,qualifs->tail))
+           end
+        end
+      end
+    end
+    
+    @Class Qualifier isabstract extends Syntax end
+    
+    @Class BindFrom extends Qualifier
+    
+      @Attribute name : String (?,!) end
+      @Attribute guard : Guard (?,!) end
+      
+      @Constructor(name,guard) end
+      
+      @Operation eval(target,env,snapshot,actions)
+        let S = guard.eval(target,env)
+        in @For e in S do
+             actions.eval(target,env.bind(name,e),snapshot)
+           end
+        end
+      end
+      
+    end
+    
+    @Class BindAction extends Qualifier
+    
+      @Attribute name : String (?,!) end
+      @Attribute action : Action (?,!) end
+      
+      @Constructor(name,action) end
+      
+      @Operation eval(target,env,snapshot,actions)
+        actions.eval(target,env.bind(name,action.eval(target,env,snapshot)),snapshot)
+      end
+      
+    end
+    
+    @Class Predicate extends Qualifier
+    
+      @Attribute guard : Guard (?,!) end
+      
+      @Constructor(guard) end
+      
+      @Operation eval(target,env,snapshot,actions)
+        if guard.eval(target,env)
+        then actions.eval(target,env,snapshot)
+        else null
+        end
+      end
+      
+    end
+    
+    @Class New isabstract extends Action
+    
+      @Attribute name : String (?,!) end
+      @Attribute fields : Seq(Field) (?,!) end
+      
+      @Constructor(name,fields) end
+      
+      @Operation evalFields(target,env,snapshot)
+        fields->collect(field | field.eval(target,env,snapshot))
+      end
+      
+    end
+    
+    @Class NewObj extends New
+    
+      @Operation eval(target,env,snapshot)
+        let slots = self.evalFields(target,env,snapshot) 
+        in snapshot.newObj(name,slots)
+        end
+      end
+      
+    end
+    
+    @Class NewLink extends New
+    
+      @Operation eval(target,env,snapshot)
+        let slots = self.evalFields(target,env,snapshot) 
+        in snapshot.newLink(name,slots)
+        end
+      end
+      
+    end
+    
+    @Class Field extends Syntax
+    
+      @Attribute name : String (?,!) end
+      @Attribute value : Guard (?,!) end
+      
+      @Constructor(name,value) end
+      
+      @Operation eval(target,env,snapshot)
+        Snapshots::Slot(name,value.eval(target,env))
+      end
+      
+    end
+    
+    @Class Update extends Action
+    
+      @Attribute object : Guard (?,!) end
+      @Attribute name : String (?,!) end
+      @Attribute value : Guard (?,!) end
+      
+      @Constructor(object,name,value) end
+      
+      @Operation eval(target,env,snapshot)
+        let o = object.eval(target,env)
+        in o.setSlot(name,value.eval(target,env))
+        end
+      end
+      
+    end
+    
+    @Class Send extends Action
+    
+      @Attribute object : Guard (?,!) end
+      @Attribute name : String (?,!) end
+      @Attribute values : Seq(Guard) (?,!) end
+      
+      @Constructor(object,name,values) end
+      
+      @Operation eval(target,env,snapshot)
+        object.eval(target,env).send(Message(name,values->collect(value | value.eval(target,env))))
+      end
+      
+    end
+    
+    @Class Message
+    
+      @Attribute name : String (?,!) end
+      @Attribute values : Seq(Element) (?,!) end
+      
+      @Constructor(name,values) ! end
+      
+    end
+    
+    
+  end

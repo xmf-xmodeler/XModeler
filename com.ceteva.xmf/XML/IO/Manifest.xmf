@@ -1,0 +1,18 @@
+parserImport Manifests;
+
+@Manifest XMLInputOutput
+  @File AbstractObjectFormatter end
+  @File ObjectXMLFormatter end
+  @File ObjectXMLInflater end
+  @File NameSpaceXMLInflater end
+  @File PackageXMLFormatter end
+  @File NameSpaceXMLFormatter end
+  @File PackageXMLInflater end
+  @File XMLInputChannel end
+  @File XMLOutputChannel end
+  @File XMLPackageInputChannel end
+  @File XMLPackageOutputChannel end
+  @File Element end
+  @File Package end
+  
+end;

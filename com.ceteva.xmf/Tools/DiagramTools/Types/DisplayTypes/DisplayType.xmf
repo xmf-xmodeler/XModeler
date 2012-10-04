@@ -1,0 +1,178 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import IO;
+import Tools;
+import Menus;
+import DiagramTools;
+import Types;
+import DisplayTypes;
+
+context DisplayTypes
+
+  @Class DisplayType isabstract extends AbstractDisplayType
+  
+    @Attribute layout    : String = "ALIGN" (?,!) end
+    @Attribute padLeft   : Integer          (?,!) end
+    @Attribute padRight  : Integer          (?,!) end
+    @Attribute padTop    : Integer          (?,!) end
+    @Attribute padBottom : Integer          (?,!) end
+    @Attribute minWidth  : Integer          (?,!) end
+    @Attribute minHeight : Integer          (?,!) end
+    @Attribute maxWidth  : Integer = 9999   (?,!) end
+    @Attribute maxHeight : Integer = 9999   (?,!) end
+    @Attribute menu      : Menu = Menu()    (?,!) end
+    @Attribute hasPort   : Boolean          (?,!) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Atts ::= atts = Att* { atts->iterate(att e = AttEnv() | att + e) }.
+      
+      Att ::= name = Name '=' value = AttValue { AttEnv().bind(name,value) }.
+      
+      AttValue ::= Str | Name | Int.
+      
+      Properties ::= '(' att = Name atts = (',' Name)* { Seq{att | atts } } ')' | { Seq{} }.
+      
+    end
+    
+    @Operation bind(env)
+      
+      // Add ourself to the environment if we are not a reference.
+      env.bind(name,self)
+    end
+    
+    @Operation contains(type):Boolean
+      // Returns true when the receiver is the same as or
+      // contains the argument.
+      false
+    end
+    
+    @Operation deref(env)
+    
+      // Replace all references to types with the referenced
+      // type.
+      
+      self
+    end
+    
+    @Operation filterLayout(atts:Seq(String)):String
+    
+      // Given a sequence of attributes in a display definition
+      // find the layout string and return it or return ALIGN.
+      
+      if atts->includes("LEFT")
+      then "LEFT"
+      elseif atts->includes("RIGHT")
+      then "RIGHT"
+      elseif atts->includes("CENTRE")
+      then "CENTRE"
+      else "ALIGN"
+      end
+      
+    end
+    
+    @Operation filterContentLayout(atts:Seq(String)):String
+    
+      // Attributes of container types may state the layout for the container.
+      
+      if atts->includes("HORIZONTAL")
+      then "HORIZONTAL"
+      elseif atts->includes("OVERLAY")
+      then "OVERLAY"
+      else "VERTICAL"
+      end
+    end
+      
+    
+    @Operation layout(display,x,y,width,height)
+    
+      // The default layout operation moves and resizes the
+      // receiver to the given parameters. Container
+      // types will layout their contents according to the
+      // container types layout manager.
+      
+      display.move(x,y);
+      display.layoutResize(width,height)
+      
+    end
+    
+    @Operation merge(inherited)
+    
+      // The two elements have the same name. The local element
+      // overrides the inherited element. Merge the inherited
+      // menu items in case any new items need to ne added from
+      // via inheritance.
+      
+      menu.merge(inherited.menu())
+    end
+    
+    @Operation mkDeleteHandler(tool,root,path,name)
+    
+      // General closure template for raisin delete events...
+      
+      @Operation[closure="Tools::DiagramTools::Types::DisplayTypes::DisplayType::mkDeleteHandler"](display)
+        tool.raise(Tools::DiagramTools::DiagramEvents::DisplayRemoved(root,path + Seq{name.toString()},display)) 
+      end.setOwner(null)
+    end
+    
+    @AbstractOp new(root,parent,path:Seq(String),tool,env) 
+    
+      // Create a new diagram display element based on the receiving
+      // type. The root is the element that is the source of all 
+      // attribute name paths to contained display elements. It is
+      // used by the element manager to look up the source of the path
+      // on the element side.
+      //
+      // The parent is the owning diagram element. The path is
+      // a sequence of names uniquely identifying the display element
+      // with respect to a root node. 
+      //
+      // The tool is supplied in order
+      // to raise events. Each of the display diagram elements are
+      // created and added to the parent. They must not be new'd since
+      // this will take place automatically when the parent node is
+      // new'd.
+      //
+      // The environment is used to build up a collection of types that
+      // are in scope during the instantiation of the type. This
+      // allows types to be recursive.
+      
+    end
+    
+    @Operation parseColor(value:String):Clients::Diagrams::Color
+      @Case value of
+        "red"   do Clients::Diagrams::Color(255,0,0) end
+        "green" do Clients::Diagrams::Color(0,255,0) end
+        "blue"  do Clients::Diagrams::Color(0,0,255) end
+        ""      do Clients::Diagrams::Color()        end
+        else       Clients::Diagrams::Color.invoke(self,value->splitBy(",",0,0)->map("asInt"))
+      end
+    end
+    
+    @Operation referencedType(env):DisplayType
+    
+      // Returns type referenced by the type (in case it is a reference)
+      // otherwise returns the type.
+      
+      self
+      
+    end
+
+    @Operation setGlobalMenu(display,tool,path,sendSetCommand:Boolean)
+      self.menu.setGlobalMenu(display,display,tool,path,Set{self,tool},sendSetCommand)
+    end
+
+    @Operation setGlobalMenu(display,tool,path)
+      self.setGlobalMenu(display,tool,path,true)
+    end
+
+    @Operation toolTypes(T)
+      T
+    end
+    
+    @Operation underlyingTypes():Seq(DisplayType)
+      Seq{self}
+    end
+    
+  end

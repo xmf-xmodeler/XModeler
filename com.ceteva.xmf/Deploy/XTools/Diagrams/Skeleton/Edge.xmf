@@ -1,0 +1,273 @@
+parserImport XOCL;
+
+context Package
+
+  @Operation writeXDiagSkelEdgeHandlers(dir,root,name,edge,manifest)
+  
+    // Write handlers for the creation and deletion events...
+    
+    self.writeXDiagSkelNewEdgeHandler(dir,root,name,edge,manifest);
+    self.writeXDiagSkelEdgeRemovedHandler(dir,root,name,edge,manifest);
+    self.writeXDiagSkelEdgeSourceChangedHandler(dir,root,name,edge,manifest);
+    self.writeXDiagSkelEdgeTargetChangedHandler(dir,root,name,edge,manifest);
+    self.writeXDiagSkelEdgeAttChangedHandler(dir,root,name,edge,manifest)
+    
+  end
+
+context Package
+
+  @Operation writeXDiagSkelNewEdgeHandler(dir,class,name,edge,manifest)
+  
+    // An edge Seq{c,s,t,L} represents an instance of the class c with
+    // attributes s and t. When the edge is created we will generate
+    // and register a new instance of c and set the slots appropriately.
+    // The edge will be registered against Seq{o,o1,o2} for the appropriate
+    // instances.
+    
+    let edgeClass = edge->at(0);
+        source = edge->at(1);
+        target = edge->at(2);
+        labels = edge->at(3) then
+        handlerName = "New_" + edgeClass.name();
+        update =
+          @Operation(out,object,name,value,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,value})
+              end
+              Set[ ] do
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,value})
+              end
+              else format(out,"       ~S.~S := ~S;~%",Seq{object,name,value})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.source()) and event.tool().isRegistered(event.target())~%");
+         format(out,"    then~%");
+         format(out,"      let source = event.tool().find(event.source());~%");
+         format(out,"          target = event.tool().find(event.target());~%");
+         format(out,"          o = ~S()~%",Seq{edgeClass.path()});
+         format(out,"      in~%");
+         update(out,"o",source.name(),"source",source.type);
+         update(out,"o",target.name(),"target",target.type);
+         let A = class.allAttributes()->select(a | edgeClass.inheritsFrom(a.underlyingType()))->asSeq
+         in if not A->isEmpty
+            then 
+              if A->size = 1
+              then update(out,"event.tool().element()",A->at(0).name,"o",A->at(0).type)
+              else 
+                let att = xmf.select("Name",formats("When ~S is created which slot is updated:",Seq{edgeClass.name()}),A,null,null)
+                in if att <> null
+                   then update(out,"event.tool().element()",att.name,"o",att.type)
+                   end
+                end
+              end
+            end
+         end;
+         @For att in labels do
+           format(out,"         event.tool().register(event.edge().ref(\"~S\"),o);~%",Seq{att.name()})
+         end;
+         format(out,"         event.tool().register(event.edge(),Seq{o,source,target})~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelEdgeRemovedHandler(dir,class,name,edge,manifest)
+  
+    // Write a handler that tries to find elements registered for the edge. 
+    // If they exist then the underlying model is updated appropriately.
+    
+    let edgeClass = edge->at(0);
+        source = edge->at(1);
+        target = edge->at(2) then
+        handlerName = edgeClass.name() + "_Removed";
+        update =
+          @Operation(out,object,name,value,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,value})
+              end
+              Set[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,value})
+              end
+              else format(out,"       ~S.~S := ~S.default();~%",Seq{object,name,type.path()})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge())~%");
+         format(out,"    then~%");
+         format(out,"      let rec = event.tool().find(event.edge()) then~%");
+         format(out,"          o = rec->at(0);~%");
+         format(out,"          source = rec->at(1);~%");
+         format(out,"          target = rec->at(2)~%");
+         format(out,"      in~%");
+         update(out,"o",source.name(),"source",source.type);
+         update(out,"o",target.name(),"target",target.type);
+         let A = class.allAttributes()->select(a | edgeClass.inheritsFrom(a.underlyingType()))->asSeq
+         in if not A->isEmpty
+            then 
+              if A->size = 1
+              then update(out,"event.tool().element()",A->at(0).name,"o",A->at(0).type)
+              else 
+                let att = xmf.select("Name",formats("When ~S is deleted which slot is updated:",Seq{edgeClass.name()}),A,null)
+                in if att <> null
+                   then update(out,"event.tool().element()",att.name,"o",att.type)
+                   end
+                end
+              end
+            end
+         end;
+         format(out,"         event.tool().deregister(event.edge())~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelEdgeSourceChangedHandler(dir,class,name,edge,manifest)
+  
+    // An edge Seq{c,s,t,L} represents an instance of the class c with
+    // attributes s and t. 
+    
+    let edgeClass = edge->at(0);
+        source = edge->at(1);
+        target = edge->at(2) then
+        handlerName = edgeClass.name() + "_Source_Changed";
+        update =
+          @Operation(out,object,name,new,old,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              Set[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              else format(out,"       ~S.~S := ~S;~%",Seq{object,name,new})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+         format(out,"    then~%");
+         format(out,"      let rec = event.tool().find(event.edge()) then~%");
+         format(out,"          o = rec->at(0);~%");
+         format(out,"          source = rec->at(1);~%");
+         format(out,"          target = rec->at(2)~%");
+         format(out,"      in~%");
+         update(out,"o",source.name(),"event.tool().find(event.new())","source",source.type);
+         format(out,"         event.tool().register(event.edge(),Seq{o,event.tool().find(event.new()),target})~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelEdgeTargetChangedHandler(dir,class,name,edge,manifest)
+  
+    // An edge Seq{c,s,t,L} represents an instance of the class c with
+    // attributes s and t. 
+    
+    let edgeClass = edge->at(0);
+        source = edge->at(1);
+        target = edge->at(2) then
+        handlerName = edgeClass.name() + "_Target_Changed";
+        update =
+          @Operation(out,object,name,new,old,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              Set[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              else format(out,"       ~S.~S := ~S;~%",Seq{object,name,new})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+         format(out,"    then~%");
+         format(out,"      let rec = event.tool().find(event.edge()) then~%");
+         format(out,"          o = rec->at(0);~%");
+         format(out,"          source = rec->at(1);~%");
+         format(out,"          target = rec->at(2)~%");
+         format(out,"      in~%");
+         update(out,"o",target.name(),"event.tool().find(event.new())","target",target.type);
+         format(out,"         event.tool().register(event.edge(),Seq{o,source,event.tool().find(event.new())})~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelEdgeAttChangedHandler(dir,class,name,edge,manifest)
+  
+    let edgeClass = edge->at(0);
+        labels = edge->at(3)
+    in @For att in labels do
+         let handlerName = edgeClass.name() + "_" + att.name() + "_Changed"
+         in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+              self.writeDiagramToolHeader(out);
+              self.writeXDiagSkelHandlerComment(out);
+              format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+              format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+              format(out,"     let o = event.tool().find(event.value())~%");
+              @Case att.type of
+                [String] do
+                   format(out,"     in o.~S := event.new()~%",Seq{att.name})
+                end
+                [Boolean] do
+                   format(out,"     in o.~S := event.new().asBool()~%",Seq{att.name})
+                end
+                [Integer] do
+                   format(out,"     in o.~S := event.new().asInt()~%",Seq{att.name})
+                end
+                [XOCL::Exp] do
+                   format(out,"     in o.~S := XOCL::Exp(OCL::OCL.grammar.parseString(event.new(),\"Exp1\",Seq{}));~%",Seq{att.name});
+                   format(out,"        o.~S.expChanged()~%",Seq{att.name})
+                end
+              end;
+              format(out,"    end~%");
+              format(out,"  end~%")
+            end;
+            manifest.add("ElementManager/" + handlerName)
+         end
+       end
+    end
+  end

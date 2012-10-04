@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class GlobalRef extends Instr
+  
+    @Doc
+      A global ref occurs when a local variable is referenced by
+      an operation where the variable is declared outside the
+      operation. When the operation is created, all local variables
+      from the enclosing scope are added to the dynamics array of the
+      new operation. Dynamics arrays are linked, so that a newly 
+      created dynamics array is linked to the dynamics array of the
+      enclosing scope. When a dynamic variable is referenced in the body
+      of an operation, the value is found by chaining back through the
+      dynamic array linked list that is in the current stack frame and
+      then indexing into the resulting array. This instruction has
+      machine word operands that statically determine the 'frame'
+      (i.e. how many links to traverse) and the 'offset' (i.e. the
+      index into the resulting array). The instruction leaves a value 
+      on the stack.
+    end
+  
+    @Attribute name : String end
+    @Attribute frame : Integer end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,frame,offset) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(offset.byte(2),frame,offset.byte(1)) 
+    end
+    
+    @Operation toString():String
+      "<GlobalRef " + name + "," + frame + "," + offset + ">"
+    end
+    
+  end
+  

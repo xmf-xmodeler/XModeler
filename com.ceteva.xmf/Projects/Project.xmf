@@ -1,0 +1,421 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Projects;
+import IO;
+import XCore;
+import Manifests;
+
+context Projects
+
+  @Class Project extends IndexedContainer, NamedElement, Resource 
+  
+    // A project wraps a package with information about where the
+    // package will be saved to. A project is a container for its
+    // sub-projects. A project may be created with a null package
+    // in which case the project is available but not yet loaded.
+    // In this case the project manifest can be used to load the 
+    // project. The project resourceName is the directory containing
+    // the project resources on disk.
+  
+    @Attribute package      : XCore::Package  (?)   end   // The package for the project (may be null).
+    @Attribute creator      : String          (?)   end   // Set when the project is created.
+    @Attribute savedBy      : String          (?,!) end   // Set when the project is saved.
+    @Attribute version      : String          (?,!) end   // Set when the project is saved.
+    @Attribute creationDate : String          (?)   end   // Set when the project is created.
+    @Attribute saveDate     : String          (?,!) end   // Set when the project is saved.
+    @Attribute debug        : Boolean         (!)   end   // Controls whether the XAR instructions are dumped.
+    @Attribute manifest     : ManifestEntry   (?,!) end   // How to build and deploy or null.
+    
+    @Constructor(name) ! end
+    
+    @Constructor(package,resourceName,manifest)
+      
+      // Use this constructor if package is defined.
+      // The package is needed in order to set the name
+      // of the project.
+      
+      self.setPackage(package);
+      self.creator := xmf.user();
+      self.version := xmf.version();
+      self.creationDate := xmf.date()
+    end
+
+    @Operation build():Project
+    
+      // Fetch the manifest of the project, recompile all
+      // entries that need recompiling.
+      
+      if manifest <> null
+      then manifest.build(resourceName)
+      end
+      
+    end
+
+    
+    @Operation setDaemons()
+    
+      // Make sure that the package name and the project name are the same.
+      
+      if self.loaded()
+      then
+        self.addProjectDaemons();
+        self.addPackageDaemons(package);
+        self
+      end
+    end
+
+    @Operation addPackageDaemons(package : Package)
+      @SlotValueChanged multi once Project::daemons_packageOwnerChanged(package,"owner") end;      
+      @SlotValueChanged multi once Project::daemons_packageNameSyncToProject(package,"name") end
+    end
+
+    @Operation addProjectDaemons()
+      @SlotValueChanged multi once Project::daemons_projectNameSyncToPackage(self,"name") end;
+      @SlotValueChanged multi once Project::daemons_packageChanged(self,"package") end
+    end
+
+    @Operation closeXarDebug()
+    
+      // If we are currently saving debug output to a file then
+      // close the file.
+       
+      if self.hasSlot("debug")
+      then 
+        if debug
+        then Kernel_closeXarDebugFile()
+        end
+      end
+    end
+
+    @Operation daemons_packageChanged(selfElement,slot,newPackage,oldPackage)
+      if newPackage <> oldPackage and not xmf.clientManager().saving 
+      then
+        self.removePackageDaemons(oldPackage);
+        if newPackage <> null
+        then
+          self.addPackageDaemons(newPackage)
+        end
+      end
+    end
+
+    @Operation daemons_packageNameSyncToProject(package,slot,newName,oldName)
+      //format(stdout,"package name changed: ~S -> ~S~%",Seq{oldName,newName});
+      if self.name.toString() <> newName.toString()
+      then self.setName(newName)
+      end
+    end
+
+    @Operation daemons_packageOwnerChanged(package,slot,newOwner,oldOwner)
+      if newOwner <> oldOwner and not xmf.clientManager().saving 
+      then
+        if newOwner = null and self.owner <> null
+        then
+          xmf.warning("Project "+self.name()+" will be deleted as package "+package.name()+" is its root package.");
+          NameSpace::remove.invoke(self.owner,Seq{self}); // do not attempt to delete package;
+          self.removeDaemons()
+        end
+      end
+    end
+
+    @Operation daemons_projectNameSyncToPackage(selfElement,slot,newName,oldName)
+      //format(stdout,"project name changed: ~S -> ~S~%",Seq{oldName,newName});
+      if package.name.toString() <> newName.toString()
+      then package.setName(newName)
+      end
+    end
+
+    @Operation deleteRecursive()
+      super();
+      if self.loaded()
+      then
+        if package.owner <> null then
+          package.deleteRecursive()
+        end
+      end;
+      self
+    end
+
+    @Operation deploy()
+    
+      // Save the source of the package underlying the project in
+      // the project directory. Also write out the manifest file
+      // that will allow the project to be loaded and built in
+      // a running XMF.
+      
+      if self.deployDir().fileExists()
+      then self.deploy(self.deployDir())
+      else 
+        let dir = xmf.selectDirectory(xmf.projDir())
+        in if dir <> ""
+           then self.deploy(dir + "/" + self.name())
+           end
+        end
+      end
+    end
+    
+    @Operation deploy(dir:String)
+    
+      // Save the source of the package associated with the package
+      // to the supplied save directory. The source code is important
+      // because it allows us to recover if the XAR file becomes
+      // corrupt.
+      
+      package.deployXOCL(dir)
+    end
+    
+    @Operation deployDir():String
+      
+      // Returns the directory that the project will be deployed to.
+      // Allows deployers to override this if required.
+      
+      self.dir() + "/" self.name()
+      
+    end
+    
+    @Operation file():String
+      // Returns the save directory for the project.
+      resourceName
+    end
+  
+  /*  
+    @Operation ensureDir(dir:String):Boolean
+      // Ensures that the save directory exists for the project.
+      if dir.fileExists()
+      then true
+      else dir.mkDir()
+      end
+    end
+  */
+    
+    @Operation loaded():Boolean
+      package <> null
+    end
+    
+    @Operation remove()
+    
+      // Deletes the projects's package from its owner.
+      
+      if self.loaded()
+      then
+        package.deleteContainedDiagrams();
+        if package.owner <> null then
+          package.owner.remove(package)
+        end
+      end;
+      self.removeDaemons();
+      self
+    end
+
+    @Operation removeDaemons()
+      self.removePackageDaemons(package);
+      self.removeProjectDaemons()
+    end
+
+    @Operation removePackageDaemons(package : Package)
+      package.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation removeProjectDaemons()
+      self.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation save(extraInfo)
+    
+      // Use this to save the project to the default save
+      // directory calculated from the resourceName and the
+      // name of the project. The extra information can be
+      // anything associated with the project.
+      
+      self.saveAs(self.file(),extraInfo,false)
+    end
+    
+    @Operation saveAs(extraInfo)
+    
+      // Use this to save the project in a user specified location
+      // The save location is entered via a dialog.
+      
+      let initName =
+            if resourceName = ""
+            then self.name + ".xar"
+            else resourceName.toString().splitBy("/",0,0)->last
+            end then
+          file = xmf.saveFile(xmf.projDir(),"*.xar",initName)
+      in 
+         if file <> "" then 
+           self.saveAs(file,extraInfo,true)
+         end
+      end
+    end
+    
+    @Operation saveAs(file:String,extraInfo,confirm:Boolean)
+      
+      // Save the project to a XAR file. Exclude all elements that are
+      // not contained in the project name space by setting up a sequence
+      // of excluded name spaces for the save machine. We do not save the
+      // daemons associated with the elements in the package.
+      
+       let write = true
+       in 
+          if not file.isReadOnly()
+          then
+            if file.fileExists() and self.loaded() and confirm
+            then write := xmf.confirm(file + " exists. Overwite?")
+            end;
+            if write //and self.ensureDir(dir)
+            then 
+              let dialog = xmf.busy("Saving")
+              in 
+                self.savedBy := xmf.user();
+                self.saveDate := xmf.date();
+                self.saveXar(file,extraInfo);
+                dialog.finished()
+            
+                // The following is commented out pending an update on code
+                // generation on models. The current mechanism is very slow.
+                // self.saveSource(dir);
+               
+              end;
+            
+              xmf.message(
+                "Project " + self.name().toString() + 
+                " saved (xar format).\nProject saved in file " + file + " on " + saveDate + ".\n" +
+                "Project created by " + creator + " on " + creationDate + ".\n" +
+                "Project saved by " + savedBy + ".\n")
+            end
+          else
+            xmf.message("File " + file + " exists and is read only.  Cannot save to this file.")
+          end
+       end
+      
+    end
+    
+    @Operation saveSource(dir:String)
+    
+      // Save the source of the package to a source file.
+      // This is not intended to be the same as deploying the
+      // project as XOCL. It is simply a backup of the project
+      // in case the XAR goes wrong.
+      
+      let sourceFile = self.sourceFile(dir) then
+          fout = FileOutputChannel(sourceFile)
+      in package.lift().pprint(fout,0);
+         fout.close()
+      end
+      
+    end
+    
+    @Operation saveXar(file:String,extraInfo:Element)     
+    
+      // Save the project and the associated extra information
+      // to a XAR file archive in the supplied save directory.
+      // The XAR archive is simply a serialization of the project
+      // and the associated information.
+         
+      try
+      
+        xmf.clientManager().setSaving(true);
+        self.setResourceName(file);
+        self.saveXarBackup(file);
+        //self.setXarDebug(dir);
+        
+        let excludedNameSpaces = Root.allContentsOf(XCore::Package)->including(Root)->asSeq;
+            fout = FileOutputChannel(file) then
+            out = ElementOutputChannel(GZipOutputChannel(fout));
+            owner = self.owner()
+        in 
+           // Calculate the name spaces that should be saved and remove them from the
+           // sequence of excluded name spaces...
+           
+           @For nameSpace in package.allContentsOf(XCore::Package)->including(package) do
+             excludedNameSpaces := excludedNameSpaces->excluding(nameSpace)
+           end;
+           
+           // Calls to preSave and postSave are necessary around the serialization
+           // of the project data because we don't want any data linked to a
+           // client. Clients contain data that cannot be serialized (such as
+           // input and output channels). The 'pre' de-links and the 'post'
+           // re-links.
+           
+           @WithoutDaemons(self)
+             Root.remove(package);
+             self.setOwner(null);
+             xmf.clientManager().preSave();
+             out.write(Seq{self | extraInfo},excludedNameSpaces);
+             xmf.clientManager().postSave();
+             self.setOwner(owner);
+             Root.add(package);
+             out.close()
+           end;
+           xmf.clientManager().setSaving(false);
+           self.closeXarDebug();
+           self
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        Root.add(package)
+      end
+    end
+    
+    @Operation saveXarBackup(file:String)
+    
+      // Keep a one-level backup of the XAR file in case anything
+      // goes wrong.
+      
+      if file.fileExists()
+      then 
+        (file + ".bak").deleteFile();
+        file.renameFile(file + ".bak")
+      end
+    end
+    
+    @Operation setPackage(package:XCore::Package)
+    
+      // A project may not have a package when the project is created.
+      // The project may be created and its contents subsequently loaded.
+      // When the project's package is set then the name must be set
+      // and daemons used to synchronize the project and package names.
+      
+      self.package := package;
+      if name = "" then self.setName(package.name()) end;
+      self.setDaemons()
+    end
+    
+    @Operation setXarDebug(dir:String) 
+      if self.hasSlot("debug")
+      then
+        if debug
+        then 
+          Kernel_openXarDebugFile(dir + "/" + self.name().toString() + ".xdb")
+        end
+      end
+    end
+    
+    @Operation sourceFile(dir:String):String
+      // Returns the path to the XMF file
+      dir + "/" + self.name().toString() + "Source.xmf"
+    end  
+    
+    @Operation toHTML(dir:String):Boolean
+      // Deploy the underlying package as HTML...
+      package.toHTML(dir)
+    end
+    
+    @Operation writeEntry(out,load:Boolean)
+    
+      // Writes a manifest entry for the enclosing project manager manifest.
+      // The load argument indicates whether this project should be loaded
+      // at startup or not.
+      
+      if load
+      then format(out,"@Project ~S \"~S\" BUILD end",Seq{name,self.resourceName()})
+      else format(out,"@Project ~S \"~S\" end",Seq{name,self.resourceName()})
+      end
+    end
+    
+    @Operation xarFile(filename:String,dir:String):String
+      // Returns the path to the XAR file
+      dir.subst("/","\\",true) + "/" + filename + ".xar"
+    end
+   
+  end

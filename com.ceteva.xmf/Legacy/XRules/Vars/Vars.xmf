@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XRules;
+
+context XRules
+
+  @Package Vars
+  
+    @Doc
+      This package defines classes that are used to maintain information
+      on variables during the XRules compilation process.
+    end
+  
+  end

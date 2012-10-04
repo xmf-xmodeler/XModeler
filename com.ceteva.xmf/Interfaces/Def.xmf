@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Interfaces;
+import OCL;
+
+context Interfaces
+
+  @Class Def extends NamedElement, ObjectWithProperties
+  
+    @Attribute typeExp    : TypeExp end
+    @Attribute type       : Classifier (?) end
+    @Attribute props      : Seq(Property) end
+  
+    @Constructor(name) end
+    
+    @Constructor(name,typeExp,props) end
+    
+    @Operation init()
+      if owner <> null
+      then self.type := Classifier::mapType(typeExp.toSig(),self.allOwners() + Seq{XCore})
+      end;
+      super()
+    end
+    
+    @Operation setProps(def:Performable):Performable
+      props->iterate(p exp = def | p.setPropertyExp(exp))
+    end
+    
+    @Operation toString():String
+      name + " : " + type.toString()
+    end
+    
+  end

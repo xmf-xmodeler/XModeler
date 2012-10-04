@@ -1,0 +1,8 @@
+parserImport Languages::Automata;
+
+Root::testMachine :=
+  @Automaton(Start)
+   @State End self end
+   @State Start self end
+   @Transition(Start,End) end
+ end;

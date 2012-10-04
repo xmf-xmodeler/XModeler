@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import IO;
+
+"To create an input stream use IO::FileInputChannel(pathName)".println();
+"and then use the 'read' operation to read character codes.".println();
+"Use 'eof' to test whether you are at the end of the channel.".println();
+"The following test will print out the whole file as a string.".println();
+
+let fin = FileInputChannel("Kernel/Boot.xmf")
+in @While not fin.eof() do
+     fin.read().println()
+   end
+end;

@@ -1,0 +1,12 @@
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL::Bind
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Bind ::= name = Name '=' value = Exp { XOCL::Bind(name,value) }.
+    
+  end

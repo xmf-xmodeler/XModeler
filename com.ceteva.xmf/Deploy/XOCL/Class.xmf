@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import IO;
+
+context XCore::Class
+  @Operation deployInterface(dir:String)
+    @WithOpenFile(fout -> dir + "/" + name + ".xmf")
+      format(fout,"parserImport XOCL;~%");
+      format(fout,"parserImport Clients::BrowserInterface;~%~%");
+      format(fout,"import ~{::~;~S~};~%~%",Seq{owner.pathSeq()});
+      format(fout,"context ~S~%~%",Seq{name});
+      format(fout,"  @Interface~%~%");
+      format(fout,"    @Image \"User/Network1\" end~%~%");
+      @For a in self.allAttributes() do
+        format(fout,"    @Child ~S end~%",Seq{a.name()})
+      end;
+      format(fout,"~%");
+      format(fout,"    @MenuRoot ~{::~;~S~} end~%",Seq{self.pathSeq()});
+      @For o in self.operations do
+        if o.arity() = 0
+        then format(fout,"    @Menu ~S ~{::~;~S~} end~%",Seq{o.name(),o.pathSeq()})
+        end
+      end;
+      format(fout,"    @Menu Edit Element::edit_redirect end~%");
+      format(fout,"    @Menu Assign Element::assignToGlobal end~%");
+      format(fout,"    @Menu Delete ~{::~;~S~}::delete end~%",Seq{self.pathSeq()});
+      format(fout,"~%");
+      @For a in self.allAttributes() do
+        if not a.hasAtomicType() 
+        then format(fout,"    @Extend ~S ~S->including(~{::~;~S~}()) end~%",Seq{a.name().toString().upperCaseInitialLetter(),a.name,a.underlyingType().pathSeq()})
+        end
+      end;
+      format(fout,"~%");
+      format(fout,"  end~%")
+    end
+  end
+      
+  
+context XCore::Class
+  @Operation deployXOCL(dir:String,ADD_BROWSER_META:Boolean)
+  
+    // Writes out the text that can be used to reconstruct
+    // the element.
+    
+    try
+      @WithOpenFile(fout -> dir + "/" + self.name() + ".xmf")
+         format(fout,"parserImport XOCL;~%~%");
+         format(fout,"import ~{::~;~S~};~%~%",Seq{self.owner().pathSeq()});
+         format(fout,"context ! ~{::~;~S~}~%~%",Seq{self.owner().pathSeq()});
+         format(fout,"  @Class ~S ",Seq{name});
+         if self.of() <> XCore::Class
+         then format(fout,"metaclass ~S ",Seq{self.of().path()})
+         elseif ADD_BROWSER_META
+         then format(fout,"metaclass Clients::BrowserInterface::BrowsedClass ")
+         end;
+         if isAbstract
+         then format(fout,"isabstract ")
+         end;
+         if parents->exists(p | p <> XCore::Object)
+         then format(fout,"extends ~{,~;~S~}",Seq{parents->asSeq->collect(p | p.path())})
+         end;
+         format(fout,"~%~%");
+         @For a in attributes do
+           a.deployXOCL(fout);
+           format(fout,"~%~%")
+         end;
+         format(fout,"  end~%");
+         fout.close()
+      end
+    catch(exception)
+      format(stdout,"Error writing class source: ~S~%",Seq{exception})
+    end
+  end

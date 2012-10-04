@@ -1,0 +1,72 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class AbstractOp extends Sugar
+  
+    @Doc
+      An abstract operation defines the signature of an operation without
+      specifying the body. If it is ever called, an abstract operation 
+      will signal an error. The intention is that an abstract operation
+      is defined in an abstract class and that it is redefined in each 
+      concrete sub-class.
+      Constructor: AbstractOp(name,args,type)
+       The name is a string, the args is a sequence of patterns, the type is 
+       an expression producing a classifier.
+      Syntax:
+       AbstractOp ::= '@AbstractOp' Name '(' Pattern* ')' [ ':' Exp ] [ Exp ]
+     end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      AbstractOp ::= 
+        name = Name 
+        args = ('(' OpArgs ')')
+        type = OpType
+        doc = OpDoc
+        { AbstractOp(name,args,type,doc) }.
+      OpArgs ::= arg = Pattern args = (',' Pattern)* { Seq{arg | args } } | { Seq{} }.
+      OpDoc ::= Exp | { [| null |] }.
+      OpType ::= ':' TypeExp | { NamedType() }.
+      
+    end 
+    
+    @Attribute name : String end
+    @Attribute args : Seq(Element) end
+    @Attribute type : TypeExp end
+    @Attribute doc  : Performable end
+   
+    @Constructor(name,args,type,doc) end
+    
+    @Operation desugar() 
+      let message = StrExp("I don't know how to perform " + name + " for ")
+      in Operation(Symbol(name),args,type,[| self.error(<message> + self.toString()) |],doc)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      let index = 0
+      in format(out,"@AbstractOp ~S(",Seq{name});
+         @For p in args do
+           p.pprint(out);
+           index := index + 1;
+           if index < args->size then format(out,",") end
+         end;
+         format(out,"):");
+         type.pprint(out,0);
+         format(out,"~%~V",Seq{indent + 2});
+         if doc <> null and doc.isKindOf(Doc)
+         then
+           doc.pprint(out,indent);
+           format(out,"~%~V",Seq{indent})
+         end;
+         format(out,"~%~Vend",Seq{indent})
+      end
+    end
+    
+  end

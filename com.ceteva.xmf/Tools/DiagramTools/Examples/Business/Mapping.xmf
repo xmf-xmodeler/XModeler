@@ -1,0 +1,96 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools;
+import FormTools;
+import Types;
+import Structure;
+import Events;
+import Business;
+
+context Root
+  @Operation toFormType(owner,externals,events,optional)
+    @ToolType <owner.name() + "Editor">
+      @Box Main
+        @Label OwnerLabel(CENTRE) <"Data Record for " + owner.name()> padBottom = 20 padTop = 10 end
+        @For external in externals produce
+          @Box <external.name().toString()>(HORIZONTAL)
+            padBottom = 20
+            @Box <external.name().toString() + "Details">
+              @Box NameBox(HORIZONTAL)
+                @Label label <external.name() + " Name">  minWidth = 200 maxWidth = 200 end
+                @TextField name "" 
+                  minWidth = 200
+                  maxWidth = 200
+                  padBottom = 10
+                end
+                @Label label contacted  padRight = 10 padLeft = 10 end
+                @CheckBox contacted false end
+              end
+              @For event in events->select(e | e.source() = external) produce
+                @Box EventBox(HORIZONTAL)
+                  @Label label <event.name() + " Date">  minWidth = 200 maxWidth = 200 end
+                  @TextField name "" 
+                    minWidth = 200
+                    maxWidth = 200
+                    padBottom = 10
+                  end
+                end
+              end
+            end
+            @TextBox Comments <"Comments relating to " + external.name()> 
+              minWidth = 400
+              maxWidth = 400
+              minHeight = 100
+              maxHeight = 100
+              padLeft = 10
+            end
+          end
+        end
+      end
+     @Box Controls(HORIZONTAL,CENTRE)
+       padTop = 10
+       @Button Clear minWidth = 100 minHeight = 20 padRight = 20 do null end
+       @Button Save minWidth = 100 minHeight = 30 padRight = 20 do null end
+       @Button Load minWidth = 100 minHeight = 30 padRight = 20 do null end
+       @Button Validate minWidth = 100 minHeight = 30 padRight = 20 
+         do validate(events,tool)
+       end
+     end
+   end
+ end
+ 
+context Root
+  @Operation validate(events,tool)
+    let form = tool.form() then
+        box = form.ref1(Seq{"Main"});
+        allPresent = ""
+    in @For event in events do
+         let source = event.source() then
+             name = source.name().toString() then
+             externalBox = box.ref1(Seq{name,name + "Details"}) then
+             eventBox = externalBox.ref1(Seq{"EventBox"}) then
+             textField = eventBox.ref1(Seq{"name"})
+         in format(stdout,"event text = ~S~%",Seq{textField.text()});
+            if textField.text() = ""
+            then allPresent := allPresent + "The event " + event.name() + " is mandatory for " + source.name() + ".\n"
+            end
+         end
+       end;
+       if allPresent <> ""
+       then xmf.warning(allPresent)
+       else xmf.warning("All mandatory events are present.")
+       end
+    end
+  end
+    
+  
+context Root
+  @Operation toForm(owner,external,events,optional)
+    let type = toFormType(owner,external,events,optional) then 
+        tool = Tool(type,type.name,ElementManager("M"),null)
+    in tool.showForm()
+    end
+  end

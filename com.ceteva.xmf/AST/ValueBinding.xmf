@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ValueBinding in AST(aValueBinding,arg,seen)
+  let value = self.dispatch(aValueBinding.value,arg)
+  in ASTNode(aValueBinding,Seq{value})
+  end
+end;

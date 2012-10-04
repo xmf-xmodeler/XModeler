@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class Selection extends DiagramEvent
+  
+    // Occurs when a node or edge is selected or deselected.
+  
+    @Attribute value     : Element    (?) end
+    
+    // The following attribute designates the state change.
+    // If true then the value has just been selected. If
+    // false then the value has just been deselected.
+    
+    @Attribute selected : Boolean (?) end 
+    
+    @Constructor(value,selected) ! end
+    
+    @Operation raisedName():String
+      value.type().name() + if selected then "_Selected" else "_Deselected" end
+    end
+    
+  end

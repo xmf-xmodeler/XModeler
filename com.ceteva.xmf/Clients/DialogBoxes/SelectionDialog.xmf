@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class SelectionDialog extends ContainedClientElement
+  
+    @Attribute multi   : Boolean end
+    @Attribute title   : String end
+    @Attribute message : String end
+    @Attribute options : Seq(String) end
+  
+    @Constructor(multi,title,message,options) end
+    
+    @Operation new()
+      self.commandInterpreter().newSelectionDialog(self)
+    end
+  
+  end

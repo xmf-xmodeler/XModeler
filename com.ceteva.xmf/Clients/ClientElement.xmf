@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+context Clients
+
+  @Class ClientElement isabstract
+  
+    @Attribute id : Element (?,!) end
+    
+    @Operation dispose()
+    
+      @Doc 
+        It is important that when a client element is disposed it is removed
+        from the idTable (call removeFromIdManager()) and calls dispose() on
+        any of its contents. Over-ride this for subclasses with contents.
+      end
+      
+      self.disposeId(false)
+      
+    end
+    
+    @Operation disposeId(disposeChildren)
+      self.removeFromIdManager();
+      self.id := null
+    end
+    
+    @Operation disposeCollection(collection)
+      @For element in collection do
+        element.dispose()
+      end
+    end
+    
+    @Operation disposeIdCollection(collection,disposeChildren)
+      @For element in collection do
+        element.disposeId(disposeChildren)
+      end
+    end
+    
+    @Operation removeFromIdManager()
+      xmf.clientManager().idManager().remove(self);
+      self
+    end
+    
+  end

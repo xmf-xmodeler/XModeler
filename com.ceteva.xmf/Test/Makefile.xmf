@@ -1,0 +1,32 @@
+// This file makes the tests. The current directory
+// is assumed to be the bin directory of XMT.
+
+Compiler::compileFile("Test/AllTests",true,true);
+Compiler::compileFile("Test/At",true,true);
+Compiler::compileFile("Test/Bind",true,true);
+Compiler::compileFile("Test/CollectionTests",true,true);
+Compiler::compileFile("Test/Constructors",true,true);
+Compiler::compileFile("Test/Daemons",true,true);
+Compiler::compileFile("Test/DrinksMachine",true,true);
+Compiler::compileFile("Test/ElementChannel",true,true);
+Compiler::compileFile("Test/FileInputTest",true,true);
+Compiler::compileFile("Test/Format",true,true);
+Compiler::compileFile("Test/Grammar",true,true);
+Compiler::compileFile("Test/ImportDef",true,true);
+Compiler::compileFile("Test/ImportTest",true,true);
+Compiler::compileFile("Test/ImportUse",true,true);
+Compiler::compileFile("Test/Lift",true,true);
+Compiler::compileFile("Test/Modifiers",true,true);
+Compiler::compileFile("Test/Parser",true,true);
+Compiler::compileFile("Test/Patterns",true,true);
+Compiler::compileFile("Test/Sync",true,true);
+Compiler::compileFile("Test/Table",true,true);
+Compiler::compileFile("Test/Tokens",true,true);
+Compiler::compileFile("Test/Tree",true,true);
+Compiler::compileFile("Test/Try",true,true);
+Compiler::compileFile("Test/TypeCase",true,true);
+Compiler::compileFile("Test/Compiler",true,true);
+//Compiler::compileFile("Test/StateMachines",true,true);
+//Compiler::compileFile("Test/StateMachineGrammar",true,true);
+Compiler::compileFile("Test/VarUpdate",true,true);
+Compiler::compileFile("Test/XML",true,true);

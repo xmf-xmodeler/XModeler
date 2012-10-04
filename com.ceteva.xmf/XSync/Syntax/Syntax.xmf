@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import OCL;
+
+context XSync
+
+  @Package Syntax
+  
+    @Operation test()
+      let xsync = XSync();
+          rule1 = Rule("r",1,[| x |]);
+          pattern1 = ObjectPattern(false,"",Seq{"C"},Seq{SlotPattern("x",Var("a"))});
+          pattern2 = ObjectPattern(false,"",Seq{"C"},Seq{SlotPattern("x",Var("a")),SlotPattern("y",Var("b"))});
+          pattern3 = ObjectPattern(false,"",Seq{"C"},Seq{SlotPattern("x",Var("a")),SlotPattern("y",Var("b"))})
+      in rule1.add(pattern1);
+         rule1.add(pattern2);
+         rule1.add(pattern3);
+         xsync.add(rule1);
+         xsync.desugar().pprint()
+      end 
+    end
+  
+  end

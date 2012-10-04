@@ -1,0 +1,7 @@
+import OCL;
+import Exceptions;
+
+context PathUpdate
+  @Operation eval(target,env,imports)
+    self.desugar().eval(target,env,imports)
+  end

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AdaSystem endName="">
+	<AdaProgram resourceName="C:\Documents and Settings\Administrator\Desktop\eclipse\workspace\xmt\PlugIns\Ada\AdaSource\asis_utilities.ads" endName="">
+		<CompilationUnit endName="" private="false">
+			<ContextSpec endName="">
+				<WithClause name="Asis" endName="" />
+			</ContextSpec>
+			<PackageSpec name="Asis_Utilities" endName="">
+				<FunctionSpec name="Is_Private_Unit" abstract="false" returnType="Boolean" endName="">
+					<Parameter name="Unit" mode="in_" endName="">
+						<SubTypeMark name="Asis.Declaration" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="Is_Separate_Unit" abstract="false" returnType="Boolean" endName="">
+					<Parameter name="Unit" mode="in_" endName="">
+						<SubTypeMark name="Asis.Declaration" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="First_Element" abstract="false" returnType="Asis.Element" endName="">
+					<Parameter name="List" mode="in_" endName="">
+						<SubTypeMark name="Asis.Element_List" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="Last_Element" abstract="false" returnType="Asis.Element" endName="">
+					<Parameter name="List" mode="in_" endName="">
+						<SubTypeMark name="Asis.Element_List" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="Is_Here" abstract="false" returnType="Boolean" endName="">
+					<Parameter name="Element" mode="in_" endName="">
+						<SubTypeMark name="Asis.Element" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="Count" abstract="false" returnType="Natural" endName="">
+					<Parameter name="List" mode="in_" endName="">
+						<SubTypeMark name="Asis.Element_List" endName="" />
+					</Parameter>
+				</FunctionSpec>
+				<FunctionSpec name="Name_After_End_Repeated" abstract="false" returnType="Boolean" endName="">
+					<Parameter name="Declaration" mode="in_" endName="">
+						<SubTypeMark name="Asis.Declaration" endName="" />
+					</Parameter>
+				</FunctionSpec>
+			</PackageSpec>
+		</CompilationUnit>
+	</AdaProgram>
+</AdaSystem>

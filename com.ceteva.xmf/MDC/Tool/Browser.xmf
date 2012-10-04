@@ -1,0 +1,911 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::FormTools::Structure;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import Tools::Menus;
+import MDC::Types;
+import MDC::Values;
+import IO;
+
+context MDC
+
+  @Class Browser extends Tool
+  
+    @Attribute nameCounter : Integer end
+    
+    @Operation addElement(node)
+    
+      // Called when we want to add a menu item to
+      // the node to allow a collection type to be
+      // extended.
+      
+      let map = self.find(node) then
+          A = map.collectionAttributes()
+      in if A->isEmpty
+         then xmf.message("No collection attributes from here")
+         else
+           let a = xmf.select("Attribute","Select an attribute",A,null,null)
+           in if a <> null
+              then 
+                // map is either a Box_x_Box, a Free_x_Node or a Root_x_Node.
+                // The associated type has a menu that we can add the
+                // new element menu action to. In addition, the tree node has
+                // a menu sub-node to which we add a new menu node of type
+                // Add. The action and node are associated to allow the action
+                // to be deleted when the node is deleted.
+                @WithoutEvents(self)
+                  map.addElement(self,node,a)
+                end
+              end
+           end
+         end
+      end
+      
+    end
+    
+    @Operation applyTheme(tool,menuAction,args)
+      if tool.themes()->isEmpty
+      then xmf.message("No themes are defined.")
+      else
+        let names = tool.themes().name then
+            name = xmf.select("Theme To Apply","Choose name",names,null,null)
+        in @Find(theme,tool.themes())
+             when theme.name() = name andthen not tool.applied()->exists(theme | theme.name() = name)
+             do tool.applyTheme(theme)
+           end
+        end
+      end
+    end
+    
+    @Operation checkOp(tool,menuAction,args)
+      let walker = Walkers::ConstraintReporter(false)
+      in walker.walkConstraints(tool.element().element()).edit()
+      end
+    end
+  
+    @Operation classInScope(map)
+      // Find the nearest class that is defined for the map...
+      self.classInScope(element,null,map)
+    end
+    
+    @Operation classInScope(currentMap,class,targetMap)
+    
+      // Find the target mapping by traversing the structure from
+      // the current mapping. The class argument is the current
+      // class in scope (or null). Returns null when no class is
+      // found for the target mapping, or the class.
+      
+      if currentMap = targetMap
+      then class
+      else
+        @CaseObj currentMap of
+          RootElementType[nodes,classifier] do
+            let c = null; nodes = nodes->asSeq
+            in @While c = null and not nodes->isEmpty do
+                 c := self.classInScope(nodes->head,class,targetMap);
+                 nodes := nodes->tail
+               end;
+               c
+            end
+          end
+          Root_x_Node[type] do
+            self.classInScope(type,class,targetMap)
+          end
+          Free_x_Node[type] do
+            self.classInScope(type,class,targetMap)
+          end
+          Classifier_x_Node[classifier,displays] do
+            let c = null; 
+                displays = displays->asSeq;
+                class = if classifier.isKindOf(Class) then classifier else class end
+            in @While c = null and not displays->isEmpty do
+                 c := self.classInScope(displays->head,class,targetMap);
+                 displays := displays->tail
+               end;
+               c
+            end
+          end
+          Display_x_Display[ ] do
+            null
+          end
+          Box_x_Box[contents] do
+            let c = null; contents = contents->asSeq
+            in @While c = null and not contents->isEmpty do
+                 c := self.classInScope(contents->head,class,targetMap);
+                 contents := contents->tail
+               end;
+               c
+            end
+          end 
+          Attribute_x_Display[type] do
+            self.classInScope(type,class,targetMap)
+          end
+          Classifier_x_Display[classifier,display] do
+            if classifier.isKindOf(Class)
+            then self.classInScope(display,classifier,targetMap)
+            else self.classInScope(display,class,targetMap)
+            end
+          end
+          Ref_x_Display[map] do
+            null
+          end
+        end
+      end
+    end
+    
+    @Operation copyDiagramToClipboardOp(tool,menuAction,args)
+      tool.diagram.copyDiagramToClipboard()
+    end
+        
+    @Operation deleteAttribute(displayMap,parentMap)
+    
+      // Called when an attribute mapping is deleted. 
+      // Can only be a top level attribute in a node or
+      // an attribute in a box. Delink from the map
+      // and the tool type element...
+      
+      @CaseObj parentMap of
+        Root_x_Node[type] do
+          type.deleteFromDisplays(displayMap);
+          type.nodeType().deleteFromDisplays(displayMap.type().display().displayType())
+        end
+        Free_x_Node[type] do
+          type.deleteFromDisplays(displayMap);
+          type.nodeType().deleteFromDisplays(displayMap.type().display().displayType())
+        end
+        Box_x_Box[displayType] do
+          parentMap.deleteFromContents(displayMap);
+          displayType.deleteFromContents(displayMap.type().display().displayType())
+        end
+        Attribute_x_Display[type] do
+          self.deleteAttribute(displayMap,type.display())
+        end
+      end
+    end
+    
+    @Operation deleteDisplay(displayMap,parentMap)
+    
+      // Called when a display type node has been deleted.
+      // We need to modify the mappings and the underlying
+      // tool type definition. Returns true when the node has 
+      // really been deleted...
+      
+      @CaseObj parentMap of
+        Root_x_Node[type] do
+          type.deleteFromDisplays(displayMap);
+          type.nodeType().deleteFromDisplays(displayMap.displayType());
+          true
+        end
+        Free_x_Node[type] do
+          type.deleteFromDisplays(displayMap);
+          type.nodeType().deleteFromDisplays(displayMap.displayType());
+          true
+        end
+        Box_x_Box[displayType] do
+          parentMap.deleteFromContents(displayMap);
+          displayType.deleteFromContents(displayMap.displayType());
+          true
+        end
+        Attribute_x_Display[type] do
+          let node = self.find(displayMap)
+          in xmf.message("Use change to modify an attribute display.");
+             node.renew(node.owner());
+             false
+          end
+        end
+        Display_x_Display[ ] do
+          false
+        end
+      end
+    end
+    
+    @Operation deleteMenuItem(item,parentNode)
+      if self.isRegistered(parentNode)
+      then
+        let parent = self.find(parentNode)
+        in parent.deleteFromItems(item)
+        end
+      end;
+      self.deregister(self.find(item));
+      self.deregister(item)
+    end
+    
+    @Operation deleteTheme(tool,menuAction,args)
+      if tool.themes()->isEmpty
+      then xmf.message("No themes are defined.")
+      else
+        let names = tool.themes().name then
+            name = xmf.select("Theme To Delete","Choose name",names,null,null)
+        in @Find(theme,tool.themes())
+             when theme.name() = name
+             do if tool.applied()->includes(theme)
+                then tool.removeTheme(theme)
+                end;
+                tool.deleteFromThemes(theme)
+           end
+        end
+      end
+    end
+    
+    @Operation edgeTypes()
+      element.displayType().edgeTypes()
+    end
+    
+    @Operation editTheme(tool,menuAction,args)
+      if tool.themes()->isEmpty
+      then xmf.message("No themes are defined.")
+      else
+        let names = tool.themes().name then
+            name = xmf.select("Theme To Apply","Choose name",names,null,null)
+        in @Find(theme,tool.themes())
+             when theme.name() = name
+             do theme.edit()
+           end
+        end
+      end
+    end
+    
+    @Operation hideDialogOp(tool,menuAction,args)
+      self.hide()
+    end
+        
+    @Operation importToolDefFile(node)
+    
+      // Called when we want to import a tool definition from a file and
+      // add it as the child of the supplied node...
+      
+      let file = xmf.openFile(xmf.projDir(),"*.xar")
+      in if file.fileExists()
+         then 
+           @WithOpenFile(fin <- file)
+             let xin = ElementInputChannel(fin)
+             in @Busy("Loading XAR")
+                  try 
+                    let rootElementType = xin.read() 
+                    in rootElementType.edit(self,node)
+                    end
+                  catch(x)
+                    xmf.warning("Error loading XAR");
+                    x.edit()
+                  end
+                end
+             end
+           end
+         end
+      end
+    end
+
+    @Operation loadTheme(tool,menuAction,args)
+      tool.loadTheme()
+    end
+
+    @Operation menuBrowser(tool,menuAction,args)
+      tool.findElement(self).browse() 
+    end
+
+    @Operation menuClipboardCopy(tool,menuAction,args)
+      tool.findElement(self).copyToClipboard()
+    end
+
+    @Operation menuClipboardCut(tool,menuAction,args)
+      tool.findElement(self).cutToClipboard()
+    end
+
+    @Operation menuClipboardPaste(tool,menuAction,args)
+      tool.findElement(self).pasteFromClipboard()
+    end
+    
+    @Operation menuDelete(tool,menuAction,args)
+      if xmf.question("Really Delete?")
+      then
+        if self.isKindOf(Clients::Diagrams::Display)
+        then 
+          // Collections may be displayed as diagrams.
+          // If so then the display is wrapped in a node
+          // whose type is a NestedNodeType. Deletions
+          // must be propagated to the owning node...
+          if owner <> null
+          then
+            if owner.type.isReallyKindOf(MDC::Displays::NestedNodeType)
+            then
+              owner.delete()
+            else 
+              self.delete(true)
+            end
+          else
+            self.delete(true)
+          end
+        else
+          //if self.isKindOf(Clients::Diagrams::Node)
+          //then         
+          //  self.deleteNested()
+          //else
+            self.delete()
+          //end
+        end
+      end
+    end
+    
+    @Operation menuEditor(tool,menuAction,args)
+      tool.findElement(self).edit() 
+    end
+
+    @Operation moveDown(node)
+    
+      // The node is requesting to move down the ordering with
+      // respect to its siblings...
+      
+      let owner = node.owner() then
+          map = self.find(owner);
+          maxIndex = owner.nodes()->size - 1;
+          index = node.index()
+      in if index < maxIndex
+         then node.setIndex(index + 1)
+         end
+      end
+    end
+    
+    @Operation moveUp(node)
+    
+      // The node is requesting to move up the ordering with
+      // respect to its siblings...
+      
+      let owner = node.owner() then
+          map = self.find(owner);
+          index = node.index()
+      in if index > 1
+         then node.setIndex(index - 1)
+         end
+      end
+    end
+    
+    @Operation nestedRootElementType(parentMap,node)
+      
+      // Called when a diagram is added to an attribute.
+      
+      parentMap.newRootElementType(self,node)
+      
+    end
+    
+    @Operation newDisplay(parentMap,treeNode,displayMap)
+    
+      // Called when an event occurs to add a display element
+      // type to the tool type. 
+      
+      @CaseObj parentMap of
+        Root_x_Node[type] do
+          type.addToDisplays(displayMap);
+          type.nodeType().add(displayMap.displayType())
+        end
+        Free_x_Node[type] do
+          type.addToDisplays(displayMap);
+          type.nodeType().add(displayMap.displayType())
+        end
+        Box_x_Box[displayType] do
+          parentMap.addToContents(displayMap);
+          displayType.add(displayMap.displayType())
+        end
+        Attribute_x_Display[type] do
+          parentMap.newDisplay(self,displayMap)
+        end
+      end
+    end
+    
+    @Operation newAttribute(parentMap,treeNode)
+    
+      // Add an attribute to the parent mapping. To do this we need
+      // the nearest class in scope to the parent mapping. We can
+      // only add attributes to content bearing mapping nodes.
+      
+      @CaseObj parentMap of
+        Root_x_Node[type] do 
+          type.addAttribute(self,treeNode)
+        end
+        Free_x_Node[type] do 
+          type.addAttribute(self,treeNode)
+        end
+        Box_x_Box[ ] do
+          parentMap.addAttribute(self,self.classInScope(parentMap),treeNode)
+        end
+        Attribute_x_Display[type] do
+          self.newAttribute(type.display(),treeNode)
+        end
+        else
+          xmf.warning("Illegal place to add an attribute");
+          treeNode.delete()
+      end
+    end
+    
+    @Operation newName(base:String):String
+    
+      // Called when we want a new name, for example for a 
+      // generated display type.
+      
+      self.nameCounter := nameCounter + 1;
+      base + nameCounter.toString()
+    end
+    
+    @Operation newMenuBrowser(newNode)
+      // Add a browser to the root...
+      self.newMenuBrowser("Browse",element.displayType().menu(),newNode)
+    end
+    
+    @Operation newMenuEditor(newNode)
+      // Add an editor to the root...
+      self.newMenuEditor("Edit",element.displayType().menu(),newNode)
+    end
+
+    @Operation newMenuClipboardCopy(newNode)
+      // Add an clipboard copy to the root...
+      self.newMenuClipboardCopy("Copy",element.displayType().menu(),newNode)
+    end
+
+    @Operation newMenuClipboardCut(newNode)
+      // Add an clipboard cut to the root...
+      self.newMenuClipboardCut("Cut",element.displayType().menu(),newNode)
+    end
+
+    @Operation newMenuClipboardPaste(newNode)
+      // Add an clipboard paste to the root...
+      self.newMenuClipboardPaste("Paste",element.displayType().menu(),newNode)
+    end
+    
+    @Operation newMenuBrowser(parent,newNode)
+      // Add a browser to the root...
+      self.newMenuBrowser("Browse",parent,newNode)
+    end
+    
+    @Operation newMenuDelete(parent,newNode)
+      // Add a delete item to the root...
+      self.newMenuDelete("Delete",parent,newNode)
+    end
+    
+    @Operation newMenuEditor(parent,newNode)
+      // Add an editor to the parent...
+      self.newMenuEditor("Edit",parent,newNode)
+    end
+    
+    @Operation newMenuZoomIn(parent,newNode)
+      // Add a zoom to the parent...
+      self.newMenuZoomIn("Zoom In",parent,newNode)
+    end
+    
+    @Operation newMenuZoomOut(parent,newNode)
+      // Add a zoom out to the parent...
+      self.newMenuZoomOut("Zoom Out",parent,newNode)
+    end
+    
+    @Operation newMenuZoomTo(parent,newNode)
+      // Add a zoom to to the parent...
+      self.newMenuZoomTo("Zoom To ...",parent,newNode)
+    end
+    
+    @Operation newMenuZoomToFit(parent,newNode)
+      // Add a zoom to fit to the parent...
+      self.newMenuZoomToFit("Zoom To Fit",parent,newNode)
+    end
+    
+    @Operation newMenuCheck(parent,newNode)
+      // Add a check to the parent...
+      self.newMenuCheck("Check",parent,newNode)
+    end
+    
+    @Operation newMenuRenderMode(parent,newNode)
+      // Add a render mode to the parent...
+      self.newMenuRenderMode("Render Mode",parent,newNode)
+    end
+    
+    @Operation newMenuCopyDiagramToClipboard(parent,newNode)
+      // Add a copy to the parent...
+      self.newMenuCopyDiagramToClipboard("Copy Diagram",parent,newNode)
+    end
+
+    @Operation newMenuClipboardCopy(parent,newNode)
+      // Add an clipboard copy to the parent...
+      self.newMenuClipboardCopy("Copy",parent,newNode)
+    end
+
+    @Operation newMenuClipboardCut(parent,newNode)
+      // Add an clipboard cut to the parent...
+      self.newMenuClipboardCut("Cut",parent,newNode)
+    end
+
+    @Operation newMenuClipboardPaste(parent,newNode)
+      // Add an clipboard paste to the parent...
+      self.newMenuClipboardPaste("Paste",parent,newNode)
+    end
+    
+    @Operation newMenuHide(parent,newNode)
+      // Add a copy to the parent...
+      self.newMenuHide("Hide",parent,newNode)
+    end
+    
+    @Operation newMenuShow(parent,newNode)
+      // Add a copy to the parent...
+      self.newMenuShow("Show",parent,newNode)
+    end
+
+    @Operation newMenuNewTheme(parent,newNode)
+      // Add a new theme to the parent...
+      self.newMenuNewTheme("New",parent,newNode)
+    end
+
+    @Operation newMenuApplyTheme(parent,newNode)
+      // Add an apply theme to the parent...
+      self.newMenuApplyTheme("Apply",parent,newNode)
+    end
+    
+    @Operation newMenuDeleteTheme(parent,newNode)
+      // Add a delete theme to the parent...
+      self.newMenuDeleteTheme("Delete",parent,newNode)
+    end
+    
+    @Operation newMenuRemoveTheme(parent,newNode)
+      // Add a remove theme to the parent...
+      self.newMenuRemoveTheme("Remove",parent,newNode)
+    end
+    
+    @Operation newMenuEditTheme(parent,newNode)
+      // Add an edit theme to the parent...
+      self.newMenuEditTheme("Edit",parent,newNode)
+    end
+    
+    @Operation newMenuSaveTheme(parent,newNode)
+      // Add a save theme to the parent...
+      self.newMenuSaveTheme("Save",parent,newNode)
+    end
+    
+    @Operation newMenuLoadTheme(parent,newNode)
+      // Add a load theme to the parent...
+      self.newMenuLoadTheme("Load",parent,newNode)
+    end
+        
+//    @Operation newMenuThemes(parent,newNode)
+//      // Add a copy to the parent...
+//      self.newMenuItems(parent,newNode)
+//    end
+    
+    @Operation newMenuItem(parent,newNode)
+      // Add the menu item to the root menu in the tool type...
+      self.newMenuItem(self.newName("MenuItem"),parent,newNode)
+    end
+    
+    @Operation newMenuItems(parent,newNode)
+      // Add the menu item to the root menu in the tool type...
+      let items = MenuItems(self.newName("MenuGroup"))
+      in parent.add(items);
+         self.register(newNode,items);
+         self.register(items,newNode);
+         items
+      end
+    end
+    
+    @Operation newMenuBrowser(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuBrowser,newNode)
+    end
+    
+    @Operation newMenuDelete(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuDelete,newNode)
+    end
+    
+    @Operation newMenuEditor(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuEditor,newNode)
+    end
+    
+    @Operation newMenuZoomIn(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::zoomInOp,newNode)
+    end
+    
+    @Operation newMenuZoomOut(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::zoomOutOp,newNode)
+    end
+    
+    @Operation newMenuZoomTo(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::zoomTo,newNode)
+    end
+    
+    @Operation newMenuZoomToFit(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::zoomToFitOp,newNode)
+    end
+
+    @Operation newMenuCheck(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::checkOp,newNode)
+    end
+
+    @Operation newMenuRenderMode(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::renderModeOp,newNode)
+    end
+    
+    @Operation newMenuCopyDiagramToClipboard(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::copyDiagramToClipboardOp,newNode)
+    end
+
+    @Operation newMenuClipboardCopy(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuClipboardCopy,newNode)
+    end
+
+    @Operation newMenuClipboardCut(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuClipboardCut,newNode)
+    end
+
+    @Operation newMenuClipboardPaste(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::menuClipboardPaste,newNode)
+    end
+    
+    @Operation newMenuHide(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::hideDialogOp,newNode)
+    end
+    
+    @Operation newMenuShow(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::showDialogOp,newNode)
+    end
+    
+    @Operation newMenuNewTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::newTheme,newNode)
+    end
+
+    @Operation newMenuApplyTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::applyTheme,newNode)
+    end
+
+    @Operation newMenuDeleteTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::deleteTheme,newNode)
+    end
+
+    @Operation newMenuRemoveTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::removeTheme,newNode)
+    end
+
+    @Operation newMenuEditTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::editTheme,newNode)
+    end
+
+    @Operation newMenuSaveTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::saveTheme,newNode)
+    end
+
+    @Operation newMenuLoadTheme(name,parent,newNode)
+      self.newMenuItem(name,parent,MDC::Browser::loadTheme,newNode)
+    end
+    
+    @Operation newMenuItem(name,parent,newNode)
+      // Create a dummy operation for the handler...
+      self.newMenuItem(name,parent,
+        @Operation(tool,menuAction,args) 
+          xmf.message("No menu handler defined.") 
+        end.setOwner(null),
+      newNode)
+    end
+    
+    @Operation newMenuItem(name,parent,handler,newNode)
+      // Create a new item, set the handler and add it to the
+      // parent. Associate it with the new node.
+      let action = MenuAction(name,handler)
+      in parent.add(action);
+         handler.setTarget(null);
+         //handler.setOwner(null);
+         self.register(action,newNode);
+         self.register(newNode,action)
+      end
+    end
+    
+    @Operation newMenuItems(name,parent,newNode,names,handlers)
+      // Create a new menu item container and its children.
+      // Associate the node with the items...
+      let items = MenuItems(name)
+      in parent.add(items);
+         self.register(items,newNode);
+         self.register(newNode,items);
+         @For name,handler in names,handlers do
+           let action = MenuAction(name,handler)
+           in handler.setTarget(null);
+              //handler.setOwner(null);
+              items.add(action)
+           end
+         end;
+         items
+      end
+    end
+    
+    @Operation newRef(parentMap,node)
+    
+      // Called when a new ref node is added to a display parent node...
+      
+      let refMaps = self.refMaps(element,parentMap) 
+      in if refMaps->isEmpty
+         then 
+           xmf.message("No types available for reference.");
+           node.delete()
+         else
+           let refMap = xmf.select("Ref Type","Select a type",refMaps,null,null)
+           in if refMap = null
+              then node.delete()
+              else
+                let map = Ref_x_Display(refMap)
+                in node.setTextIn(map.displayType().name().toString());
+                   self.newDisplay(parentMap,node,map);
+                   self.register(map,node);
+                   self.register(node,map)
+                end
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation newTheme(tool,menuAction,args)
+      let name = xmf.getString("Theme Name","Type name","")
+      in if name <> null
+         then 
+           let predicate = @Operation themePredicate(tool,value) false end;
+               handler = @Operation themeHandler(tool,value) null end;
+               remove = @Operation themeRemover(tool,value) null end then
+               theme = MDC::Theme(name,predicate,handler,remove)
+           in tool.addToThemes(theme);
+              predicate.setOwner(null);
+              predicate.setTarget(null);
+              handler.setOwner(null);
+              handler.setTarget(null);
+              remove.setOwner(null);
+              remove.setTarget(null);
+              theme.edit()
+           end
+         end
+      end
+    end
+  
+    @Operation newTool()
+      self.newTool((element.classifier())())
+    end
+    
+    @Operation newTool(value)
+    
+      // Create a blank MDC tool and then use the type map
+      // to populate it via the edit message...
+      
+      let type = element.displayType().deref();
+          manager = Tools::Events::ElementManager();
+          id = "T00" then
+          tool = MDC::MDCTool(type,id,manager,null)
+      in tool.showDiagram();
+         element.initializeDiagram(tool);
+         element.build(tool,value,tool.diagram())
+      end
+    end
+  
+    @Operation nodeTypes()
+      // Needs extending by following edge links to other node types...
+      //self.element().nodes()->collect(root | root.type().nodeType())
+      self.element().displayType().nodeTypes()
+    end
+    
+    @Operation refMaps(currentMap,map)
+    
+      // Calculate the current referencable maps in scope down to
+      // map. Currently just allow the roots to be referenced...
+      
+      if currentMap = map
+      then Seq{}
+      else
+        @CaseObj currentMap of
+          RootElementType[nodes,displayType] do
+            nodes->iterate(node N = Seq{} | N + self.refMaps(node,map))->including(currentMap)
+          end
+          Root_x_Node[type] do
+            self.refMaps(type,map)
+          end
+          Free_x_Node[type] do
+            self.refMaps(type,map)
+          end
+          Classifier_x_Node[nodeType,displays] do
+            displays->iterate(display N = Seq{} | N + self.refMaps(display,map))
+          end
+          Display_x_Display[ ] do
+            Seq{}
+          end
+          Box_x_Box[contents] do
+            contents->iterate(display N = Seq{} | N + self.refMaps(display,map))
+          end 
+          Attribute_x_Display[type] do
+            self.refMaps(type,map)
+          end
+          Classifier_x_Display[display] do
+            self.refMaps(display,map)
+          end
+          Ref_x_Display[map] do
+            Seq{}
+          end
+        end
+      end
+    end
+    
+    @Operation registerNewDisplay(parentMap,node,map)
+    
+      // Create the new display and perform all
+      // necessary registration...
+      
+       self.newDisplay(parentMap,node,map);
+       self.register(map,node);
+       self.register(node,map);
+       self.register(node.ref1(Seq{"Menu"}),map.displayType().menu());
+       self.register(map.displayType().menu(),node.ref1(Seq{"Menu"}))
+    end
+    
+    @Operation removeTheme(tool,menuAction,args)
+      if tool.applied()->isEmpty
+      then xmf.message("No themes are applied (perhaps you mean delete?).")
+      else
+        let names = tool.applied().name then
+            name = xmf.select("Theme To Remove","Choose name",names,null,null)
+        in @Find(theme,tool.applied())
+             when theme.name() = name
+             do tool.removeTheme(theme)
+           end
+        end
+      end
+    end
+    
+    @Operation renderModeOp(tool,menuAction,args)
+      let types = Clients::Diagrams::Edge::availableRenderTypes() then
+          mode = xmf.select("Render Mode","Select Mode",types,null,null)
+      in if mode <> null
+         then self.setRenderType(mode)
+         end
+      end
+    end
+    
+    @Operation saveTheme(tool,menuAction,args)
+      if tool.themes()->isEmpty
+      then xmf.message("No themes are defined.")
+      else
+        let names = tool.themes().name then
+            name = xmf.select("Theme To Save","Choose name",names,null,null)
+        in @Find(theme,tool.themes())
+             when theme.name() = name
+             do theme.save()
+           end
+        end
+      end
+    end
+
+    @Operation showDialogOp(tool,menuAction,args)
+      tool.showDialog()
+    end
+        
+    @Operation textChanged(displayMap,new,old)
+      // Called when the text on a label has changed.
+      @CaseObj displayMap of
+        Display_x_Display[displayType] do
+          if displayType.isKindOf(Text)
+          then displayType.setText(new)
+          end
+        end
+        else null
+      end
+    end
+    
+    @Operation zoomInOp(tool,menuAction,args)
+      tool.diagram.zoomIn()
+    end
+    
+    @Operation zoomOutOp(tool,menuAction,args)
+      tool.diagram.zoomOut()
+    end
+        
+    @Operation zoomTo(tool,menuAction,args)
+      let amount = xmf.input("Zoom","Enter zoom percent:","")
+      in
+        if amount <> null
+        then tool.diagram.zoomTo(amount)
+        end
+      end
+    end
+    
+    @Operation zoomToFitOp(tool,menuAction,args)
+      tool.diagram.zoomToFit()
+    end
+
+    
+  end

@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Tools;
+import Data;
+import IO;
+
+context Data
+
+  @Class XData
+  
+    // Represents all the data to be serialized for an element
+    // that is being edited using XTools.
+    
+    @Attribute element : Element        (?)     end
+    @Attribute data    : Seq(XToolData) (?,+,-) end
+    
+    @Constructor(data) ! end
+    
+    @Constructor(element,data) end
+    
+    @Operation deploy()
+    
+      // Write out the data to an XML file.
+      
+      let file = xmf.saveFile(xmf.projDir(),"*.xml")
+      in if file <> ""
+         then
+           @WithOpenFile(fout -> file)
+             let xout = XMLOutputChannel(fout,XDataFormatter(Seq{}))
+             in xout.writeValue(self)
+             end
+           end
+         end
+      end
+      
+    end
+    
+  end
+    

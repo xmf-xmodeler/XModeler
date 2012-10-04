@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Clients::BrowserInterface;
+
+import DocTables;
+import Basic;
+import MApProjects;
+import Documents;
+
+context ! Documents
+
+  @Class Diagram metaclass BrowsedClass extends ElementRef
+       
+    @Operation toHTML()
+      // Export the diagram image
+      self.exportDiagram(refObject);
+      // Generate the HTML
+      self.toHTML(refObject)
+    end
+    
+    // Export the diagram/s owned by the
+    // refObject to the default directory
+    @Operation exportDiagram(refObject)
+      let index = 0 
+      in
+        @For t in xmf.diagramManager().diagramsFor(refObject) do
+          if t.isKindOf(Clients::DiagramsMapping::DiagramStub) then
+            t := t.show()
+          elseif not t.isOpen then  
+            t.setFocus();
+            t
+          end;
+          t.commandInterpreter().exportImage(t,
+            Documents::exportDir + "/" + refObject.path().stripIllegalChars() + 
+              index.toString() + ".jpg","jpg");
+          index := index + 1
+        end
+      end
+    end
+    
+    // Display the diagram in HTML
+    @Operation toHTML(refObject)
+      xmf.diagramManager().diagramsFor(refObject)->iterate(t s=Seq{} | s +
+      Seq{Basic::Image[file = refObject.path().stripIllegalChars() + 
+        s->size.toString() + ".jpg"]}) 
+    end
+
+  end

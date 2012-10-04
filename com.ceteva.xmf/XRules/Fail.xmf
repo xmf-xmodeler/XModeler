@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class Fail extends Root::XRules::Action
+
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+    
+      // When called causes backtracking...
+      
+      fail()
+    end
+    
+    @Operation vars(vars)
+      vars
+    end
+
+  end

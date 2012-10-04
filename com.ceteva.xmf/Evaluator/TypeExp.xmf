@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler TypeExp in Eval(aTypeExp,arg,seen)
+  if seen
+  then aTypeExp
+  else
+ aTypeExp
+  end
+end;

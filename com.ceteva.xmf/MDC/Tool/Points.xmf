@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Displays;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_Point"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let shapeMap = event.tool().find(event.parent()) then
+        shape = shapeMap.displayType();
+        point = Clients::Point(0,0)
+    in shape.add(point);
+       event.tool().register(point,event.value());
+       event.tool().register(event.value(),point)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)_Point"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let shapeMap = event.tool().find(event.owner()) then
+        shape = shapeMap.displayType();
+        point = event.tool().find(event.value())
+    in shape.deleteFromPoints(point);
+       event.tool().deregister(point);
+       event.tool().deregister(event.value())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_RootNode_(.*)Shape_Point_Changed"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let point = event.tool().find(event.value());
+        xy = event.new().subst("","(",true).subst("",")",true).splitBy(",",0,0)
+    in if xy->size = 2
+       then 
+         let x = xy->at(0).asInt();
+             y = xy->at(1).asInt()
+         in point.setX(x);
+            point.setY(y)
+         end
+       else 
+         xmf.warning("Syntax error in point requires (x,y) format");
+         event.value().setTextIn(event.old())
+       end
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_RootNode_(.*)Shape_Point_Moved"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let pointNode = event.value() then
+        parentNode = pointNode.owner() then
+        shapeMap = event.tool().find(parentNode) then
+        shape = shapeMap.displayType();
+        point = event.tool().find(event.value())
+    in shape.deleteFromPoints(point);
+       shape.setPoints(shape.points().insertAt(point,event.new()-1))
+    end
+  end
+end;

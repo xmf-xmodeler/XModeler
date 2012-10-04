@@ -1,0 +1,20 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler CollExp in PPrint(aCollExp,out,seen)
+  self.dispatch(aCollExp.collection,out);
+  if aCollExp.args->isEmpty
+  then format(out,"->~S",Seq{aCollExp.collOp})
+  else 
+    format(out,"->~S(",Seq{aCollExp.collOp});
+    @For arg in aCollExp.args do
+      self.dispatch(arg,out);
+      if not isLast
+      then format(out,",")
+      end
+    end;
+    format(out,")")
+  end
+end;

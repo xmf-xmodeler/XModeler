@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class ElementInputChannel extends InputChannel
+  
+    @Doc
+      An element input channel reads a saved XMF element from an
+      underlying input channel and reconstructs an element. The 
+      reconstruction is performed by interpreting the XMF data
+      language read from the underlying input channel. Typically
+      the value will have been written using an element output
+      channel. You should be careful to reset the input channel
+      before reading.
+    end
+  
+    @Attribute input : InputChannel end
+    
+    @Constructor(input) ! end
+    
+    @Operation channel()
+      input.channel()
+    end
+    
+    @Operation close()
+      input.close()
+    end
+    
+    @Operation peek():Integer
+      input.peek()
+    end
+    
+    @Operation reset()
+      @Doc
+        Resets the underlying save and load mechanism ready for
+        reading.
+      end
+      Kernel_resetSaveLoad()
+    end
+    
+    @Operation read():Element
+      @Doc
+        Read a saved element from the underlying input channel.
+        The reconstructed element is returned.
+      end
+      
+      gc();
+      let data = Kernel_load(input.channel())
+      in
+         try
+           if data.isReallyKindOf(Seq(Element))
+           then
+             let element = data->head;
+                 hotLoads = data->tail
+             in @For o in hotLoads do
+                  o.hotLoaded()
+                end;
+                element
+             end
+           else data
+           end
+         catch(exception)
+           format(stdout,"ElementInputChannel: read error.~% head =(~S:~S)~% tail=(~S:~S)~%",
+             Seq{data->head,data->head.of(),data->tail,data->tail.of()});
+           xmf.raise(exception);
+           data->head
+         end
+      end
+    end
+    
+    @Operation setChannel(channel)
+      input.setChannel(channel)
+    end
+    
+  end

@@ -1,0 +1,131 @@
+try
+
+  // Load all packages that the evaluator depends on.
+  // Assume that the base level XMF image is running.
+  
+  ("OCL/Boot.o").loadBin(false);
+  ("Parser/Boot.o").loadBin(false);
+  ("Instrs/Boot.o").loadBin(false);
+  ("Assembler/Boot.o").loadBin(false);
+  ("Compiler/Boot.o").loadBin(false);
+  ("Grammar/Boot.o").loadBin(false);
+  ("Extensions/Boot.o").loadBin(false);
+  ("Undo/Boot.o").loadBin(false);  
+  ("Aspects/Boot.o").loadBin(false);
+  ("DocTables/Boot.o").loadBin(false);
+  ("Doc/Boot.o").loadBin(false);
+  
+  // Command line systems may require the following
+  // library that defines how to construct dialogs.
+  // XMF-Mosaic does not require this...
+  // ("Dialogs/Boot.o").loadBin(false);
+  
+  ("Eval/Boot.o").loadBin(false);
+  ("XMatch/Boot.o").loadBin(false);
+  ("TopLevel/Boot.o").loadBin(false);
+  ("Walkers/Boot.o").loadBin(false);
+  ("XML/Boot.o").loadBin(false);
+  ("XMap/Boot.o").loadBin(false);
+  
+  // The following library defines a command line
+  // inspector for basic data types. XMF-Mosaic
+  // does not require this as it provides property
+  // editors and browsers.
+  // ("Inspector/Boot.o").loadBin(false);
+  
+  ("Manifests/Boot.o").loadBin(false);
+  ("Projects/Boot.o").loadBin(false);
+  // ("Languages/Boot.o").loadBin(false);
+  
+  // The following library loads database support
+  // into the evaluator
+  
+  ("Database/Boot.o").loadBin(false);
+  
+  // Some mappings that are currently not used in
+  // the basic system (should be moved out as demos
+  // or plugins?)
+  //("Mappings/Boot.o").loadBin(false);
+  
+  //("XSync/Boot.o").loadBin(false);
+  ("Associations/Boot.o").loadBin(false);
+  ("Deploy/Boot.o").loadBin(false);
+  ("Debug/Manifest.o").loadBin(true).load("Debug");
+  // ("XRules/Manifest.o").loadBin(true).load("XRules");
+  
+  // Save the system.
+  
+  gc();
+
+  let startup = saveMachineState("Images/eval.img")
+  in if startup = true
+     then "Evaluator Build Completed."
+     else 
+     
+       // If we supply an initialisation arg when the
+       // image is loaded then it should be a binary file
+       // which is loaded and evaluated. Otherwise, start
+       // the top level loop.
+       
+       let hasArg = @Operation(name) startup->exists(pair | pair->head = name) end;
+           getArg = @Operation(name) startup->select(pair | pair->head = name)->head->tail end
+       in 
+          if hasArg("user")
+          then xmf.setUser(getArg("user"))
+          else xmf.setUser("Unknown User")
+          end;
+          if hasArg("home")
+          then 
+            let home = getArg("home")
+            in xmf.setHomeDir(home)
+            end
+          end;
+          if hasArg("doc")
+          then 
+            let doc = getArg("doc")
+            in xmf.setDocDir(doc)
+            end
+          end;
+          if hasArg("version")
+          then 
+            xmf.setVersion(getArg("version"))
+          end;
+          if hasArg("compileAll")
+          then 
+            let compileAll = getArg("compileAll")
+            in Compiler::compileAll := compileAll.asBool()
+            end
+          end;
+          if hasArg("saveSource")
+          then 
+            let saveSource = getArg("saveSource")
+            in Compiler::saveSource := saveSource.asBool()
+            end
+          end;
+          if hasArg("projects")
+          then 
+            let projects = getArg("projects")
+            in xmf.setProperty("projDir",projects);
+               XMF.add(@Operation projDir() self.property("projDir") end)
+            end
+          end;
+          if not hasArg("filename")
+          then 
+            let topLevel = TopLevel::Loop(stdin,stdout)
+            in xmf.setProperty("topLevel",topLevel);
+               XMF.add(@Operation topLevel() self.property("topLevel") end);
+               topLevel.loop()
+            end
+          else 
+            try
+              getArg("filename").loadBin(false)
+            catch(exception)
+              xmf.raise(exception)
+            end
+          end
+       end
+     end
+  end
+catch(exception)
+  xmf.raise(exception)
+end;

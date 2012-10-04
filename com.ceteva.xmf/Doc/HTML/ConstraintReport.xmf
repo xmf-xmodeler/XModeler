@@ -1,0 +1,171 @@
+parserImport XOCL;
+parserImport Aspects;
+
+import IO;
+
+context AllAspects::ToHTML
+
+  @Class XCore::String
+  
+    @Operation stripNonAlphaChars() : String
+      @Doc 
+        Strips all non-alphanumeric characters from a string.
+      end
+      let newSeq = Seq{} in
+        @For c in self.asSeq() do
+          if (c>=65 and c<=90) or (c>=97 and c<=122) then
+            newSeq := newSeq->including(c)
+          end
+        end;
+        newSeq.asString()
+      end
+    end
+    
+  end
+  
+ context AllAspects::ToHTML
+
+  @Class XCore::String
+  
+    @Operation stripIllegalChars() : String
+      @Doc 
+        Strips all illegal characters from a string.
+      end
+      let newSeq = Seq{} in
+        @For c in self.asSeq() do
+          if (c>=48 and c<=57) or c=95 or (c>=65 and c<=90) or (c>=97 and c<=122) then
+            newSeq := newSeq->including(c)
+          end
+        end;
+        newSeq.asString()
+      end
+    end
+    
+  end
+ 
+
+context AllAspects::ToHTML
+
+  @Class ConstraintReport
+
+    @Operation nodeText() : String
+      if constraint<>null then "Constraint "+constraint.name else "Checks for "+candidate.toString() end
+    end
+  
+    @Operation satisfiedHTMLColour():String
+      let
+        green = "#64C832";
+        red = "#FA6E64"
+      in
+        if satisfied then green else red end
+      end
+    end
+
+    @Operation getLink() : String
+      let basicString = candidate.toString() +
+        if constraint<>null then constraint.name else "Checks" end
+      in
+        basicString.stripNonAlphaChars()
+      end
+    end
+
+    @Operation writeHTML(path:String)
+    
+      // Write out the reports as an HTML file.
+      
+      let fout = FileOutputChannel(path)
+      in format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" \"http://www.w3.org/TR/html4/frameset.dtd\">~%");
+         format(fout,"<HTML>~%<HEAD>~%<TITLE>~%Constraint Report~%</TITLE>~%</HEAD>~%");
+         format(fout,"<FONT SIZE=\"+2\"><B>Constraint Report (~S)</B></FONT><BR><BR><HR>~%",Seq{xmf.date()});
+         self.writeHTMLChecks(fout,true);
+         format(fout,"</HTML>~%");
+         fout.close()
+      end
+      
+    end
+    
+    @Operation toHTMLDoc(fout:OutputChannel)
+    
+      // Write out the reports as an HTML file.
+
+      format(fout,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" \"http://www.w3.org/TR/html4/frameset.dtd\">~%");
+      format(fout,"<HTML>~%<HEAD>~%<TITLE>~%Constraint Report~%</TITLE>~%</HEAD>~%");
+      format(fout,"<FONT SIZE=\"+2\"><B>Constraint Report (~S)</B></FONT><BR><BR><HR>~%",Seq{xmf.date()});
+      self.writeHTMLChecks(fout,false);
+      format(fout,"</HTML>~%")
+      
+    end
+
+    @Operation writeHTMLChecks(out:OutputChannel,withLinks:Boolean)
+    
+      // If I am an internal node then write links to the children
+      // and write out the children. Otherwise write out the object
+      // and the check that was performed...
+      
+      // Start report node table
+
+      format(out,"<TABLE BORDER=\"1\" WIDTH=\"100%\" CELLPADDING=\"3\" CELLSPACING=\"0\" SUMMARY=\"\">~%");
+      format(out,"<TR BGCOLOR=\"~S\" CLASS=\"TableHeadingColor\">~%",Seq{self.satisfiedHTMLColour()});
+      format(out,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(out,"<A NAME=\"~S\"></A>",Seq{self.getLink()});
+      format(out,"<B>~S</B></FONT></TD>~%</TR>~%",Seq{self.nodeText().asHTML()});
+      if constraint <> null
+      then
+        self.writeHTMLReport(out)
+      else
+        self.writeHTMLChildSummary(out,withLinks)
+      end;
+      format(out,"</TABLE><BR><BR>~%");
+
+      // Finish report node table. Write out tables for child nodes...
+      
+      @For child in children do
+        child.writeHTMLChecks(out,withLinks)
+      end
+      
+    end
+    
+    @Operation writeHTMLReport(out:OutputChannel):Element
+      format(out,"<TR BGCOLOR=\"White\" CLASS=\"TableHeadingColor\">~%");
+      format(out,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(out,"<B>Candidate ~S</B></FONT></TD>~%</TR>~%",Seq{candidate.toString().asHTML()});
+      @For slot in candidate.getStructuralFeatureNames()->asSeq do
+        format(out,"<TR><TD><B>~S</B></TD><TD>~S</TD></TR>~%",Seq{slot,candidate.get(slot).toString().asHTML()})
+      end;
+      format(out,"<TR BGCOLOR=\"White\" CLASS=\"TableHeadingColor\">~%");
+      format(out,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(out,"<B>Invariant <PRE>~S</PRE></B></FONT></TD>~%</TR>~%",Seq{self.getConstraintBody(constraint).asHTML()});
+      format(out,"<TR BGCOLOR=\""+self.satisfiedHTMLColour()+"\" CLASS=\"TableHeadingColor\">~%");
+      format(out,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(out,"<B>Reason <PRE>~S</PRE></B></FONT></TD>~%</TR>~%",Seq{reason.asHTML()})
+    end
+    
+    @Operation getConstraintBody(constraint:Constraint)
+      let
+        source = constraint.body().source() then
+        as = OCL::OCL.grammar.parseString(source,"Exp1",Seq{XOCL})
+      in
+        as.performable.pprint(3)
+      end
+    end
+
+    @Operation writeHTMLChildSummary(out:OutputChannel,withLinks:Boolean):Element
+      format(out,"<TR BGCOLOR=\"White\" CLASS=\"TableHeadingColor\">~%");
+      format(out,"<TD COLSPAN=2><FONT SIZE=\"+2\">~%");
+      format(out,"<B>Dependent checks</B></FONT></TD>~%</TR>~%",Seq{});
+      
+      @For child in children do
+        let
+          nodeText = child.nodeText() then
+          unlinkedNodeText = nodeText.asHTML();
+          nodeLink = "#"+child.getLink() then
+          linkedNodeText = "<A HREF=\""+nodeLink+"\">" + unlinkedNodeText + "</A>" then
+          actualNodeText = if withLinks then linkedNodeText else unlinkedNodeText end;
+          satisfiedText = if child.satisfied then "successful" else "failed" end
+        in
+          format(out,"<TR><TD><B>~S</B></TD><TD BGCOLOR=~S>~S</TD></TR>~%",Seq{actualNodeText,child.satisfiedHTMLColour(),satisfiedText.asHTML()})
+        end
+      end
+    end
+
+  end

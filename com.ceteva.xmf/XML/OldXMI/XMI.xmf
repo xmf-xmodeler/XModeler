@@ -1,0 +1,102 @@
+// **************************************************************
+// The contents of this file are copyright Ceteva Limited and
+// should not be redistributed in any form whatsoever without the
+// express written consent of Ceteva Limited.
+// *************************************************************
+
+parserImport XML::Parser;
+parserImport XOCL;
+
+import XML::Parser;
+
+context Root
+
+  @Grammar XMI
+
+    Model ::= 
+      <uml:Model name> 
+        O = OwnedMember* 
+      </uml:Model> {
+        O->iterate(o p = Package(name)| 
+          @TypeCase(o)
+            Null do
+              p
+            end
+            Class do
+              p.add(o)
+            end
+            Package do
+              p.add(o)
+            end
+            else p
+          end)
+    }.
+    
+    OwnedMember ::= 
+      <ownedMember type=xmi:type id = xmi:id name>
+        case
+          type="uml:Package" do
+            O = OwnedMember* id := {
+              O->iterate(o p = Package(name) |
+                p.add(o))
+            }
+          end
+          type="uml:Class" do
+            P = Generalization*
+            A = OwnedAttribute* 
+            O = OwnedOperation*
+            id := { 
+              (A + O)->iterate(x c = Class[name=name,parents=P->asSet] |
+                c.add(x))
+            }
+          end
+          type="uml:PrimitiveType" do
+            id := {
+              @Case name of
+                "int" do Integer end
+                "String" do String end
+                else XCore::Element
+              end
+            }
+          end
+          type="uml:Enumeration" do
+            ANY* id := { Class(name) }
+          end
+          type="uml:Association" do
+            ANY* id := { null }
+          end
+          else {
+            type.error("Unknown type")
+          }
+        end
+      </ownedMember>.
+      
+      Generalization ::= <generalization general/> {
+        Ref(general)
+      }.
+      
+      OwnedAttribute ::=
+        <ownedAttribute id=xmi:id name type>
+          ANY*
+        </ownedAttribute> id := {
+          XCore::Attribute(name,Ref(type))
+      }.
+        
+      OwnedOperation ::= 
+        <ownedOperation id=xmi:id name/> id := {
+          @Operation() null end.setName(name)
+      }.
+  
+  end 
+
+context Root
+  @Operation test()
+    let g = XMI.compile()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/XMI/ExtendedPO2.uml2")
+         let xin = ParserChannel(fin,g)
+         in Root::g := g;
+            xin.parse("Model")
+         end
+       end
+    end
+  end

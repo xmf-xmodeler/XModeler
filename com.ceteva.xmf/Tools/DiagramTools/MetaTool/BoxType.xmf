@@ -1,0 +1,87 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @PaddedBox BoxType
+    pad = 3
+    @Box boxAttribute(ALIGN,HORIZONTAL,hideLeft,hideRight,hideTop,hideBottom)
+      padLeft = 3
+      padRight = 3
+      padTop = 3
+      padBottom = 3
+      @Or FilledOrUnfilled
+        @Image filledBoxImage(LEFT)
+          "FilledBox.gif"
+          width = 16
+          height = 16
+          @Menu
+            @MenuAction Unfilled self.owner().changeTo("FilledOrUnfilled","unfilledBoxImage") end
+          end
+        end
+        @Image unfilledBoxImage(LEFT)
+          "UnfilledBox.gif"
+          width = 16
+          height = 16
+          @Menu
+            @MenuAction Filled self.owner().changeTo("FilledOrUnfilled","filledBoxImage") end
+          end
+        end
+      end
+      @Box ShowSides(LEFT)
+        minWidth = 15
+        minHeight = 15
+      end
+      @PaddedText name(CENTRE)
+        "Box Attribute Name"
+        pad = 3
+        @Menu 
+          @MenuAction "New Box Type"
+            self.owner().owner().addNew("BoxType")
+          end
+          @MenuAction "New Star Type"
+          self.owner().owner().addNew("StarType")
+          end
+          @MenuAction "New Ellipse Type"
+            self.owner().owner().addNew("EllipseType")
+          end
+          @MenuAction "New Text Type"
+            self.owner().owner().addNew("TextType")
+          end
+          @MenuAction "New Image Type"
+            self.owner().owner().addNew("ImageType")
+          end
+          @MenuAction Delete
+            self.owner().owner().delete(true)
+          end
+          @MenuAction Reorder
+            self.owner().owner().userOrderContents()
+          end
+          @MenuItems Edit
+            @MenuAction Diagram
+              self.owner().owner().edit()
+            end
+            @MenuAction Model
+              tool.find(self.owner().owner()).edit()
+            end
+          end
+        end
+      end
+      Container
+      Justification
+      MenuType
+    end
+    @Ref display end
+  end

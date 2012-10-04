@@ -1,0 +1,91 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Associations;
+
+context Associations
+
+  @Class Association extends NameSpace
+  
+    @Doc
+      An association is a binary relationship between two classes.
+      The association has two ends that correspond to two attributes,
+      one for each class. The relationship requires an invariant to 
+      hold between the classes. The invariant relates to the properties
+      of the round-trip from an instance of each class using the
+      attributes.
+    end
+    
+    @Grammar extends OCL::OCL.grammar import Associations
+    
+      Association ::= name = Name end1 = Exp:EndDef end2 = Exp:EndDef { AssociationDef(name,end1,end2) }.
+      
+    end
+  
+    @Attribute end1 : End end
+    @Attribute end2 : End end
+    
+    @Constructor(name,end1,end2) ! end
+    
+    @Operation add(element)
+      if element.isKindOf(End)
+      then 
+        self.addEnd(element);
+        super(element);
+        
+        // The owner of an end should be the class it is attached to.
+        // The end is un-owned until it is added to the attached class.
+        
+        element.setOwner(null);
+        self
+      else super(element)
+      end
+    end
+    
+    @Operation addEnd(e)
+      e.setAssociation(self)
+    end
+    
+    @Operation init()
+      if owner <> null
+      then
+        if end1.name.toString() = "end1" or end1.name.toString() = "end2" then
+          end1.name := end1.type.name.lowerCaseInitialLetter()
+        end;
+        if end2.name.toString() = "end1" or end2.name.toString() = "end2" then
+          end2.name := end2.type.name.lowerCaseInitialLetter()
+        end;
+        
+        // Ends are not initialised here since they are not owner by the association,
+        // instead full end initialisation is deferred to the end types, the following
+        // is a basic initialisation necessary before that point...
+        
+        end1.setType();
+        end2.setType();
+        end1.updateTypeFromMult();
+        end2.updateTypeFromMult();
+        
+        super()
+      else super()
+      end
+    end
+    
+    @Operation remove()
+      // Called when the association is removed from its container.
+      // The ends are removed from the classes they are attached to...
+      end1.remove();
+      end2.remove();
+      self
+    end
+    
+    @Operation setEnd1(e)
+      self.end1 := e;
+      self.add(e)
+    end
+    
+    @Operation setEnd2(e)
+      self.end2 := e;
+      self.add(e)
+    end
+    
+  end

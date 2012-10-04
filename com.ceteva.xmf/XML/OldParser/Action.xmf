@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Action extends Pattern
+  
+    @Doc
+      An action is a performable expression that can access
+      bound variables from the current parse and produces a
+      value that is supplied to the continuation.
+    end
+    
+    @Attribute exp : Performable end
+    
+    @Constructor(exp) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Action(<exp.lift()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      grammar.debug(indent,"Action: ~S~%",Seq{self});
+      try
+        succ(env,exp.eval(self,env,grammar.imports),elements,fail,refTable)
+      catch(exception)
+        format(stdout,"Error performing expression ~S in env ~S.~%",Seq{exp.pprint(),env});
+        xmf.raise(exception)
+      end
+    end
+    
+  end

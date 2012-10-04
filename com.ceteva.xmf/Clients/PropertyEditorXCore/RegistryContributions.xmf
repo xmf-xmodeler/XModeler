@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Clients::PropertyEditorXCore;
+
+// *** PROPERTY EDITORS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.propertyEditors.propertyEditors"
+in
+  registry.addContribution(id,
+    Contribution(Root::XCore::Object,Seq{
+      ObjectPE,ObjectXForm
+    }));
+  registry.addContribution(id,
+    Contribution(Root::XCore::CompiledOperation,Seq{
+      CompiledOperationPE,CompiledOperationXForm
+    }));
+  registry.addContribution(id,
+    Contribution(Root::XCore::Constraint,Seq{
+      ConstraintPE,ConstraintXForm
+    }));
+  registry.addContribution(id,
+    Contribution(Root::XCore::Constructor,Seq{
+      ConstructorPE,ConstructorXForm
+    }));
+  registry.addContribution(id,
+    Contribution(Root::XCore::Dependency,Seq{
+      ObjectPE,DependencyXForm
+    }));
+  registry.addContribution(id,
+    Contribution(XMap::Map,Seq{
+      XMapMapPE,XMapMapXForm
+    }));
+  registry.addContribution(id,
+    Contribution(XMap::Clause,Seq{
+      XMapClausePE,XMapClauseXForm
+    }));
+  registry.addContribution(id,
+    Contribution(Parser::BNF::Grammar,Seq{
+      GrammarPE,GrammarXForm
+    }));
+  self
+end;

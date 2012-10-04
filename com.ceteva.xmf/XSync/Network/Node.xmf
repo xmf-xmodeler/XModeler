@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import XSync;
+
+context Network
+
+  @Class Node isabstract extends Contained
+  
+  end

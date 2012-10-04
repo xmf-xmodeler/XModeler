@@ -1,0 +1,93 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context Operation
+
+  @Operation eval(target,env,imports)
+    InterpretedOperation(name,parameters,isMultiArgs,env,target,imports,self.doc().eval(target,env,imports),performable) 
+  end
+  
+context XCore
+
+  @Class InterpretedOperation extends XCore::Operation
+  
+    @Doc
+      An interpreted operation is created when we evaluate an operation definition.
+    end
+     
+     @Attribute parameters : Seq(Pattern)       end
+     @Attribute isVarArgs  : Boolean            end
+     @Attribute env        : Seq(Element)       end
+     @Attribute target     : Element (?)        end
+     @Attribute imports    : Seq(NameSpace)     end
+     @Attribute body       : Performable        end
+     @Attribute dynamics   : Seq(Element) (?,!) end
+     @Attribute arity      : Integer            end
+     
+     @Constructor(name,parameters,isVarArgs,env,target,imports,documentation,body) 
+       self.setName(name);
+       self.arity := self.arity()
+     end
+     
+     @Operation arity():Integer
+        parameters->size
+     end
+     
+     @Operation bindParams(patterns:Seq(Pattern),values:Seq(Element),target,env,imports)
+       if patterns->isEmpty
+       then env
+       else 
+         self.bindParams(patterns->tail,values->tail,target,patterns->head.bind(values->head,target,env,imports),imports)
+       end
+     end
+     
+     @Operation compile()
+       // Produces a compiled version of the receiver...
+       // This assumes that the parameters andnot patterns. Needs updating...
+       Compiler::compileToFun(name,body,parameters.name,dynamics,true)
+     end
+     
+     @Operation dynamicEnv()
+     
+       // If the dynamics of an interpreted operation have been set 
+       // then they will be in the VM form of a sequence of pairs.
+       // Pairs tagged with 1 are value bindings so we can translate
+       // them to an environment.
+       
+       dynamics
+         ->select(pair | pair->head = 1)
+         ->iterate(pair env = env |
+           env.bind(pair->tail->head->toString,pair->tail->tail))
+     end
+     
+     @Operation importNameSpace(nameSpace:NameSpace)
+       if not imports->includes(nameSpace)
+       then self.imports := Seq{nameSpace | imports}
+       else self
+       end
+     end
+     
+     @Operation invoke(target,args)
+       if args->size = parameters->size and not isVarArgs
+       then body.eval(target,self.bindParams(parameters,args,target,self.dynamicEnv(),imports),imports)
+       elseif isVarArgs and args->size >= parameters->size - 1
+       then body.eval(target,self.bindParams(parameters,args->take(self.arity() - 1) + Seq{args->drop(self.arity() - 1)},target,self.dynamicEnv(),imports),imports)
+       else throw ArityMismatch(self,args)
+       end
+     end
+     
+     @Operation isVarArgs():Boolean
+       false
+     end
+     
+     @Operation name()
+       name
+     end
+     
+     @Operation setSupers(supers)
+       format(stdout,"Warning: ignoring set supers for interpreted operation.~%")
+     end
+     
+   end

@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+
+context Clients
+
+  @Package PerfMon
+  
+    @Bind perfMon = null end
+  
+    @Operation showPerfMon()
+      if perfMon = null
+      then 
+        PerfMon::perfMon := Memory();
+        perfMon.showAll()
+      else
+        @Find(client,xmf.clientManager().clients)
+          when client.name = "com.ceteva.diagram"
+          do 
+            client.showDiagram(perfMon);
+            perfMon.refresh()
+        end
+      end
+    end
+  
+  end

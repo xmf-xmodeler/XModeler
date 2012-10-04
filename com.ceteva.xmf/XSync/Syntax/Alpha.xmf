@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Alpha extends Node
+  
+    @Attribute pattern     : Pattern         (?) end
+    @Attribute boundVars   : Set(String)     (?,!,+,-) end
+    @Attribute constraints : Set(Constraint) (?,+,-) end
+    
+    @Constructor(pattern)  end
+    
+    @Constructor(pattern,boundVars,constraints) ! end
+    
+    @Operation code(net:Performable):Performable
+      let code = pattern.code(net);
+          constraintCode = constraints->collect(c | c.code(self.varEnv()))
+      in constraintCode->iterate(c code = code | [| <code>.add(<c>) |])
+      end
+    end
+    
+    @Operation exportedVarEnv():Env
+      self.varEnv()
+    end
+    
+    @Operation moveConstraints(boundLater:Set(String))
+      self
+    end
+    
+    @Operation setConstraints()
+      self.constraints := pattern.constraints(boundVars)
+    end
+    
+    @Operation setVars(preBound:Set(String))
+      self.boundVars := pattern.vars() - preBound
+    end
+    
+    @Operation varEnv():Env
+      pattern.varEnv(boundVars,NullEnv())
+    end
+    
+    @Operation vars():Set(String)
+      pattern.vars()
+    end
+    
+  end

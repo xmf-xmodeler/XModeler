@@ -1,0 +1,4 @@
+parserImport XOCL;
+
+context Manifests
+  @Enum LoadTime(CompileTime,RunTime,Both,None) end

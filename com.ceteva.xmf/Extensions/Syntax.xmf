@@ -1,0 +1,120 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Syntax isabstract extends Performable 
+  
+    @Doc 
+      A syntax class defines a special type of performable element that
+      evaluates to itself instead of to a performable element whose semantics
+      is already known. The benefit of this is that the structure of the
+      syntax element is not lost when the language feature is evaluated. 
+      The consequence of desugaring to itself is that the element must specify 
+      its own semantics.
+    end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      
+      // By default we will call the evaluator of the syntax element each
+      // time we encounter it. This should be specialized in specific
+      // sub-classes of Syntax. One strategy is to define a desugar operation
+      // that produces XOCL code and compile the result of desugaring the
+      // syntax construct.
+      
+      [| <self.lift()>.syntaxInit() |].compile(env,frame,isLast,saveSource)
+      
+    end
+    
+    @Operation eval(target,env,imports)
+    
+      // By default a syntax element evaluates to itself. Sub-classes of
+      // Syntax should implement this in an appropriate way, for example
+      // by implementing a desugar operation and calling that before
+      // evaluating the result.
+      
+      self.lift().eval(target,env,imports).syntaxInit()
+    end
+    
+    @Operation lift()
+    
+      // Create a keyword constructor expression that will reconstitute
+      // the instance of the syntax class. The rules for the constructor
+      // arguments are as follows:
+      //
+      // o String       -> StrExp
+      // o Symbol       -> [| Symbol(<StrExp(arg)>) |]
+      // o Integer      -> IntExp
+      // o Float        -> FloatExp
+      // o Boolean      -> BoolExp
+      // o Seq(Element) -> SetExp
+      // o Set(Element) -> SetExp
+      // o Performable  -> (lift of) Performable
+      
+      let keyArgs = self.liftKeyArgs();
+          class = Path::toPath(self.of().pathSeq())
+      in Instantiate(class,keyArgs)
+      end
+    end
+    
+    @Operation liftKeyArgs()
+    
+      // Create a sequence of key args suitable to recreate the
+      // receiver. All slots must be set to the result of lifting
+      // the current value.
+      
+      self.getStructuralFeatureNames()->asSeq->collect(n | KeyArg(n,self.liftValue(self.get(n))))
+      
+    end
+    
+    @Operation liftValue(value)
+      @TypeCase(value)
+         Null do
+           [| null |]
+         end
+         Symbol do
+           [| XCore::Symbol(<StrExp(value.toString())>) |]
+         end
+         String do 
+           StrExp(value)
+         end
+         Integer do
+           IntExp(value)
+         end
+         Boolean do
+           BoolExp(value)
+         end
+         Float do
+           let pair = value.toString().splitBy(".",0,0)
+           in FloatExp(pair->at(0),pair->at(1))
+           end
+         end
+         Set(Element) do
+           SetExp("Set",value->asSeq->collect(v | self.liftValue(v)))
+         end
+         Seq(Element) do
+           SetExp("Seq",value->collect(v | self.liftValue(v)))
+         end
+         Sugar do
+           value.desugar()
+         end
+         else value.lift()
+       end
+     end
+     
+     @Operation maxLocals():Integer
+       self.lift().maxLocals()
+     end
+     
+     @Operation syntaxInit()
+     
+       // Called when the syntax object is created (via compile or eval)
+       // so that it can be initialised. The default is to do nothing
+       // but may be redefined in sub-classes. Must return the receiver.
+       
+       self
+     end
+     
+   end 

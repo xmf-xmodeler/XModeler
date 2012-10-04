@@ -1,0 +1,18 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Associations/Association",true,true);
+compileFile(xmf.homeDir() + "/Associations/AssociationDef",true,true);
+compileFile(xmf.homeDir() + "/Associations/Associations",true,true);
+compileFile(xmf.homeDir() + "/Associations/Boot",true,true);
+compileFile(xmf.homeDir() + "/Associations/End",true,true);
+compileFile(xmf.homeDir() + "/Associations/EndDef",true,true);
+compileFile(xmf.homeDir() + "/Associations/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Associations/Mandatory",true,true);
+compileFile(xmf.homeDir() + "/Associations/MandatoryOne",true,true);
+compileFile(xmf.homeDir() + "/Associations/Multiplicity",true,true);
+compileFile(xmf.homeDir() + "/Associations/One",true,true);
+compileFile(xmf.homeDir() + "/Associations/Opt",true,true);
+compileFile(xmf.homeDir() + "/Associations/Ordered",true,true);
+compileFile(xmf.homeDir() + "/Associations/PackageOps",true,true);
+compileFile(xmf.homeDir() + "/Associations/Range",true,true);
+compileFile(xmf.homeDir() + "/Associations/Star",true,true);

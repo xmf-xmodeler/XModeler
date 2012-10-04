@@ -1,0 +1,84 @@
+parserImport XOCL;
+
+import Arrays;
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class CollectionForm extends PropertyEditor
+
+    @Attribute selfDisplay : SingletonDisplay end
+    @Attribute ofDisplay : SingletonDisplay end
+    @Attribute collectionDisplay : CollectionDisplay end
+    @Attribute collection : Element end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+          layoutManager.add(self.selfDisplays());
+          layoutManager.addSeparator();
+          self.collectionDisplay := self.newCollectionDisplay(collection,"");
+          layoutManager.add(Seq{collectionDisplay});
+          layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation historyDialogMessage():String
+      "Select a collection to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Collection History"
+    end
+
+    @Operation initForm()
+      super();
+      self.typeName := "Collection";
+      self.setItemName();
+      self.initialize();
+      self.layoutManager := CollectionFormLayoutManager(self);
+      self.setCollection()
+    end
+
+    @Operation selfDisplays()
+      self.selfDisplay := self.newSingletonDisplay(element,"self");
+      selfDisplay.field
+        .setIsEditable(false)
+        .setContex(element)
+        .setSlotName("self");
+      self.ofDisplay := self.newSingletonDisplay(element.of(),"of");
+      ofDisplay.field
+        .setIsEditable(false)
+        .setContex(element)
+        .setSlotName("of");
+      Seq{selfDisplay,ofDisplay}
+    end
+
+    @Operation setCollection()
+      @TypeCase(element)
+        SetOfElement do
+          self.collection := element->asSeq
+        end
+        Vector do
+          self.collection := element->asSeq
+        end
+      else
+        self.collection := element
+      end
+    end
+
+    @Operation setItemName()
+      self.itemName :=
+        @TypeCase(element)
+          SetOfElement do "<Set>" end
+          SeqOfElement do "<Seq>" end
+          Vector do "<Vector>" end
+          Table do "<Table>" end
+          else ""
+        end
+    end
+
+  end

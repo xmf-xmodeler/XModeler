@@ -1,0 +1,65 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import Env;
+
+context AllAspects::Inspect
+
+  @Class SetOfElement
+  
+    @Operation inspectDialog(level)
+      if self->isEmpty 
+      then super(level)
+      else self.elementsDialog(level,self->asSeq)
+      end
+    end
+    
+    @Operation elementsDialog(level,elements)
+      @Dialog
+        @Dialog showElements(index)
+          if index < elements->size
+          then 
+            @Commands
+              @Show "[" + index + "] " elements->at(index) end
+              showElements(index + 1)
+            end
+          else 
+            @Skip end
+          end
+        end
+        @Dialog inspectElement
+          @Let index = @Value Integer end
+          in if index >= 0 and index < elements->size
+             then elements->at(index).inspectDialog(level+1)
+             else inspectElement
+             end
+          end
+        end
+        @Commands
+          @Separator end
+          @Show "Inspect[ " + level + "]" self end
+          @Separator end
+          showElements(0)
+          @Separator end
+          @Options
+            @Option("Return")@Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Inspect Element") 
+              @Commands 
+                inspectElement
+                self.elementsDialog(level,elements)
+              end
+            end
+          end
+        end
+      end
+    end
+  end

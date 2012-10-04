@@ -1,0 +1,64 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class ElementXNode extends ThemableMap
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ElementXNode::selectedChangedDaemon(self.node(),"selected") end
+    end
+
+    @Operation deleteNodeFromDiagram()
+      // Without daemons to avoid the edge deletion propogating to the model
+      let node = self.node();
+          diagramMapping = self.owner then
+          connectedEdges = diagramMapping.diagram.graph.edgesConnectedTo(node)
+      in
+        @WithoutDaemons(node.diagram())
+          node.delete();
+          diagramMapping.remove(self)
+        end;
+        @For map in diagramMapping.subMaps() do
+          if map.isKindOf(ElementXEdge) andthen connectedEdges->includes(map.edge())
+          then
+            diagramMapping.remove(map)
+          end
+        end
+      end
+    end
+
+    @Operation diagramElement()
+      self.node()
+    end
+    
+    // sub classes should ensure that when the state of the element being mapped
+    // changes that the following operation is called
+    
+    @Operation elementChanged()
+      let theme = owner.theme()
+      in
+        self.theme := theme;
+        self.applyTheme();
+        self.owner.refreshThemeExcludingElementMap(self)
+      end
+    end
+    
+    // the node representing the model element
+    
+    @AbstractOp node()
+    end
+
+    @Operation removeDaemons()
+      self.node().removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation selectedChangedDaemon(node,slot,newSelected,oldSelected)
+      self.element().selectModelBrowserNode(newSelected)
+    end
+
+  end

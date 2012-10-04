@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler FloatExp in Eval(aFloatExp,arg,seen)
+  result(aFloatExp,Float(aFloatExp.prePoint,aFloatExp.postPoint),cont)
+end;

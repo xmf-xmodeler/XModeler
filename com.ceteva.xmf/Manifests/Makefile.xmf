@@ -1,0 +1,17 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Manifests/Boot",true,true);
+compileFile(xmf.homeDir() + "/Manifests/Manifests",true,true);
+compileFile(xmf.homeDir() + "/Manifests/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Manifests/LoadTime",true,true);
+compileFile(xmf.homeDir() + "/Manifests/ManifestBinding",true,true);
+compileFile(xmf.homeDir() + "/Manifests/ManifestEntry",true,true);
+compileFile(xmf.homeDir() + "/Manifests/Ref",true,true);
+compileFile(xmf.homeDir() + "/Manifests/ManifestAction",true,true);
+compileFile(xmf.homeDir() + "/Manifests/ManifestClass",true,true);
+compileFile(xmf.homeDir() + "/Manifests/File",true,true);
+compileFile(xmf.homeDir() + "/Manifests/XTD",true,true);
+compileFile(xmf.homeDir() + "/Manifests/XML",true,true);
+compileFile(xmf.homeDir() + "/Manifests/ManifestManager",true,true);
+compileFile(xmf.homeDir() + "/Manifests/XMF",true,true);
+compileFile(xmf.homeDir() + "/Manifests/BuildError",true,true);

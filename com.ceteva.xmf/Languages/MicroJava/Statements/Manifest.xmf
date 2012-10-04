@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Statements
+  Statements = @File Statements end
+  @File Statement end
+  @File Block end
+  @File Break end
+  @File CommentLine end
+  @File Case end
+  @File Catch end
+  @File Dec end
+  @File Do end
+  @File DefaultCase end
+  @File FieldUpdate end
+  @File If end
+  @File Return end
+  @File Send end
+  @File Switch end
+  @File Throw end
+  @File Try end
+  @File Update end
+  @File While end
+  @File For end
+do
+  Statements
+end;
+

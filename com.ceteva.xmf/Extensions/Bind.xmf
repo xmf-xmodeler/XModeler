@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Bind extends Def
+  
+    @Doc
+      A value binding is an association between a name ans a value.
+      A value binding can be added to a name space. Once added,
+      the value can be referenced using its name via the name space
+      using the '::' notation.
+     
+      Constructor: Bind(name,value}
+        The name should be a string or a symbol and the value is an
+        expression. The name will be coerced to be a symbol.
+     end
+     
+     @Attribute value : Performable end
+    
+     @Constructor(name,value) end
+     
+     @Operation compile(env,frame,isLast,saveSource)
+       self.desugar().compile(env,frame,isLast,saveSource)
+     end
+     
+     @Operation desugar()
+       let name = if name.isKindOf(Symbol) then name.name else name end 
+       in [| XCore::Bind(XCore::Symbol(<StrExp(name)>),@Operation () <value> end) |]
+       end
+     end
+     
+     @Operation FV()
+       self.desugar().FV()
+     end
+     
+     @Operation maxLocals()
+       self.desugar().maxLocals()
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@Bind ~S = ",Seq{name});
+       value.pprint(out,indent);
+       format(out," end")
+     end
+     
+   end

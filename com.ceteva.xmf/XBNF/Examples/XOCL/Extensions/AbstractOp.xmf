@@ -1,0 +1,24 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context AbstractOp
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      AbstractOp ::= 
+        name = Name 
+        args = ('(' OpArgs ')')
+        type = OpType
+        doc = OpDoc
+        { AbstractOp(name,args,type,doc) }.
+      OpArgs ::= arg = Pattern args = (',' Pattern)* { Seq{arg | args } } | { Seq{} }.
+      OpDoc ::= Exp | { [| null |] }.
+      OpType ::= ':' TypeExp | { NamedType() }.
+      
+    end 
+    
+    

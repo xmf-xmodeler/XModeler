@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Null in Eval(aNull,arg,seen)
+  if seen
+  then aNull
+  else
+ aNull
+  end
+end;

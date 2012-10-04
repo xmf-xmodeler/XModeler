@@ -1,0 +1,163 @@
+import Parser::BNF;
+import OCL;
+
+context OCL::OCL
+  // A grammar for OCL expressions and related syntax.
+  let
+  
+    // AName ::= Name | Drop.
+    // Apply ::= operator = PathExp [ args = Args { Apply(operator,args) ] }.
+    // ArithExp ::= e1 = RefExp [ op = ArithOp e2 ArithExp { BinExp(e1,op,e2) ].
+    // ArithOp ::= "+" { "+" } | "-" { "-" } | "*" { "*" } | "/" { "/" }.
+    // Args ::= NoArgs | SomeArgs.
+    // Atom ::= IntExp | IfExp | StrExp | BoolExp ! | Self | Name | LetExp | Drop | Lift | '(' Exp ')' | CollExp.
+    // Binding ::= name = AName '=' value = LogicalExp { ValueBinding(name,value) }.
+    // Bindings ::= binding = Binding bindings = (';' Binding)* { Seq{ binding | bindings } }.
+    // BoolExp ::= e = 'true' { BoolExp(true) } | e = 'false' { BoolExp(false) }.
+    // CollExp ::= SetExp | SeqExp.
+    // CompareExp ::= e1 = ArithExp [ op = CompareOp e2 = CompareExp { BinOp(e1,op,e2) ].
+    // CompareOp ::= "<" { "<" } | ">" { ">" } | "=" { "=" } | "<>" { "<>" } | ">=" { ">=" } | ">=" { ">=" }. 
+    // Drop ::= '<' e = Exp '>' { Drop(e) } | '<$' e = Exp '$>' { DropAll(e) }. 
+    // EmptySeq ::= 'Seq{' '}' { SetExp("Seq",Seq{}) }.
+    // EmptySet ::= 'Set{' '}' { SetExp ("Set",Seq{}) }.
+    // Exp ::= OrderedExp;
+    // IntExp ::= e = Int { IntExp(e) }. 
+    // IfExp ::= 'if' test = Atom 'then' then = Atom 'else' else = Atom 'end' { If(test,then,else) }.
+    // Lift ::= '[|' e = Exp '|]' { Lift(e) }.
+    // LetExp ::= 'let' bindings = Bindings 'in' body = Atom 'end' { Let(bindings,body) }.
+    // LogicalExp ::= e1 = NotExp [ op = LogicalOp e2 = LogicalExp { BinExp(e1,op,e2) }.
+    // LogicalOp ::= 'and' {"and"} ! | 'or' {"or"} ! | 'implies' {"implies"}.
+    // NoArgs ::= '(' ')' { Seq{} }.
+    // NonEmptySeq ::= 'Seq{' element = Exp (elements = (',' Exp)* '}' { SetExp("Seq",Seq{ element | elements }) } | '|' tail = Exp '}' { ConsExp(element,tail) }).
+    // NonEmptySet ::= 'Set{' element = Exp elements = (',' Exp)* '}' { SetExp("Set",Seq{ element | elements }) }.
+    // NotExp ::= 'not' exp = CompareExp { Negate(exp) } | CompareExp.
+    // OrderedExp ::= e1 = LogicalExp [ ';' e2 = OrderedExp { Ordered(e1,e2) ].
+    // OptionallyArgs ::= Args | { Seq{} }.
+    // PathExp ::= atom = Atom [ names = ('::' AName)* { Path(atom,names) } ].
+    // RefExp ::= exp = Apply 
+    // (
+    //   '->' 
+    //   (
+    //     'iterate' '(' v1 = AName v2 = AName '=' init = Exp '|' body = Exp ')' exp = { Iterate(exp,v1,v2,init,body) } 
+    //   | 
+    //     iterOp = AName 
+    //     ( 
+    //       args = OptionallyArgs exp = { Send(exp,iterOp,args) } 
+    //     | 
+    //       '(' bound = AName '|' body = Exp ')' exp = { IterExp(exp,iterOp,bound,body) } 
+    //     |
+    //       exp = { Send(exp,iterOp,Seq{}) }
+    //     ) 
+    //   ) 
+    // | 
+    //   '.' field = AName 
+    //   (
+    //     args = Args exp = { Send(exp,field,args) } 
+    //   | 
+    //     ':=' value = LogicalExp exp = { Update(exp,field,value) } 
+    //   |   
+    //      exp = Dot(exp,field)
+    //   )      
+    // )* {exp}    
+    // StrExp ::= e = Str { StrExp(e) }.
+    // Self ::= 'self' { Self() }.
+    // SeqExp ::= EmptySeq | NonEmptySeq.
+    // SetExp ::= EmptySet | NonEmptySet. 
+    // SomeArgs ::= '(' arg = Exp args = (',' Exp)* ')' { Seq{arg | args} }.
+    // VarExp ::= e = name = Name { Var(name) }.
+    
+    AName = Clause("AName",Or(Name(),Call("Drop")));
+    Apply = Clause("Apply",And(Call("PathExp"),And(Bind("operator"),Opt(And(Call("Args"),And(Bind("args"),Action(@Operation(env) Apply(env.lookup("operator"),env.lookup("args")) end)))))));
+    Args = Clause("Args",Or(Call("NoArgs"),Call("SomeArgs")));
+    ArithExp = Clause("ArithExp",And(Call("RefExp"),And(Bind("e1"),Opt(And(Call("ArithOp"),And(Bind("op"),And(And(Call("ArithExp"),Bind("e2")),Action(@Operation(env) BinExp(env.lookup("e1"),env.lookup("op"),env.lookup("e2")) end))))))));
+    ArithOp = Clause("ArithOp",Or(And(Terminal("+"),Action(@Operation(env) "+" end)),Or(And(Terminal("-"),Action(@Operation(env) "-" end)),Or(And(Terminal("*"),Action(@Operation(env) "*" end)),And(Terminal("/"),Action(@Operation(env) "/" end))))));
+    Atom = Clause("Atom",Or(Call("BoolExp"),Or(Call("IntExp"),Or(Call("Drop"),Or(Call("Lift"),Or(And(Terminal("("),And(Call("Exp"),Terminal(")"))),Or(Call("StrExp"),Or(And(Call("CollExp"),Cut()),Or(Call("IfExp"),Or(Call("Self"),Or(Call("VarExp"),Call("LetExp"))))))))))));
+    Binding = Clause("Binding",And(Call("AName"),And(Bind("name"),And(Terminal("="),And(Call("LogicalExp"),And(Bind("value"),Action(@Operation(env) ValueBinding(env.lookup("name"),env.lookup("value")) end)))))));
+    Bindings = Clause("Bindings",And(Call("Binding"),And(Bind("binding"),And(StarCons(And(Terminal(";"),Call("Binding"))),And(Bind("bindings"),Action(@Operation(env) Seq{env.lookup("binding") | env.lookup("bindings")} end))))));
+    BoolExp = Clause("BoolExp",Or(And(Terminal("true"),Action(@Operation(env) BoolExp(true) end)),And(Terminal("false"),Action(@Operation(env) BoolExp(false) end))));
+    CollExp = Clause("CollExp",Or(Call("SetExp"),Call("SeqExp")));
+    CompareExp = Clause("CompareExp",And(Call("ArithExp"),And(Bind("e1"),Opt(And(Call("CompareOp"),And(Bind("op"),And(And(Call("CompareExp"),Bind("e2")),Action(@Operation(env) BinExp(env.lookup("e1"),env.lookup("op"),env.lookup("e2")) end))))))));
+    CompareOp = Clause("CompareOp",Or(And(Terminal("<"),Action(@Operation(env) "<" end)),Or(And(Terminal(">"),Action(@Operation(env) ">" end)),Or(And(Terminal("="),Action(@Operation(env) "=" end)),And(Terminal("<>"),Action(@Operation(env) "<>" end))))));
+    Drop = Clause("Drop",Or(Call("DropOne"),Call("DropAll")));
+    DropOne = Clause("DropOne",And(Terminal("<"),And(Call("Exp"),And(Bind("e"),And(Terminal(">"),Action(@Operation(env) Drop(env.lookup("e")) end))))));
+    DropAll = Clause("DropAll",And(Terminal("<$"),And(Call("Exp"),And(Bind("e"),And(Terminal("$>"),Action(@Operation(env) DropCollection(env.lookup("e")) end))))));
+    EmptySeq = Clause("EmptySeq",And(And(Terminal("Seq"),Terminal("{")),And(Terminal("}"),Action(@Operation(env) SetExp("Seq",Seq{}) end))));
+    EmptySet = Clause("EmptySet",And(And(Terminal("Set"),Terminal("{")),And(Terminal("}"),Action(@Operation(env) SetExp("Set",Seq{}) end))));
+    Exp = Clause("Exp",Call("OrderedExp"));
+    IntExp = Clause("IntExp",And(And(Int(),Bind("e")),Action(@Operation(env) IntExp(env.lookup("e")) end)));
+    IfExp = Clause("IfExp",And(Terminal("if"),And(And(Call("Exp"),Bind("test")),And(Terminal("then"),And(And(Call("Exp"),Bind("then")),And(Terminal("else"),And(And(Call("Exp"),Bind("else")),And(Terminal("end"),Action(@Operation(env) If(env.lookup("test"),env.lookup("then"),env.lookup("else")) end)))))))));
+    LetExp = Clause("LetExp",And(Terminal("let"),And(Call("Bindings"),And(Bind("bindings"),And(Terminal("in"),And(Call("Exp"),And(Bind("body"),And(Terminal("end"),Action(@Operation(env) Let(env.lookup("bindings"),env.lookup("body")) end)))))))));
+    Lift = Clause("Lift",And(Terminal("[|"),And(Call("Exp"),And(Bind("e"),And(Terminal("|]"),Action(@Operation(env) Lift(env.lookup("e")) end))))));
+    LogicalExp = Clause("LogicalExp",And(Call("NotExp"),And(Bind("e1"),Opt(And(Call("LogicalOp"),And(Bind("op"),And(And(Call("LogicalExp"),Bind("e2")),Action(@Operation(env) BinExp(env.lookup("e1"),env.lookup("op"),env.lookup("e2")) end))))))));
+    LogicalOp = Clause("LogicalOp",Or(And(Terminal("and"),Action(@Operation(env) "and" end)),Or(And(Terminal("or"),Action(@Operation(env) "or" end)),And(Terminal("implies"),Action(@Operation(env) "implies" end)))));
+    NoArgs = Clause("NoArgs",And(Terminal("("),And(Terminal(")"),Action(@Operation (env) Seq{} end))));
+    NonEmptySeq = Clause("NonEmptySeq",And(And(Terminal("Seq"),Terminal("{")),And(Call("Exp"),And(Bind("element"),Or(And(StarCons(And(Terminal(","),Call("Exp"))),And(Bind("elements"),And(Terminal("}"),Action(@Operation(env) SetExp("Seq",Seq{env.lookup("element") | env.lookup("elements")}) end)))),And(Terminal("|"),And(Call("Exp"),And(Bind("tail"),And(Terminal("}"),Action(@Operation(env) ConsExp(env.lookup("element"),env.lookup("tail")) end))))))))));
+    NonEmptySet = Clause("NonEmptySet",And(And(Terminal("Set"),Terminal("{")),And(Call("Exp"),And(Bind("element"),And(StarCons(And(Terminal(","),Call("Exp"))),And(Bind("elements"),And(Terminal("}"),Action(@Operation(env) SetExp("Set",Seq{env.lookup("element") | env.lookup("elements")}) end))))))));
+    NotExp = Clause("NotExp",Or(And(Terminal("not"),And(Call("CompareExp"),And(Bind("exp"),Action(@Operation(env) Negate(env.lookup("exp")) end)))),Call("CompareExp")));
+    OrderedExp = Clause("OrderedExp",And(Call("LogicalExp"),And(Bind("e1"),Opt(And(Terminal(";"),And(Call("OrderedExp"),And(Bind("e2"),Action(@Operation(env)  Order(env.lookup("e1"),env.lookup("e2")) end))))))));
+    OptionallyArgs =
+      Clause("OptionallyArgs",
+        Or(Call("Args"),
+           Action(@Operation(env) Seq{} end)));
+    PathExp = Clause("PathExp",And(Call("Atom"),And(Bind("atom"),Opt(And(PlusCons(And(Terminal("::"),Call("AName"))),And(Bind("names"),Action(@Operation(env) Path(env.lookup("atom"),env.lookup("names")) end)))))));
+    RefExp = 
+      Clause("RefExp",
+        And(Call("Apply"),
+        And(Bind("exp"),
+        And(Star(Or(And(Terminal("->"),
+                   Or(And(Terminal("iterate"),
+                          And(Terminal("("),
+                          And(Call("AName"),
+                          And(Bind("v1"),
+                          And(Call("AName"),
+                          And(Bind("v2"),
+                          And(Terminal("="),
+                          And(Call("Exp"),
+                          And(Bind("init"),
+                          And(Terminal("|"),
+                          And(Call("Exp"),
+                          And(Bind("body"),
+                          And(Terminal(")"),
+                          And(Action(@Operation(env) Iterate(env.lookup("exp"),env.lookup("v1"),env.lookup("v2"),env.lookup("init"),env.lookup("body")) end),
+                              Bind("exp"))))))))))))))),
+                      And(Call("AName"),
+                          And(Bind("iterOp"),
+                              Or(And(Call("OptionallyArgs"),
+                                     And(Bind("args"),
+                                     And(Action(@Operation(env) Send(env.lookup("exp"),env.lookup("iterOp"),env.lookup("args")) end),
+                                     Bind("exp")))),
+                              Or(And(Terminal("("),
+                                     And(Call("AName"),
+                                     And(Bind("var"),
+                                     And(Terminal("|"),
+                                     And(Call("Exp"),
+                                     And(Bind("body"),
+                                     And(Terminal(")"),
+                                     And(Action(@Operation(env) IterExp(env.lookup("exp"),env.lookup("iterOp"),env.lookup("var"),env.lookup("body")) end),
+                                         Bind("exp"))))))))),
+                            And(Action(@Operation(env) Send(env.lookup("exp"),env.lookup("iterOp"),Seq{}) end),
+                                Bind("exp")))))))),
+                    And(Terminal("."),
+                    And(Call("AName"),
+                    And(Bind("field"),
+                    Or(And(Call("Args"),
+                           And(Bind("args"),
+                           And(Action(@Operation(env) Send(env.lookup("exp"),env.lookup("field"),env.lookup("args")) end),
+                               Bind("exp")))),
+                    Or(And(Terminal(":="),
+                           And(Call("LogicalExp"),
+                           And(Bind("value"),
+                           And(Action(@Operation(env) SlotUpdate(env.lookup("exp"),env.lookup("field"),env.lookup("value")) end),
+                               Bind("exp"))))),
+                       And(Action(@Operation(env) Dot(env.lookup("exp"),env.lookup("field")) end),
+                           Bind("exp"))))))))),
+          Action(@Operation(env) env.lookup("exp") end)))));
+    Self = Clause("Self",And(Terminal("self"),Action(@Operation(env) Self() end)));
+    SeqExp = Clause("SeqExp",Or(Call("EmptySeq"),Call("NonEmptySeq")));
+    SetExp = Clause("SetExp",Or(Call("EmptySet"),Call("NonEmptySet")));
+    SomeArgs = Clause("SomeArgs",And(Terminal("("),And(Call("Exp"),And(Bind("arg"),And(StarCons(And(Terminal(","),Call("Exp"))),And(And(Terminal(")"),Bind("args")),Action(@Operation(env) Seq{env.lookup("arg") | env.lookup("args")} end)))))));
+    StrExp = Clause("StrExp",And(And(Str(),Bind("e")),Action(@Operation(env) StrExp(env.lookup("e")) end)));
+    VarExp = Clause("VarExp",And(Name(),And(Bind("name"),Action(@Operation(env) Var(env.lookup("name")) end))))
+  in Grammar(Set{},Set{AName,Apply,Args,ArithExp,ArithOp,Atom,Binding,Bindings,BoolExp,CollExp,CompareExp,CompareOp,Drop,DropOne,DropAll,EmptySeq,EmptySet,Exp,IntExp,IfExp,LetExp,Lift,LogicalExp,LogicalOp,NoArgs,NonEmptySeq,NonEmptySet,NotExp,OrderedExp,OptionallyArgs,PathExp,RefExp,Self,SeqExp,SetExp,SomeArgs,StrExp,VarExp},"Exp",Seq{})
+  end
+  

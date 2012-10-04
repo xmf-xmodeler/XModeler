@@ -1,0 +1,111 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+
+context BNF
+
+  @Class CompiledGrammar extends Grammar
+  
+    @Operation calculateSets()
+      
+     // Called to create the first and follow sets for  the
+     // non-terminals. On completion, each clause records
+     // the set of first and follow terminals and whether or
+     // not the clause derives the empty set of input tokens.
+        
+     let changed = false
+     in @Repeat
+          changed := false;
+          @For clause in clauses do
+            changed := changed or clause.calculateSets(self)
+          end
+        until not changed
+        end
+     end
+   end
+      
+    @Operation clean()
+      @For clause in clauses do
+        clause.clean()
+      end;
+      self.cleanClauses();
+      clauseCache.clear()
+    end
+  
+    @Operation cleanClauses()
+      let cleanClauses = Set{}
+      in @For c in clauses do
+           @Find(clause,self.inheritedClauses(c.name()))
+             when clause.equal(c)
+             do format(stdout,"[ GC ~S ]~%",Seq{c.name()});
+                cleanClauses := cleanClauses->including(clause)
+             else cleanClauses := cleanClauses->including(c)
+           end
+         end;
+         self.clauses := cleanClauses
+      end
+    end
+    
+    @Operation compile()
+      self.inheritClauses();
+      self.cnf();
+      self.calculateSets();
+      self.predict();
+      self.clean();
+      self
+    end
+    
+    @Operation cnf()
+      let newClauses = clauses->collect(c | c.cnf(self)) then
+          starClauses = clauses->reject(c | newClauses->exists(cc | c.name() = cc.name()))
+      in self.clauses := newClauses + starClauses
+      end
+    end
+    
+    @Operation dprint()
+      @For clause in clauses do
+        clause.dprint()
+      end
+    end
+    
+    @Operation inheritClauses()
+      self.clauses := clauses + parents->iterate(parent C = Set{} | C + parent.allClauses()->map("copy"))->reject(c | c.isKindOf(StarClause))
+    end
+
+    @Operation parseFile(file,startNT,imports)
+      let e =  Engine()
+      in @WithOpenFile(fin <- file)
+           try
+             let t = Time() then
+                 result = e.parse(null,O,Seq{Call(startNT)},Tokenizer(fin),imports + Seq{XCore,Root})
+             in (Time() - t).pprint().println();
+                result
+             end
+           catch(x)
+             @TypeCase(x)
+               ParseError do
+                 x.pprint().edit()
+               end
+               else throw x
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation predict()
+      @For clause in clauses do
+        clause.predict(self)
+      end
+    end
+    
+    @Operation toString()
+      "<Grammar" +
+        if owner.isReallyKindOf(NamedElement)
+        then " for " + owner.name()
+        else ""
+        end + ">"
+    end
+    
+  end

@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package DiagramsMapping
+  
+    // A binding between themes and diagram mappings
+  
+    @Bind themeBindings = Table(10) end
+     
+  end

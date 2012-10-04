@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootPropertyEditor()
+    try 
+      let 
+        formClient = Clients::Forms::FormClient("com.ceteva.forms") then
+        mappingClient = Clients::PropertyEditorXCore::MappingClient("com.ceteva.forms:XCore",formClient)
+      in 
+        xmf.clientManager().add(formClient);
+        xmf.clientManager().add(mappingClient);
+      	@Fork(Forms)
+          formClient.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

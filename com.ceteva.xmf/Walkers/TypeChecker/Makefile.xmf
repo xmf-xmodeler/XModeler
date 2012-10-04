@@ -1,0 +1,12 @@
+Compiler::compileFile("Walkers/TypeChecker/Boot",true,true);
+Compiler::compileFile("Walkers/TypeChecker/TypeCheckContainer",true,true);
+Compiler::compileFile("Walkers/TypeChecker/TypeCheckReport",true,true);
+Compiler::compileFile("Walkers/TypeChecker/TypeChecker",true,true);
+Compiler::compileFile("Walkers/TypeChecker/TypeCheckExp",true,true);
+Compiler::compileFile("Walkers/TypeChecker/TypeCheckFails",true,true);
+
+Compiler::compileFile("Walkers/TypeChecker/OCL/Makefile",true,true);
+"Walkers/TypeChecker/OCL/Makefile.o".loadBin(false); 
+
+Compiler::compileFile("Walkers/TypeChecker/Elements/Makefile",true,true);
+"Walkers/TypeChecker/Elements/Makefile.o".loadBin(false); 

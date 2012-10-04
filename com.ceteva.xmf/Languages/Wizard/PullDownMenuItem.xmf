@@ -1,0 +1,29 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class PullDownMenuItem
+  
+    @Attribute id          : String end
+    @Attribute text        : String end
+    @Attribute isReadonly  : Boolean end
+    @Attribute givesReport : Boolean end
+    @Attribute parent      : String end
+    
+    @Constructor(id,text,isReadonly,givesReport,parent) end
+    
+    @ToXML(PULLDOWN_MENU_ITEM)[Id=id,Text=text,Is_Readonly = isReadonly,Gives_Report = givesReport,ref_PullDown_Menu_Item = parent]
+    end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

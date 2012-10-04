@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+context Root
+  @Package Shapes
+    @Class Diagram
+      @Attribute shapes : Set(Shape) end
+      @Attribute relations : Set(Relation) end
+      @Attribute notes : Set(Note) end
+    end
+    @Class Shape isabstract
+      @Attribute label : String end
+    end
+    @Class Relation
+      @Attribute source : Shape end
+      @Attribute target : Shape end
+    end
+    @Class Square extends Shape end
+    @Class Circle extends Shape end
+    @Class Triangle extends Shape end
+    @Class Diamond extends Shape end
+    @Class RightArrow extends Shape end
+    @Class Note
+      @Attribute text : String end
+      @Attribute refers : Shape end
+    end
+  end
+  

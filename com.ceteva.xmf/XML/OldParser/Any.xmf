@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Any extends Pattern
+  
+    @Doc
+      Succeeds when the input is non-empty and produces the next imput.
+    end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Any() |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      if elements->isEmpty
+      then grammar.fail(indent,"ANY: out of elements.",Seq{},fail)
+      else succ(env,elements->head,elements->tail,fail,refTable)
+      end
+    end
+    
+  end

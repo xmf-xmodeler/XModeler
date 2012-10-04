@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams
+  @ToolType StateEditor
+    @NodeType Source end
+    @NodeType Target end
+    @EdgeType Transition Source -> Target targetHead = arrow 
+      @Label name(end,10,10) "name()" truncate = 100 end
+      @LabelExp guard(end,0-10,0-10) "true" truncate = 100 end
+      @LabelExp action(middle,5,5) "null" end
+      @Menu
+        @MenuAction Delete self.delete(true) end
+        @MenuAction Edit tool.find(self).edit() end
+      end
+    end
+    @NodeType State(hasport) extends Source,Target
+      @Box box
+        cornerCurve = 30
+        minWidth = 50
+        minHeight = 50
+        @PaddedText name(CENTRE) "Name" pad = 3 end
+      end
+      @Menu
+        @MenuAction Delete self.delete(true) end
+        @MenuAction Edit tool.find(self).edit() end
+        @MenuAction "Set As Initial"
+          let machine = tool.element();
+              oldState = tool.find(self) then
+              initialState = machine.initialState();
+              newState = InitialState(oldState.name())
+          in if initialState <> null and initialState <> oldState
+             then 
+               let initialNode = tool.find(initialState);
+                   newInitialState = State(initialState.name())
+               in machine.deleteFromStates(initialState);
+                  tool.deregister(initialState);
+                  machine.addToStates(newInitialState);
+                  tool.register(initialNode,newInitialState);
+                  tool.register(newInitialState,initialNode)
+               end
+             end;
+             machine.deleteFromStates(oldState);
+             tool.deregister(oldState);
+             machine.addToStates(newState);
+             tool.register(self,newState);
+             tool.register(newState,self)
+          end
+        end
+      end   
+    end
+    @Menu
+      @MenuItems Layout
+        @MenuAction Save tool.diagram().saveLayout(true) end
+        @MenuAction Load tool.diagram().loadLayout()     end
+      end
+    end
+    @ToolBar 
+      @ToolGroup Operations
+        @ToolButton State             icon = "Tools/State.gif" end
+        @ToolButton Transition isEdge icon = "Tools/Transition.gif"  end
+      end
+    end
+  end

@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XOCL;
+import Languages;
+import MicroSQL;
+
+context MicroSQL
+
+  @Class SQLExpression
+  
+    @Attribute column   : String end
+    @Attribute operator : String end
+    @Attribute value    : String end
+  
+    @Constructor(column,operator,value) end
+    
+    @Constraint correctOperator
+      operator = "=" or operator = "<>" or operator = ">" or
+      operator = "<" or operator = "<=" or operator = ">=" or
+      operator = "BETWEEN" or operator = "LIKE" or
+      operator = "!="
+      fail operator + " is not a valid SQL operator"
+    end
+  
+  end

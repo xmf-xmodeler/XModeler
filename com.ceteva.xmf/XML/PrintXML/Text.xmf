@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XML::PrintXML;
+
+context XML::PrintXML
+
+// Class deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Class Text extends Node
+  @Attribute text : Root::XCore::Performable end
+  @Constructor(text) end
+  @Operation desugar(out)
+    [| format(<out>,<text>) |]
+  end
+end

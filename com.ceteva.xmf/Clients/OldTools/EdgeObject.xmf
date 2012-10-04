@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class EdgeObject extends ToolObject
+  
+    @Attribute source : ToolObject end
+    @Attribute target : ToolObject end
+    
+    @Constructor(type,element,source,target) ! end
+    
+  end

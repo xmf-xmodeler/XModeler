@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool 
+
+  @Image MenuType(RIGHT) "Menu.gif" width = 16 height = 16
+    @Menu
+      @MenuAction "Add Menu Item" 
+        let itemName = xmf.getString("Menu Item Name","Enter the name of the menu item","")
+        in if itemName <> null
+           then
+             let items = Clients::Menus::MenuItems(itemName);
+                 handlerName = xmf.getString("Action Name","Enter the name of the handler (defined in the manager)","")
+             in if handlerName <> null
+                then
+                  action.owner().add(items);
+                  items.add(Clients::Menus::MenuAction("Delete",null,Seq{},@Operation() items.delete() end));
+                  tool.raise(MenuItemAdded(self.owner().owner().owner(),path,itemName,handlerName))
+                end
+             end
+           end
+        end
+      end
+    end
+  end

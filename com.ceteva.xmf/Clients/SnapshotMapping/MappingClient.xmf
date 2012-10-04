@@ -1,0 +1,204 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Diagrams;
+import DiagramsMapping;
+import SnapshotDiagrams;
+import SnapshotMapping;
+
+context SnapshotMapping
+
+  @Class MappingClient extends DiagramMappingClient
+    
+    @Operation add(element)
+      @TypeCase(element)
+        SnapshotXSnapshotDiagram do
+          self.addToMappings(element);
+          element.setOwner(self)
+        end
+        Snapshot do
+          element.createSnapshotDiagram(false)
+        end
+      end
+    end
+    
+    @Operation add(snapshot,diagram,total)
+      let mapping = SnapshotXSnapshotDiagram(snapshot,diagram,self)
+      in if not total
+         then mapping.setToPartialSyncMode()
+         end;
+         self.addToMappings(mapping);
+         mapping
+      end
+    end
+
+    @Operation addAndLayoutSnapshot(snapshot,file,name)
+      let diagram = SnapshotDiagram(name,snapshot.instanceOf) then
+          mapping = self.add(snapshot,diagram)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram")
+              mapping.generateDiagram();
+              diagram.loadLayout(file)
+           end
+         end;
+         mapping
+      end
+    end
+
+    @Operation addSnapshot(snapshot,name,total)
+      let diagram = SnapshotDiagram(name) then
+          mapping = self.add(snapshot,diagram,total)
+      in diagram.new();
+         @WithoutRendering(diagram)
+           @Busy("Drawing Diagram")
+              mapping.generateDiagram()
+           end
+         end;
+         mapping
+      end
+    end
+
+    @Operation applyLayout(snapshot,layout):Boolean
+    
+      // Applies layout to the diagram for the supplied snapshot.
+      // If there is no diagram for the supplied snapshot then
+      // nothing happens. Returns true when the request was
+      // successful.
+      
+      if not self.mappingsFor(snapshot)->isEmpty
+      then
+        let
+          mapping = self.mappingsFor(snapshot)->head then
+          diagram = mapping.diagram
+        in diagram.applyLayout(layout);
+           true
+        end
+      else false
+      end
+    end
+
+    @Operation createDiagram(snapshot,name,total)
+    
+      // Call this to create a diagram for a snapshot.
+      // If total is true, the diagram will be fully synced with
+      // the snapshot, otherwise it will be partial view.
+    
+      let mapping = self.addSnapshot(snapshot,name,total)
+      in commandInterpreter.showDiagram(mapping.diagram);
+         mapping.diagram()
+      end
+    end
+
+    @Operation handles(type)
+      type = SnapshotXSnapshotDiagram
+    end
+    
+    @Operation mappingsFor(element)
+      @TypeCase(element)
+        Package do
+          mappings->select(m | m.snapshot.owner = element)
+        end
+        Snapshot do
+          mappings->select(m | m.snapshot = element)
+        end
+        else Seq{}
+      end
+    end
+    
+    @Operation load(fileName)
+      let input = ElementInputChannel(FileInputChannel(fileName)) then
+          mapping = input.read()
+      in input.close();
+         self.renew(mapping)
+      end
+    end
+
+    @Operation renew()
+    
+      // Called when the state of the client is to be regenerated. For example
+      // when the system loads a saved image...
+      
+      @For map in mappings do
+        if map.diagram.isOpen
+        then map.renew()
+        end
+      end
+      
+    end
+
+    @Operation renew(mapping)
+
+      // Call this when adding a mapping back to the client. For example,
+      // after loading the mapping from a file.
+
+      // mapping.snapshot.owner.add(mapping.package);
+      self.add(mapping);
+      if mapping.diagram.isOpen then mapping.renew() end
+
+    end
+
+    @Operation renewAll(mappings)
+
+      // Call this when adding a mapping back to the client. For example,
+      // after loading the mapping from a file.
+      
+      @For mapping in mappings do
+        self.add(mapping)
+      end;
+      @For mapping in mappings do
+        // mapping.snapshot.owner.add(mapping.package);
+        if mapping.diagram.isOpen then mapping.renew() end
+      end
+    end
+
+    @Operation save(mapping,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName))
+      in try
+      
+           // The mapping and the package must be de-linked from their owners
+           // in order to define the save boundary.
+           xmf.clientManager().preSave();
+           out.write(mapping,Root.allContentsOf(XCore::Package)->including(Root)->asSeq);
+           out.close();
+           format(stdout,"Saved package and diagram in ~S~%",Seq{fileName});
+           xmf.clientManager().postSave()
+         catch(exception)
+           format(stdout,"Save mapping: ~S~%",Seq{exception});
+           xmf.clientManager().postSave()
+         end
+      end
+    end
+
+    @Operation showAndLayoutDiagram(snapshot,file)
+      let name = xmf.diagramManager().newDiagramName(snapshot)
+      in
+        self.showAndLayoutDiagram(snapshot,file,name)
+      end
+    end
+
+    @Operation showAndLayoutDiagram(snapshot,file,name)
+      @Find(map,mappings)
+        when map.snapshot = snapshot
+        do
+          let diagram = map.diagram in
+            @WithoutRendering(diagram)
+              diagram.loadLayout(file)
+            end;
+            if not diagram.isOpen then
+              diagram.isOpen := true;
+              map.renew()
+            end;
+            commandInterpreter.showDiagram(diagram);
+            map
+          end
+        else 
+          let mapping = self.addAndLayoutSnapshot(snapshot,file,name)
+          in commandInterpreter.showDiagram(mapping.diagram);
+             mapping
+          end
+      end
+    end
+
+  end

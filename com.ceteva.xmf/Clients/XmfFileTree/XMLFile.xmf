@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import IO;
+import Clients::XmfFileTree;
+
+context XmfFileTree
+
+  @Class XMLFile extends File
+  
+    @Operation viewText()
+      let fullPath = self.fullPath() 
+      in if fullPath.fileExists() 
+         then xmf.browse(fullPath)
+         else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+        end
+     end
+   end
+   
+ end

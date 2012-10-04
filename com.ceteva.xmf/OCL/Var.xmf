@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Var extends OCL::OCL
+  
+    // Represents a general variable name occurring in code.
+    
+    @Attribute name : String end        // The name of the variable being referenced.
+    @Attribute lineCount : Integer end  // The line in the source code.
+    @Attribute charCount : Integer end  // The char pos on the line.
+    @Attribute sourceSet : Boolean end  // Set when the line/char info is valid.
+    
+    @Constructor(name) 
+      self.sourceSet := false
+    end
+    
+    @Constructor(name,lineCount,charCount) ! 
+      self.sourceSet := true
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{name})
+    end
+    
+  end

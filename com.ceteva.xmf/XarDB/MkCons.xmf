@@ -1,0 +1,7 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+  @Class MkCons extends IndexedInstr
+  end

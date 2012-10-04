@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+  @Class Test
+    @Operation test()
+      let f = @Operation(x) @Operation (y) Seq{x,y} end end then
+          f1 = f(self);
+          f2 = f(self)
+      in @WithOpenFile(fout -> "c:/tmp.xar")
+           let out = ElementOutputChannel(fout)
+           in out.write(Seq{self,f1,f2},Root->allContentsOf(NameSpace)->including(Root)->asSeq)
+           end
+         end;
+         @WithOpenFile(fin <- "c:/tmp.xar")
+           let inch = ElementInputChannel(fin)
+           in inch.read()
+           end
+         end
+      end
+    end
+  end

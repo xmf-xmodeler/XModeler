@@ -1,0 +1,104 @@
+parserImport XOCL;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Box extends Root::XDiagMaps::Display
+
+    @Attribute displays : Seq(Root::XDiagMaps::Display)  (?,!,+,-) end
+    @Attribute color    : Root::Clients::Diagrams::Color (?,!) end
+    @Attribute align    : Root::XCore::String            (?,!) end
+    @Attribute border   : Root::XCore::Boolean           (?,!) end
+    @Attribute fill     : Root::XCore::Boolean           (?,!) end
+    @Attribute minWidth : Integer                        (?,!) end
+    @Attribute minHeight: Integer                        (?,!) end
+    @Attribute maxWidth : Integer                        (?,!) end
+    @Attribute maxHeight: Integer                        (?,!) end
+    @Attribute curve    : Integer                        (?,!) end
+
+    @Constructor(fill,border,align,color,minWidth,minHeight,maxWidth,maxHeight,curve,displays) ! end
+    
+    @Constructor(fill,border,align,color,displays) end
+    
+    @Operation attributes():Set(Attribute)
+      displays->iterate(display A = Set{} | A + display.attributes())
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,path,manifest)
+      @For display in displays do
+        display.writeHandlers(dir,toolDescriptorType,root,class,path + "_box",manifest)
+      end
+    end
+    
+    @Operation writeMenu(out,path,indent)
+      @For display in displays do
+        display.writeMenu(out,path + Seq{"box"},indent)
+      end
+    end
+    
+    @Operation writeObservationHandlers(dir,toolDescriptorType,class,att,path,map,manifest)
+      @For display in displays do
+        display.writeObservationHandlers(dir,toolDescriptorType,class,att,path + Seq{"box"},map,manifest)
+      end
+    end
+  
+    @Operation writeRegister(out,path)
+      @For display in displays do
+        display.writeRegister(out,path + Seq{"box"})
+      end
+    end
+    
+    @Operation writeRegisterCode(out,indent,path,node,object)
+      @For display in displays do
+        display.writeRegisterCode(out,indent,path + Seq{"box"},node,object)
+      end
+    end
+    
+   @Operation writeDeregisterCode(out,indent,path,node)
+      @For display in displays do
+        display.writeDeregisterCode(out,indent,path + Seq{"box"},node)
+      end
+    end
+    
+    @Operation writeCreateDiagram(out,path)
+      @For display in displays do
+        display.writeCreateDiagram(out,path + Seq{"box"})
+      end
+    end
+    
+    @Operation writeType(out,indent)
+      format(out,"~V@Box box(~S",Seq{indent,align});
+      if not fill then format(out,",nofill") end;
+      if not border then format(out,",hideTop,hideBottom,hideLeft,hideRight") end;
+      format(out,")~%");
+      if minWidth <> 0 or minHeight <> 0 
+      then 
+        format(out,"~VminWidth=~S~%",Seq{indent,minWidth});
+        format(out,"~VminHeight=~S~%",Seq{indent,minHeight})
+      end;
+      if maxWidth <> 0 or maxHeight <> 0 
+      then 
+        format(out,"~VmaxWidth=~S~%",Seq{indent,minWidth});
+        format(out,"~VmaxHeight=~S~%",Seq{indent,minHeight})
+      end;
+      if color <> null
+      then format(out,"~VfillColor=\"~S,~S,~S\"~%",Seq{indent,color.red,color.green,color.blue})
+      end;
+      format(out,"~VcornerCurve=~S~%",Seq{indent,curve});
+      @For display in displays do
+        display.writeType(out,indent + 2)
+        end;
+      format(out,"~Vend~%",Seq{indent})
+    end
+      
+      
+
+  end

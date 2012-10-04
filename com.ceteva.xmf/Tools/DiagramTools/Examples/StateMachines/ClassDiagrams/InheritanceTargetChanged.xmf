@@ -1,0 +1,12 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Inheritance_Target_Changed()
+    let child = find(event.edge())->at(0);
+        parent = find(event.new())
+    in child.removeParent(find(event.old()));
+       child.addParent(parent);
+       register(event.edge(),Seq{child,parent})
+    end
+  end
+  

@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context XOCL
+
+  @Class Busy extends Sugar
+  
+    @Doc
+      Displays a busy message while some processing is performed and ensures that
+      the busy message is disposed.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       Busy ::= '(' label = Exp minimize = (',' Exp | { OCL::BoolExp(false) } )  ')' body = Exp {
+       
+         Busy(label,minimize,body)
+         
+       }.
+       
+    end
+    
+    @Attribute label    : Performable end
+    @Attribute minimize : Performable end
+    @Attribute body     : Performable end
+    
+    @Constructor(label,minimize,body) end
+    
+    @Operation desugar():Peformable
+      [| let dialog = xmf.busy(<label>,<minimize>)
+         in try 
+              let result = <body> 
+              in if dialog <> null
+                 then dialog.finished()
+                 end;
+                 result 
+              end 
+            catch(exception) 
+              if dialog <> null
+              then dialog.finished()
+              end; 
+              throw exception 
+            end 
+         end
+      |] 
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@Busy(");
+       label.pprint(out,indent);
+       format(out,")~%~V",Seq{indent+2});
+       body.pprint(out,indent+2);
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+   end
+               
+    
+    

@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest Java
+  @File JavaDeployer end
+  @File TypeConverter end
+  @File AttributeDeployer end
+  @File Operationdeployer end
+  @File ClassDeployer end
+  @File PackageDeployer end
+  @File DefaultDeployer end
+end;

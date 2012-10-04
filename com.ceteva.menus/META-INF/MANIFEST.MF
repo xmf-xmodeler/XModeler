@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Menus Plug-in
+Bundle-SymbolicName: com.ceteva.menus;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.menus.MenusPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Export-Package: com.ceteva.menus,
+ com.ceteva.menus.actions
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ com.ceteva.client,
+ com.ceteva.xmf
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

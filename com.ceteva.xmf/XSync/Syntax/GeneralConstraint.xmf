@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+
+context Syntax
+
+  @Class GeneralConstraint extends Constraint
+  
+    @Attribute predicate : Performable (?) end
+    
+    @Constructor(predicate) ! end
+    
+    @Operation bindValues(vars:Set(String),varEnv:Env,body:Performable):Performable
+      if vars->isEmpty
+      then body
+      else 
+        let name = vars->sel then
+            value = varEnv.lookup(name) then
+            locationExp = value.code(varEnv)
+        in [| let <name> = <locationExp> in <self.bindValues(vars->excluding(name),varEnv,body)> end |]
+        end
+      end
+    end
+    
+    @Operation code(varEnv:Env):Performable
+      let body = self.refValues(varEnv.dom(),varEnv,predicate) then
+          generalPredicate = 
+            [| GeneralPredicate(
+                 @Operation(token) 
+                   let timestamp = 
+                         @Operation(o,s) 
+                           token.timestamp(o,s.asSymbol())
+                         end 
+                   in <body> 
+                   end 
+                 end) 
+            |]
+      in self.bindValues(varEnv.dom(),varEnv,generalPredicate)
+      end
+    end
+    
+    @Operation freeVars():Set(String)
+      predicate.FV()
+    end
+    
+    @Operation refValues(vars:Set(String),varEnv:Env,body:Performable):Performable
+      if vars->isEmpty
+      then body
+      else 
+        let name = vars->sel 
+        in [| let <name> = <OCL::Var(name)>.value(token) in <self.refValues(vars->excluding(name),varEnv,body)> end |]
+        end
+      end
+    end
+    
+    @Operation relocate(direction:String)
+      self
+    end
+    
+  end

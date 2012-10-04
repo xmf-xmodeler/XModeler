@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class BoolExp extends OCL::OCL
+  
+    @Doc
+      A boolean constant expression: either {\tt true} or {\tt false}.
+     
+      Constructor: BoolExp(boolValue)
+        The operand is the boolean constant.
+    end
+  
+    @Attribute value : Boolean end
+    
+    @Constructor(value) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

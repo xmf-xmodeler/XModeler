@@ -1,0 +1,169 @@
+import Parser::BNF;
+import Parser::Machine;
+import IO;
+
+"A simple test of the parser. You should see <undefined> since it fails.".println();
+let grammar = Grammar(Set{},Set{Clause("X",Terminal("a"))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput1.txt")
+in let state = State(grammar,input)
+   in grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A simple test of the parser. You should see <No Value Returned> since it succeeds.".println();
+let grammar = Grammar(Set{},Set{Clause("X",Terminal("a"))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput2.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"The following recognizes a sequence of elements in a file.".println();
+"You should see <No Value Returned> since it succeeds.".println();
+let grammar = Grammar(Set{},Set{Clause("X",Star(Terminal("a")))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput3.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"The following recognizes a sequence of elements in a file.".println();
+"You should see a sequence of a's since it succeeds.".println();
+let grammar = Grammar(Set{},Set{Clause("X",StarCons(And(Terminal("a"),Const("a"))))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput3.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"The following recognizes a sequence of elements in a file.".println();
+"You should see a sequence of a's and b's since it succeeds.".println();
+let grammar = Grammar(Set{},Set{Clause("X",StarCons(Or(And(Terminal("a"),Const("a")),And(Terminal("b"),Const("b")))))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput4.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A simple test of Name. You should see a string returned.".println();
+let grammar = Grammar(Set{},Set{Clause("X",Name())},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput5.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A test of the OCL parser.".println();
+let grammar = OCL::OCL.grammar
+in grammar.println()
+end;
+
+"A simple test Name*. You should see a sequence of strings returned.".println();
+let grammar = Grammar(Set{},Set{Clause("X",StarCons(Name()))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput5.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A simple test Int*. You should see a sequence of integers returned.".println();
+let grammar = Grammar(Set{},Set{Clause("X",StarCons(Int()))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput6.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A simple test Str*. You should see a sequence of strings returned.".println();
+let grammar = Grammar(Set{},Set{Clause("X",StarCons(Str()))},"X",Seq{});
+    input = FileInputChannel("Test/ParserInput7.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"A grammar with more than one clause. Can parse a sequence of".println();
+"x's and y's. You should see a sequence of strings returned.".println();
+let grammar = Grammar(Set{},Set{
+      Clause("X",And(Terminal("x"),Const("x"))),
+      Clause("Y",And(Terminal("y"),Const("y"))),
+      Clause("Main",StarCons(Or(Call("X"),Call("Y"))))},
+      "Main",Seq{});
+    input = FileInputChannel("Test/ParserInput8.txt")
+in let state = State(grammar,input)
+   in grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"Cut is used to throw away alternative parses that have been".println();
+"built up during the current clause. The following will firstly".println();
+"succeed because the choice point is used and that fail because".println();
+"cut throws away the choice point.".println();
+let grammar1 = Grammar(Set{},Set{
+      Clause("X",Or(And(Terminal("x"),Const("first")),And(And(Terminal("x"),Terminal("z")),Const("second")))),
+      Clause("Y",And(Terminal("y"),Const("y"))),
+      Clause("Main",And(Call("X"),Call("Y")))},
+      "Main",Seq{});
+    grammar2 = Grammar(Set{},Set{
+      Clause("X",Or(And(Terminal("x"),Const("first")),And(And(Terminal("x"),Terminal("z")),Const("second")))),
+      Clause("Y",And(Terminal("y"),Const("y"))),
+      Clause("Main",And(Call("X"),And(Cut(),Call("Y"))))},
+      "Main",Seq{});
+    input = FileInputChannel("Test/ParserInput9.txt")
+in let state1 = State(grammar1,input);
+       state2 = State(grammar2,input)
+   in grammar1.debug := true;
+      grammar2.debug := true;
+      state1.run().println();
+      state2.run().println()
+   end
+end;
+
+"Actions are implemented as operations that process the environment".println();
+"structure of the current machine state. You should see the sum of the".println();
+"two numbers in the file printed.".println();
+let grammar = Grammar(Set{},Set{
+      Clause("X",Int()),
+      Clause("Main",And(And(Call("X"),Bind("one")),And(And(Call("X"),Bind("two")),Action(@Operation(env) env.lookup("one") + env.lookup("two") end))))},
+      "Main",Seq{});
+    input = FileInputChannel("Test/ParserInput10.txt")
+in let state = State(grammar,input)
+   in grammar.debug := true;
+      state.run().println()
+   end
+end;
+
+"An example of parsing an OCL expression.".println();
+let grammar = OCL::OCL.grammar;
+    input = FileInputChannel("Test/OCLInput.txt")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      let exp = state.run()
+      in exp.toString().println();
+         let instrs = Compiler::compileExp(exp,Seq{},true)
+         in let codeBox = Assembler::assemble(instrs,exp.maxLocals(),"")
+            in let fun = codeBox.toMachineFun(0,Seq{})
+               in fun().println();
+                  Kernel_save(codeBox.toMachineCodeBox(),"Test/CompilerTestTmpFile.o")
+               end
+            end
+         end
+      end
+   end
+end;
+
+"The compiler can write out object files. You should see 100 after".println();
+"the file is loaded.".println();
+("Test/CompilerTestTmpFile.o").println().loadBin(true);
+
+

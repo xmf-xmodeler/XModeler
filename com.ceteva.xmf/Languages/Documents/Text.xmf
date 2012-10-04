@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+import DocTables;
+import Basic;
+
+context ! Documents
+
+  @Class Text metaclass BrowsedClass extends DocumentElement
+  
+  @Attribute description : String (?,!) end
+    
+   @Operation toHTML()
+      Seq{Basic::Text(description)}
+   end
+   
+   @Operation labelString()
+      // Just show the first few characters
+      description.truncate(15) + "..."
+   end
+ 
+  end

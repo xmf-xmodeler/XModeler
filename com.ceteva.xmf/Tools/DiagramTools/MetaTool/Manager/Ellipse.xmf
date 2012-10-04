@@ -1,0 +1,74 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler "Add_To_NodeType_nodeBox_(x = (.*))EllipseType"(x)
+    let ellipseType = Ellipse("E")
+    in if x = ""
+       then find(event.root()).add(ellipseType)
+       else find(event.value().owner()).add(ellipseType)
+       end;
+       register(event.value(),ellipseType);
+       register(event.value().ref1(Seq{"ellipseAttribute","name"}),ellipseType)
+    end
+  end
+
+context ToolBuilderManager
+    @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_name_Changed"()
+    let ellipseType = find(event.value())
+    in ellipseType.setName(event.new())
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_Justification_ChangedTo_Align"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setLayout("ALIGN")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_Justification_ChangedTo_Left"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setLayout("LEFT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_Justification_ChangedTo_Right"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setLayout("RIGHT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_Justification_ChangedTo_Centre"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setLayout("CENTRE")
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_FilledOrUnfilled_ChangedTo_filledEllipseImage"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setFill(true)
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)EllipseType_ellipseAttribute_FilledOrUnfilled_ChangedTo_unfilledEllipseImage"()
+    let ellipseType = find(event.container().owner())
+    in ellipseType.setFill(false)
+    end
+  end
+  
+  

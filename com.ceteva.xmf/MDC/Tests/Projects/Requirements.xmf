@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package Specs
+    
+      @Class Specification metaclass BrowsedClass
+      
+        @Attribute requirements : Seq(Requirement) (+,-,^) end
+        @Attribute useCases : Seq(Cases::Model) (+,-,^) end
+        
+        @Constructor() ! end
+        
+        @Interface
+          @Child requirements end
+          @Child useCases end
+          @Image "Projects/Specification" end
+          @MenuRoot MyProjects::Specs::Specification end
+          @Menu New::UseCase newUseCase end
+          @Menu New::Requirement newRequirement end
+        end
+        
+        UniqueConstraint("AllDifferentLabels","requirements","label")
+        
+        @Operation newUseCase()
+          self.addToUseCases(Cases::Model())
+        end
+        
+        @Operation newRequirement()
+          self.addToRequirements(Requirement(xmf.getString("Label","Requirement Label","<Unknown>")))
+        end
+        
+      end
+      
+      @Class Requirement metaclass BrowsedClass extends Contained
+      
+        @Attribute label : String (?,!) end
+        @Attribute date : String (?,!) end
+        @Attribute achieved : Boolean (?,!) end
+        @Attribute responsible : String (?,!) end
+        @Attribute description : String (?,!) end
+        
+        @Constructor(label) ! end
+        
+        @Interface
+          @Image "XCore/Constraint" end
+          @MenuRoot MyProjects::Specs::Requirement end
+          @Menu Delete delete end
+          @Menu Edit editForm end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromRequirements(self)
+          end
+        end
+        
+        @Operation editForm()
+          Editors::RequirementEditor(self)
+        end
+        
+      end
+    end
+    
+    
+    

@@ -1,0 +1,25 @@
+// This file makes the tests. The current directory
+// is assumed to be the bin directory of XMT.
+
+Compiler::compileFile("../../XMF/Test/AllTests",true,true);
+//Compiler::compileFile("../../XMF/Test/At",true,true);
+Compiler::compileFile("../../XMF/Test/Bind",true,true);
+Compiler::compileFile("../../XMF/Test/CollectionTests",true,true);
+Compiler::compileFile("../../XMF/Test/Daemons",true,true);
+Compiler::compileFile("../../XMF/Test/DrinksMachine",true,true);
+Compiler::compileFile("../../XMF/Test/FileInputTest",true,true);
+Compiler::compileFile("../../XMF/Test/Format",true,true);
+Compiler::compileFile("../../XMF/Test/Grammar",true,true);
+Compiler::compileFile("../../XMF/Test/ImportDef",true,true);
+Compiler::compileFile("../../XMF/Test/ImportTest",true,true);
+Compiler::compileFile("../../XMF/Test/ImportUse",true,true);
+Compiler::compileFile("../../XMF/Test/Lift",true,true);
+Compiler::compileFile("../../XMF/Test/Parser",true,false);
+Compiler::compileFile("../../XMF/Test/Table",true,true);
+Compiler::compileFile("../../XMF/Test/Tokens",true,true);
+Compiler::compileFile("../../XMF/Test/Tree",true,true);
+//Compiler::compileFile("../../XMF/Test/Try",true,true);
+Compiler::compileFile("../../XMF/Test/Compiler",true,false);
+Compiler::compileFile("../../XMF/Test/StateMachines",true,false);
+//Compiler::compileFile("../../XMF/Test/StateMachineGrammar",true,false);
+Compiler::compileFile("../../XMF/Test/VarUpdate",true,true);

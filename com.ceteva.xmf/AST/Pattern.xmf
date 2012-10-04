@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Pattern in AST(aPattern,arg,seen)
+  null
+end;

@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class InheritanceExtensionPoint extends ExtensionPoint
+  
+    @Doc
+      An inheritance extension point is used to store contributions which
+      are over-ridden by specialisations of the type.  In this sense the 
+      behaviour is similar to inheritance.
+    end
+    
+    @Operation findNew(elementType)
+      self.findRecursive(elementType,elementType.allParents()->asSeq)
+    end
+    
+    @Operation findRecursive(elementType,types)
+      @Find(con,contributions)
+        when con.contributesTo(elementType)
+        do
+          con
+        else
+          if types->isEmpty
+          then null
+          else self.findRecursive(types->head,types->tail)
+          end
+      end
+    end
+/*    
+    @Operation findRecursive(elementType,types)
+      @Find(con,contributions)
+        when types->exists(t | con.contributesTo(t))
+        do
+          con
+        else
+          let parents = Seq{} in
+            @For type in types do
+              @For parent in type.parents do
+                parents := parents->prepend(parent)
+              end 
+            end;
+            if parents->isEmpty() then
+              ""
+            else
+              self.findRecursive(elementType,parents)
+            end
+          end 
+        end
+    end
+*/
+  end

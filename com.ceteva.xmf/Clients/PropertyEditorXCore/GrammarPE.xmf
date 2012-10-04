@@ -1,0 +1,122 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class GrammarPE extends ObjectPE
+
+    @Attribute clauseCodeComboBoxDisplay : CodeComboBoxDisplay end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+        self.partitionAttributes();
+        self.setSingletonDisplays();
+        self.setBooleanDisplays();
+        self.setCollectionComboBoxDisplay();
+        self.setClauseCodeComboBoxDisplay();
+        layoutManager.add(self.selfDisplays());
+        layoutManager.add(self.booleanDisplays);
+        layoutManager.addSeparator();
+        layoutManager.add(self.singletonDisplays);
+        layoutManager.addSeparator();
+        layoutManager.add(Seq{self.collectionComboBoxDisplay});
+        layoutManager.add(Seq{self.clauseCodeComboBoxDisplay});
+        layoutManager.add(Seq{self.documentationDisplay()});
+        layoutManager.addSeparator();
+        layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation partitionAttributes()
+      self.initialiseAttributeCollections();
+      let attributes = self.element.of().allAttributes()->asSeq in
+        @For a inSeq attributes do
+          if (a.type.isReallyKindOf(Set) or a.type.isReallyKindOf(Seq)) then
+            self.setOrSeqAttributes := setOrSeqAttributes->prepend(a);
+            self.collectionAttributes := collectionAttributes->prepend(a)
+          elseif a.type.inheritsFrom(Table) then
+            self.tableAttributes := tableAttributes->prepend(a);
+            self.collectionAttributes := collectionAttributes->prepend(a)
+          elseif a.type.inheritsFrom(Boolean) then
+            self.booleanAttributes := booleanAttributes->prepend(a)
+          elseif not a.type.inheritsFrom(Doc) then
+            self.singletonAttributes := singletonAttributes->prepend(a)
+          end
+        end;
+        self.setOrSeqAttributes := setOrSeqAttributes->sortNamedElements_CaseIndependent();
+        self.tableAttributes := tableAttributes->sortNamedElements_CaseIndependent();
+        self.collectionAttributes := collectionAttributes->sortNamedElements_CaseIndependent();
+        self.booleanAttributes := booleanAttributes->sortNamedElements_CaseIndependent();
+        self.singletonAttributes := singletonAttributes->sortNamedElements_CaseIndependent();
+        self
+      end
+    end
+
+    @Operation setClauseCodeComboBoxDisplay()
+      let
+        comboBox = GrammarClauseCodeComboBox(0,0,0,0);
+        codeBox = FormTextBox(0,0,0,0,"",false)
+          .setIsEditable(false); // editing grammar clauses needs to be supported in future
+        label = FormLabel(0,0,"clauses")
+      in
+        self.clauseCodeComboBoxDisplay := CodeComboBoxDisplay(label,comboBox,codeBox,self.element);
+        self.resetClauseCodeComboBoxDisplay()
+      end
+    end
+    
+    @Operation resetClauseCodeComboBoxDisplay()
+      @For clause in element.clauses do
+        let
+          clauseName = clause.name().toString();
+          action =
+            @Operation action()
+              clauseCodeComboBoxDisplay.resetCodeBox(clause,true)
+            end 
+        in
+          clauseCodeComboBoxDisplay.comboBox.addItem(clauseName,action,self)
+        end
+      end
+    end
+
+    @Operation setTextOut(slotName:String,value)
+      let valueLabel = value.labelString() in
+        if slotName = "documentation" then
+          let
+            textbox = documentationDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        else
+          let displays = singletonDisplays + Seq{selfDisplay,ofDisplay} in
+            @Find(display,displays)
+              when display.label.text.toString() = slotName
+              do
+                let textField = display.field in
+                  textField.element := value;
+                  textField.setText(valueLabel);
+                  self.commandInterpreter().setText(textField,valueLabel)
+                end
+            end
+          end
+        end;
+        self
+      end
+    end
+
+    @Operation refresh()
+      super();
+      let combo = clauseCodeComboBoxDisplay.comboBox in
+        if not combo.contents->isEmpty then
+          combo.selectItemAt(0)
+        end
+      end;
+      clauseCodeComboBoxDisplay.addTextBoxRules()
+    end
+
+  end

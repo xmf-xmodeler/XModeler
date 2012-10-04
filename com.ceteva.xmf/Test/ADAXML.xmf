@@ -1,0 +1,658 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+
+import Parser::BNF;
+import XML;
+import IO;
+
+context Root
+
+@Grammar Sequences
+
+  Pair ::= <Values:Pair> head = Value tail = List </Pair> { Seq{head | tail} }.
+  
+  Value ::= List | Atom.
+  
+  Atom ::= <Values:Atom value/> { value }.
+  
+  List ::= Pair | <Values:Sequence.Nil/> { Seq{} }.
+   
+end
+
+context Root
+
+// Defines a grammar for the XML exported from the ADA XML tool
+@Grammar AdaXML
+
+AdaXML ::= AdaSystem.
+
+// The following grammar was generated using the ToSchema()
+// mapping on the Ada metamodel with some minor tweaking to 
+// removed elements of type Element.
+
+SimpleRangeConstraint ::= 
+<SimpleRangeConstraint > 
+range = Range nodes = Node*
+</SimpleRangeConstraint>
+{Root::Languages::Ada::Types::SimpleRangeConstraint[ range = range,nodes = nodes]}.
+
+CompilationUnit ::= 
+<CompilationUnit private = private > 
+contextSpec = ContextSpec* unit = Unit* nodes = Node*
+</CompilationUnit>
+{Root::Languages::Ada::Units::CompilationUnit[ private = private,contextSpec = contextSpec->asSet(),unit = unit->asSet(),nodes = nodes]}.
+
+SubUnit ::= 
+<SubUnit > 
+nodes = Node*
+</SubUnit>
+{Root::Languages::Ada::Units::SubUnit[ nodes = nodes]}.
+
+ComponentSubType ::= 
+<ComponentSubType aliased = aliased > 
+subTypeInd = SubTypeInd nodes = Node*
+</ComponentSubType>
+{Root::Languages::Ada::Types::ComponentSubType[ aliased = aliased,subTypeInd = subTypeInd,nodes = nodes]}.
+
+Range ::= 
+<Range > 
+lhs = Expression rhs = Expression nodes = Node*
+</Range>
+{Root::Languages::Ada::Types::Range[ lhs = lhs,rhs = rhs,nodes = nodes]}.
+
+UseClause ::= 
+<UseClause type = type > 
+name = Name nodes = Node*
+</UseClause>
+{Root::Languages::Ada::Units::UseClause[ type = type,name = name,nodes = nodes]}.
+
+Unit ::= RenameUnit | PkgBody | SubUnit | SubprogramBody | GenericDecl | PackageBody | PackageDecl.
+
+EnumerationType ::= 
+<EnumerationType > 
+ids = EnumId* nodes = Node*
+</EnumerationType>
+{Root::Languages::Ada::Types::EnumerationType[ ids = ids,nodes = nodes]}.
+
+DeclPartItem ::= 
+<DeclPartItem > 
+declItem = DeclItem nodes = Node*
+</DeclPartItem>
+{Root::Languages::Ada::Bodies::DeclPartItem[ declItem = declItem,nodes = nodes]}.
+
+DiscrimName ::= 
+<DiscrimName name = name > 
+
+</DiscrimName>
+{Root::Languages::Ada::Specs::DiscrimName[ name = name]}.
+
+WithClause ::= 
+<WithClause > 
+name = Name nodes = Node*
+</WithClause>
+{Root::Languages::Ada::Units::WithClause[ name = name,nodes = nodes]}.
+
+AccessTypeSubTypeInd ::= 
+<AccessTypeSubTypeInd constant = constant all = all > 
+subTypeInd = SubTypeInd nodes = Node*
+</AccessTypeSubTypeInd>
+{Root::Languages::Ada::Types::AccessTypeSubTypeInd[ constant = constant,all = all,subTypeInd = subTypeInd,nodes = nodes]}.
+
+Body ::= SubprogramBody.
+
+DiscrimBox ::= 
+<DiscrimBox > 
+
+</DiscrimBox>
+{Root::Languages::Ada::Specs::DiscrimBox[ ]}.
+
+AdaSystem ::= 
+<AdaSystem > 
+programs = AdaProgram* nodes = Node*
+</AdaSystem>
+{Root::Languages::Ada::Units::AdaSystem[ programs = programs->asSet(),nodes = nodes]}.
+
+IntegerType ::= 
+<IntegerType > 
+rangeConstraint = RangeConstraint nodes = Node*
+</IntegerType>
+{Root::Languages::Ada::Types::IntegerType[ rangeConstraint = rangeConstraint,nodes = nodes]}.
+
+DeclPart ::= DeclPartBody | DeclPartItem.
+
+RepSpec ::= 
+<RepSpec > 
+nodes = Node*
+</RepSpec>
+{Root::Languages::Ada::Specs::RepSpec[ nodes = nodes]}.
+
+RenameUnit ::= 
+<RenameUnit > 
+nodes = Node*
+</RenameUnit>
+{Root::Languages::Ada::Units::RenameUnit[ nodes = nodes]}.
+
+FixedType ::= 
+<FixedType > 
+range = Range* nodes = Node*
+</FixedType>
+{Root::Languages::Ada::Types::FixedType[ range = range->asSet(),nodes = nodes]}.
+
+DeclPartBody ::= 
+<DeclPartBody > 
+body = Body nodes = Node*
+</DeclPartBody>
+{Root::Languages::Ada::Bodies::DeclPartBody[ body = body,nodes = nodes]}.
+
+ContextSpec ::= 
+<ContextSpec > 
+withClauses = WithClause* useClauses = UseClause* nodes = Node*
+</ContextSpec>
+{Root::Languages::Ada::Specs::ContextSpec[ withClauses = withClauses->asSet(),useClauses = useClauses->asSet(),nodes = nodes]}.
+
+AdaProgram ::= 
+<AdaProgram resourceName = resourceName > 
+compilationUnits = CompilationUnit* pragmas = Pragma* nodes = Node*
+</AdaProgram>
+{Root::Languages::Ada::Units::AdaProgram[ resourceName = resourceName,compilationUnits = compilationUnits->asSet(),pragmas = pragmas->asSet(),nodes = nodes]}.
+
+DiscreteRangeRange ::= 
+<DiscreteRangeRange > 
+range = Range nodes = Node*
+</DiscreteRangeRange>
+{Root::Languages::Ada::Types::DiscreteRangeRange[ range = range,nodes = nodes]}.
+
+PkgBody ::= 
+<PkgBody name = name > 
+declPart = DeclPart* statements = Statement* exceptionHandlers = ExceptionHandler* nodes = Node*
+</PkgBody>
+{Root::Languages::Ada::Bodies::PkgBody[ declPart = declPart,name = name,statements = statements,exceptionHandlers = exceptionHandlers,nodes = nodes]}.
+
+Parameter ::= 
+<Parameter name = name mode = mode > 
+type = TypeRef nodes = Node*
+</Parameter>
+{Root::Languages::Ada::Specs::Parameter[ name = name,mode = mode,type = type,nodes = nodes]}.
+
+Pragma ::= 
+<Pragma name = name val = val > 
+ nodes = Node*
+</Pragma>
+{Root::Languages::Ada::Units::Pragma[name = name,val = val,nodes = nodes]}.
+
+TypeRef ::= SubTypeInd | SubTypeMark.
+
+SubprogramBody ::= 
+<SubprogramBody > 
+subprogramSpec = SubprogramSpec blockBody = Statement* declPart = DeclPart* nodes = Node*
+</SubprogramBody>
+{Root::Languages::Ada::Bodies::SubprogramBody[ subprogramSpec = subprogramSpec,blockBody = blockBody,declPart = declPart,nodes = nodes]}.
+
+PrivatePart ::= 
+<PrivatePart > 
+decs = DeclItem* pragmas = Pragma* nodes = Node*
+</PrivatePart>
+{Root::Languages::Ada::Specs::PrivatePart[ decs = decs,pragmas = pragmas->asSet(),nodes = nodes]}.
+
+PackageBody ::= 
+<PackageBody > 
+nodes = Node*
+</PackageBody>
+{Root::Languages::Ada::Units::PackageBody[ nodes = nodes]}.
+
+SubTypeInd ::= 
+<SubTypeInd > 
+name = Name constraint = Constraint* nodes = Node*
+</SubTypeInd>
+{Root::Languages::Ada::Types::SubTypeInd[ name = name,constraint = constraint->asSet(),nodes = nodes]}.
+
+SimpleName ::= 
+<SimpleName name = name > 
+nodes = Node*
+</SimpleName>
+{Root::Languages::Ada::Names::SimpleName[ name = name,nodes = nodes]}.
+
+DiscrimSpecs ::= 
+<DiscrimSpecs > 
+discrimSpecs = DiscrimSpec*
+</DiscrimSpecs>
+{Root::Languages::Ada::Specs::DiscrimSpecs[ discrimSpecs = discrimSpecs]}.
+
+ChoiceExp ::= 
+<ChoiceExp > 
+expr = Expression
+</ChoiceExp>
+{Root::Languages::Ada::Expressions::ChoiceExp[ expr = expr]}.
+
+RangeConstraint ::= SimpleRangeConstraint.
+
+Attribute ::= 
+<Attribute attribute = attribute > 
+name = Name nodes = Node*
+</Attribute>
+{Root::Languages::Ada::Names::Attribute[ attribute = attribute,name = name,nodes = nodes]}.
+
+PackageSpec ::= 
+<PackageSpec name = name > 
+genericFormals = GenericFormal* pragmas = Pragma* private = PrivatePart* decs = DeclItem* nodes = Node*
+</PackageSpec>
+{Root::Languages::Ada::Specs::PackageSpec[ genericFormals = genericFormals,name = name,pragmas = pragmas->asSet(),private = private->asSet(),decs = decs,nodes = nodes]}.
+
+Literal ::= NullLiteral | NumericLiteral | UsedChar.
+
+AccessType ::= AccessTypeSubTypeInd.
+
+SelectedComp ::= 
+<SelectedComp scname = scname > 
+name = Name nodes = Node*
+</SelectedComp>
+{Root::Languages::Ada::Names::SelectedComp[ name = name,scname = scname,nodes = nodes]}.
+
+ProcedureSpec ::= 
+<ProcedureSpec abstract = abstract name = name > 
+parameters = Parameter* nodes = Node*
+</ProcedureSpec>
+{Root::Languages::Ada::Specs::ProcedureSpec[ abstract = abstract,parameters = parameters,name = name,nodes = nodes]}.
+
+ParenthesizedPrimary ::= PPExp | PPCompAssoc | PPValues | PPNullRecord.
+
+Constraint ::= RangeConstraint.
+
+Name ::= SelectedComp | Attribute | IndexedComp | SimpleName.
+
+SubprogramSpec ::= ProcedureSpec | FunctionSpec.
+
+PPNullRecord ::= 
+<PPNullRecord > 
+nodes = Node*
+</PPNullRecord>
+{Root::Languages::Ada::Expressions::PPNullRecord[ nodes = nodes]}.
+
+SubTypeMark ::= 
+<SubTypeMark > 
+name = Name nodes = Node*
+</SubTypeMark>
+{Root::Languages::Ada::Types::SubTypeMark[ name = name,nodes = nodes]}.
+
+IndexedComp ::= 
+<IndexedComp > 
+ name = Name nodes = Node*
+</IndexedComp>
+{Root::Languages::Ada::Names::IndexedComp[name = name,nodes = nodes]}.
+
+FunctionSpec ::= 
+<FunctionSpec abstract = abstract name = name > 
+returnType = Name nodes = Node*
+</FunctionSpec>
+{Root::Languages::Ada::Specs::FunctionSpec[ abstract = abstract,returnType = returnType,name = name,nodes = nodes]}.
+
+ChoiceDiscreteWithRange ::= 
+<ChoiceDiscreteWithRange > 
+withRange = DiscreteWithRange
+</ChoiceDiscreteWithRange>
+{Root::Languages::Ada::Expressions::ChoiceDiscreteWithRange[ withRange = withRange]}.
+
+FloatType ::= 
+<FloatType > 
+range = Range* nodes = Node*
+</FloatType>
+{Root::Languages::Ada::Types::FloatType[ range = range->asSet(),nodes = nodes]}.
+
+Statement ::= If | NullStatement | Exit | Assignment.
+
+DiscrimSpec ::= 
+<DiscrimSpec isAccess = isAccess > 
+mark = Name initializer = Expression* names = DiscrimName*
+</DiscrimSpec>
+{Root::Languages::Ada::Specs::DiscrimSpec[ mark = mark,initializer = initializer->asSet(),names = names,isAccess = isAccess]}.
+
+Allocator ::= AllocatorQualified | AllocatorName.
+
+DiscreteRangeName ::= 
+<DiscreteRangeName > 
+name = Name constraint = Range* nodes = Node*
+</DiscreteRangeName>
+{Root::Languages::Ada::Types::DiscreteRangeName[ name = name,constraint = constraint->asSet(),nodes = nodes]}.
+
+Assignment ::= 
+<Assignment > 
+labels = Label* expression = Expression name = Name nodes = Node*
+</Assignment>
+{Root::Languages::Ada::Statements::Assignment[ labels = labels,expression = expression,name = name,nodes = nodes]}.
+
+DiscrimPart ::= DiscrimBox | DiscrimSpecs.
+
+PPCompAssoc ::= 
+<PPCompAssoc > 
+expr = Expression choices = Choice* nodes = Node*
+</PPCompAssoc>
+{Root::Languages::Ada::Expressions::PPCompAssoc[ expr = expr,choices = choices,nodes = nodes]}.
+
+UnconstrainedArrayType ::= 
+<UnconstrainedArrayType > 
+componentSubType = ComponentSubType names = Name* nodes = Node*
+</UnconstrainedArrayType>
+{Root::Languages::Ada::Types::UnconstrainedArrayType[ componentSubType = componentSubType,names = names,nodes = nodes]}.
+
+NullStatement ::= 
+<NullStatement > 
+labels = Label* nodes = Node*
+</NullStatement>
+{Root::Languages::Ada::Statements::NullStatement[ labels = labels,nodes = nodes]}.
+
+PackageRenameDecl ::= 
+<PackageRenameDecl packageName = packageName > 
+name = Name nodes = Node*
+</PackageRenameDecl>
+{Root::Languages::Ada::Decls::PackageRenameDecl[ name = name,packageName = packageName,nodes = nodes]}.
+
+UsedChar ::= 
+<UsedChar charLiteral = charLiteral > 
+nodes = Node*
+</UsedChar>
+{Root::Languages::Ada::Expressions::UsedChar[ charLiteral = charLiteral,nodes = nodes]}.
+
+DerivedType ::= 
+<DerivedType new = new abstract = abstract private = private > 
+recordType = RecordType* subTypeInd = SubTypeInd nodes = Node*
+</DerivedType>
+{Root::Languages::Ada::Types::DerivedType[ new = new,abstract = abstract,private = private,recordType = recordType->asSet(),subTypeInd = subTypeInd,nodes = nodes]}.
+
+CondClause ::= 
+<CondClause > 
+cond = Expression statements = Statement* nodes = Node*
+</CondClause>
+{Root::Languages::Ada::Statements::CondClause[ cond = cond,statements = statements,nodes = nodes]}.
+
+GenericFormal ::= 
+<GenericFormal > 
+
+</GenericFormal>
+{Root::Languages::Ada::Decls::GenericFormal[ ]}.
+
+Value ::= 
+<Value > 
+
+</Value>
+{Root::Languages::Ada::Expressions::Value[ ]}.
+
+DiscreteRange ::= DiscreteRangeRange | DiscreteRangeName.
+
+If ::= 
+<If > 
+labels = Label* elseClause = Statement* clauses = CondClause* nodes = Node*
+</If>
+{Root::Languages::Ada::Statements::If[ labels = labels,elseClause = elseClause->asSet(),clauses = clauses,nodes = nodes]}.
+
+ObjectDeclSubType ::= 
+<ObjectDeclSubType qualifier = qualifier name = name > 
+subTypeInd = SubTypeInd nodes = Node*
+</ObjectDeclSubType>
+{Root::Languages::Ada::Decls::ObjectDeclSubType[ qualifier = qualifier,name = name,subTypeInd = subTypeInd,nodes = nodes]}.
+
+AllocatorName ::= 
+<AllocatorName > 
+name = Name nodes = Node*
+</AllocatorName>
+{Root::Languages::Ada::Expressions::AllocatorName[ name = name,nodes = nodes]}.
+
+RealType ::= FixedType | FloatType.
+
+Exit ::= 
+<Exit > 
+labels = Label* condition = Expression* name = Name* nodes = Node*
+</Exit>
+{Root::Languages::Ada::Statements::Exit[ labels = labels,condition = condition->asSet(),name = name->asSet(),nodes = nodes]}.
+
+GenericDeclSubprogram ::= 
+<GenericDeclSubprogram > 
+subprogramSpec = SubprogramSpec genericFormals = GenericFormal* nodes = Node*
+</GenericDeclSubprogram>
+{Root::Languages::Ada::Decls::GenericDeclSubprogram[ subprogramSpec = subprogramSpec,genericFormals = genericFormals,nodes = nodes]}.
+
+PPExp ::= PPExpWithValues | PPExpWithNullRecord.
+
+RecordType ::= 
+<RecordType limited = limited null = null tagged = tagged > 
+components = CompDecl* pragmas = Pragma* nodes = Node*
+</RecordType>
+{Root::Languages::Ada::Types::RecordType[ limited = limited,null = null,components = components,pragmas = pragmas->asSet(),tagged = tagged,nodes = nodes]}.
+
+ExceptionHandler ::= 
+<ExceptionHandler > 
+nodes = Node*
+</ExceptionHandler>
+{Root::Languages::Ada::Statements::ExceptionHandler[ nodes = nodes]}.
+
+TypeDecl ::= 
+<TypeDecl name = name > 
+typeCompletion = TypeDef* discrimPart = DiscrimPart* nodes = Node*
+</TypeDecl>
+{Root::Languages::Ada::Decls::TypeDecl[ name = name,typeCompletion = typeCompletion->asSet(),discrimPart = discrimPart->asSet(),nodes = nodes]}.
+
+PPExpWithNullRecord ::= 
+<PPExpWithNullRecord > 
+expr = Expression nodes = Node*
+</PPExpWithNullRecord>
+{Root::Languages::Ada::Expressions::PPExpWithNullRecord[ expr = expr,nodes = nodes]}.
+
+ArrayType ::= UnconstrainedArrayType | ConstrainedArrayType.
+
+Label ::= 
+<Label name = name > 
+
+</Label>
+{Root::Languages::Ada::Statements::Label[ name = name]}.
+
+GenericDecl ::= GenericDeclSubprogram | PackageSpec | GenericDeclPackageSpec.
+
+Binary ::= 
+<Binary op = op > 
+left = Expression right = Expression nodes = Node*
+</Binary>
+{Root::Languages::Ada::Expressions::Binary[ op = op,left = left,right = right,nodes = nodes]}.
+
+EnumId ::= 
+<EnumId name = name > 
+nodes = Node*
+</EnumId>
+{Root::Languages::Ada::Types::EnumId[ name = name,nodes = nodes]}.
+
+GenericPackageInstance ::= 
+<GenericPackageInstance > 
+nodes = Node*
+</GenericPackageInstance>
+{Root::Languages::Ada::Generics::GenericPackageInstance[ nodes = nodes]}.
+
+DeclItemPragma ::= 
+<DeclItemPragma > 
+pragma = Pragma nodes = Node*
+</DeclItemPragma>
+{Root::Languages::Ada::Decls::DeclItemPragma[ pragma = pragma,nodes = nodes]}.
+
+Qualified ::= 
+<Qualified > 
+parenthesizedPrimary = ParenthesizedPrimary name = Name
+</Qualified>
+{Root::Languages::Ada::Expressions::Qualified[ parenthesizedPrimary = parenthesizedPrimary,name = name]}.
+
+ConstrainedArrayType ::= 
+<ConstrainedArrayType > 
+componentSubType = ComponentSubType discreteRanges = DiscreteRange* nodes = Node*
+</ConstrainedArrayType>
+{Root::Languages::Ada::Types::ConstrainedArrayType[ componentSubType = componentSubType,discreteRanges = discreteRanges,nodes = nodes]}.
+
+PPValues ::= PPExpWithValues.
+
+RenameDecl ::= SubprogramRenameDecl | PackageRenameDecl | ExceptionRenameDecl.
+
+NullLiteral ::= 
+<NullLiteral > 
+nodes = Node*
+</NullLiteral>
+{Root::Languages::Ada::Expressions::NullLiteral[ nodes = nodes]}.
+
+TypeDef ::= DerivedType | RealType | AccessType | RecordType | IntegerType | ArrayType | EnumerationType | PrivateType.
+
+ExpressionName ::= 
+<ExpressionName > 
+name = Name nodes = Node*
+</ExpressionName>
+{Root::Languages::Ada::Expressions::ExpressionName[ name = name,nodes = nodes]}.
+
+CompDecl ::= 
+<CompDecl name = name > 
+componentSubType = ComponentSubType initializer = Expression* nodes = Node*
+</CompDecl>
+{Root::Languages::Ada::Decls::CompDecl[ name = name,componentSubType = componentSubType,initializer = initializer->asSet(),nodes = nodes]}.
+
+AdaObject ::= Unit | WithClause | Range | Body | CompilationUnit | AdaSystem | ComponentSubType | DeclPart | ContextSpec | AdaProgram | Parameter | Pragma | TypeRef | Name | PrivatePart | Statement | Constraint | CondClause | DiscreteRange | ExceptionHandler | EnumId | Expression | TypeDef | AdaName | CompDecl | Node | DeclItem.
+
+PrivateType ::= 
+<PrivateType tagged = tagged isLimited = isLimited > 
+nodes = Node*
+</PrivateType>
+{Root::Languages::Ada::Types::PrivateType[ tagged = tagged,isLimited = isLimited,nodes = nodes]}.
+
+AllocatorQualified ::= 
+<AllocatorQualified > 
+qualified = Qualified nodes = Node*
+</AllocatorQualified>
+{Root::Languages::Ada::Expressions::AllocatorQualified[ qualified = qualified,nodes = nodes]}.
+
+SubprogramDecl ::= SubprogramSpec.
+
+Choice ::= ChoiceDiscreteWithRange | ChoiceOthers | ChoiceExp.
+
+GenericDeclPackageSpec ::= 
+<GenericDeclPackageSpec > 
+packageSpec = PackageSpec genericFormals = GenericFormal* nodes = Node*
+</GenericDeclPackageSpec>
+{Root::Languages::Ada::Decls::GenericDeclPackageSpec[ packageSpec = packageSpec,genericFormals = genericFormals,nodes = nodes]}.
+
+PPExpWithValues ::= 
+<PPExpWithValues > 
+values = Value* expr = Expression nodes = Node*
+</PPExpWithValues>
+{Root::Languages::Ada::Expressions::PPExpWithValues[ values = values,expr = expr,nodes = nodes]}.
+
+PackageDecl ::= GenericPackageInstance | PackageSpec.
+
+ChoiceOthers ::= 
+<ChoiceOthers > 
+
+</ChoiceOthers>
+{Root::Languages::Ada::Expressions::ChoiceOthers[ ]}.
+
+ObjectDecl ::= ObjectDeclSubType.
+
+Expression ::= Binary | ExpressionName | Allocator | Unary | ParenthesizedPrimary | QualifiedExpression | Literal.
+
+Decl ::= SubprogramDecl | ObjectDecl | RenameDecl | SubtypeDecl | GenericDecl | ExceptionDecl | TypeDecl | NumberDecl.
+
+DiscreteWithRange ::= 
+<DiscreteWithRange > 
+name = Name
+</DiscreteWithRange>
+{Root::Languages::Ada::Expressions::DiscreteWithRange[name = name]}.
+
+SubtypeDecl ::= 
+<SubtypeDecl name = name > 
+constraint = Constraint* isName = Name nodes = Node*
+</SubtypeDecl>
+{Root::Languages::Ada::Decls::SubtypeDecl[ constraint = constraint->asSet(),isName = isName,name = name,nodes = nodes]}.
+
+NumericLiteral ::= 
+<NumericLiteral value = value > 
+nodes = Node*
+</NumericLiteral>
+{Root::Languages::Ada::Expressions::NumericLiteral[ value = value,nodes = nodes]}.
+
+DeclItem ::= RepSpec | DeclItemPragma | UseClause | Decl.
+
+AdaName ::= 
+<AdaName name = name > 
+nodes = Node*
+</AdaName>
+{Root::Languages::Ada::AdaName[ name = name,nodes = nodes]}.
+
+ExceptionDecl ::= 
+<ExceptionDecl name = name > 
+nodes = Node*
+</ExceptionDecl>
+{Root::Languages::Ada::Decls::ExceptionDecl[ name = name,nodes = nodes]}.
+
+Unary ::= 
+<Unary op = op > 
+arg = Expression nodes = Node*
+</Unary>
+{Root::Languages::Ada::Expressions::Unary[ arg = arg,op = op,nodes = nodes]}.
+
+NumberDecl ::= 
+<NumberDecl > 
+nodes = Node*
+</NumberDecl>
+{Root::Languages::Ada::Decls::NumberDecl[ nodes = nodes]}.
+
+Node ::= 
+<Node name = name val = val > 
+children = Node* nodes = Node*
+</Node>
+{Root::Languages::Ada::Node[ name = name,val = val,children = children,nodes = nodes]}.
+
+SubprogramRenameDecl ::= 
+<SubprogramRenameDecl > 
+name = Name subprogramDecl = SubprogramDecl nodes = Node*
+</SubprogramRenameDecl>
+{Root::Languages::Ada::Decls::SubprogramRenameDecl[ name = name,subprogramDecl = subprogramDecl,nodes = nodes]}.
+
+QualifiedExpression ::= 
+<QualifiedExpression > 
+qualified = Qualified nodes = Node*
+</QualifiedExpression>
+{Root::Languages::Ada::Expressions::QualifiedExpression[ qualified = qualified,nodes = nodes]}.
+
+ExceptionRenameDecl ::= 
+<ExceptionRenameDecl > 
+name = Name exceptionName = Name nodes = Node*
+</ExceptionRenameDecl>
+{Root::Languages::Ada::Decls::ExceptionRenameDecl[ name = name,exceptionName = exceptionName,nodes = nodes]}.
+
+
+end
+
+//AdaXML.debug := true; 
+
+context SeqOfElement
+  @Operation asXML()
+    if self->isEmpty
+    then Element("Values:Sequence.Nil")
+    else 
+      Element("Values:Pair",Seq{},Seq{Element("Values:Atom",Seq{Attribute("value",self->head.toString())}),self->tail->asXML})
+    end
+  end
+  
+context Root
+  @Operation test(s)
+    let xml = s->asXML
+    in //xml.pprint(stdout,0);
+       Sequences.parse(Seq{xml},"Value")
+    end
+  end
+    
+context Projects::ProjectManager
+  @Operation loadAdaXML()
+    let file = xmf.openFile(xmf.homeDir(),"*.xml")
+    in if file.fileExists()
+       then 
+         let i = XMLInputChannel(FileInputChannel(file)) then
+             models = AdaXML.parse(Seq{i.read().stripWhiteSpace().root},"AdaXML")
+         in models
+         end
+       end
+     end
+   end
+ 

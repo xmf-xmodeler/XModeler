@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class BinExp extends Term
+
+    @Attribute left : Term end
+    @Attribute op : String end
+    @Attribute right : Term end 
+    
+    @Constructor(left,op,right) ! end
+    
+    @Operation eval(vars,env)
+      let v1 = left.eval(vars,env);
+          v2 = right.eval(vars,env)
+      in @CaseInt[256] op->at(0) of
+           "+"->at(0) do
+             v1 + v2
+           end
+           "-"->at(0) do
+             v1 - v2
+           end
+           "*"->at(0) do
+             v1 * v2
+           end
+           "/"->at(0) do
+             v1 / v2
+           end
+         end
+      end
+    end
+    
+    @Operation vars(vars)
+      vars := left.vars(vars);
+      right.vars(vars)
+    end
+    
+  end

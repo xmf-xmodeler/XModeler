@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class ResourcePosition isabstract
+  
+    @Attribute resource : File end
+    
+    @Constructor(resource) end
+  
+  end

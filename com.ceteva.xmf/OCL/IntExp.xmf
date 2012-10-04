@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class IntExp extends OCL::OCL
+  
+    @Doc
+      An integer constant.
+      Constructor: IntExp(value)
+    end
+  
+    @Attribute value : Integer end
+    
+    @Constructor(value) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

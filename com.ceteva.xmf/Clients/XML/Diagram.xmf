@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagram
+  @Operation deployXML()
+    let file = xmf.saveFile(xmf.projDir(),"*.xml")
+    in
+      if file <> ""
+      then
+        let 
+          formatter = IO::DiagramXMLFormatter() then
+          fout = IO::XMLOutputChannel(IO::FileOutputChannel(file),formatter)
+        in 
+          fout.writeValue(self);
+          fout.close();
+          xmf.message("Written " + self.toString() + " to " + file)
+        end
+      end
+    end
+  end
+  
+context Root
+  @Operation loadDiagramXML()
+    let file = xmf.openFile(xmf.projDir(),"*.xml")
+    in
+      if file <> ""
+      then
+        let
+          inflater = IO::DiagramXMLInflater() then
+          fin = IO::XMLInputChannel(IO::FileInputChannel(file),inflater) then
+          result = fin.parse()
+        in
+          result.edit()
+        end
+      end
+    end
+  end

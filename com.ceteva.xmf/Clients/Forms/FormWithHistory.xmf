@@ -1,0 +1,141 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormWithHistory isabstract extends Form
+    
+    @Attribute client : Element = null end
+    @Attribute typeName : String = "" end
+    @Attribute itemName : String = "" end
+    @Attribute date : String (?,!) end
+
+    @Operation addTools()
+      super();
+      self.commandInterpreter().setFormTool(self,"browseAndClearHistory",true);
+      let history = self.getHistory() then
+          currentIndex = self.getCurrentHistoryIndex();
+          topIndex = history->size - 1 then
+          nextEnabled = currentIndex > 0;
+          previousEnabled = currentIndex < topIndex
+      in
+        self.commandInterpreter().setFormTool(self,"previousInHistory",previousEnabled);
+        self.commandInterpreter().setFormTool(self,"nextInHistory",nextEnabled)
+      end;
+      self
+    end
+
+    @Operation browseHistory()
+      let history = self.getHistory();
+          stringOp = 
+            @Operation(form)
+              form.date() + " - " + form.getItemName()
+                          + if form = self then " [*]" else "" end
+            end then
+          chosenForm = xmf.select(self.historyDialogTitle(),
+                                  self.historyDialogMessage() + " (current item shown by [*])",
+                                  history,
+                                  null,
+                                  stringOp)
+      in
+        if chosenForm <> null
+        then
+          self.handleFormUpdate(chosenForm)
+        end
+      end
+    end
+
+    @Operation clearHistory()
+      if xmf.confirm("Are you sure you want to clear the history?")
+      then
+        client.clearHistory(self)
+      end;
+      self
+    end
+
+    @Operation getCurrentHistoryIndex()
+      self.getHistory().indexOf(self)
+    end
+
+    @Operation getHistory()
+      client.getHistory(self.formHistoryType())
+    end
+
+    @Operation formHistoryType()
+      self.of()
+    end
+    
+    @Operation getItemName()
+      if itemName <> ""
+      then itemName
+      else name
+      end
+    end
+
+    @Operation handleClientNewForm(client:FormClient)
+      self.client := client;
+      client.addToHistory(self);    
+      let oldForm =
+        @Find(form,client.forms)
+          when form.isKindOf(FormWithHistory) andthen form.formHistoryType() = self.formHistoryType()
+          else null
+        end
+      in
+        if oldForm <> null
+        then
+          client.replaceForm(oldForm,self,true)
+        else
+          client.newFormDefinitely(self)
+        end
+      end
+    end
+    
+    @Operation handleFormUpdate(element)
+      // this can be over-ridden in subclasses
+      client.replaceForm(self,element,false)
+    end
+
+    @Operation historyDialogMessage():String
+      "Select an item to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Form History"
+    end
+
+    @Operation initialize()
+      self.setDate(xmf.date(false));
+      self.name := typeName // +
+        //if itemName <> ""
+        //then " - " + itemName
+        //else ""
+        //end
+    end
+
+    @Operation nextInHistory()
+      let history = self.getHistory() then
+          currentIndex = self.getCurrentHistoryIndex()
+      in
+        if currentIndex > 0
+        then
+          self.handleFormUpdate(history->at(currentIndex-1))
+        end
+      end
+    end
+
+    @Operation previousInHistory()
+      let history = self.getHistory() then
+          currentIndex = self.getCurrentHistoryIndex();
+          topIndex = history->size - 1
+      in
+        if currentIndex < topIndex
+        then
+          self.handleFormUpdate(history->at(currentIndex+1))
+        end
+      end
+    end
+
+  end

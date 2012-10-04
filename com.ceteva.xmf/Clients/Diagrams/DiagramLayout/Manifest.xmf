@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest DiagramLayout
+  p = @File DiagramLayout end
+  @File Position end
+  @File Label end
+  @File WayPoint end
+  @File Edge end
+  @File Node end
+  @File Layout end
+do p
+end;

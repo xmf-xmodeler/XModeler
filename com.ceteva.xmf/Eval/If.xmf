@@ -1,0 +1,17 @@
+import OCL;
+import Exceptions;
+
+context If
+  @Operation eval(target,env,imports)
+    let b = test.eval(target,env,imports)
+    in if b.isKindOf(Boolean)
+       then 
+         if b
+         then self.get("then").eval(target,env,imports)
+         else self.get("else").eval(target,env,imports)
+         end
+       else throw TypeError(b,Boolean)
+       end
+    end
+  end
+            

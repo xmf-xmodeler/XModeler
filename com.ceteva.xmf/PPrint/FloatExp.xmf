@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler FloatExp in PPrint(aFloatExp,out,seen)
+  format(out,"~S.~S",Seq{aFloatExp.prePoint,aFloatExp.postPoint})
+end;

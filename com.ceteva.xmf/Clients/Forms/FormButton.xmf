@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormButton extends FormElement
+  
+    @Attribute label  : String (?) end
+  	@Attribute action : Operation end
+    
+    @Constructor(x,y,width,height,label,action) end
+    
+    @Constructor(id,x,y,width,height,label,action) end
+
+    @Operation buttonPressed()
+      action()
+    end
+
+    @Operation new(parent)
+      self.setOwner(parent);
+      self.commandInterpreter().newButtonCommand(parent,self)
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newButtonCommand(parent,self)
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        label = Seq{"label",label} then
+        attributes = Seq{id,x,y,width,height,label}
+      in
+        @Command(self) startElement("button",attributes) end;
+        @Command(self) endElement("button") end
+      end
+    end
+    
+  end

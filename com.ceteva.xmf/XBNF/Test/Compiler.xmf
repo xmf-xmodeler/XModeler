@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Exceptions;
+
+context Compiler
+
+  @Operation parseCompilationUnit(file:String):CompilationUnit
+  
+     // Use this operation to parse a compilation unit from the 
+     // supplied file. Deals with parse errors by recording them
+     // as compiler errors. Returns null if the parse failed.
+     
+     "NEW COMPILER".println();
+     OCLGrammar.reset();
+     try OCL::OCL.grammar().parseFile(file,"CompilationUnit",Seq{})
+     catch(x)
+       if x.isKindOf(ParseError)
+       then 
+         compilationError("\nParse error in " + file + "\n\n" + x.pprint(),file);
+         null
+       else throw x
+       end
+     end
+     
+   end

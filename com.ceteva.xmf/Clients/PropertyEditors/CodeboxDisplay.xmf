@@ -1,0 +1,80 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CodeboxDisplay
+
+    @Bind buttonWidth = 60 end
+
+    @Attribute label : FormLabel end
+    @Attribute maxButton : FormButton end
+    @Attribute textbox : FormTextBox end
+  
+    @Constructor(label,textbox)
+      let action = @Operation() self.maximise() end
+      in
+        self.maxButton := FormButton(0,0,0,0,"Maximise",action)
+      end
+    end
+
+    @Operation addToForm(form:Form,x,y,labelHeight,yGap,textboxWidth,textboxHeight)
+      self.addLabel(form,x,y+yGap);
+      self.addButton(form,x+textboxWidth-CodeboxDisplay::buttonWidth,y,CodeboxDisplay::buttonWidth,20);
+      self.addTextBox(form,x,y+labelHeight+yGap,textboxWidth,textboxHeight)
+    end
+
+    @Operation addButton(form,x,y,width,height)
+      self.maxButton.setX(x);
+      self.maxButton.setY(y);
+      self.maxButton.setWidth(width);
+      self.maxButton.setHeight(height);
+      form.addElement(self.maxButton)
+    end
+
+    @Operation addLabel(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+    
+    @Operation addTextBox(form,x,y,width,height)
+      self.textbox.setX(x);
+      self.textbox.setY(y);
+      self.textbox.setWidth(width);
+      self.textbox.setHeight(height);
+      form.addElement(self.textbox)
+    end
+    
+    @Operation maximise()
+      let formsClient = xmf.findClient(Clients::Forms::FormClient)
+      in
+        if formsClient <> null
+        then
+          @Find(form,formsClient.forms)
+            when form.isKindOf(CodeboxEditor) andthen
+                 form.matchesTextbox(textbox)
+          do formsClient.commandInterpreter.setVisible(form)
+          else
+            @Find(form,formsClient.forms)
+              when form.isKindOf(CodeboxEditor)
+            do
+              let codeboxHistory = form.getHistory()
+              in
+                @Find(editor,codeboxHistory)
+                  when editor.matchesTextbox(textbox)
+                do form.handleFormUpdate(editor)
+                else textbox.newCodeboxEditor()
+                end
+              end
+            else textbox.newCodeboxEditor()
+            end
+          end
+        end
+      end
+    end
+
+  end

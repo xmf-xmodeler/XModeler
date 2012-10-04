@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Parser;
+import Machine;
+import BNF; 
+import IO;
+
+context Grammar
+  @Operation parseString(s:String,startNT:String,imports:Seq(NameSpace)):Element
+    let sin = StringInputChannel(s) then
+        state = State(self,sin)
+    in let result = state.run(startNT,imports)
+       in if state.failed
+          then
+            let parseError = ParseError(s) in
+              parseError.consumed := state.getConsumedChars();
+              throw parseError
+            end
+          else result
+          end
+       end
+    end
+  end
+  
+context Grammar
+  @Operation parseString(s:String):Element
+    self.parseString(s,startingSymbol,Seq{})
+  end

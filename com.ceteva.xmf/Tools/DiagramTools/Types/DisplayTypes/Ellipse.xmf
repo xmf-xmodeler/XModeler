@@ -1,0 +1,76 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Ellipse extends DisplayType
+  
+    @Bind displayAttributes = AttEnv() end
+  
+    @Attribute showOutline : Boolean = true         end
+    @Attribute fill        : Boolean = true   (?,!) end
+    @Attribute width       : Integer = 10           end
+    @Attribute height      : Integer = 10           end
+    @Attribute lineColor   : String           (?,!) end
+    @Attribute fillColor   : String           (?,!) end
+    
+    @Grammar extends DisplayType.grammar
+    
+      Ellipse ::= name = Name atts = Properties dsplAtts  = Atts {
+      
+        Ellipse::displayAttributes := dsplAtts;
+      
+        [| let ellipse = Tools::DiagramTools::Types::DisplayTypes::Ellipse(<OCL::StrExp(name)>) 
+           in ellipse.showOutline := not <OCL::BoolExp(atts->includes("noOutline"))>;
+              ellipse.fill        := not <OCL::BoolExp(atts->includes("nofill"))>;
+              ellipse.hasPort     := <OCL::BoolExp(atts->includes("hasport"))>;
+              ellipse.height      := <OCL::IntExp(dsplAtts.lookup("height",0))>;
+              ellipse.width       := <OCL::IntExp(dsplAtts.lookup("width",0))>;
+              ellipse.padLeft     := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              ellipse.padRight    := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              ellipse.padTop      := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              ellipse.padBottom   := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              ellipse.fillColor   := <OCL::StrExp(dsplAtts.lookup("fillColor",""))>;
+              ellipse.lineColor   := <OCL::StrExp(dsplAtts.lookup("lineColor",""))>;
+              ellipse.layout      := <OCL::StrExp(filterLayout(atts))>;
+              ellipse
+           end
+        |] 
+        
+      }.
+      
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let color = Clients::Diagrams::Color() then
+          ellipse = Diagrams::Ellipse(0,0,width,height,showOutline,color,color)
+      in parent.add(ellipse);
+         ellipse.setFill(fill);
+         ellipse.setType(self);
+         ellipse.setPadLeft(padLeft);
+         ellipse.setPadRight(padRight);
+         ellipse.setPadTop(padTop);
+         ellipse.setPadBottom(padBottom);
+         ellipse.setMinWidth(minWidth);
+         ellipse.setMinHeight(minHeight);
+         ellipse.setMaxWidth(maxWidth);
+         ellipse.setMaxHeight(maxHeight);
+         ellipse.lineColor := self.parseColor(lineColor);
+         ellipse.fillColor := self.parseColor(fillColor);
+         ellipse.setDeleteHandler(DisplayType::mkDeleteHandler(tool,root,path,name));
+         self.setGlobalMenu(ellipse,tool,path + Seq{name.toString()});
+         if hasPort then root.addPortAssociation(ellipse) end;
+         ellipse
+      end
+    end
+    
+  end

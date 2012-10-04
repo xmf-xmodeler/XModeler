@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+import Diagrams;
+import Graphs;
+
+context Graphs
+
+  @Class Canvas extends Node
+  
+   @Constructor()
+     self.setSelectable(false)
+   end
+  
+   @Operation add(item)
+     super(display);
+     display.new(self);
+     self
+   end
+  
+   @Operation new(parent,setMenu)
+     self.width := parent.width + parent.dx();
+     self.height := parent.height + parent.dy();
+     super(parent,setMenu)
+    end
+    
+    @Operation pack()
+      self
+    end
+  
+  end

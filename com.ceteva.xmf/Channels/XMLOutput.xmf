@@ -1,0 +1,76 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class XMLOutput extends XMLData
+  
+    @Attribute name   : String end
+    @Attribute output : StandardOutputChannel end
+    @Attribute debug  : Boolean = false end
+  
+    @Constructor(name)
+      self.createOutput()
+    end
+    
+    @Operation createOutput()
+      let 
+        output = Kernel_clientOutputChannel(name) then
+        dchannel = Kernel_mkDataOutputChannel(output)
+      in
+        self.output := StandardOutputChannel(dchannel)
+      end
+    end
+    
+    @Operation chars(chars:String)
+      self.debug(chars);
+      output.write(XMLData::CHARS);
+      output.write(chars)
+    end
+    
+    @Operation debug(output)
+      if debug
+      then
+        format(stdout,"~S~%",Seq{output})
+      end
+    end
+    
+    @Operation endDocument()
+      self.debug("</document>");
+      output.write(XMLData::END_DOCUMENT)
+    end
+    
+    @Operation endElement(name:String)
+      self.debug("</" + name + ">");
+      output.write(XMLData::END_ELEMENT);
+      output.write(name)
+    end
+    
+    @Operation flush()
+      output.flush()
+    end
+    
+    @Operation startDocument()
+      self.debug("<document>");
+      output.write(XMLData::START_DOCUMENT)
+    end
+    
+    @Operation startElement(name,attributes)
+      self.debug("<" + name + ">");
+      output.write(XMLData::START_ELEMENT);
+      output.write(name);
+      output.write(attributes.size());
+      @For attribute in attributes
+      do
+        let 
+          name = attribute.at(0);
+          value = attribute.at(1)
+        in
+          output.write(name);
+          output.write(value)
+        end
+      end
+    end
+  
+  end

@@ -1,0 +1,59 @@
+parserImport XOCL;
+
+context Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class AnnotatedElement 
+  
+    @Attribute element : Element      (?,!) end
+    @Attribute notes   : Seq(Element) (?,!) end
+    
+    @Constructor(element,notes) ! end
+    
+    @Operation addNotes(tool)
+    
+      // Notes are represented as Seq{string,element} pairs
+      // in the saved file. Recreate the note and the annotation
+      // providing everything has been registered correctly...
+      
+      @For pair in notes do
+        let string = pair->at(0);
+            element = pair->at(1)
+        in if tool.isRegistered(element)
+           then 
+             let annotatedNode = tool.find(element);
+                 note = tool.newNode("Note",0,0) then
+                 annotation = tool.newEdge("Annotate",note.port(),annotatedNode.port())
+             in note.ref1(Seq{"box","note"}).setText(string);
+                note.setLayoutId(string)
+             end
+           end
+        end
+      end
+    end   
+    
+    @Operation showAndLayoutDiagram(layoutFile:String)
+      let tool = self.showDiagram()
+      in @WithoutRendering(tool.diagram())
+           @Busy("Drawing Diagram") 
+             self.addNotes(tool);
+             tool.diagram().loadLayout(layoutFile)
+           end
+         end;
+         tool
+      end
+    end
+    
+    @Operation showDiagram()
+      element.showDiagram()
+    end
+    
+  end

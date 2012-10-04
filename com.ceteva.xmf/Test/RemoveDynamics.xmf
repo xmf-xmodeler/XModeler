@@ -1,0 +1,14 @@
+context Root
+  @Operation test() 
+    BinExp
+  end
+  
+context Root
+  @Operation add()
+    test.importNameSpace(OCL)
+  end
+  
+context Root
+  @Operation remove()
+    test.removeNameSpace(OCL)
+  end  

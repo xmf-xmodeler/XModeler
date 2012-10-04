@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class PushTrue extends Instr
+  
+    @Doc
+      A machine instruction that pushes 'true' onto the stack.
+    end
+     
+    @Operation toString():String
+      "<PushTrue>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

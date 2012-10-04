@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import XOCL;
+import Languages;
+import MicroSQL;
+
+context MicroSQL
+
+  @Class Column
+  
+    @Attribute name         : String end
+    @Attribute type         : String end
+    @Attribute defaultValue : Element end
+  
+    @Constructor(name,type) end
+  
+    @Constructor(name,type,defaultValue) end
+  
+    @Constraint correctType
+      type = "BIT" or type = "REAL" or type = "CHAR" or type = "TEXT"
+      or type = "DATE" or type = "TIME" or type = "FLOAT" or type = "BIGINT"
+      or type = "DOUBLE" or type = "STRING" or type = "BINARY" 
+      or type = "NUMERIC" or type = "DECIMAL" or type = "BOOLEAN" 
+      or type = "TINYINT" or type = "INTEGER" or type = "VARCHAR"
+      or type = "SMALLINT" or type = "VARBINARY" or type = "TIMESTAMP"
+      or type = "LONGVARCHAR" or type = "JAVA_OBJECT" 
+      or type = "LONGVARBINARY" or type = "VARCHAR255"
+      fail "A column cannot have the type: "+type
+    end
+    
+    @Operation toString(string)
+      string := string + " \"" + name.toString() + "\" " + type;
+      if defaultValue <> null then
+        string := string + " DEFAULT " + defaultValue.toString()
+      end;
+      string
+    end
+  
+  end

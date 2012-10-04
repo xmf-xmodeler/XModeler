@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Help Plug-in
+Bundle-SymbolicName: com.ceteva.help;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.help.HelpPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Export-Package: com.ceteva.help
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.ui
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

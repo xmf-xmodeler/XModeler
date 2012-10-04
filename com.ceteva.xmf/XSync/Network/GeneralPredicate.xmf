@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class GeneralPredicate extends Predicate
+  
+    @Attribute predicate : Operation (?) end
+    
+    @Constructor(predicate) end
+    
+    @Operation satisfied(token:Token):Boolean
+      predicate(token)
+    end
+    
+  end

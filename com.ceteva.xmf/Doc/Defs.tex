@@ -1,0 +1,94 @@
+%%% Definitions for the self documenting XMF system.
+
+%%%%%%%%%%%%%%%%% Begin General Definitions %%%%%%%%%%%%%%%%%%%%%
+
+\def\context#1{{\bf context:} {\tt #1}\\}
+
+\newenvironment{Description}[2]
+{\noindent{\bf #1: } {\tt #2}
+\begin{quote}}
+{\end{quote}}
+
+\newverbatim{Code}[1]
+{\noindent{\bf #1: }}{}{}{}
+
+\newenvironment{Overview}
+{\begin{Description}{overview}{}}
+{\end{Description}}
+
+\newverbatim{Syntax}
+{\noindent{\bf syntax:}\\\scriptsize}{}{}{}
+
+\newverbatim{Interface}
+{\noindent{\bf interface:}\\\scriptsize}{}{}{}
+
+%%%%%%%%%%%%%%%%% End General Definitions %%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%% NameSpaces %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% A namespace interface.
+\def\NameSpace#1#2{
+\section{NameSpace {\tt #2}}
+\context{#1}}
+
+%%%%%%%%%%%%%%%%%%%%%%% DataTypes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\DataType#1{
+\subsection{DataType {\tt #1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% Packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% A package interface.
+\def\Package#1#2{
+\clearpage
+\section{Package {\tt #2}}
+\context{#1}}
+
+%%% General description of an important class in
+%%% a package interface.
+\newenvironment{PackageClass}[1]
+{\begin{Description}{class}{#1}}
+{\end{Description}}
+
+%%% General description of an important operation
+%%% in a package interface.
+\newenvironment{PackageOperation}[1]
+{\begin{Description}{operation}{#1}}
+{\end{Description}}
+
+%%% An example of the use of a package.
+\newverbatim{PackageExample}
+{\noindent{\bf example:}}{}{}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% Classes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\Class#1#2{
+\subsection{Class {\tt #2}}
+\context{#1}}
+
+\newenvironment{Constructor}[1]
+{\begin{Description}{constructor}{#1}}
+{\end{Description}}
+
+%%% An example of the use of a package.
+\newverbatim{ClassExample}
+{\noindent{\bf example: }\\\scriptsize}
+{}{}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%% Operations %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\Operation#1#2{
+\subsection{Operation {\tt #2}}
+\context{#1}}
+
+\def\ClassOperation#1#2{
+\subsubsection{Operation {\tt #2}}
+\context{#1}}
+
+\def\DataTypeOperation#1#2{
+\subsubsection{Operation {\tt #2}}
+\context{#1}}
+
+\newenvironment{Parameter}[2]
+{\begin{Description}{parameter}{#1:#2}}
+{\end{Description}}

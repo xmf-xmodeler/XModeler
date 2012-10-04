@@ -1,0 +1,294 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Parser::BNF;
+
+/*
+   Used for manual documentation...
+
+context Grammar
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Grammar ::= 
+      // The parents define the inherited clauses...
+      parents = GrammarParents
+      // The imports extend the available names...
+      imports = GrammarImports
+      // The clauses define the parse rules...
+      clauses = Clause* { 
+        Grammar(parents,clauses->asSet,"",imports) 
+    }.
+      
+    GrammarParents ::= 
+      // Parent expressions evaluate to produce grammars...
+      'extends' parent = Exp parents = (',' Exp)* { 
+        parents->asSet->including(parent) 
+      } | { Set{} }.
+      
+    GrammarImports ::= 
+      // Import expressions evaluate to produce name spaces...
+      'import' class = Exp classes = (',' Exp)* { 
+        Seq{class | classes} 
+      } | { Seq{} }.
+      
+    Clause ::= 
+      // Note binding priority for operators defined by NT ordering.
+      // Use parentheses in clause body to override ordering...
+      name = Name '::=' body = Disjunction '.' { 
+        Clause(name,body) 
+    }. 
+    
+    Disjunction ::= 
+      // Use | to define alternative parses...
+      element = Conjunction [ 
+        '|' rest = Disjunction element = { Or(element,rest) } 
+      ] 
+      { element }.
+      
+    Conjunction ::= 
+      // Element ordering dictates parse ordering...
+      elements = Element+ { 
+        elements->tail->iterate(e conj = elements->head | 
+         And(conj,e)) 
+    }. 
+      
+    Element ::= 
+      Optional | Binding | Sequence.
+    
+    Optional ::=  
+      // The optional element need not be present in the input...
+      '[' opt = Disjunction ']' { 
+        Opt(opt) 
+    }.
+    
+    Binding ::= 
+      // The name is bound to the result of parsing the sequence...
+      name = Name '=' atom = Sequence { 
+        And(atom,Bind(name)) 
+    }.
+    
+    Sequence ::= 
+      // * means 0 or more, + means 1 or more...
+      element = TypeCheck [ 
+        '*' element = { StarCons(element) } | 
+        '+' element = { PlusCons(element) } ] 
+       { element }.
+       
+    TypeCheck ::=
+      // Check that the synthesized element is of the specified type...
+      element = Atom [ ':' type = Path element = { 
+        And(element,TypeCheck(type)) 
+      } ] { element }.
+      
+    Path ::= 
+      name = Name names = ('::' Name)* { 
+        Seq{name | names} 
+    }.
+      
+    Atom ::= 
+      Action | Literal | Call | Not | '(' Disjunction ')'.
+      
+    Action ::= 
+      // An action is used to synthesize an element...
+      '{' exp = Exp '}' 
+      { Action(exp) } |
+      // A predicate is used to control whether the parse 
+      // proceeds at this point...
+      '?' boolExp = Exp
+      { Predicate(boolExp) }.
+      
+    Call ::= 
+      // Call a named clause...
+      name = Name { 
+        Call(name) 
+    }.
+    
+    Literal ::= 
+      // The builtin non-terminals...
+      'Str'        { Str() }      | 
+      'Terminal'   { Term() }     |
+      'Int'        { Int() }      | 
+      'Name'       { Name() }     | 
+      'EOF'        { EOF() }      | 
+      '@'          { At() }       |
+      terminal = Terminal { Terminal(terminal) }. 
+      
+    Not ::= 
+      // A negated parser succeeds when the parser fails and
+      // vice versa...
+      'Not' '(' parser = Sequence ')' { 
+        Not(parser) 
+    }.
+    
+end
+
+*/
+
+Root::Calculator :=
+  
+    @Grammar
+    
+      Calc ::= Mult '='.
+      
+      Mult ::= n1 = Add (
+      
+        '*' n2 = Mult { n1 * n2 } |
+        '/' n2 = Mult { n1 / n2 } |
+        { n1 }
+        
+      ).
+      
+      Add ::= n1 = Int (
+      
+        '+' n2 = Add { n1 + n2 } |
+        '-' n2 = Add { n1 - n2 } |
+        { n1 }
+        
+      ).
+      
+    end;
+    
+Root::XML :=
+
+  @Grammar
+  
+    Element ::=
+    
+      SingleElement | CompositeElement.
+      
+    SingleElement ::= '<' tag = Name '/>' { Seq{tag} }.
+    
+    CompositeElement ::= 
+    
+      '<' tag = Name '>'
+      
+        children = Element*
+        
+      '<' Name '/>' 
+      
+      { Seq{tag | children} }.
+      
+   end; 
+   
+Root::XML2 := @Grammar extends XML Element ::= Str. end;
+
+context Root
+  @Class Field 
+    @Attribute name : String end
+    @Attribute value : Performable end
+    @Constructor(name,value) end
+    @Operation nameExp():Performable
+      StrExp(name)
+    end
+    @Operation symbExp():Performable
+      [| Symbol(<self.nameExp()>) |]
+    end
+  end
+
+context Root
+  @Class Record extends NameSpace
+    @Grammar extends OCL::OCL.grammar
+      Record ::= fields = Field* {
+        [| let record = Record()
+           in <fields->iterate(f r = [| record |] |
+                [| <r>.add(<f.symbExp()>,<f.value>(record)) |])>
+           end
+        |]
+      }.
+      Field ::= ValueField | OpField.
+      ValueField ::= 'val' name = Name '=' value = Exp { 
+        Field(name,[| @Operation(me) <value> end |]) 
+      }.
+      OpField ::= 'op' name = Name '(' arg = Name ')' '=' body = Exp { 
+        Field(name,[| @Operation(me) @Operation(<arg>) <body> end end |]) 
+      }.
+    end
+  end
+  
+context Root
+  @Class RawExp
+    @Attribute exp : Performable end
+    @Constructor(exp) end
+    @Operation FV()
+      exp.FV()
+    end
+    @Operation maxLocals():Integer
+      exp.maxLocals()
+    end
+    @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+      exp.compile(env,frame,isLast,saveSource)
+    end
+  end
+  
+context Root
+  @Class LabelledExp
+    @Attribute label : String end
+    @Attribute exp : Performable end
+    @Constructor(label,exp) end
+    @Operation FV()
+      exp.FV()
+    end
+    @Operation maxLocals():Integer
+      exp.maxLocals()
+    end
+    @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+      Seq{NoOp().setLabel(label)} + exp.compile(env,frame,isLast,saveSource)
+    end
+  end
+    
+context Root
+  @Class Jump
+    @Attribute guard : Performable end
+    @Attribute label : String end
+   @Constructor(guard,label) end
+    @Operation FV()
+      guard.FV()
+    end
+    @Operation maxLocals():Integer
+      guard.maxLocals()
+    end
+    @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+      guard.compile(env,frame,isLast,saveSource) + Seq{Negate(),SkipFalse("JMP" + label)}
+    end
+  end
+    
+  
+context Root
+  @Class Block extends Performable
+    @Grammar extends OCL::OCL.grammar
+      Block ::= statements = (RawExp | LabelledExp | Jump)* { Block(statements) }.
+      RawExp ::= e = LogicalExp ';' { RawExp(e) }.
+      LabelledExp ::= '[' label = Name ']' e = LogicalExp ';' { LabelledExp(label,e) }.
+      Jump ::= '?' guard = LogicalExp 'go' label = Name ';' { Jump(guard,label) }.
+    end
+    
+    @Attribute statements : Seq(Element) end
+    
+    @Constructor(statements) ! end
+    
+    @Operation FV():Set(String)
+      statements->asSet->collect(s | s.FV())->flatten
+    end
+    
+    @Operation maxLocals()
+      statements->collect(s | s.maxLocals())->max
+    end
+    
+    @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+      statements->collect(s | s.compile(env,frame,false,saveSource))->flatten +
+      Seq{Skip("END")} +
+      statements->select(s | s.isKindOf(LabelledExp))->collect(l | SkipBack(l.label).setLabel("JMP" + l.label)) +
+      Seq{NoOp().setLabel("END")}
+    end
+  end
+  
+/*context Root
+  @Operation test(x)  
+    @Block
+      [decx] x := x - 1;
+      x.println();
+      ? x > 10 go decx;
+    end
+  end*/
+   

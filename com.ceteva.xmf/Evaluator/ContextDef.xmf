@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler ContextDef in Eval(aContextDef,arg,seen)
+  self.desugar(aContextDef,arg)
+end;

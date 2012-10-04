@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import IO;
+import XML;
+
+context Root
+   @Package Tree
+   
+     // This package implements a simple database of hierarchical
+     // information using XML. The package supports reading and 
+     // writing a database from and to files. A simple database 
+     // update operation is provided to add children to the database 
+     // tree. 
+     
+     @Operation readDB(file:String):Element
+       // Use a DOM input channel to read the database from a file.
+       @WithOpenFile(fin <- file)
+         let xmlInch = DOMInputChannel(fin)
+         in xmlInch.parse().root()
+         end
+       end
+     end
+     
+     @Operation writeDB(db:Element,file:String)
+       // Store the database in the supplied file.
+       @WithOpenFile(fout -> file)
+         Document(file,db).print(fout)
+       end
+     end
+     
+     @Operation addChild(db,parent:String,child:String)
+     
+       // Add the child to the named element in the supplied
+       // database. The database is modified in the process.
+       // This operation uses find (and assumes the parent
+       // exists). Note that package operations can reference
+       // each other without qualification.
+       
+       find(db,parent).addToChildren(Element(child))
+     end
+     
+     @Operation find(db:Element,tag1:String)
+     
+       // To find an element with the supplied tag we use
+       // pattern matching over the XML structure.
+       
+       @Case db of
+         Element(tag2 when tag2 = tag1) do
+           db
+         end
+         Element(tag2 when tag2 <> tag1,atts,children) do
+           @Find(child,children)
+             when find(child,tag1) <> null
+             do find(child,tag1)
+             else null
+           end
+         end
+         else null
+       end
+     end
+   end

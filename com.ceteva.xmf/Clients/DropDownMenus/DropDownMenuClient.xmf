@@ -1,0 +1,149 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Menus;
+import DropDownMenus;
+
+context DropDownMenus
+
+  @Class DropDownMenuClient extends Client
+  
+    @Attribute menus  : Seq(Element) = Seq{} end
+    @Attribute menuClient  : MenuClient end
+
+    @Constructor(name,menuClient) 
+      self.setCommandInterpreter(menuClient.commandInterpreter);
+      self.setEventHandler(menuClient.eventHandler);
+      let 
+        registry = xmf.registry() then
+        point = registry.getExtensionPoint("com.ceteva.xmf.dropMenus")
+      in 
+        point.addNotification(self)
+      end
+    end
+     
+    @Operation add(menu)
+      self.menus := self.menus->prepend(menu);
+      menu.setOwner(self);
+      menu
+    end
+    
+    @Operation buildMenu(contribution)
+      let
+        path = contribution.getValue(0);
+        operation = contribution.getValue(1);
+        root = self
+      in
+        @For p in path
+        do
+          let next = root.findForName(p)
+          in
+            if next <> null then
+              root := next
+            else
+              @TypeCase(root)
+                DropDownMenuClient do
+                  let menu = DropDownMenu(p)
+                  in
+                    root := root.add(menu);
+                    menu.new()
+                  end
+                end
+                DropDownMenu do
+                  let menu = DropDownMenuGroup(p)
+                  in
+                    root := root.add(menu);
+                    menu.new()
+                  end
+                end
+                DropDownMenuGroup do
+                  if p = path.last()
+                  then
+                    let 
+                      action = DropDownMenuAction(operation) then
+                      menu = DropDownMenuItem(p,action)
+                    in
+                      root := root.add(menu);
+                      menu.new()
+                    end
+                  else
+                    let menu = DropDownMenu(p)
+                    in
+                      root := root.add(menu);
+                      menu.new()
+                    end
+                  end 
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    
+    // Builds the menus based on registry contributions
+    // this is called when Mosaic is first started
+    
+    @Operation buildMenus()
+      let
+        id = "com.ceteva.xmf.dropMenus" then
+        registry = xmf.registry() then
+        point = registry.getExtensionPoint(id) then
+        contributions = point.getAll()
+      in
+        self.menus := Seq{};
+        if not contributions->isEmpty then
+          @For contribution in contributions do
+            self.buildMenu(contribution)
+          end
+        end  
+      end
+    end
+
+    @Operation findForName(name)
+      @Find(menu,menus)
+        when menu.name = name
+        do
+          menu
+        else
+          null
+      end
+    end
+    
+    @Operation contributionAdded(extensionPointId,contribution)
+      self.buildMenu(contribution)
+    end
+    
+    @Operation contributionRemoved(extensionPointId,contribution)
+      self.removeMenu(contribution)
+    end
+    
+    @Operation id()
+      "root"
+    end
+
+    @Operation removeMenu(contribution)
+      let
+        path = contribution.getValue(0);
+        root = self
+      in
+        @For p in path
+        do
+          root := root.findForName(p)
+        end;
+        root.delete()
+      end
+    end
+    
+    @Operation remove(menu)
+      self.menus := self.menus.excluding(menu)
+    end
+    
+    @Operation renew()
+      @For menu in menus do
+        menu.renew()
+      end
+    end
+
+  end

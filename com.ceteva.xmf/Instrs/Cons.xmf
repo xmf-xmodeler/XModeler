@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Cons extends Instr
+  
+    @Doc
+      A machine instruction. Expects two operands at the head of the stack.
+      Both operands are popped. The top element is a sequence 't' and the
+      element below is 'h'. The instruction pushes the sequence Seq{h | t}
+      back on the stack.
+    end
+     
+    @Operation toString():String
+      "<Cons>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

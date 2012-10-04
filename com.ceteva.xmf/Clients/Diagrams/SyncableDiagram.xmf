@@ -1,0 +1,20 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class SyncableDiagram extends Diagram
+  
+    @Attribute total : Boolean = true (?,!) end
+
+    @Operation iconOp()
+      if self.total
+      then "Projects/Diagram"
+    	else "Projects/DiagramPartial"
+		end 
+    end
+
+  end

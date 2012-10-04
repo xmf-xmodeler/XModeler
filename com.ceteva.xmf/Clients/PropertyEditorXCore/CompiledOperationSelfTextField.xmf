@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Clients;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class CompiledOperationSelfTextField extends SingletonTextField
+
+    @Operation setTextIn(text:String)
+      if Symbol(text) <> contex.name() andthen
+         contex.legalNameChangeCheck(text,contex.name())
+      then
+        let 
+          source = self.contex.source() then
+          modifiedSource = source.subst(text,self.contex.name(),false)
+        in
+          Clients::setSource(element,modifiedSource)
+        end
+      else
+        let selfName = contex.labelString()
+        in
+          self.setText(selfName);
+          self.commandInterpreter().setText(self,selfName)
+        end
+      end
+    end
+
+  end

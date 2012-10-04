@@ -1,0 +1,57 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Remove extends Menu
+  
+    @Constructor(path,name) ! end
+    
+    @Grammar 
+    
+      Remove ::= path = Path name = Dots  { Remove(path,name) }.
+      
+      Dots ::= n = Name ns = ('.' Name)* { Seq{n|ns} }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          path = path;
+          name = name then
+          o = @Operation() Remove::remove(self,name) end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, Seq{"Remove" | self.displayPath()},"",false,true}))
+      end 
+    end
+    
+    @Operation remove(obj,path)
+      @For name in path->butLast do
+        obj := obj.get(name)
+      end;
+      let name = path->last
+      in @Find(a,obj.of().allAttributes())
+           when a.name().toString() = name
+           do if a.hasSeqType() or a.hasSetType()
+              then
+                let values = obj.get(name)->asSeq then
+                    value = xmf.select("Remove",name,values,null,null)
+                in if value <> null
+                   then obj.set(name,values->excluding(value))
+                   end
+                end
+              else obj.set(name,a.type.default())
+              end
+          end
+       end
+     end
+    
+  end

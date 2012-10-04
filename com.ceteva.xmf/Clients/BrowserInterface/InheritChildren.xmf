@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class InheritChildren extends InterfaceElement
+  
+    @Attribute inherits : Boolean (?) end
+    
+    @Constructor(inherits) ! end
+    
+    @Grammar 
+    
+      InheritChildren ::= inherits = Inherits { InheritChildren(inherits) }.
+      
+      Inherits ::= 'true' {true} | 'false' {false} | {true}.
+      
+    end
+    
+  end

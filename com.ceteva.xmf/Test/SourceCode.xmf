@@ -1,0 +1,76 @@
+// The following exercises all expression types.
+
+format(stdout,"~S~%",Seq{10 > 1});
+format(stdout,"~S~%",Seq{true});
+format(stdout,"~S~%",Seq{"string"});
+format(stdout,"~S~%",Seq{Seq{1,2,3,true and false}});
+format(stdout,"~S~%",Seq{Set{true,false,true}});
+format(stdout,"~S~%",Seq{Set{1,2,3}->size});
+format(stdout,"~S~%",Seq{Seq{1,2,3,4,5,6}->at(3)});
+format(stdout,"~S~%",Seq{Seq{1|2}});
+format(stdout,"~S~%",Seq{Root.name});
+format(stdout,"~S~%",Seq{if true then "10<100" else "10>=100" end});
+format(stdout,"~S~%",Seq{Set{1,2,3}->collect(x | x + 1)});
+format(stdout,"~S~%",Seq{Set{1,2,3}->iterate(x n = 0 | n + x)});
+format(stdout,"~S~%",Seq{let x = 1; y = 2 in x + y end});
+format(stdout,"~S~%",Seq{Root::OCL::Path});
+
+// The following is an example of a large-ish expression
+
+let x = 10; 
+    y = 1 
+in ("The answer is " + x + y).println(); 
+   print(true and not true); 
+   print(Root.contents);
+   print(Root.contents);
+   print(Seq{1 | "tail"});
+   if 10 > 5 then print("true") else print("false") end;
+   Root::XCore::Class.println();
+   Set{1,2,3,4,5,5,4,3,2,1}.println();
+   Seq{1,2,3,4,5,5,4,3,2,1}.println();
+   Root.imports := Set{XCore};
+   Root.imports.println();
+   let 
+    // Create the Kernel classes.
+ 
+    Attribute             = Kernel_mkObj();
+    BehaviouralFeature    = Kernel_mkObj();
+    Boolean               = Kernel_mkObj();
+    BuiltinOperation      = Kernel_mkObj();
+    Class                 = Kernel_mkObj();
+    Classifier            = Kernel_mkObj();
+    CompiledOperation     = Kernel_mkObj();
+    Constraint            = Kernel_mkObj();
+    Contained             = Kernel_mkObj();
+    Container             = Kernel_mkObj();
+    DataType              = Kernel_mkObj();
+    Element               = Kernel_mkObj();
+    Enum                  = Kernel_mkObj();
+    InitialisedAttribute  = Kernel_mkObj();
+    Integer               = Kernel_mkObj();
+    Invocation            = Kernel_mkObj();
+    NamedElement          = Kernel_mkObj();
+    NameSpace             = Kernel_mkObj();
+    Null                  = Kernel_mkObj();
+    Object                = Kernel_mkObj();
+    Op                    = Kernel_mkObj();
+    Package               = Kernel_mkObj();
+    Parameter             = Kernel_mkObj();
+    Performable           = Kernel_mkObj();
+    Resource              = Kernel_mkObj();
+    SeqDataType           = Kernel_mkObj();
+    SetDataType           = Kernel_mkObj();
+    SeqType               = Kernel_mkObj();
+    SetType               = Kernel_mkObj();
+    String                = Kernel_mkObj();
+    StructuralFeature     = Kernel_mkObj();
+    TypedElement          = Kernel_mkObj();
+
+    // Packages and namespaces:
+
+    XCore                  = Kernel_mkObj();
+    Root                  = Kernel_mkObj()
+  in "LONGLET"
+  end
+    
+end;

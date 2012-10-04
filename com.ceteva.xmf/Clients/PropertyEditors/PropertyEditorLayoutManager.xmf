@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class PropertyEditorLayoutManager isabstract extends Contained
+
+    @Attribute displayCollections : Seq(Seq(Element)) end
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+
+    @Constructor(owner)
+      self.displayCollections := Seq{};
+      self.x := 0;
+      self.y := 0
+    end
+
+    @Operation add(displays:Seq(Element))
+      if not displays->isEmpty then
+        self.displayCollections := displayCollections + Seq{displays}
+      end
+    end
+
+    @Operation addSeparator()
+      self.displayCollections := displayCollections + Seq{"separator"}
+    end
+
+    @Operation layoutContents()
+      self.owner
+    end
+
+  end

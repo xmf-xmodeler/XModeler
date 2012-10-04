@@ -1,0 +1,159 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class CompiledClause extends Clause
+  
+    @Attribute blocks : Seq(Block) (?,!) end
+    @Attribute nullable : Boolean (?,!) end
+    @Attribute first : Set(String) (?,!,+,-) end
+    @Attribute follow : Set(String) (?,!,+,-) end
+    @Attribute cache : Table = Table(10) (?,!) end
+    
+    @Constructor(name,args,body,blocks) end
+    
+    @Operation calculateSets(grammar):Boolean
+      // Returns true when the sets have changed...
+      let changed = false
+      in @For block in blocks do
+           changed := changed or block.calculateSets(grammar,self)
+         end;
+         changed
+      end
+    end
+              
+    @Operation clauseNamed(name)
+      @Find(clause,clauses)
+        when clause.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation clean()
+      self.first := Set{};
+      self.follow := Set{}
+    end
+    
+    @Operation copy()
+      CompiledClause(name,args,body,Seq{})
+    end
+    
+    @Operation dprint()
+      format(stdout,"~S(~{,~;~S~}): nullable=~S first = ~S follow=~S~%",Seq{name,args,nullable,first,follow});
+      @For block in blocks do
+        block.dprint()
+      end
+    end
+    
+    @Operation equal(clause)
+      nullable = clause.nullable() and
+      first = clause.first() and
+      follow = clause.follow() and
+      blocks->size = clause.blocks()->size and
+      blocks->forAll(b1 | clause.blocks()->exists(b2 | b1.equal(b2)))
+    end
+    
+    @Operation expected()
+      blocks->iterate(b E = Set{} | E + b.expected())
+    end
+    
+    @Operation predict(grammar)
+      @For block in blocks do
+        block.predict(self,grammar)
+      end
+    end
+    
+    @Operation predict(token,type)
+      let EOF     = 1;
+          TERM    = 2;
+          FLOAT   = 4;
+          STRING  = 5;
+          NAME    = 6;
+          INT     = 7;
+          SPECIAL = 8
+      in @Case type of
+           [EOF] do 
+             if cache.hasKey("EOF")
+             then cache.get("EOF")
+             else
+               let blocks = blocks->select(b | b.EOFPredicts()) 
+               in cache.put("EOF",blocks);
+                  blocks
+               end
+             end
+           end
+           [STRING] do 
+             if cache.hasKey("Str")
+             then cache.get("Str")
+             else
+               let blocks = blocks->select(b | b.strPredicts() or b.charPredicts()) 
+               in cache.put("Str",blocks);
+                  blocks
+               end
+             end
+           end
+           [NAME] do 
+             blocks->select(b | b.namePredicts() orelse b.charPredicts() orelse b.predicts()->includes(token.toString())) 
+           end
+           [FLOAT] do 
+             if cache.hasKey("Float")
+             then cache.get("Float")
+             else
+               let blocks = blocks->select(b | b.floatPredicts() orelse b.charPredicts()) 
+               in cache.put("Float",blocks);
+                  blocks
+               end
+             end
+           end
+           [INT] do 
+             if cache.hasKey("Int")
+             then cache.get("Int")
+             else
+               let blocks = blocks->select(b | b.intPredicts() orelse b.charPredicts()) 
+               in cache.put("Int",blocks);
+                  blocks
+               end
+             end
+           end
+           [TERM] do 
+             if cache.hasKey("Term")
+             then cache.get("Term")
+             else
+               let blocks = blocks->select(b | b.termPredicts() orelse b.charPredicts()) 
+               in cache.put("Term",blocks);
+                  blocks
+               end
+             end
+           end
+           [SPECIAL] do
+             let token = token.toString()
+             in if cache.hasKey(token)
+                then cache.get(token)
+                else
+                  let blocks = blocks->select(b | b.charPredicts() orelse b.predicts()->includes(token)) 
+                  in cache.put(token,blocks);
+                     blocks
+                  end
+                end
+             end
+           end
+           else 
+             let token = token.toString()
+             in if cache.hasKey(token)
+                then cache.get(token)
+                else
+                  let blocks = blocks->select(b | b.charPredicts() orelse b.predicts()->includes(token))
+                  in cache.put(token,blocks);
+                     blocks
+                  end
+                end
+             end
+         end
+      end
+    end
+    
+    
+    
+  end

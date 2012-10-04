@@ -1,0 +1,130 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+
+import Parser::BNF;
+import XML;
+import IO;
+
+context Root
+
+@Grammar Sequences
+
+  Pair ::= <Values:Pair> head = Value tail = List </Pair> { Seq{head | tail} }.
+  
+  Value ::= List | Atom.
+  
+  Atom ::= <Values:Atom value/> { value }.
+  
+  List ::= Pair | <Values:Sequence.Nil/> { Seq{} }.
+   
+end
+
+ 
+// A basic parser for XMI1.0
+context Root
+
+@Grammar XMI
+
+  XMI ::= <XMI> [ Header ] model = Content </XMI>.
+  
+  Header ::= <XMI.header/>.
+  
+  Content ::= <XMI.content> defs = Def* </XMI.content>.
+  
+  Def ::= DataType | Class | ANY.
+  
+  DataType ::= <DataType id = XMI.id> <name> name = TEXT </name> </DataType> id := { 
+    @Case name of
+      "Boolean" do Boolean end
+      "Integer" do Integer end
+      "String" do String end
+      else XCore::Class(name)
+    end
+  }.
+  
+  Class ::= 
+    <Class id = XMI.id> <name> name = TEXT </name> 
+      features = ClassBody
+    </Class> 
+    id := { 
+      features->iterate(f c = XCore::Class(name) | c.add(f))
+    }.
+    
+  ClassBody ::= 
+    feature = Feature body = ClassBody { Seq{feature | body} } 
+  | <visibility/> ClassBody
+  | <isAbstract/> ClassBody
+  | <isLeaf/> ClassBody
+  | <isRoot/> ClassBody
+  | <isActive/> ClassBody
+  | <taggedValue/> ClassBody
+  | { Seq{} }.
+    
+  Feature ::= <feature> (Attribute | Operation) </feature>.
+  
+  Attribute ::= 
+    <Attribute> Set{
+      <name>
+        name = TEXT
+      </name>
+      <type>
+        <XMI.reference target/>
+      </type>
+      <visibility/>
+      <ownerScope/>
+      <changeable/>
+      <multiplicity/>
+      <targetScope/>
+      <initialValue/>
+      
+    }
+    </Attribute> 
+    { XCore::Attribute(name,XML::Parser::Ref(target)) }.
+    
+  Operation ::= <Operation/> { @Operation() self end }.
+  
+end
+
+//XMI.debug := true;
+
+context SeqOfElement
+  @Operation asXML()
+    if self->isEmpty
+    then Element("Values:Sequence.Nil")
+    else 
+      Element("Values:Pair",Seq{},Seq{Element("Values:Atom",Seq{Attribute("value",self->head.toString())}),self->tail->asXML})
+    end
+  end
+  
+context Root
+  @Operation test(s)
+    let xml = s->asXML
+    in //xml.pprint(stdout,0);
+       Sequences.parse(Seq{xml},"Value")
+    end
+  end
+
+context Root
+  @Operation xmi()
+    let i = XMLInputChannel(FileInputChannel("Test/XMIExample.xml"))
+    in XMI.parse(Seq{i.read().stripWhiteSpace().root},"XMI")
+    end
+  end
+  
+context Root
+  @Operation xmiToDiagram()
+    let i = XMLInputChannel(FileInputChannel(xmf.homeDir() + "/Test/XMIExample.xml")) then
+        classes = XMI.parse(Seq{i.read().stripWhiteSpace().root},"XMI") then
+        package = XCore::Package("P")
+    in @For c in classes do
+         if c.isReallyKindOf(XCore::Class)
+         then package.add(c)
+         end
+       end;
+       Root.add(package);
+       package.showDiagram()
+    end
+  end

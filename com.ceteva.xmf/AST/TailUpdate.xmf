@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler TailUpdate in AST(aTailUpdate,arg,seen)
+  let value = self.dispatch(aTailUpdate.value,arg);
+      seq = self.dispatch(aTailUpdate.seq,arg)
+  in ASTNode(aTailUpdate,Seq{seq,value})
+  end
+end;

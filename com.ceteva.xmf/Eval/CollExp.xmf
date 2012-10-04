@@ -1,0 +1,7 @@
+import OCL;
+
+context CollExp
+
+  @Operation eval(target,env,imports)
+    collection.eval(target,env,imports).send(collOp,args->collect(arg | arg.eval(target,env,imports)))
+  end

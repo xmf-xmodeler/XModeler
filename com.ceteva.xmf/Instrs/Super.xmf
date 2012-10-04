@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Super extends Instr
+  
+    @Attribute arity : Integer end
+    
+    @Constructor(arity) end
+    
+    @Operation toString():String
+      "<Super " + arity + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands()
+      arity
+    end
+    
+  end

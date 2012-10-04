@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SetLocal extends Instr
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) end
+    
+    @Operation toString():String
+      "<SetLocal " + name + "," + offset + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+  end
+  

@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context OCL
+
+  @Class Includingp extends Pattern
+  
+    @Doc
+      An including pattern has the form p1->including(p2) and matches a set when there
+      is an element of the set that matches p2 and the rest of the pattern matches
+      p1.
+    end
+    
+     @Attribute set     : Pattern end
+     @Attribute element : Pattern end
+     
+     @Constructor(set,element) end
+     
+     @Operation bind(value:Element,target:Element,env:Env::Env,imports:Seq(NameSpace)):Env::Env
+       self.error("bind is not implemented for Includingp")
+     end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{set.lift(),element.lift()})
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       let elementVar = element.newVar();
+           setVar = set.newVar()
+       in [| if <value>.isKindOf(SetOfElement) and <value> <> Set{}
+             then 
+               @Letrec 
+                 tryElement = 
+                   @Operation(set,tried)
+                     if set->isEmpty
+                     then <fail>
+                     else 
+                       let <elementVar> = set->sel then
+                           set = set->excluding(<Var(elementVar)>) then
+                           backtrack = 
+                             @Operation() 
+                               tryElement(set,tried->including(<Var(elementVar)>)) 
+                             end then
+                           <setVar> = set + tried
+                       in <element.matchCode(Var(elementVar),set.matchCode(Var(setVar),success,fail),fail)>
+                       end
+                     end
+                   end
+                 in tryElement(<value>,Set{})
+                 end
+              else <fail> 
+              end
+           |]
+        end                       
+     end
+     
+     @Operation needsBacktrack():Boolean
+       true
+     end
+     
+     @Operation pprint(out)
+       set.pprint(out);
+       format(out,"->including(");
+       element.pprint(out);
+       format(out,")")
+     end
+     
+     @Operation toSig()
+       ParametricType(Seq{"Set"},Seq{NamedType()}).toSig()
+     end
+     
+   end

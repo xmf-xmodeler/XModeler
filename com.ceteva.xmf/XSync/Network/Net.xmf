@@ -1,0 +1,154 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Net
+  
+    @Bind timestamp = 0 end
+  
+    @Attribute nodes         : Seq(Alpha)          (+,-)   end
+    @Attribute tokens        : Table = Table(200)          end
+    @Attribute enabled       : Seq(Enabled)        (?,+,-) end
+    @Attribute debug         : Boolean             (!,?)   end
+    @Attribute autorun       : Boolean             (?,!)   end
+    @Attribute scopedTypes   : Set(ScopedType)     (?,+,-) end
+    @Attribute scopedObjects : Set(Object)         (?,+)   end
+    @Attribute source        : Source              (?,!)   end
+   
+    @Constructor(autorun) end
+    
+    @Operation add(e:Element):Net
+      @TypeCase(e)
+        Alpha do 
+          e.setOwner(self);
+          self.addToNodes(e)
+        end
+        Token do
+          @For n in nodes do
+            n.add(e)
+          end;
+          self
+        end
+        Enabled do
+          self.addEnabled(e)
+        end
+        Object do
+          self.addObject(e)
+        end
+      end
+    end
+    
+    @Operation addEnabled(e:Enabled)
+      if autorun
+      then e.fire(self)
+      else self.addToEnabled(e)
+      end
+    end
+    
+    @Operation addObject(o:Object):Net
+      if not tokens.hasKey(o)
+      then 
+        let token = ObjectToken(o);
+            slots = o.getStructuralFeatureNames()
+        in @For s in slots do
+              token.add(SlotUpdate(s.asSymbol(),Net::timestamp))
+           end;
+           tokens.put(o,token);
+           self.add(token)
+        end
+      else self
+      end
+    end
+    
+    @Operation clear()
+      @For node in nodes do
+        node.clear()
+      end;
+      tokens.clear(); 
+      self.enabled := Seq{}
+    end
+    
+    @Operation remove(e:Element):Net
+      @TypeCase(e)
+        Alpha do
+          e.setOwner(null);
+          self.deleteFromNodes(e)
+        end
+        Token do
+          @For n in nodes do
+            n.remove(e)
+          end;
+          self
+        end
+        Enabled do
+          @Find(x,enabled)
+            when x.equals(e)
+            do self.deleteFromEnabled(x)
+          end
+        end
+        Object do
+          self.removeObject(e)
+        end
+      end
+    end
+    
+    @Operation removeObject(o:Object):Net
+      if tokens.hasKey(o)
+      then
+        let token = tokens.get(o)
+        in tokens.remove(o);
+           self.remove(token)
+        end
+      else self
+      end
+    end
+    
+    @Operation run()
+      @While not enabled->isEmpty do
+        self.run1()
+      end
+    end
+    
+    @Operation run1()
+      let best = self.selectBest()
+      in self.deleteFromEnabled(best);
+         best.fire(self)
+      end
+    end
+    
+    @Operation selectBest()
+      @Find(e1,enabled)
+        when not enabled->excluding(e1)->exists(e2 | e2.precedence() > e1.precedence())
+      end
+    end
+    
+    @Operation slotChanged(object:Object,slot:Symbol,newValue:Element,oldValue:Element)
+      if tokens.hasKey(object)
+      then 
+        let token = tokens.get(object)
+        in @WithoutDaemons(object)
+             object.set(slot,oldValue);
+             self.remove(token);
+             object.set(slot,newValue)
+           end;
+           self.updateTimestamp(token,slot);
+           self.add(token)
+        end
+      else 
+        let token = ObjectToken(object)
+        in tokens.put(object,token);
+           self.updateTimestamp(token,slot);
+           self.add(token)
+        end
+      end
+    end
+    
+    @Operation updateTimestamp(token:ObjectToken,slot:Symbol)
+      Net::timestamp := Net::timestamp + 1;
+      token.updateTimestamp(slot,Net::timestamp)
+    end
+    
+  end

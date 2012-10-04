@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+import IO;
+
+context Grammars
+
+  @Class PState extends Recognizer
+  
+    @Attribute input    : InputChannel (?,!) end
+    @Attribute grammar  : Grammar      (?,!) end
+    @Attribute scanner_ : Scanning::Structure::Scanner (?,!) end
+    @Attribute scan     : Element      (?,!) end
+  
+    @Constructor() ! end
+    
+    @Operation first(grammar)
+      Set{}
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nullable(grammar)
+      true
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"pState")
+    end
+  
+  end

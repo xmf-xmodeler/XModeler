@@ -1,0 +1,68 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler "Add_To_NodeType_nodeBox_(x = (.*))TextType"(x)
+  
+    // If x is empty then the text type has been added to a node.
+    // If x is non empty then it has been added to a nested container.
+    
+    let text = Text("T")
+    in register(event.value(),text);
+       register(event.value().ref1(Seq{"textAttribute","name"}),text);
+       register(event.value().ref1(Seq{"text"}),text);
+       if x = ""
+       then find(event.root()).add(text)
+       else find(event.value().owner()).add(text)
+       end
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_textAttribute_name_Changed"()
+    find(event.value()).setName(event.new())
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_text_Changed"()
+    find(event.value()).setText(event.new())
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_textAttribute_Justification_ChangedTo_Align"()
+    let textType = find(event.container().owner())
+    in textType.setLayout("ALIGN")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_textAttribute_Justification_ChangedTo_Left"()
+    let textType = find(event.container().owner())
+    in textType.setLayout("LEFT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_textAttribute_Justification_ChangedTo_Right"()
+    let textType = find(event.container().owner())
+    in textType.setLayout("RIGHT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)TextType_textAttribute_Justification_ChangedTo_Centre"()
+    let textType = find(event.container().owner())
+    in textType.setLayout("CENTRE")
+    end
+  end
+  
+  

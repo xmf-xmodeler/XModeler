@@ -1,0 +1,236 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+import Arrays;
+
+context Forms
+
+  @Class FormTable extends FormElement, Expandable2DArray
+
+    @Bind ROW_HEIGHT = 16 end // this should equal the ROW_HEIGHT constant in the
+                              // java FormTable class + 1
+
+    @Attribute columnWidths : Vector end
+    @Attribute columnTitles : Vector end
+
+    @Constructor(x,y,width,height,cols,rows)
+      
+      // NOTE: If you pass (0-1) as the value to the width or the height, the
+      // dimension will be automatically calculated based on the column widths
+      // and row heights prior to being newed.
+      
+      self.init(Seq{cols,rows});
+      self.columnWidths := Vector(cols);
+      self.columnTitles := Vector(cols);
+      self.initialiseColumns()
+    end
+    
+    @Constructor(id,x,y,width,height,cols,row)
+      self.init(Seq{x,y,width,height,cols,rows})
+    end
+
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the table is created and if the
+      // contents are ever refreshed.
+
+      self
+    end
+
+    @Operation addRowDefinitely(row:Integer)
+      self.commandInterpreter().addTableRowCommand(self,row);
+      super(row)
+    end
+
+    @Operation checkAutoTableDimensions()
+      if width = (0-1)
+      then
+        self.width := 4;
+        @Count col from 0 to cols do
+          self.width := width + self.getColumnWidth(col)
+        end
+      end;
+      if height = (0-1)
+      then
+        self.height := 23 + (rows * FormTable::ROW_HEIGHT)
+      end
+    end
+    
+    @Operation deleteRowDefinitely(row:Integer)
+      self.commandInterpreter().deleteTableRowCommand(self,row);
+      let record = self.getRow(row)
+      in
+        @For item in record do
+          item.dispose()
+        end
+      end;
+      super(row)
+    end
+
+    @Operation dispose()     
+      @Count row from 0 to rows do
+        let record = self.getRow(row)
+        in
+          @Count col from 0 to cols do
+            let item = record->asSeq->at(col)
+            in
+              if item.isReallyKindOf(ClientElement)
+              then
+                item.dispose()
+              end
+            end
+          end
+        end
+      end;
+      super()
+    end
+    
+    @Operation getColumnTitle(col):String
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      else
+        columnTitles->asSeq->at(col)
+      end
+    end
+
+    @Operation getColumnWidth(col):Integer
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      else
+        columnWidths->asSeq->at(col)
+      end
+    end
+
+    @Operation initialiseColumns()
+
+      // Over-ride in subclasses
+
+      @Count col from 0 to cols do
+        self.setColumnWidth(col,80);
+        self.setColumnTitle(col,"Column " + col.toString())
+      end
+    end
+
+    @Operation new(parent)
+      self.checkAutoTableDimensions();
+      self.commandInterpreter().newTableCommand(parent,self);
+      @Count col from 0 to cols do
+        self.commandInterpreter().setTableColumnWidthCommand(self,col,self.getColumnWidth(col));
+        self.commandInterpreter().setTableColumnTitleCommand(self,col,self.getColumnTitle(col))
+      end;
+      self.addContents();
+      self.newContents();
+      self
+    end   
+
+    @Operation newContents()
+      @Count row from 0 to rows do
+        let record = self.getRow(row)
+        in
+          @Count col from 0 to cols do
+            let item = record->asSeq->at(col)
+            in
+              if item.isReallyKindOf(FormElement)
+              then
+                item.new(self);
+                self.setItem(col,row,item)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation put(col, row, item)
+      let old = self.get(col,row)
+      in
+        if old <> null
+        then old.dispose()
+        end
+      end;
+      super(col,row,item);
+      item.setOwner(self)
+    end
+
+    @Operation renew(parent)
+      self.checkAutoTableDimensions();
+      self.commandInterpreter().newTableCommand(parent,self);
+      @Count col from 0 to cols do
+        self.commandInterpreter().setTableColumnWidthCommand(self,col,self.getColumnWidth(col));
+        self.commandInterpreter().setTableColumnTitleCommand(self,col,self.getColumnTitle(col))
+      end;
+      self.renewContents();
+      self
+    end
+
+    @Operation renewContents()
+      @Count row from 0 to rows do
+        let record = self.getRow(row)
+        in
+          @Count col from 0 to cols do
+            let item = record->asSeq->at(col)
+            in
+              if item.isReallyKindOf(FormElement)
+              then
+                item.new(self);
+                self.setItem(col,row,item)
+              end
+            end
+          end
+        end
+      end
+    end 
+
+    @Operation setAndNewItem(col,row,item)
+      self.put(col,row,item);
+      item.new(self);
+      if item.isReallyKindOf(FormElement)
+      then self.setItem(col,row,item)
+      end
+    end
+
+    @Operation setColumnTitle(col,title)
+      self.setColumnTitle(col,title,false)
+    end
+
+    @Operation setColumnTitle(col,title,sendCommand)
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      else
+        columnTitles.put(col,title);
+        if sendCommand
+        then
+          self.commandInterpreter().setTableColumnTitleCommand(self,col,title)
+        end
+      end
+    end
+
+    @Operation setColumnWidth(col,width)
+      self.setColumnWidth(col,width,false)
+    end
+
+    @Operation setColumnWidth(col,width,sendCommand)
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      else
+        columnWidths.put(col,width);
+        if sendCommand
+        then
+          self.commandInterpreter().setTableColumnWidthCommand(self,col,width)
+        end
+      end
+    end
+
+    @Operation setItem(col,row,item)
+      self.commandInterpreter().setTableItemCommand(self,col,row,item)
+    end
+
+  end

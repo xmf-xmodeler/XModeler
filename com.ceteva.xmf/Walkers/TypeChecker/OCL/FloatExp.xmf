@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler FloatExp in TypeChecker(exp,env,encountered)
+  TypeCheckExp(exp,Float,Seq{})
+end;

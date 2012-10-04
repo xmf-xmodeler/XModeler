@@ -1,0 +1,69 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+
+  @Class Time
+  
+    @Doc
+      An instance of this class represents time in
+      hours, minutes, seconds and milliseconds.
+      Create an instance with the 0-arity constructor
+      to get the current time (measured since XMF boot).
+      Use the other constructor to initialise a particular
+      time.
+    end
+    
+    @Attribute hours        : Integer end
+    @Attribute minutes      : Integer end
+    @Attribute seconds      : Integer end
+    @Attribute milliseconds : Integer end
+    
+    @Constructor()
+      let time = Kernel_time()
+      in self.hours := time->at(0);
+         self.minutes := time->at(1);
+         self.seconds := time->at(2);
+         self.milliseconds := time->at(3)
+      end
+    end
+    
+    @Constructor(hours,minutes,seconds,milliseconds) ! end
+    
+    @Operation add(other:Element)
+      if other.isReallyKindOf(Time)
+      then
+        let myTime = Seq{hours,minutes,seconds,milliseconds};
+            otherTime = Seq{other.hours,other.minutes,other.seconds,other.milliseconds} then
+            time = Kernel_timeAdd(myTime,otherTime)
+        in Time.new(time)
+        end
+      else self.error("Cannot addt " + other.toString() + " to " + self.toString)
+      end
+    end
+    
+    @Operation pprint():String
+      let out = StringOutputChannel()
+      in self.pprint(out);
+         out.getString()
+      end
+    end
+    
+    @Operation pprint(out:OutputChannel)
+      format(out,"~S:~S:~S:~<3, >S ms",Seq{hours,minutes,seconds,milliseconds})
+    end
+    
+    @Operation sub(other:Element):Time
+      if other.isReallyKindOf(Time)
+      then
+        let myTime = Seq{hours,minutes,seconds,milliseconds};
+            otherTime = Seq{other.hours,other.minutes,other.seconds,other.milliseconds} then
+            time = Kernel_timeDifference(myTime,otherTime)
+        in Time.new(time)
+        end
+      else self.error("Cannot subtract " + other.toString() + " from " + self.toString)
+      end
+    end
+    
+  end

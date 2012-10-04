@@ -1,0 +1,86 @@
+parserImport XOCL;
+
+import Tools::DiagramTools::Types;
+import MDC;
+import Types;
+
+context ! Types
+
+  @Class Attribute_x_Label extends Label_x_Label
+
+    @Attribute attribute : Seq(Attribute) (!) end
+
+    @Constructor(label,attribute) end
+    
+    @Operation attribute()
+      if attribute.isKindOf(Attribute)
+      then attribute
+      else attribute->last
+      end
+    end
+    
+    @Operation monitoredObject(tool,object)
+      
+      // Return the object whose slot is being monitored
+      // creating as we go... 
+    
+      let A = self.path()->butLast
+      in @For a in A do
+           if object.get(a.name()) = null
+           then 
+             let class = a.underlyingType() then
+                 newObject = class()
+             in newObject.observeBy(tool,true);
+                MDCSetSlot(object,a.name(),newObject);
+                object := newObject
+             end
+           else 
+             object := object.get(a.name());
+             object.observeBy(tool,true)
+           end
+         end;
+         object
+      end
+    end
+      
+    @Operation path():Seq(Attribute)
+      if attribute.isKindOf(Attribute)
+      then self.attribute := Seq{attribute}
+      end;
+      attribute
+    end
+    
+    @Operation ref(tool,object)
+    
+      // Reference the path, creating as we go...
+      
+      let A = self.path()
+      in @For a in A do
+           if object.get(a.name()) = null
+           then 
+             let class = a.underlyingType() then
+                 newObject = class()
+             in MDCSetSot(object,a.name(),newObject);
+                newObject.observeBy(tool,true);
+                object := newObject
+             end
+           else 
+             object := object.get(a.name());
+             if not isLast 
+             then object.observeBy(tool,true)
+             end
+           end
+         end;
+         object
+      end
+    end
+    
+    @Operation setValue(tool,object,value)
+    
+      // Set the value at the end of the path
+      // creating as we go...
+      
+      self.monitoredObject(tool,object).set(self.attribute().name(),value)
+    end
+
+  end

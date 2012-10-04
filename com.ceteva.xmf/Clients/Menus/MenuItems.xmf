@@ -1,0 +1,109 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuItems extends MenuItem
+  
+    // A container of menu items that is itself a menu item.
+    // Use for sub-menus.
+  
+  	@Attribute items : Seq(MenuItem) (-) end
+    
+    @Constructor(name) end
+    @Constructor(name,items) end
+    @Constructor(id,name,items) ! end
+    
+    @Operation add(item)
+      let pos = self.calcItemPosition(item) in
+        self.items := self.items.linkAt(item,pos)
+      end;
+      if self.initialized() then
+        item.new(self)
+      end
+    end
+
+    @Operation append(item:MenuItem)
+    
+      // Add a menu item to the end of the sequence. This is used instead
+      // off 'add' if order needs to be preserved.
+      
+      self.items := self.items + Seq{item};
+      if self.initialized() then
+        item.new(self)
+      end
+    end
+
+    @Operation calcItemPosition(targetItem)
+      let
+        index = items.size();
+        found = false
+      in
+        @For item inSeq self.items do
+          if targetItem.name < item.name and not found then
+            index := items.indexOf(item);
+            found := true
+          end
+        end;
+        index
+      end
+    end
+
+    @Operation dispose()
+      self.disposeCollection(items);
+      super()
+    end
+
+    @Operation findItemNamed(targetName:String)
+      @Find(item,self.items)
+        when item.name = targetName
+        else null
+      end
+    end
+
+    @Operation findOrAddMenuItems(targetName:String)
+      let target = self.findItemNamed(targetName) in
+        if target = null then
+          let new = MenuItems(targetName) in 
+            self.add(new);
+            new
+          end
+        else
+          target
+        end
+      end
+    end
+
+    @Operation getHandlerPoint()
+      self
+    end
+
+    @Operation initialized():Boolean
+      owner <> null
+    end
+
+    @Operation new(parent)
+      self.setOwner(parent);
+      self.commandInterpreter().newRightClickMenuCommand(parent,self);
+      @For item inSeq items do
+        item.new(self)
+      end
+    end
+    
+    @Operation remove(item)
+      self.deleteFromItems(item);
+      if items->isEmpty
+      then self.delete()
+      end
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newRightClickMenuCommand(parent,self);
+      @For item inSeq items do
+        item.renew(self)
+      end
+    end
+
+  end

@@ -1,0 +1,82 @@
+parserImport XOCL;
+
+import MDC;
+
+context MDC
+
+  @Class XTOSerializable isabstract
+  
+    // Inherit from this class to get useful XTO save features.
+    // Entry is saveXTO() and saveXTO(file)...
+  
+    @Operation preXTOSave()
+      // Redefined in sub-classes to do tidy ups and
+      // save delinked values over a save....
+      null
+    end
+    
+    @Operation postXTOSave(value)
+      // Redefined in sub-classes to reinstate the
+      // value and relink etc.
+      null
+    end
+  
+    @Operation saveXTO()
+    
+      // If an element has an assciated resource then
+      // use that (it has been saved before)...
+      
+      if XMF::resources.hasKey(self) 
+      then
+        let file = XMF::resources.get(self) 
+        in self.saveXTO(file)
+        end
+      else self.saveXTOAs()
+      end
+    end
+    
+    @Operation saveXTO(file)
+      @Busy("Saving " + file)
+        // Make mods and save value...
+        let value = self.preXTOSave()
+        in try
+             //Make a backup
+             self.saveXTOBackup(file);
+             // Save the file
+             self.saveXTOFile(file);
+             // Tidy up...
+             self.postXTOSave(value)
+           catch(exception)
+             self.postXTOSave(value);
+             throw exception
+           end
+        end
+      end
+    end
+    
+    @Operation saveXTOAs()
+      let file = xmf.saveFile(xmf.projDir(),"*.xto",if XMF::resources.hasKey(self) then XMF::resources.get(self)->splitBy("/",0,0)->last->splitBy(".",0,0)->head else self.name() end)
+      in if file <> ""
+         then
+           if not file.fileExists() orelse xmf.question("Overwrite " + file)
+           then
+             self.saveXTO(file);
+             XMF::resources.put(self,file)
+           end
+         end
+      end
+    end
+    
+    @Operation saveXTOBackup(file:String)
+    
+      // Keep a one-level backup of the XTO file in case anything
+      // goes wrong. Redefine as necessary...
+      
+      if file.fileExists()
+      then 
+        (file + ".bak").deleteFile();
+        file.renameFile(file + ".bak")
+      end
+    end
+    
+  end

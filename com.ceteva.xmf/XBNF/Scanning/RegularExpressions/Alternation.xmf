@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XBNF::Scanning::RegularExpressions;
+
+context ! XBNF::Scanning::RegularExpressions
+
+  @Class Alternation extends RegularExpression
+  
+   @Attribute ranges : Seq(Range) end
+    
+    @Constructor(ranges) ! end
+    
+    @Operation toTadpole()
+      ranges->tail->iterate(r x = ranges->head | Or(x,r)).toTadpole()
+    end
+    
+  end

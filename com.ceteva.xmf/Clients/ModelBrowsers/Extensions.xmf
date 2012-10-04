@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+
+//context XMF
+//  @Operation inhibitModelBrowserSelection(inhibit : Boolean)
+//    AbstractMappingClient::inhibitModelBrowserSelection := inhibit
+//  end
+
+//context XMF
+//  @Operation modelBrowserSelectionInhibited()
+//    AbstractMappingClient::inhibitModelBrowserSelection
+//  end
+
+context XMF
+  @Operation modelBrowserNodeExpansionSuppressed():Boolean
+    xmf.findClient(ModelBrowserClient).nodeExpansionSuppressed()
+  end
+
+context XMF
+  @Operation suppressModelBrowserNodeExpansion()
+    xmf.findClient(ModelBrowserClient).suppressNodeExpansion()
+  end

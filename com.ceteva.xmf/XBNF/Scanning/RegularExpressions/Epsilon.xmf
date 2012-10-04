@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import XBNF::Scanning;
+import RegularExpressions;
+import Graphs;
+
+context ! XBNF::Scanning::RegularExpressions
+
+  @Class Epsilon extends RegularExpression
+  
+    @Operation toTadpole()
+      let head = Node(Automata::NodeDecoration()) then
+          tail = Edge(Automata::Epsilon(),null,head)
+      in Automata::Tadpole(head,tail)
+      end
+    end
+  
+  end

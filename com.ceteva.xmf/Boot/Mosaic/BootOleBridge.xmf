@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootOleBridge()
+    try 
+      @Fork(Browser)
+        let
+          oleClient = Clients::OleBridge::OleBridgeClient("com.ceteva.oleBridge",null,null)
+        in 
+          xmf.clientManager().add(oleClient)
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

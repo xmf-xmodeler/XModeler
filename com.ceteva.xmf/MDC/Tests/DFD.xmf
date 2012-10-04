@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+context Root
+  @Package DFD
+    @Class Model
+      @Attribute data : Set(Data_Source_Sink) end
+      @Attribute flows : Set(Flow) end
+      @Attribute notes : Set(Note) end
+    end
+    @Class Data_Source_Sink 
+      @Attribute description : String end
+      @Constructor(description) ! end
+    end
+    @Class Process extends Data_Source_Sink
+      @Attribute model : Model  = Model() end
+    end
+    @Class Entity extends Data_Source_Sink
+    end
+    @Class Store extends Data_Source_Sink
+    end
+    @Class Note isabstract extends Data_Source_Sink end
+    @Class Flow 
+      @Attribute description : String end 
+      @Attribute source : Data_Source_Sink end
+      @Attribute target : Data_Source_Sink end
+      @Constructor(source,target) ! end
+    end
+    @Class AttributeRelation extends Attribute 
+      @Attribute type : Class end
+    end
+  end
+  

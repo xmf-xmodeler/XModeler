@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Exceptions;
+
+context Exceptions
+
+  @Class TokenExpected extends ParseError
+  
+    @Doc
+      A parse error arising from receiving an unexpected toksn.
+    end
+     
+    @Attribute token  : String      (?,!) end // The received token.
+    @Attribute tokens : Seq(String) (?,!) end // The expected tokens.
+    
+    @Constructor(input,errorPos,token,tokens) !
+      self.setBacktrace();
+      @Case tokens->size of
+        0 do
+          self.message := formats("Not expecting ~S at this point",Seq{token})
+        end
+        1 do
+          self.message := formats("Encountered ~S but expecting token ~S",Seq{token,tokens->head})
+        end
+        else self.message := formats("Encountered ~S but expecting one of the following tokens ~{,~;~S~}",Seq{token,tokens})
+      end
+    end
+    
+  end
+      

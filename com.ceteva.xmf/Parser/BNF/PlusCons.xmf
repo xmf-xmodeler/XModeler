@@ -1,0 +1,57 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class PlusCons extends Recognizer
+  
+    // Parses 1 or more occurrences of input dictated by a parser.
+    // Leaves the synthesized elements on the stack.
+    
+    @Attribute parser : Recognizer end
+    
+    @Constructor(parser) end
+    
+    @Operation code(outputChannel)
+      parser.code(outputChannel);
+      format(outputChannel,"+ ")
+    end
+    
+    @Operation FV():Set(String)
+      parser.FV()
+    end
+    
+    @Operation nextSet(grammar)
+      parser.nextSet(grammar)
+    end
+    
+    @Operation terminals():Set(String)
+      parser.terminals()
+    end
+    
+    @Operation parse(machine)
+      let cons = @Operation(env) Seq{env.lookup("$$head$$") | env.lookup("$$tail$$")} end
+      in machine.pushSuccess(
+          And(parser,
+              And(Bind("$$head$$"),
+                  And(StarCons(parser),
+                      And(Bind("$$tail$$"),
+                          Action(cons,""))))))
+      end
+    end
+    
+    @Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::PlusCons(<parser.toExp(FV)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self.parser := parser.transform(FV,grammar)
+    end
+
+  end

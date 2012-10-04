@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Pattern in Eval(aPattern,arg,seen)
+  if seen
+  then aPattern
+  else
+ aPattern
+  end
+end;

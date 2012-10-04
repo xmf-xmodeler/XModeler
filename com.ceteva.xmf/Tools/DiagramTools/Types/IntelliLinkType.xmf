@@ -1,0 +1,111 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients::Diagrams::Line;
+import Tools;
+import Menus;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context Types
+
+  @Class IntelliLinkType extends AbstractEdgeType
+    
+    @Attribute edgeTypes : Set(EdgeType) (?,+,-) end
+    
+    @Constructor(name)
+      self.init(Seq{name})
+    end
+
+    @Operation edgeLegal(tool,sourcePort,targetPort):Boolean
+    
+      // Return true when the ports are contained by nodes
+      // whose types match up.
+      
+      true
+    
+    end   
+
+    @Operation newEdge(sourcePort,targetPort,tool)
+     
+       // The user has tried to create a link using the intelli-link
+       // edge option. Try to find an edge type that matches the types
+       // of the nodes. If there is nore than one, then offer them
+       // up for selection...
+       
+       let toolType = tool.type();
+           sourceType = sourcePort.owner().type();
+           targetType = targetPort.owner().type() then
+           validEdgeTypes = 
+             self.edgeTypes()->select(t | 
+               sourceType.inheritsFrom(t.source().name().toString(),tool) and
+               targetType.inheritsFrom(t.target().name().toString(),tool))->asSeq
+       in if not validEdgeTypes->isEmpty
+          then 
+            if validEdgeTypes->size = 1
+            then 
+              let type = validEdgeTypes->head
+              in  type.new(sourcePort,targetPort,tool)
+              end
+            else
+              let nameOp = @Operation(type) type.name().toString() end then
+                  type = xmf.select("Edge Type","Select Edge Type",types->asSeq->qsort(@Operation(x,y) x.name() < y.name() end),null,nameOp)
+              in if type <> null
+                 then type.new(sourcePort,targetPort,tool)
+                 end
+              end
+            end
+          end
+       end
+     end
+
+    @Operation setEdgeTypes(availableEdgeTypes)
+      let 
+        available = availableEdgeTypes->asSeq.sortNamedElements_CaseIndependent() then
+        current = self.edgeTypes->asSeq then
+        stringOp = 
+            @Operation(edgeType)
+              edgeType.name().toString()
+            end then
+        selected = xmf.selects("Set IntelliLink Edge Types","Choose edge types to add/remove:",available,current,stringOp)
+      in
+        if selected <> 0-1
+        then
+          let added = selected - current;
+          	  removed = current - selected
+          in
+        	   @For edgeType in added do
+              self.addToEdgeTypes(edgeType)
+            end;
+        	   @For edgeType in removed do
+              self.deleteFromEdgeTypes(edgeType)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation setDefaultName(toolType):String
+      let intelliLinkTypes = toolType.intelliLinkTypes();
+          baseName = "IntelliLink";
+          table = Table(10);
+          counter = 1;
+          noMatch = true
+      in
+        @For ilt in intelliLinkTypes do
+          table.put(ilt.name,ilt)
+        end;       
+        @While noMatch do
+          if not table.hasKey(baseName + counter.toString())
+          then noMatch := false
+          else counter := counter + 1
+          end
+        end;
+        self.name := baseName + counter.toString()
+      end
+    end
+
+  end

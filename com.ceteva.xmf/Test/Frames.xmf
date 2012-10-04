@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+// define package Frames to be within the context of Root
+context Root
+
+	// define package Frames to be within the context Root
+	@Package Frames
+	
+		// identify the classes within the Frames package
+		// this allows the tool to resolve references between
+		// classes
+		@Class Frame               end
+		@Class FrameEnvironment    end
+		@Class FrameExpression     end
+		@Class StringExpression    end
+		@Class CompositeExpression end
+		@Class Copy                end
+		@Class InsertAfter         end
+		@Class InsertBefore        end
+		@Class Break               end
+		@Class IterateExpression   end
+		@Class SelectExpression    end
+		
+	end

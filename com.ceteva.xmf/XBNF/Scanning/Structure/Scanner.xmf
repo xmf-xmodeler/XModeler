@@ -1,0 +1,353 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning;
+import Structure;
+import Automata;
+import Actions;
+import IO; 
+
+context ! XBNF::Scanning::Structure
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Scanner extends NamedElement,XOCL::Syntax
+
+    @Attribute rules : Seq(XBNF::Scanning::Structure::Rule) (?,!,+,-) end
+    @Attribute scanningTable : Buffer                       (?,!)     end
+    @Attribute actionTable   : Buffer                       (?,!)     end
+    @Attribute buffer        : Buffer = Buffer(1000,true)   (?,!)     end
+    @Attribute charIndex     : Integer                      (?,!)     end
+    @Attribute token         : Buffer = Buffer(30,true)     (?,!)     end
+    @Attribute type          : Integer                      (?,!)     end
+    @Attribute scanResult    : Seq(Element) = Seq{null,null}(?,!)     end
+    @Attribute lastToken     : Integer                      (?,!)     end
+    @Attribute parent        : Scanner                      (?,!)     end
+    @Attribute line          : Integer                      (?,!)     end
+    @Attribute char          : Integer                      (?,!)     end
+    @Attribute state         : Integer                      (?,!)     end
+    
+    @Constructor(name,rules) 
+      self.setName(name)
+    end
+    
+    @Grammar extends Rule.grammar
+    
+      Scanner ::= n = Name ps = ScannerParents rs = Rule* {
+      
+        [| let scanner = <Scanner(n,rs)>
+           in @Imports(imports)
+                @For parent in <ps> do
+                  scanner.inherit(parent->ref(imports))
+                end
+              end;
+              scanner.compile() 
+           end |]
+        
+      }.
+      
+      ScannerParents ::= 'extends' p = Path { OCL::SetExp("Seq",Seq{p}) } | { [| Seq{} |] }.
+      
+      Path ::= n = StrExp ns = ('::' StrExp)* { OCL::SetExp("Seq",Seq{n | ns}) }.
+      
+      StrExp ::= n = Name { OCL::StrExp(n) }.
+      
+    end
+    
+    @Operation allStatesTerminal():Boolean
+      state = 0 andthen
+      if parent <> null
+      then parent.allStatesTerminal()
+      else true
+      end
+    end
+    
+    @Operation allTokenNames():Set(String)
+      if parent = null
+      then self.tokenNames()
+      else self.tokenNames() + parent.allTokenNames()
+      end
+    end
+    
+    @Operation CommentBlock(action,input:InputChannel):Boolean
+    
+      // Skip to the end of the block and carry on...
+      
+      token.setSize(0);
+      let char = 0;
+          seenEndBlock = false
+      in @While not self.eof(input) and not seenEndBlock do
+           char := self.read(input);
+           if char = "*"->at(0)
+           then 
+             if not self.eof(input)
+             then 
+               char := self.read(input);
+               if char = "/"->at(0)
+               then seenEndBlock := true
+               else self.charIndex := self.charIndex - 1
+               end
+             else self.error("EOF in comment block")
+             end
+           end
+         end;
+         if not seenEndBlock
+         then self.error("EOF in comment block")
+         end;
+         false
+      end
+    end
+      
+    @Operation CommentLine(action,input:InputChannel):Boolean
+    
+      // Skip to the end of the line and carry on...
+      
+      token.setSize(0);
+      let char = 0
+      in @While not self.eof(input) and not char = "\n"->at(0) do
+           char := self.read(input)
+         end;
+         false
+      end
+    end
+    
+    @Operation compile()
+      let t = Time()
+      in format(stdout,"~%[ XScan Processing ~S ]~%",Seq{name});
+         self.setScanningTable();
+         format(stdout,"[ Processed ~S States in ~S ]~%",Seq{scanningTable->size,(Time()-t).pprint()});
+         self
+      end
+    end
+      
+    @Operation eof(input):Boolean
+      charIndex >= buffer->size andthen input.eof()
+    end
+    
+    @Operation hasTerminal(name:String):Boolean
+      if name = "EOF"
+      then 0
+      else
+        @Find(rule,rules)
+          when rule.action().isKindOf(Token) andthen
+               rule.action().name() = name
+          do true
+          else false
+        end
+      end
+    end
+    
+    @Operation inherit(parent:Scanner)
+      self.parent := parent
+    end
+    
+    @Operation mostSpecificAction()
+      let action = Kernel_arrayRef(actionTable,state)
+      in if action = null andthen parent <> null
+         then parent.mostSpecificAction()
+         else action
+         end
+      end
+    end
+    
+    @Operation mostSpecificState()
+      if state <> 0 orelse parent = null
+      then state
+      else parent.mostSpecificState()
+      end
+    end
+    
+    @Operation processedInput():String
+      buffer.toString()
+    end
+    
+    @Operation read(input):Integer
+      if charIndex < buffer->size
+      then 
+        self.charIndex := self.charIndex + 1;
+        Kernel_arrayRef(buffer,charIndex - 1)
+      elseif not input.eof()
+      then 
+        if input.read(buffer) > 0
+        then 
+          self.charIndex := self.charIndex + 1;
+          Kernel_arrayRef(buffer,charIndex - 1)
+        else self.error("Attempt to read past EOF.")
+        end
+      end
+    end
+    
+    @Operation reset()
+      self.buffer.setSize(0);
+      self.charIndex := 0
+    end
+    
+    @Operation resetMostSpecificState()
+      if state <> 0
+      then self.state := 1
+      elseif parent <> null
+      then parent.resetMostSpecificState()
+      end
+    end
+    
+    @Operation resetStates()
+      self.state := 1;
+      if parent <> null
+      then parent.resetStates()
+      end
+    end
+    
+    @Operation setTokenIndices()
+      // Use EOF = 0
+      let index = if parent = null then 1 else parent.lastToken() end
+      in @For rule in rules do
+           index := rule.setTokenIndex(index)
+         end;
+         index
+      end
+    end
+      
+    @Operation setOrder()
+    
+      // Set the order of the actions on the rules...
+      @Count i from 0 to rules->size() - 1 do
+        rules->at(i).setOrder(i)
+      end
+      
+    end
+    
+    @Operation setScanningTable()
+      self.scanningTable := Buffer(100,false);
+      self.actionTable := Buffer(100,false);
+      self.setOrder();
+      self.lastToken := self.setTokenIndices();
+      let automaton = self.toAutomaton()
+      in automaton.scanningTable(scanningTable,actionTable,rules)
+      end;
+      self
+    end
+    
+    @Operation Str(action,input:InputChannel):Boolean
+    
+      // Read a string and leave the string chars in the
+      // current token. Deal with escaped chars.
+      
+      token.setSize(0);
+      let doubleQuotes = false
+      in @While not(self.eof(input)) and not(doubleQuotes) do
+           let char = self.read(input)
+           in @CaseInt[256] char of
+                "\""->at(0) do
+                  doubleQuotes := true
+                end
+                "\\"->at(0) do
+                  if self.eof(input)
+                  then self.error("EOF after backslash")
+                  else 
+                    char := self.read(input);
+                    @CaseInt[256] char of
+                      "n"->at(0) do
+                        self.token.add("\n"->at(0)) 
+                      end
+                      "r"->at(0) do
+                        self.token.add("\r"->at(0)) 
+                      end
+                      "\\"->at(0) do
+                        self.token.add("\\"->at(0)) 
+                      end
+                      "\t"->at(0) do
+                        self.token.add("\t"->at(0)) 
+                      end
+                      else self.token.add(char)
+                    end
+                  end
+                end
+                else self.token.add(char)
+              end
+           end
+         end;
+         self.type := action.index();
+         if self.eof(input)
+         then self.error("Unterminated string " + token)
+         else true
+         end
+       end
+    end
+
+    @Operation textTo(input,delim:String,consume:Boolean):String
+      // Returns the text up to, but not including, the delimiter
+      // and then optionally consumed the delimiter.
+      let seen = false;
+          text = Buffer(100,true)
+      in @While not self.eof(input) and not seen do
+           text.add(self.read(input));
+           if text.hasSuffix(delim)
+           then seen := true
+           end
+         end;
+         if seen
+         then text.setSize(text->size - delim->size)
+         end;
+         if seen and not consume 
+         then self.charIndex := charIndex - delim->size
+         end;
+         text.toString()
+       end
+    end
+    
+    @Operation tokenIndex(name:String):Integer
+      if name = "EOF"
+      then 0
+      else
+        @Find(rule,rules)
+          when rule.action().isKindOf(Token) andthen
+               rule.action().name() = name
+          do rule.action().index()
+          else if parent <> null
+               then parent.tokenIndex(name)
+               else self.error("Cannot find terminal named " + name)
+               end
+        end
+      end
+    end
+    
+    @Operation toAutomaton()
+      Tadpole::tadpoles(rules->map("toTadpole"))
+    end
+    
+    @Operation tokenName(index:Integer):String
+      if index = 0
+      then "EOF"
+      else
+        @Find(rule,rules)
+          when rule.action().isKindOf(Token) andthen
+               rule.action().index() = index
+          do rule.action().name()
+          else self.error("Cannot find a token with index " + index)
+        end
+      end
+    end
+
+    @Operation tokenNames():Set(String)
+      rules->select(rule | 
+        rule.action().isKindOf(Token))
+           ->collect(rule | 
+             rule.action().name())->asSet
+    end
+
+    @Operation updateStates(char)
+      self.state := Kernel_arrayRef(Kernel_arrayRef(scanningTable,state),char);
+      if parent <> null
+      then parent.updateStates(char)
+      end
+    end
+           
+
+  end

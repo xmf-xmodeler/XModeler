@@ -1,0 +1,50 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import OCL;
+
+context XOCL
+
+  @Class Character extends Sugar
+  
+    @Doc
+      This class is used to declaratively specify a character code.
+      The character is given in the body of the Character construct.
+      A number of special characters (Newline, Space, Tab) can be
+      defined by their name in the body of the Character construct.
+    end
+  
+    @Grammar
+    
+      Character ::= 
+      
+        'Space' { Character("Space") }     |
+        'Newline' { Character("Newline") } |
+        'Tab' { Character("Tab") }         |
+        c = Char Char { Character(Seq{c}->asString) }.
+        
+      
+    end
+    
+    @Attribute char : String end
+    
+    @Constructor(char) ! end
+    
+    @Operation desugar():Performable
+    
+      @Case char of
+      
+        "Space" do IntExp(" "->at(0)) end
+        
+        "Newline" do IntExp("\n"->at(0)) end
+        
+        "Tab" do IntExp("\t"->at(0)) end
+        
+        else IntExp(char->at(0))
+        
+      end
+      
+    end
+    
+  end

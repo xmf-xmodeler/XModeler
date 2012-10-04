@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+
+context Basic
+
+  @Class ToolType extends NamedElement
+  
+    @Doc 
+      A tool type defines the type of a tool. Each tool uses the tool
+      type to resolve named references to component types.
+    end
+    
+    @Attribute parents  : Seq(ToolType) (?,+,-) end
+    
+  end

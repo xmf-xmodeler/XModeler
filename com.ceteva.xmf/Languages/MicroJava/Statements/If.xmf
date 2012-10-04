@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class If extends Statement
+  
+    @Attribute test     : JExp       (?) end
+    @Attribute thenPart : Statement  (?) end
+    @Attribute elsePart : Statement  (?) end
+    
+    @Constructor(test,thenPart,elsePart) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"if(",Seq{test});
+      test.pprint(out);
+      format(out,")~%~V",Seq{indent+2});
+      thenPart.pprint(out,indent+2);
+      if elsePart <> null
+      then
+        format(out,"~%~Velse~%~V",Seq{indent,indent+2});
+        elsePart.pprint(out,indent+2)
+      end
+    end
+    
+  end

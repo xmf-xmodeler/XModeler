@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Associations
+  
+    @Doc
+      The associations package defines elements used to represent
+      binary associations. Associations between classes are implemented
+      as attributes on each class plus a round-trip constraint that
+      must hold between instances of the classes.
+    end
+    
+  end

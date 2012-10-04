@@ -1,0 +1,34 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Operation in PPrint(op,out,seen)
+  self.mark(
+   @Operation()
+     format(out,"@Operation~S(",Seq{if op.name.toString() = "anonymous" then "" else " " + op.name end});
+     @For p in op.parameters do
+       self.dispatch(p,out);
+       if not isLast then format(out,",") end
+     end;
+     format(out,")");
+     if not op.type.isReallyKindOf(NamedType) orelse
+        not op.type.path.equals(Seq{"XCore","Element"})
+     then
+       format(out,":");
+       self.dispatch(op.type,out)
+     end;
+     self.indent(
+       @Operation()
+         self.newLine();
+         if op.documentation <> null and op.documentation.isKindOf(Doc)
+         then
+           self.dispatch(op.documentation,out);
+           self.newLine()
+         end;
+         self.dispatch(op.performable,out)
+       end);
+     self.newLine();
+     format(out,"end")
+   end)
+end;

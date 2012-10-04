@@ -1,0 +1,93 @@
+parserImport XOCL;
+
+context Root
+  @Package Shape
+  
+    @Class ShapeModel
+    
+      @Attribute nodes : Set(Node) end
+      @Attribute edges : Set(Edge) end
+      
+      @Operation deploy(tool)
+        let file = xmf.saveFile(xmf.projDir(),"*.xmf","Shape")
+        in if not file = ""
+           then 
+             if file.fileExists()
+             then 
+               if xmf.question("Overwrite " + file)
+               then self.deploy(tool,file)
+               end
+             else self.deploy(tool,file)
+             end
+           end
+        end
+      end
+      
+      @Operation deploy(tool,file)
+        @WithOpenFile(out -> file)
+          let E = edges;
+              e = null
+          in format(out,"parserImport XOCL;~%");
+             format(out,"parserImport Tools::DiagramTools::Types::DisplayTypes;~%");
+             format(out,"@Shape S~%");
+             format(out,"  minWidth = 40~%");
+             format(out,"  minHeight = 40~%");
+             @While not E->isEmpty do
+               if e = null 
+               then
+                 e := E->sel;
+                 format(out,"  @Point (~S,~S) end~%",Seq{e.sourceX(tool),e.sourceY(tool)});
+                 format(out,"  @Point (~S,~S) end~%",Seq{e.targetX(tool),e.targetY(tool)});
+                 E := E->excluding(e)
+               else 
+                 @Find(edge,E)
+                   when edge.source = e.target
+                   do format(out,"  @Point (~S,~S) end~%",Seq{edge.targetX(tool),edge.targetY(tool)});
+                      E := E->excluding(edge);
+                      e := edge
+                   else e := null
+                 end
+               end
+             end;
+             format(out,"end;~%")
+          end
+        end
+      end 
+    end
+    
+    @Class Node
+    
+      @Operation x(tool)
+        tool.findElementValue(self).display().x
+      end
+      
+      @Operation y(tool)
+        tool.findElementValue(self).display().y
+      end
+      
+    end
+    
+    @Class Edge 
+    
+      @Attribute source : Node end
+      @Attribute target : Node end
+      
+      @Operation sourceX(tool)
+        source.x(tool)
+      end
+      
+      @Operation targetX(tool)
+        target.x(tool)
+      end
+      
+      @Operation sourceY(tool)
+        source.y(tool)
+      end
+      
+      @Operation targetY(tool)
+        target.y(tool)
+      end
+      
+    end
+  end
+  

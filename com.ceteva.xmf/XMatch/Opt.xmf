@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Opt extends Pattern
+  
+    @Doc
+      Always matches. This will try the pattern first. If it succeeds
+      then continue with bindings and results from pattern. Otherwise
+      just succeed as per Empty.
+    end
+  
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      Or(pattern,Empty()).match(chars,env,stack,succ,fail)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      // Cannot bind in an optional pattern.
+      Set{}
+    end
+    
+  end

@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import Clients;
+import DropDownMenus;
+
+context DropDownMenus
+
+  @Class DropDownMenuGroup extends AbstractMenu
+  
+    @Attribute menus : Seq(AbstractMenu) = Seq{} end
+    
+    @Operation add(menu)
+      self.menus := self.menus->prepend(menu);
+      menu.setOwner(self);
+      menu
+    end
+
+    @Operation delete()
+      // Should perhaps delete all child menu items?
+      self.dispose()
+    end
+
+    @Operation dispose()
+      self.disposeCollection(menus);
+      super()
+    end
+
+    @Operation findForName(name)
+      @Find(menu,menus)
+        when menu.name = name
+        do
+          menu
+        else
+          null
+      end
+    end
+    
+    @Operation new()
+      self.menus := self.menus->qsort(@Operation(x,y) x.toString()<y.toString() end);
+      self.commandInterpreter().newGroupMarker(self.owner,self);
+      @For menu in menus
+      do
+        menu.new()
+      end
+    end
+
+    @Operation remove(menu)
+      self.menus := self.menus.excluding(menu)
+    end
+
+  end

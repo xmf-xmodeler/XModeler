@@ -1,0 +1,81 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+import Diagrams;
+import DiagramsMapping;
+import SnapshotDiagrams;
+import SnapshotMapping;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(XCore::Snapshot,Seq{"XCore/Snapshot"}));
+  self
+end;
+
+
+// *** NODE SORTING ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution(XCore::Snapshot,Seq{2700}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Deploy":"XML" on Root::XCore::Snapshot
+  Root::XCore::Snapshot::deployXML
+end;
+
+@Menu "Deploy":"XOCL" on Root::XCore::Snapshot
+  Root::XCore::Snapshot::deploySnapshotCode
+end;
+
+@Menu "Check Constraints":"Full Snapshot" on Root::XCore::Snapshot
+  Root::XCore::Snapshot::checkConstraints_redirect
+end;
+
+@Menu "Add Element":"Object" on Root::XCore::Snapshot
+  Root::XCore::Snapshot::addObject
+end;
+
+// *** SNAPSHOT THEMES ***
+
+/* let 
+  registry = xmf.registry();
+  themes = "com.ceteva.xmf.themes"
+in
+  
+  // Theme1 definition
+  
+  registry.addContribution(themes,StringContribution("Theme 1",Seq{
+  
+    @Operation setNameBoxColor(element,diagramElement)
+      if element.isKindOf(Constraint) and diagramElement.isKindOf(Node)
+      then
+        SnapshotThemeAPI::setNameBoxColor(diagramElement,DiagramsThemeAPI::red)
+      end
+    end,
+    
+    @Operation setSlotBoxColor(element,diagramElement)
+      if element.isKindOf(Object) and diagramElement.isKindOf(Node)
+      then
+        SnapshotThemeAPI::setSlotBoxColor(diagramElement,DiagramsThemeAPI::red)
+      end
+    end
+  
+  }));
+  
+  // associate scheme1 with snapshots
+  
+  DiagramsMapping::themeBindings.put("Theme 1",SnapshotXSnapshotDiagram);
+  self
+end; */

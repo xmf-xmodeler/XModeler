@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Char extends Recognizer 
+
+	// Succeeds when there is a next character. Leaves the character code
+	// on the stack.
+	
+	@Constructor() ! end
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Char ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+
+	@Operation parse(machine)
+	  machine.char()
+	end
+	
+	@Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::Char() |]
+	end
+	
+	@Operation transform(FV:Set(String),grammar):Recognizer
+	  self
+	end
+	
+  end

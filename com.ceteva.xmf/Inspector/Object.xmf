@@ -1,0 +1,60 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import Env;
+
+context AllAspects::Inspect
+
+ @Class Object
+   
+     @Operation inspectDialog(level)
+       @Dialog
+         @Dialog showSlots(names)
+           if names->isEmpty
+           then @Skip end
+           else
+             @Commands
+               @Show names->sel self.get(names->sel) end
+               showSlots(names->excluding(names->sel))
+             end
+           end
+         end
+         @Commands
+           @Separator end
+           @Show "Inspect[" + level + "]" self end
+           @Separator end
+           showSlots(self.getStructuralFeatureNames()->asSeq->sortNames)
+           @Separator end
+           @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Inspect a slot value")
+              @Let name = @Value Symbol end
+               in if self.hasSlot(name)
+                  then 
+                    @Commands
+                      self.get(name).inspectDialog(level + 1)
+                      self.inspectDialog(level)
+                    end 
+                  else
+                    @Commands
+                      @Show "No slot" name end
+                      self.inspectDialog(level) 
+                    end
+                  end
+               end
+            end
+          end
+        end
+      end
+    end 
+    
+  end

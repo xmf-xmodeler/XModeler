@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+
+context Basic
+
+  @Class XToolsRefNameSpace extends NameSpace
+  
+    @Attribute refCounter : Integer = 0 (?,!) end
+    
+    @Operation newName()
+      self.refCounter := refCounter + 1;
+      ("REF" + refCounter.toString())->asSymbol
+    end
+    
+  end

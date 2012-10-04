@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Var in PPrint(aVar,out,seen)
+  format(out,"~S",Seq{aVar.name})
+end;

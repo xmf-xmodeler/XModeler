@@ -1,0 +1,140 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import TextEditor;
+
+context TextEditor
+
+  @Class FileEditorManager
+  
+    @Attribute fileEditorTable : Table = Table(10) end
+    
+    @Operation addFileEditor(filename:String,editor:FileTextEditor)
+      fileEditorTable.put(filename,editor)
+    end
+    
+    @Operation changeEditorFile(editor,oldFile,newFile)
+      fileEditorTable.remove(oldFile.fullPath().toLower());
+      fileEditorTable.put(newFile.fullPath().toLower(),editor)
+    end
+    
+    @Operation edit(file:File,editable:Boolean)
+      let filename = file.fullPath().toLower()
+      in
+        if filename.fileExists()
+        then
+          if fileEditorTable.hasKey(filename)
+          then
+            self.showFileEditor(fileEditorTable.get(filename))
+          else
+            let handler = self.getHandler(file.getExtension())
+            in
+              self.editFile(handler,file,editable)
+            end
+          end
+        else
+          xmf.warning("File " + filename + " no longer exists.  Please refresh the file browser.")
+        end
+      end
+    end
+    
+    @Operation editFile(handler:FileTextEditor,file:File,editable:Boolean)
+        let 
+          client = xmf.findClient(Clients::TextEditor::TextEditorClient);
+          name = file.name;
+          filename = file.fullPath()
+        in
+          if handler <> null then
+            let editor = handler(file,name,filename,editable)
+            in
+              self.addFileEditor(filename.toLower(),editor);
+              client.newTextEditor(editor);
+              editor.setText(filename.readFile());
+              editor.addListener(self);
+              editor
+            end
+          else
+            null
+          end
+        end
+    end
+    
+    @Operation fileNameChangedEvent(editor:FileTextEditor,file:File)
+      let 
+        oldfilename = self.getFileForFileEditor(editor);
+        newfilename = file.fullPath()
+      in
+        self.removeFileEditor(editor);
+        self.addFileEditor(newfilename.toLower(),editor);
+        editor.setName(file.name());
+        editor.setTooltip(newfilename)
+      end
+    end
+    
+    @Operation getHandler(extension:String)
+      let
+        registry = xmf.registry();
+        pointid = "com.ceteva.textEditors.handler" then
+        point = registry.getExtensionPoint(pointid) then
+        handler = point.find(extension)
+      in
+        if handler <> null
+        then handler.values.head()
+        else self.noEditorWarning(extension)
+        end
+      end
+    end
+    
+    @Operation getFileForFileEditor(editor)
+      @Find(e,fileEditorTable.values())
+      when e = editor
+      do
+        @Find(key,fileEditorTable.keys())
+        when fileEditorTable.get(key) = editor
+        end
+      end
+    end
+    
+    @Operation handleEditorCloseEvent(editor)
+      self.removeFileEditor(editor);
+      editor.removeListener(self)
+    end
+    
+    @Operation hasOpenEditorFor(file)
+      fileEditorTable.hasKey(file.fullPath().toLower())
+    end
+    
+    @Operation noEditorWarning(extension)
+      xmf.warning("There is no editor installed for files of type: " + extension);
+      null
+    end
+    
+    @Operation removeFileEditor(editor)
+      let filename = self.getFileForFileEditor(editor)
+      in fileEditorTable.remove(filename)
+      end
+    end
+        
+    @Operation showEditorForFile(file:File)
+      let filename = file.fullPath().toLower()
+      in
+        if fileEditorTable.hasKey(filename)
+        then
+          let editor = fileEditorTable.get(filename)
+          in
+            editor.setFocus();
+            true
+          end
+        else
+          false
+        end
+      end
+    end
+    
+    @Operation showFileEditor(editor:FileEditor)
+      editor.setFocus();
+      editor
+    end
+  
+  end

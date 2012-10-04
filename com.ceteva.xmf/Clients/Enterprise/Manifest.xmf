@@ -1,0 +1,10 @@
+parserImport Manifests;
+
+@Manifest Enterprise
+  @File Enterprise end
+  @File EnterpriseCommandInterpreter end
+  @File EnterpriseEventHandler end
+  @File ApplicationFactory end
+  @File SessionEventHandler end
+  @File EnterpriseClient end
+end;

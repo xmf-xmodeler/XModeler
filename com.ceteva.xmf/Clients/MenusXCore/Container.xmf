@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import XCore;
+import Projects;
+import Clients::Menus;
+
+context Container
+  @Operation containerCutHandler(element)
+    // Over-ride in subclasses where necessary
+    self.remove(element)
+  end
+
+context Container
+  @Operation containerPastePreHandler(element)
+    // Over-ride in subclasses where necessary
+    self
+  end
+
+context Container
+  @Operation containerPastePostHandler(element)
+    // Over-ride in subclasses where necessary
+    self.add(element)
+  end

@@ -1,0 +1,24 @@
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Displays;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)_Attribute"()
+  if event.tool().isRegistered(event.parent())
+  then event.tool().newAttribute(event.tool().find(event.parent()),event.value())
+  end
+end;
+  
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)_Attribute"()
+  let tool = event.tool()
+  in if tool.isRegistered(event.value()) and tool.isRegistered(event.owner())
+     then 
+       tool.deleteAttribute(tool.find(event.value()),tool.find(event.owner()));
+       event.tool().deregister(event.tool().find(event.value()));
+       event.tool().deregister(event.value())
+     end
+  end
+end;

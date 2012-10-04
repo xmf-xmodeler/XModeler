@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Union extends Instr
+  
+    @Operation toString():String
+      "<Union>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

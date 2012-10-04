@@ -1,0 +1,40 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler NameSpace in Lift(o,arg,encountered)
+  if o.isKindOf(Drop)
+  then o.lift()
+  elseif encountered
+  then
+    [| <arg>.ref(<IntExp(stack.indexOf(o))>) |]
+  else
+    stack.push(o);
+    let var = Var(self.newVar())
+    in [| <arg>.push(<self.newExp(o)>);
+          let <var.name> = <arg>.top()
+          in
+            <o.getStructuralFeatureNames()->iterate(n exp = var |
+              if n.toString() = "imports"
+              then [| <exp>; <var>.imports := <o.imports->iterate(i e = [| Seq{} |] | 
+                       [| <e> + Seq{<Path::toPath(i.pathSeq())>} |])> |]
+              elseif n.toString() = "owner"
+              then 
+                if o.owner = null
+                then [| <var>.owner := null; <exp> |]
+                else [| <exp>; <var>.owner := <Path::toPath(o.owner.pathSeq())> |]
+                end
+              else [| <exp>; <var>.<n.toString()> := <self.dispatch(o.get(n),arg)> |]
+              end)>
+          end
+       |]
+    end
+  end 
+end;
+
+context XCore::NameSpace
+  @Operation lift()
+    // Bypass Object::lift so that the imports don't get lifted...
+    Element::lift.invoke(self,Seq{})
+  end

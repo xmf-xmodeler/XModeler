@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+@Class Send
+
+  @Grammar extends OCL::OCL.grammar
+
+      Send ::= target = Exp message = Name '(' args = MessageArgs ')' {
+         import OCL in 
+           [| <target>.addToMessages(Message(<StrExp(message)>,<args->iterate(a e = [|
+             Seq{} |] | [| <e> + Seq{<a>} |])>)) |] end}.
+
+      MessageArgs ::= arg = MessageArg args = (',' MessageArg)* { Seq{arg | args } } | { Seq{} }.
+      
+      MessageArg ::= exp = Exp {[|MessageArg(<exp>)|]}.
+
+  end
+end  

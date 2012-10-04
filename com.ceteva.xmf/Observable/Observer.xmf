@@ -1,0 +1,80 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class Observer extends NamedElement, Syntax
+  
+    @Doc
+      An observer waits for events to be produced by the object or object type
+      it is attached to. The event is a class and its associated data. Each
+      observer contains handlers that match generated events against patterns
+      before performing an action.
+    end
+  
+    @Attribute scopes    : Seq(Scope)   end
+    @Attribute handlers  : Seq(Handler) end
+    
+    @Constructor(name,scopes,handlers) end 
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Observer ::= name = Name 'for' scopes = Scope* handlers = Handler* {
+      
+        Observer(Symbol(name),scopes,handlers)
+        
+      }.
+      
+      Scope ::= TypeScope | ObjScope.
+      
+      TypeScope ::= 'type' p = EventNames { TypeScope(p,false) }.
+      
+      ObjScope ::= 'obj' o = Exp { ObjScope(Exp(o)) }.
+      
+      Handler ::= 'when' p = EventPattern 'do' e = Exp 'end' {
+      
+        Handler(p,Exp(e))
+        
+      }.
+      
+      EventPattern ::= p = EventNames '(' ns = VarNames ')' {
+      
+        EventPattern(p,ns)
+        
+      }.
+      
+      EventNames ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+      VarNames ::= n = Name ns = (',' s = Name { Symbol(s) })* { Seq{Symbol(n)|ns} } | { Seq{} }.
+      
+    end
+    
+    @Operation eval(target,env,imports)
+    
+      // This is called for all syntax elements when they are evaluated. 
+      // An observer evaluates to produce itself, but attaches itself 
+      // to the values it is scoped over in order to observe any events
+      // that are raised.
+      
+      @For scope in scopes do
+         scope.observe(self)
+      end;
+      self
+      
+    end
+    
+    @Operation handleEvent(target,class,args)
+    
+      // The event has been raised. Pass the event on to all the
+      // handlers.
+      
+      @For handler in handlers do
+        handler.handleEvent(target,class,args)
+      end
+      
+    end
+    
+  end

@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+// A collection of queries that run over Ada systems
+
+// All package bodies
+context Units::AdaSystem
+@Operation allAdaPackageBodies():Set(Bodies::PkgBody)
+  programs.compilationUnits.unit->select(u | u.isKindOf(Bodies::PkgBody))
+end
+
+context Units::AdaSystem
+@Operation allAdaSubProgramBodies():Element
+  self.allAdaPackageBodies().declPart->flatten->select(b | b.isKindOf(Bodies::DeclPartBody)).body
+end     
+
+context Units::AdaSystem
+@Operation allAdaDeclarations():Element
+  self.allAdaPackageBodies().declPart->flatten
+end
+
+context Units::AdaProgram
+@Operation allAdaPackageBodies():Set(Bodies::PkgBody)
+  compilationUnits.unit->select(u | u.isKindOf(Bodies::PkgBody))
+end
+
+context Units::AdaProgram
+@Operation allSubProgramSpecs():Element
+  self.allAdaPackageBodies().declPart->flatten->select(b | b.isKindOf(Bodies::DeclPartBody)).body.subprogramSpec
+end

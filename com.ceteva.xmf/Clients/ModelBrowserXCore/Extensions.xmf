@@ -1,0 +1,246 @@
+parserImport XOCL;
+
+import XCore;
+import Clients;
+import ExtensionPoints;
+
+
+// *** BROWSE ***
+
+context XCore::Element
+  @Operation browse()
+    let mappingClient = xmf.findClient(Clients::ModelBrowserXCore::MappingClient) in
+      if mappingClient <> null
+      then 
+        mappingClient.showModelBrowser(self)
+      else
+        format(stdout,"Model browser client not available.~%")
+      end
+    end
+  end
+
+// *** GET & CALC CHILDREN SLOTS ***
+
+context XCore::Object
+  @Operation getChildrenSlots()
+    self.calcChildrenSlots()
+/*    try
+      let registry = xmf.registry();
+          csid = "com.ceteva.xmf.modelBrowsers.xcore.childrenSlots";
+          selfOf = self.of()
+      in
+        let slotCon = registry.getExtensionPoint(csid).find(selfOf)
+        in
+          if slotCon = null
+          then
+            let s = self.calcChildrenSlots()
+            in  registry.addContribution(csid,Contribution(selfOf,Seq{s})); s
+            end
+          else
+            slotCon.getValue(0)
+          end
+        end
+      end
+    catch(exception)
+      exception.edit()
+    end
+*/  end
+
+context XCore::Object
+  @Operation calcChildrenSlots()
+    try
+      let excludePoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.modelBrowsers.xcore.excludeSlots") then
+          excludeCons = excludePoint.find(self.of()) then
+          excludeSlots = excludeCons->collect(c | c.getValue(0))
+      in  self.getStructuralFeatureNames()->asSeq - excludeSlots
+      end
+    catch(exception)
+      exception.edit()
+    end
+  end
+
+context XCore::Attribute
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context XCore::Constraint
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context XCore::Operation
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context XCore::Constructor
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context XMap::Clause
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context Projects::ProjectStub
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context IO::File
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+context Clients::Diagrams::Diagram
+  @Operation calcChildrenSlots()
+    Seq{}
+  end
+
+// *** GET CHILDREN ***
+
+context XCore::Element
+  @Operation getChildren()
+    Seq{}
+  end
+
+context XCore::Object
+  @Operation getChildren()
+    let children = Seq{};
+        slots = self.getChildrenSlots()          
+    in
+      @For slot in slots do
+        let value = self.get(Symbol(slot))
+        in
+          if value = null
+          then null
+          elseif value.isKindOf(SetOfElement)
+          then children := children + value->asSeq
+          elseif value.isKindOf(SeqOfElement)
+          then children := children + value
+          else
+          children := children + Seq{value}
+          end
+        end
+      end;
+      children
+    end
+  end 
+
+context XCore::Container
+  @Operation getChildren()
+    if self <> Root andthen self <> Daemon
+    then
+      self.contents()->asSeq.excluding(self.doc())
+    else
+      if self = Root
+      then
+        self.contents()->asSeq.excluding(self).excluding(self.doc())
+      elseif self = Daemon
+      then
+        self.operations->asSeq
+      end
+    end
+  end
+
+context XCore::NameSpace
+  @Operation getChildren()
+    super() - self.bindings->collect(b | b.name.toString())->asSeq
+  end
+
+context XCore::Class
+  @Operation getChildren()
+    super() + self.constructors
+  end
+
+context Parser::BNF::Grammar
+  @Operation getChildren()
+    Seq{}
+  end
+
+context SetOfElement
+  @Operation getChildren()
+    self->asSeq
+  end
+  
+context SeqOfElement
+  @Operation getChildren()
+    self.asProperSeq()
+  end
+
+context XMap::Map
+  @Operation getChildren()
+    super().excluding(self.getInvokeOperation())
+  end
+
+context XCore::Table
+  @Operation getChildren()
+    self.values()->asSeq
+  end
+
+context XCore::Snapshot
+  @Operation getChildren()
+    if not self.hasSlot("instanceOf")
+    then super()
+    else Seq{}
+    end
+  end
+
+// *** GET ALL CHILDREN ***
+/*
+context Element
+  @Operation allChildren():Seq(Element)   
+    let C = self.getChildren();
+        allC = Seq{}
+    in @While not C->isEmpty do
+         let c = C->sel
+         in allC := Seq{c | allC->excluding(c)};
+            C := C->excluding(c)->union(c.getChildren())
+         end
+       end;
+       allC->reverse()
+    end
+  end
+*/
+// *** GET CHILDREN TOOL TIPS ***
+
+context XCore::Element
+  @Operation getChildrenToolTips()
+    self.getChildren()->collect(e | "")
+  end
+
+context XCore::Object
+  @Operation getChildrenToolTips()
+    let children = Seq{};
+        slots = self.getChildrenSlots()          
+    in
+      @For slot in slots do
+        let value = self.get(Symbol(slot))
+        in
+          if value = null
+          then null
+          elseif value.isKindOf(SetOfElement)
+          then children := children + value->asSeq->collect(e | "'" + slot + "' slot")
+          elseif value.isKindOf(SeqOfElement)
+          then children := children + value->collect(e | "'" + slot + "' slot")
+          else
+          children := children + Seq{"'" + slot + "' slot"}
+          end
+        end
+      end;
+      children
+    end
+  end 
+
+context XCore::Container
+  @Operation getChildrenToolTips()
+    self.getChildren()->collect(e | "")
+  end
+
+context XCore::Table
+  @Operation getChildrenToolTips()
+    self.keys()->collect(key | "key = " + key.labelString())
+  end
+

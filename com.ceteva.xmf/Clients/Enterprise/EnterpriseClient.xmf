@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+import Clients;
+import Enterprise;
+
+context Enterprise
+
+  @Class EnterpriseClient extends Client
+  
+    @Attribute applicationFactories : Seq(ApplicationFactory) end
+    @Attribute sessionHandlers      : Table = Table(10) end 
+  
+    @Constructor(name)
+      self.setCommandInterpreter(EnterpriseCommandInterpreter());
+      self.setEventHandler(EnterpriseEventHandler())
+    end
+    
+    @Operation createApplication(sessionId,request)
+      @Find(factory,applicationFactories)
+      when factory.handles(request)
+      do
+        factory.create(sessionId)
+      else
+        self.reportError(sessionId)
+      end
+    end
+    
+    @Operation getSessionHandler(sessionId)
+      sessionHandlers.get(sessionId)
+    end
+    
+    @Operation hasSessionHandler(sessionId)
+      sessionHandlers.hasKey(sessionId)
+    end
+    
+    @Operation urlRequest(sessionId,request)
+      if sessionHandlers.hasKey(sessionId)
+      then
+      
+        // If there is an existing handler for a session
+        // give the handler an opportunity to handle it.
+        // If the handler does not handle it, invalidate
+        // the handler and try and start a new application.
+      
+        let handler = sessionHandlers.get(sessionId)
+        in
+          if not handler.urlRequest(request)
+          then
+            sessionHandlers.remove(sessionId);
+            self.createApplication(sessionId,request)
+          end
+        end
+      else
+        self.createApplication(sessionId,request)
+      end
+    end
+    
+    @Operation registerFactory(factory)
+      self.applicationFactories := self.applicationFactories->prepend(factory)
+    end
+    
+    @Operation registerHandler(sessionId,handler)
+      sessionHandlers.put(sessionId,handler)
+    end
+    
+    @Operation reportError(sessionId)
+    
+      // the request cannot be handled
+    
+      self.writeHTML(sessionId,"<HTML>Request cannot be handled.</HTML>")
+    end
+    
+    @Operation writeHTML(sessionId,html)
+      commandInterpreter.writeHTML(sessionId,html)
+    end
+    
+  end

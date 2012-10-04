@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AttributeLabel extends Label
+  
+    @Constructor(text) !
+      self.init(Seq{text,"end",5,16 + 5,true})
+    end
+    
+    @Constructor(text,relx,rely) !
+      self.init(Seq{text,"end",relx,rely,true})
+    end
+    
+    @Operation name()
+      text
+    end
+    
+    @Operation setName(name)
+      self.textChanged(name)
+    end
+    
+  end
+    
+    

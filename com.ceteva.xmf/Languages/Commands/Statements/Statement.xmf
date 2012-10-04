@@ -1,0 +1,71 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Instrs;
+import Languages;
+import Commands;
+import Expressions;
+import Statements;
+
+context Statements
+
+  @Class Statement isabstract extends Performable
+  
+    @Grammar extends Exp.grammar
+    
+      Statement ::= Block | Declaration | If | While.
+      
+      Block ::= 'begin' s = Statement* 'end' { Block(s) }.
+      
+      If ::= 'if' e = Exp 'then' s1 = Statement 'else' s2 = Statement 'end' { If(e,s1,s2) }.
+      
+      While ::= 'while' e = Exp 'do' s = Statement 'end' { While(e,s) }.
+      
+      Declaration ::= TypeDeclaration | ValueDeclaration.
+      
+      TypeDeclaration ::= 'type' n = Name 'is' ns = Name* 'end' { TypeDeclaration(n,ns) }.
+      
+      ValueDeclaration ::= 'value' n = Name 'is' e = Exp 'end' { ValueDeclaration(n,e) }.
+      
+    end
+    
+    @AbstractOp compile(typeEnv:Env::Env,varEnv:Seq(String),next:Operation):Seq(Instr)
+      @Doc
+        Compiles the receiver to produce a sequence of XMF machine instructions.
+        Variable references are compiles to local stack frame references and
+        types do not occur at run-time. the compiler will check for variable
+        and type references that are out of scope. Records are represented as
+        a-lists at run-time.
+      end
+    end
+    
+    @AbstractOp desugar1(next:Performable):Performable
+      @Doc
+        Returns a simple desugaring of the statement. Desugaring
+        is performed using continuation passing where the continuation
+        is a performable command.
+      end
+    end
+    
+    @AbstractOp desugar2(typeEnv:Env::Env,next:Operation):Performable
+      @Doc
+        Desugars the receiver to produce an XOCL expression in which
+        run-time types are removed. The type environment maintains all
+        necessary typeinformation at desugar-time. Next is a continuation
+        mapping type environments to XOCL expressions.
+      end
+    end
+    
+    @AbstractOp maxLocals(locals:Integer,maxLocals:Integer,next:Operation):Integer
+      @Doc
+        Calculates the maximum number of local variables required by the
+        receiver. The value of locals is the current number of locals
+        in use. The value of maxLocals is the current maximum required.
+        Next is a continuation expecting the updated value of locals and
+        maxLocals.
+      end
+    end
+    
+    @AbstractOp pprint(out,indent) end
+    
+  end

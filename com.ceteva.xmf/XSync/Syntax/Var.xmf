@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XSync;
+import OCL;
+import Env;
+import Syntax;
+
+context Syntax
+
+  @Class Var extends Value
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+    @Operation code(varEnv:Env):Performable
+      varEnv.lookup(name).code(varEnv)
+    end
+    
+    @Operation relocate(direction:String):Value
+      self
+    end
+    
+    @Operation source():String
+      name
+    end
+    
+    @Operation vars():Set(String)
+      Set{name}
+    end
+    
+  end

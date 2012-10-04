@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Const in TypeChecker(exp,env,encountered)
+  TypeCheckExp(exp,exp.value.of(),Seq{})
+end;

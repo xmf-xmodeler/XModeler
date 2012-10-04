@@ -1,0 +1,112 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AttributeBox extends Box
+  
+    @Constructor(x,y,width)
+      self.init(Seq{x,y,width,16,0,Color(),Color()})
+    end
+    
+    @Operation classNode()
+      owner.owner
+    end
+    
+    @Operation expand()
+    
+      // In the case of AttributeBox the ordering is switched
+      // because expand height rearranges the attribute text
+      // which may effect the calculation of expand width
+    
+      self.expandHeight();
+      self.expandWidth()
+    end
+    
+    @Operation expandHeight()
+    
+      // Align all the types at the end of the longest name.
+      
+      let maxNameWidth = 0
+      in @For attText in displays do
+           maxNameWidth := maxNameWidth.max(attText.name.width())
+         end;
+         @For attText in displays do
+           attText.type.move(maxNameWidth + attText.separator(),attText.type.y())
+         end
+      end;
+      
+      // Recalculate the y position of each attribute in case an
+      // attribute is deleted and then reintroduced (via an undo)
+      
+      let height = 0
+      in
+        @For attText in displays do
+          attText.name.move(attText.name.x(),height+3);
+          attText.type.move(attText.type.x(),height+3);
+          height := height + 16
+        end
+      end;
+      
+      super()
+    end
+    
+    @Operation maxHeight()
+      if not shown 
+      then 0
+      elseif displays->isEmpty
+      then 16
+      else super() + 3
+      end
+    end
+    
+    @Operation maxWidth()
+      if not shown
+      then 0
+      else super() + 3
+      end
+    end
+    
+    @Operation newAttribute(name,metaclass_,type)
+      let text = self.nextAttribute(name,metaclass_,type)
+      in text.new(self);
+         self.add(text);
+         text
+      end
+    end
+    
+    @Operation nextAttribute(name,metaclass_,type)
+      AttributeText(name,metaclass_,type.name.toString(),0,self.displays->size * 16)
+    end
+    
+    @Operation packWidth()
+    
+      // Align all the types at the end of the longest name.
+      
+      let maxNameWidth = 0
+      in @For attText in displays do
+           maxNameWidth := maxNameWidth.max(attText.name.width())
+         end;
+         @For attText in displays do
+           attText.type.move(maxNameWidth + attText.separator(),attText.type.y())
+         end
+      end;
+      super()
+    end
+    
+    @Operation remove(attributeText)
+      super(attributeText);
+      @For display in displays do
+        if display.name.y > attributeText.name.y
+        then 
+          display.moveDown()
+        end
+      end;
+      self.classNode().packHeight()
+    end
+       
+  end

@@ -1,0 +1,58 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest BNF 
+  @File Parser end
+  @File BNF end
+  @File Recognizer end
+  @File Clause end
+  @File Fail end
+  @File Or end
+  @File Plus end
+  @File Star end
+  @File Loop end
+  @File Const end
+  @File PlusCons end
+  @File StarCons end
+  @File And end
+  @File Name end
+  @File EOF end
+  @File ImportAt end
+  @File Int end
+  @File Float end
+  @File Str end
+  @File PState end
+  @File Tok end
+  @File Char end
+  @File Line end
+  @File Opt end
+  @File Cut end
+  @File Call end
+  @File Bind end
+  @File BindGlobal end
+  @File Action end
+  @File Predicate end
+  @File Grammar end
+  @File NewStack end
+  @File TraceSuccess end
+  @File Not end
+  @File Term end
+  @File Terminal end
+  @File Classifier end
+  @File Constants end
+  @File PreAction end
+  @File PrePredicate end
+  @File At end
+  @File EndAt end
+  @File Tok end
+  @File Token end
+  @File TypeCheck end
+  @File NotSuccess end
+  @File ParseError end
+  @File ParseString end
+  @File ParseFile end
+do 
+  Project(Parser::BNF,dir,self)
+end;

@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context XML
+
+  @Class NoAttribute extends Exception
+  
+    @Doc
+      This exception is raised when an attribute of an element is requested and 
+      when the attribute is not defined.
+    end
+  
+    @Operation init(Seq{element,name})
+      self.message := element.toString() + " has no attribute named " + name
+    end
+    
+  end

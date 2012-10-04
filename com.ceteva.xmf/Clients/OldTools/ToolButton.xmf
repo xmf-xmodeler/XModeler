@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Clients;
+
+context Tools
+
+  @Class ToolButton
+  
+    @Attribute name    : String    (!) end
+    @Attribute icon    : String        end
+    @Attribute isEdge  : Boolean       end
+    @Attribute handler : Operation     end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,icon,isEdge,handler) end
+    
+    @Operation new(group:String,tool)
+      let handler = handler
+      in tool.diagram.defineNewHandler(group,name,isEdge,icon,@Operation(x,y) handler(tool,x,y) end)
+      end
+    end
+    
+  end

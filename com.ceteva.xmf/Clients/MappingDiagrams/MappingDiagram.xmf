@@ -1,0 +1,210 @@
+parserImport XOCL;
+
+import Clients;
+import ClassDiagrams;
+import MappingDiagrams;
+import Diagrams;
+import IO;
+
+context MappingDiagrams
+
+  @Class MappingDiagram extends ClassDiagram
+  
+    @Attribute mapNodes    : Seq(MapNode) end
+    @Attribute mapEdges    : Seq(Edge) end
+    @Attribute scopeEdges  : Seq(ScopeEdge) end
+    @Attribute syncNodes   : Seq(SyncNode) end
+    
+    @Operation addNode(node)
+      @TypeCase(node)
+        MapNode do
+          self.addMapNode(node);
+          graph.addNode(node)
+        end
+        SyncNode do
+          self.addSyncNode(node);
+          graph.addNode(node)
+        end
+        else super(node)
+      end
+    end
+    
+    @Operation addMapNode(node)
+      self.mapNodes := self.mapNodes->prepend(node)
+    end
+    
+    @Operation addSyncNode(node)
+      self.syncNodes := self.syncNodes->prepend(node)
+    end
+    
+    @Operation addEdge(edge)
+      @TypeCase(edge)
+        DomainEdge do 
+          self.addMapEdge(edge);
+          graph.addEdge(edge)
+        end
+        RangeEdge do 
+          self.addMapEdge(edge);
+          graph.addEdge(edge)
+        end
+        ScopeEdge do 
+          self.addScopeEdge(edge);
+          graph.addEdge(edge)
+        end
+        else super(edge)
+      end
+    end
+    
+    @Operation addMapEdge(edge)
+      self.mapEdges := self.mapEdges->prepend(edge)
+    end
+  
+    @Operation addScopeEdge(edge)
+      self.scopeEdges := self.scopeEdges->prepend(edge)
+    end
+  
+    @Operation defineEdgeToolGroups()
+      super();
+      self.defineNewHandler("XMap","Domain",true,"Mapping/domain.gif",MappingDiagram::newDomainEdge);
+      self.defineNewHandler("XMap","Range",true,"Mapping/range.gif",MappingDiagram::newRangeEdge)
+      //self.defineNewHandler("XSync","Scope",true,"Mapping/scope.gif",MappingDiagram::newScopeEdge)
+    end 
+    
+    @Operation defineNodeToolGroups()
+      super();
+      self.defineNewHandler("XMap","Mapping",false,"Mapping/map.gif",MappingDiagram::newMapping)
+      //self.defineNewHandler("XSync","Sync",false,"Mapping/sync.gif",MappingDiagram::newSync)
+    end
+    
+    @Operation defineToolGroupTypes()
+      super();
+      self.defineToolGroup("XMap")
+      //self.defineToolGroup("XSync")
+    end
+
+    @Operation dispose()
+      self.disposeCollection(mapNodes);
+      self.disposeCollection(mapNodes);
+      self.disposeCollection(scopeEdges);
+      self.disposeCollection(syncNodes);
+      super()
+    end
+
+    @Operation makeDomain(sourceNode,targetNode)
+      self.makeDomainEdge(sourceNode.ports->sel,targetNode.ports->sel)
+    end
+
+    @Operation makeDomainEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in  let edge = DomainEdge(sourcePort,targetPort)
+          in  edge.new(self);
+              edge
+          end
+      end
+    end
+
+    @Operation makeRange(sourceNode,targetNode)
+      self.makeRangeEdge(sourceNode.ports->sel,targetNode.ports->sel)
+    end
+
+    @Operation makeRangeEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in let edge = RangeEdge(sourcePort,targetPort)
+         in  edge.new(self);
+             edge
+         end
+      end
+    end
+
+    @Operation newDomainEdge(sourcePort,targetPort)
+      if sourcePort.owner.isKindOf(MapNode) then
+        let edge = DomainEdge(sourcePort,targetPort)
+        in 
+          edge.new(self,false);
+          self.addEdge(edge)
+        end
+      end
+    end
+    
+    @Operation newMapping(x,y)
+      @WithoutRendering(self)
+        let node = MapNode("A Map","",x,y)
+        in 
+          @WithoutRendering(self)
+            node.new(self,false);
+            self.addNode(node)
+          end
+        end
+      end
+    end
+    
+    @Operation newSync(x,y)
+      @WithoutRendering(self)
+        let node = SyncNode("A Sync","",x,y) 
+        in 
+          @WithoutRendering(self)
+            node.new(self,false);
+            self.addNode(node)
+          end
+        end
+      end
+    end
+    
+    @Operation newRangeEdge(sourcePort,targetPort)
+      if sourcePort.owner.isKindOf(MapNode) then
+        let edge = RangeEdge(sourcePort,targetPort)
+        in 
+          edge.new(self,false);
+          self.addEdge(edge)
+        end
+      end
+    end
+    
+    @Operation newScopeEdge(sourcePort,targetPort)
+      if sourcePort.owner.isKindOf(SyncNode) then
+        let edge = ScopeEdge(sourcePort,targetPort)
+        in 
+          edge.new(self,false);
+          self.addEdge(edge)
+        end
+      end
+    end
+    
+    @Operation removeNode(node)
+      super(node);
+      @TypeCase(node)
+        MapNode  do self.removeMapNode(node)  end
+        SyncNode do self.removeSyncNode(node) end
+        else self
+      end
+    end
+    
+    @Operation removeEdge(edge)
+      super(edge);
+      @TypeCase(edge)
+        DomainEdge do self.removeMapEdge(edge)   end
+        RangeEdge  do self.removeMapEdge(edge)   end
+        ScopeEdge  do self.removeScopeEdge(edge) end
+        else self
+      end
+    end
+    
+    @Operation removeMapNode(mapNode)
+      self.mapNodes := mapNodes.excluding(mapNode)
+    end
+    
+    @Operation removeMapEdge(edge)
+      self.mapEdges := mapEdges.excluding(edge)
+    end
+    
+    @Operation removeSyncNode(node) 
+      self.syncNodes := syncNodes.excluding(node)
+    end
+    
+    @Operation removeScopeEdge(edge)
+      self.scopeEdges := scopeEdges.excluding(edge)
+    end
+    
+  end

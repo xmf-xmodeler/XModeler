@@ -1,0 +1,75 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootMosaic()
+    try 
+      let mosaicClient = Clients::Mosaic::MosaicClient("com.ceteva.mosaic")
+      in
+        xmf.clientManager().add(mosaicClient);
+        
+        // the following is a hack to support the lookup of images which have hard
+        // coded path names in them
+        
+        mosaicClient.setFilenameRedirect("C:/Documents and Settings/Tony Clark/workspace/",xmf.homeDir() + "/../");
+        
+        @Fork(Mosaic)
+          mosaicClient.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end
+
+context XMF
+  @Operation saveImage()
+    let file = xmf.saveFile(xmf.imageDir(),"*.img")
+    in
+      if file <> ""
+      then 
+        if @Busy("Saving Image") saveMachineState(file) end <> true
+        then
+          let input = Kernel_clientInputChannel("com.ceteva.console");
+              output = Kernel_clientOutputChannel("com.ceteva.console");
+              grammar = xmf.topLevel().grammar
+          in
+            Root::stdin.setChannel(input);
+            Root::stdout.setChannel(output);
+            Kernel_rebindStdin(input);
+            Kernel_rebindStdout(output);
+            xmf.menuManager().reset();
+            
+            (xmf.homeDir() + "/Boot/Server/ToolInterface.o").loadBin(false);
+            
+            @For client in xmf.getAllClients() do
+              client.renew()
+            end;
+            @Fork xmf.topLevel().loop() end
+            // xmf.thread().kill()
+            // When loading a saved system image, the old top level (console) thread
+            // needs to be killed - this needs to be explicitly referred to, just
+            // calling xmf.thread().kill() is Russian roulette!
+          end
+        else
+          xmf.message("Image saved successfully")
+        end
+      end
+    end
+  end
+
+/* let 
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.dropMenus"
+in
+  registry.addContribution(id,
+    Clients::ExtensionPoints::TypeLessContribution(
+      Seq{
+        Seq{"&File","Image","Save &Image ..."},
+        XMF::saveImage
+      }
+    )
+  )
+end; */

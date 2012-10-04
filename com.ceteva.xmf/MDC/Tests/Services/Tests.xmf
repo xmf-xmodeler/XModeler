@@ -1,0 +1,162 @@
+parserImport XOCL;
+parserImport XRules;
+
+import Services;
+
+Root::Resource1 :=
+  Resource[name="R1"];
+  
+Root::Resource2 :=
+  Resource[name="R2"];
+
+Root::Resource3 :=
+  Resource[name="R3"];
+
+Root::Service1 :=
+  Service[
+    name="S1",
+    resources=Seq{Resource1}
+  ];
+
+Root::Service2 :=
+  Service[
+    name="S2",
+    resources=Seq{Resource1,Resource2}
+  ];
+
+Root::Service3 :=
+  Service[
+    name="S3",
+    resources=Seq{Resource1,Resource3}
+  ];
+
+Root::Group1 :=
+  Group[
+    name="G1",
+    services=Seq{Service1},
+    constraint=True()
+  ];
+  
+Root::Group2 :=
+  Group[
+    name="G2",
+    services=Seq{Service2},
+    constraint=
+      Equals[
+        left=Const[value=10],
+        right=Attribute[name="A"]
+      ]
+  ];
+  
+Root::Group3 :=
+  Group[
+    name="G3",
+    services=Seq{Service3},
+    constraint=
+      Equals[
+        left=Const[value=100],
+        right=Attribute[name="A"]
+      ]
+  ];
+  
+Root::Group4 :=
+  Group[
+    name="G4",
+    services=Seq{Service3},
+    constraint=
+      Equals[
+        left=Const[value=100],
+        right=Attribute[name="B"]
+      ]
+  ];
+  
+Root::Groups := Seq{
+  Group1,
+  Group2,
+  Group3,
+  Group4
+};
+  
+Root::Env1 := Seq{};
+
+Root::Env2 := Seq{Seq{"A"|10}};
+
+Root::Env3 := Seq{Seq{"A"|100}};
+
+Root::Env4 := Seq{Seq{"B"|100}};
+
+context Root
+  @Operation test1()
+  
+    // Empty consistency check...
+    
+    @WithRules(ServiceRules)
+      Show(<Groups>,<Env1>,<Service1>)
+      return true
+    end
+  end
+  
+context Root
+  @Operation test2()
+  
+    // Service1 requires no attributes...
+    
+    @WithRules(ServiceRules)
+      Show(<Groups>,<Env2>,<Service1>)
+      return true
+    end
+  end
+  
+context Root
+  @Operation test3()
+  
+    // What attributes and values are required 
+    // by Service1?
+    
+    @WithRules(ServiceRules)
+      Show(<Groups>,Env,<Service2>)
+      return Env
+    end
+  end
+  
+context Root
+  @Operation test4()
+  
+    // Return all services that requires some 
+    // attributes (rules out an empty service)...
+    
+    @WithRules(ServiceRules)
+      Show(<Groups>,Env,Service)
+      NotEmpty(Env)
+      returnAll Seq{Service,Env}
+    end
+  end
+  
+context Root
+  @Operation test5()
+  
+    // Perform a join on the requirements
+    // of two (or more) services...
+    
+    @WithRules(ServiceRules)
+      Show1(<Groups>,Env1,<Service2>)
+      Show1(<Groups>,Env2,<Service3>)
+      Append(Env1,Env2,Env)
+      Terminated(Env)
+      WellFormed(Env)
+      return Env
+    end
+  end
+  
+context Root
+  @Operation test6(env)
+  
+    // Get all the services that are supported
+    // by a given user spec...
+    
+    @WithRules(ServiceRules)
+      Show(<Groups>,<env>,Service)
+      returnAll Service
+    end
+  end
+    

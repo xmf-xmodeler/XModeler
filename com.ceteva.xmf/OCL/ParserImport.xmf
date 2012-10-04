@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ParserImport extends OCL::OCL
+  
+    @Attribute names : Seq(String) end
+    @Attribute exp   : Performable end
+    
+    @Constructor(names,exp) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"parserImport ~S in ~%~V",Seq{names->separateWith("::"),indent+2});
+      exp.pprint(out,indent);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

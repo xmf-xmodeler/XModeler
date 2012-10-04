@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class And extends Recognizer
+  
+    // Sequences parsers.
+    
+    @Attribute left : Recognizer end
+    @Attribute right : Recognizer end
+    
+    @Constructor(left,right) end
+    
+    @Operation code(outputChannel)
+      left.code(outputChannel);
+      format(outputChannel," ");
+      right.code(outputChannel)
+    end
+    
+    @Operation FV():Set(String)
+      left.FV()->union(right.FV())
+    end
+    
+    @Operation nextSet(grammar)
+      let N = left.nextSet(grammar)
+      in if N->isEmpty
+         then right.nextSet(grammar)
+         else N
+         end
+      end
+    end
+    
+    @Operation setOwner(owner)
+      left.setOwner(owner);
+      right.setOwner(owner)
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals()->union(right.terminals())
+    end
+    
+    @Operation parse(machine)
+      machine.pushSuccess(right);
+      left.parse(machine)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::And(<left.toExp(FV)>,<right.toExp(FV->union(left.FV()))>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      And(left.transform(FV,grammar),right.transform(FV->union(left.FV()),grammar))
+    end
+    
+  end

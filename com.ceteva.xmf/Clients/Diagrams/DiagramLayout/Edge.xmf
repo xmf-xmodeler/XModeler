@@ -1,0 +1,75 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramLayout;
+
+context DiagramLayout
+
+  @Class Edge 
+
+    @Attribute labels : Set(Label) (?,!,+,-) end
+    @Attribute waypoints : Set(WayPoint) (?,!,+,-) end
+    @Attribute hidden : Boolean (?,!) end
+    @Attribute layoutId : String (?,!) end
+    @Attribute blue : Integer (?,!) end
+    @Attribute green : Integer (?,!) end
+    @Attribute red : Integer (?,!) end
+    @Attribute lineStyle : Integer (?,!) end
+    @Attribute targetHead : Integer (?,!) end
+    @Attribute sourceHead : Integer (?,!) end
+    @Attribute refy : Integer (?,!) end
+    @Attribute refx : Integer (?,!) end
+    @Attribute targetId : String (?,!) end
+    @Attribute sourceId : String (?,!) end
+
+    @Constructor(layoutId,sourceId,targetId,sourceHead,targetHead,lineStyle,refx,refy,hidden,red,green,blue,waypoints,labels) end
+    
+    @Operation applyLabelLayout(edge,labelLayout)
+      @Find(label,edge.labels)
+        when label.text = labelLayout.text
+        do label.move(labelLayout.relx,labelLayout.rely)
+      end
+    end
+    
+    @Operation applyWayPointLayout(edge)
+      @Count index from 0 to waypoints->size do
+        let wayPointLayout = waypoints->at(index)
+        in @Find(wayPoint,edge.wayPoints) 
+             when wayPoint.index = index
+             do wayPoint.move(wayPointLayout.x,wayPointLayout.y)
+             else
+               let wayPoint = Diagrams::WayPoint(index,wayPointLayout.x,wayPointLayout.y)
+               in edge.addWayPoint(wayPoint);
+                  wayPoint.new(edge)
+               end
+           end;
+           @For wayPoint in edge.wayPoints->drop(waypoints->size) do
+             wayPoint.delete()
+           end
+         end
+      end
+    end
+    
+    @Operation applyLayout(diagram)
+      @Find(edge,diagram.edges())
+        when layoutId = edge.layoutId() and
+             edge.sourceNode().layoutId() = sourceId and
+             edge.targetNode().layoutId() = targetId
+        do self.applyWayPointLayout(edge);
+           @For labelLayout in labels do
+             self.applyLabelLayout(edge,labelLayout)
+           end;
+           edge.setRefPoint(refx,refy);
+           edge.sourceHead := sourceHead;
+           edge.targetHead := targetHead;
+           edge.setStyle(lineStyle);
+           edge.setColor(Color(red,green,blue));
+           if hidden
+           then edge.hide()
+           else edge.showAnyway()
+           end
+      end
+    end
+    
+  end

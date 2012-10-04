@@ -1,0 +1,30 @@
+import Compiler;
+import Instrs;
+import OCL;
+
+context Instantiate
+  @Operation FV():Element
+    self.desugar().FV()
+  end
+
+context Instantiate
+  @Operation maxLocals():Element
+    self.desugar().maxLocals()
+  end
+
+context Instantiate
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    self.desugar().compile(env,frame,isLast,saveSource)
+  end
+  
+context Instantiate
+  @Operation desugar()
+    args->iterate(arg exp = [| <class>() |] | [| <exp>.<arg.name> := <arg.value> |])
+  end
+  
+context Instantiate
+  @Operation lift()
+    let argExps = SetExp("Seq",args->collect(arg | arg.lift()))
+    in Apply(self.typeExp(),Seq{class.lift(),argExps})
+    end
+  end

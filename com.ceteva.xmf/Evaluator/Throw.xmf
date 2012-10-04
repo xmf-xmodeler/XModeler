@@ -1,0 +1,21 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Throw in Eval(aThrow,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aThrow.exp,
+       @Operation(next,result,call,return)
+         self.eval(aThrow.exp,env,target,imports,next,result,call,return,
+           @Operation(value)
+             result(aThrow,value,@Operation(value) throw value end)
+           end)
+       end)
+  end
+end;

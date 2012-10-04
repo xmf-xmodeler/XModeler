@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class KeyArg
+  
+    @Doc
+      A key arg occurs in a keyword instantiation of the form C[x = M,...].
+    end
+    
+    @Attribute name : String end
+    @Attribute value : Performable end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation lift():Performable
+      [| OCL::KeyArg(<StrExp(name)>,<value.lift()>) |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S = ",Seq{name});
+      value.pprint(out,indent)
+    end
+    
+  end

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootBrowser()
+    try 
+      let 
+        modelBrowserClient = Clients::ModelBrowsers::ModelBrowserClient("com.ceteva.modelBrowser") then
+        xcoreMappingClient = Clients::ModelBrowserXCore::MappingClient("com.ceteva.modelBrowser:XCore",modelBrowserClient)
+      in 
+        xmf.clientManager().add(modelBrowserClient);
+        xmf.clientManager().add(xcoreMappingClient);
+        @Fork(Browser)
+          modelBrowserClient.start()
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

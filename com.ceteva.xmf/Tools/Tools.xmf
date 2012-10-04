@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+
+  @Package Tools  
+  
+    @Bind UserIcons = 
+      let templateDir = Directory(xmf.homeDir() + "/../com.ceteva.forms/icons/User",Seq{".*gif"}) then
+          files = templateDir.getContents()->asSeq
+      in files->select(file | file.hasSuffix(".gif"))
+      end
+    end
+    
+  end

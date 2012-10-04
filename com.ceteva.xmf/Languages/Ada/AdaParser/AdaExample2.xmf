@@ -1,0 +1,88 @@
+parserImport Languages::Ada::Units;
+
+import Languages;
+import Ada;
+import Units;
+
+Root::p :=  
+  
+@AdaProgram    
+  
+  package body Offset is
+
+   function Create(Position : out Range_And_Bearing.Handle)
+                  return Handle is
+      The_Instance : Handle := new Object;
+   begin
+      Set_Range_And_Bearing(This=>The_Instance,
+                            The_Range_And_Bearing=>Position);
+      Un_Designate(This=>The_Instance);
+      return The_Instance;
+   end Create;
+   
+   function Get_Range_And_Bearing
+      (This : access Object) return Range_And_Bearing.Handle is
+   begin
+      return This.The_Range_And_Bearing;
+   end Get_Range_And_Bearing;
+      
+   procedure Set_Range_And_Bearing
+      (This : access Object;
+       The_Range_And_Bearing : Range_And_Bearing.Handle) is
+   begin
+      This.The_Range_And_Bearing := The_Range_And_Bearing;
+   end Set_Range_And_Bearing;
+   
+   function equals(Left : access Object; Right : access Object) return Boolean is
+      use type Range_And_Bearing.Object;
+   begin
+      return
+         Get_Range_And_Bearing(This=>Left) =
+         Get_Range_And_Bearing(This=>Right);
+   end equals;
+   
+ end Offset; 
+   
+end;
+
+p.resourceName := xmf.homeDir() + "/Languages/Ada/AdaParser/AdaExample2.xmf";
+
+Root::w := Walkers::Find(@Operation(x) x.isReallyKindOf(Specs::ProcedureSpec) and x.parameters > 1 end);
+
+context Root
+  @Operation test(data,l)
+    @Walkers::Find x in data when x.isReallyKindOf(Specs::ProcedureSpec) limit l end
+  end
+  
+context Root
+  @Operation showLineOfFile(file,line)
+      let editor = Clients::XmfFileTree::XmfFile(null,file).viewText()
+      in
+        if line > 0 then
+          editor.showLine(line);
+          editor.clearHighlights();
+          editor.addLineHighlight(line)
+        end
+      end
+    end
+  
+context Root
+  @Operation test1(program,l)
+    @Walkers::Search x in  program
+      when 
+        x.isReallyKindOf(Specs::FunctionSpec) 
+      limit l
+      do showLineOfFile(program.resourceName,x.line) 
+    end
+  end
+  
+  context Root
+  @Operation test2(program,l)
+    @Walkers::Search x in  program
+      when 
+        x.isReallyKindOf(Specs::FunctionSpec) andthen
+          x.parameters->size > 1 
+      limit l
+      do showLineOfFile(program.resourceName,x.line) 
+    end
+  end

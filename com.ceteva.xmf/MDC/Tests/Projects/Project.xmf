@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+import Walkers;
+
+context MyProjects
+
+  @Class Project metaclass BrowsedClass
+    
+      @Attribute name : String end
+      @Attribute spec : Specs::Specification = Specs::Specification() end
+      @Attribute model  : Models::Model = Models::Model() end
+      
+      @Constructor(name) ! end
+      
+      @Interface
+        @Child spec end
+        @Child model end
+        @Image "Projects/Project" end
+        @MenuRoot MyProjects::Project end
+        @Menu Check check end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+      
+      @Operation check()
+        let walker = ConstraintReporter(false)
+        in walker.walkConstraints(self).edit()
+        end
+      end
+      
+    end
+    
+    

@@ -1,0 +1,222 @@
+parserImport XOCL;
+
+import Graphs;
+
+context Graphs
+
+  @Class Graph
+  
+    @Doc
+      This class implements a general graph and associated
+      operations.
+    end
+  
+    @Attribute nodes : Set(Node) (?,+,-) end
+    @Attribute edges : Set(Edge) (?,+,-) end
+    
+    @Constructor() end
+    
+    @Constructor(nodes,edges) end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Edge do self.addEdge(element) end
+        Node do self.addNode(element) end
+      end
+    end
+    
+    @Operation addEdge(edge:Edge)
+      self.edges := edges->including(edge)
+    end
+    
+    @Operation addNode(node:Node)
+      self.nodes := nodes->including(node)
+    end
+    
+    @Operation containsEdge(edge)
+      edges->includes(edge)
+    end
+    
+    @Operation containsNode(node)
+      nodes->includes(node)
+    end
+    
+    @Operation edgesBetween(n1:Node,n2:Node):Set(Edge)
+      self.edgesFrom(n1)->intersection(self.edgesTo(n2))
+    end
+    
+    @Operation edgesFrom(n:Node):Set(Edge)
+      edges->select(e | e.source() = n)
+    end
+    
+    @Operation edgeFor(data)
+      @Find(edge,edges)
+        when edge.data() = data
+        else null
+      end
+    end
+    
+    @Operation edgesTo(n:Node):Set(Edge)
+      edges->select(e | e.target() = n)
+    end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(Graph)
+      then
+        self.subGraph(other) and
+        other.subGraph(self)
+      else false
+      end
+    end
+    
+    @Operation inDegree(n:Node):Integer
+      // The number of edges incident on the node.
+      edges->select(e | e.target() = n)->size
+    end
+    
+    @Operation largestSubGraphSatisfying(pred:Operation):Graph
+      // Returns a largest sub-graph satisfying the predicate or null.
+      let subGs = self.power()->select(G | pred(G))
+      in @Find(G,subGs) 
+           when not subGs->exists(H | G.subGraph(H) and 
+                not G = H)  
+           else null 
+         end
+      end
+    end
+    
+    @Operation nodeFor(data)
+      @Find(node,nodes)
+        when node.data() = data
+        else null
+      end
+    end
+    
+    @Operation outDegree(n:Node):Integer
+      // The number of edges from the node.
+      edges->select(e | e.source() = n)->size
+    end
+    
+    @Operation paths():Set(Seq(Node))
+      // Get all the paths for all nodes.
+      nodes->collect(n | self.paths(n))->flatten
+    end
+    
+    @Operation paths(node:Node):Set(Seq(Node))
+    
+      // Returns the set of non-cyclic paths from this node 
+      // in the graph. If a path cycles then it is truncated
+      // so that it contains no duplicates.
+      
+      @Letrec paths =
+        @Operation(V:Set(Node),n:Node):Set(Seq(Node))
+          let E = edges->select(e | e.source() = n) then
+              N = E->collect(e | e.target())->reject(n | V->includes(n)) then
+              nextPaths = N->collect(n | paths(V->including(n),n))->flatten
+          in nextPaths->collect(p | Seq{n | p}) + Set{Seq{n}}
+          end
+        end
+      in paths(Set{node},node)
+      end
+    end
+      
+    @Operation power():Set(Graph)
+      // Produces the set of all sub-graphs including the receiver.
+      let N = nodes->power;
+          E = edges->power
+      in N->collect(nodes |
+           let legalEdgeSets =
+                 E->select(edges |
+                   edges->forAll(edge | 
+                     nodes->includes(edge.source()) and 
+                     nodes->includes(edge.target())))
+           in legalEdgeSets->collect(edges | Graph(nodes,edges))
+           end)->flatten
+      end
+    end
+    
+    @Operation pprint(out)
+      format(out,"Nodes:~%");
+      @For n in nodes do
+        format(out,"  ");
+        n.pprint(out);
+        format(out,"~%")
+      end;
+      format(out,"Edges:~%");
+      @For e in edges do
+        format(out,"  ");
+        e.pprint(out);
+        format(out,"~%")
+      end
+    end
+    
+    @Operation predecessors(n:Node):Set(Node)
+      self.edgesTo(n)->map("source")
+    end
+    
+    @Operation reduce(n:Node,G:Graph):Graph
+      // Replaces the sub-graph G with the node n.
+      let N = nodes - G.nodes();
+          E = edges - G.edges() then
+          E = E->collect(e | if G.nodes()->includes(e.source()) then Edge(e.data(),n,e.target()) else e end) then
+          E = E->collect(e | if G.nodes()->includes(e.target()) then Edge(e.data(),e.source(),n) else e end)
+      in format(stdout,"Reduce:~%");
+         self.pprint(stdout);
+         format(stdout,"~%Node = ");
+         n.pprint(stdout);
+         format(stdout,"~%SubGraph:~%");
+         G.pprint(stdout);
+         format(stdout,"~%Result:~%");
+         Graph(N->including(n),E).pprint(stdout);
+         format(stdout,"~%");
+         Graph(N->including(n),E)
+      end
+    end 
+          
+    @Operation remove(element)
+      @TypeCase(element)
+        Edge do self.deleteFromEdges(element) end
+        Node do self.removeNode(element) end
+      end
+    end
+    
+    @Operation removeNode(node)
+      self.deleteFromNodes(node);
+      @For edge in edges do
+        if edge.source = node or edge.target = node
+        then self.deleteFromEdges(edge)
+        end
+      end
+    end
+    
+    @Operation roots():Set(Node)
+      // Returns the set of roots of the graph...
+      nodes->select(n | not edges->exists(e | e.target() = n))
+    end
+    
+    @Operation subGraph(g:Graph):Boolean
+      nodes->forAll(n1 | g.nodes()->exists(n2 | n1.equals(n2))) and
+      edges->forAll(e1 | g.edges()->exists(e2 | e1.equals(e2)))
+    end
+    
+    @Operation subGraphRootedAt(N:Set(Node)):Graph
+      let G = Graph(Set{},Set{})
+      in @While not N->isEmpty do
+           let n = N->sel
+           in G := Graph(G.nodes()->including(n),G.edges() + G.edgesFrom(n));
+              N := N->excluding(n) + G.edgesFrom(n)->map("target")
+           end
+         end;
+         G
+      end
+    end
+    
+    @Operation successors(n:Node):Seq(Node)
+      self.edgesFrom(n)->map("target")
+    end
+               
+    @Operation terminals():Set(Node)
+      nodes->select(n | not edges->exists(e | e.source() = n))
+    end
+    
+  end

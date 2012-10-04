@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Machine [Machine]
+  @File Machine end
+  @File BasicState end
+  @File State end
+  @File MachineFail end
+do
+  Project(Parser::Machine,dir,self)
+end;

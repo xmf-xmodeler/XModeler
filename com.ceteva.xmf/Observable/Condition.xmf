@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class Condition isabstract extends Syntax
+  
+    @AbstractOp perform(env,object,slot,new,old) end
+     
+  end 

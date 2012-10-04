@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Todo extends Doc
+  
+    @Doc
+      This class describes a type of documentation describing an
+      outstanding task which is todo
+    end
+    
+    @Attribute name : String end
+    
+    @Grammar
+    
+      Todo ::= name = (Str | {null} ) doc = (Not('end') Char)* { Todo(name,doc->asString) }.
+      
+    end
+    
+    @Constructor(name,doc)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Todo~%~V",Seq{indent + 2});
+      format(out,"~S~%~V",Seq{doc,indent});
+      format(out,"end")
+    end
+  
+  end

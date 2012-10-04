@@ -1,0 +1,87 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+  
+Root::G :=
+    @Grammar scanner OCL::Scanner
+      StartG ::= X = Trues { X }.
+      Trues ::= True*.
+      True ::= 'G' { "G" }.
+    end; 
+    
+xmf.gc2heap().println();  
+    
+Root::H :=
+    @Grammar extends G
+      Start ::= Xs = (True | False)* {Xs}.
+      StartH ::= X = Falses { X }.
+      Falses ::= False*.
+      False ::= 'H' { "H" }.
+    end;
+     
+xmf.gc2heap().println();
+
+Root::I :=
+    @Grammar extends H
+      I ::= 'begin' X = (Start | I) 'end' {X}.
+    end;
+     
+xmf.gc2heap().println();
+
+Root::K :=
+  @Grammar extends OCLGrammar
+    Start ::= 'start' x = CompilationUnit {x}.
+  end;
+  
+  
+context Root
+  @Operation memTest()
+    let G = Seq{}
+    in @Count x from 0 to 200 do
+         let mem = xmf.gc2heap() then
+             grammar = 
+               @Grammar extends OCLGrammar
+   
+       For ::= 
+    
+         names = ForNames 
+         dir = ForDirective 
+         colls = ForColls 
+         guard = ('let' Exp | { null })
+         isExp = ForType 
+         body = Exp { 
+      
+           Seq{names,dir,colls,guard,body,isExp}
+        
+       }. 
+       
+       ForColls ::= exp = Exp exps = (',' Exp)* { Seq{exp | exps} }.
+    
+       ForDirective ::= 
+    
+         'in'            { "in" }  .
+         
+       ForNames ::= name = AName names = (',' AName)* { Seq{name | names} }.
+         
+       ForType ::= 'if' { false } .
+    
+     end
+   in G := G->including(grammar);
+      format(stdout,"(~<3>S mem = ~S~%",Seq{x,xmf.gc2heap() - mem})
+   end
+   end
+   end
+ end
+
+  
+context Root
+  @Operation test()
+    @WithOpenFile(fin <- xmf.homeDir() + "/XBNF/Test/data.xmf")
+      try K.parse(fin,"Start",Seq{})
+      catch(x)
+        if x.isKindOf(Exceptions::ParseError)
+        then x.pprint()
+        else throw x
+        end
+      end
+    end
+  end

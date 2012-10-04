@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class If extends Root::XRules::Action
+
+    // The If class implements Prolog's (P -> Q ; R)
+    // construct where P is tried, if it succeeds then
+    // Q is performed alternatively R is performed. No
+    // backtracking into P is allowed and Q; R is an
+    // exclusive or.
+    
+    @Attribute test   : Seq(Action) (?) end
+    @Attribute conseq : Seq(Action) (?) end
+    @Attribute alt    : Seq(Action) (?) end
+    
+    @Constructor(test,conseq,alt) ! end
+    
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+      rules.performs(test,vars,indent,env,
+        @Operation(env,ignore)
+          rules.performs(conseq,vars,indent,env,succ,fail,cut,exception)
+        end,
+        @Operation()
+          rules.performs(alt,vars,indent,env,succ,fail,cut,exception)
+        end,
+        cut,exception)
+    end
+    
+    @Operation vars(vars)
+      @For a in test do
+        vars := a.vars(vars)
+      end;
+      @For a in conseq do
+        vars := a.vars(vars)
+      end;
+      @For a in alt do
+        vars := a.vars(vars)
+      end;
+      vars
+    end
+
+  end

@@ -1,0 +1,29 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest BrowserInterface
+  BrowserInterface = @File BrowserInterface end
+  @Ref Displays end
+  @File InterfaceElement end
+  @File OperationRefSyntax end
+  @File Child end
+  @File ChildSortMode end
+  @File InheritChildren end
+  @File Menu end
+  @File Delete end
+  @File Property end
+  @File Extend end
+  @File Select end
+  @File Remove end
+  @File Image end
+  @File EditableTextOp end
+  @File LabelChangeGuard end
+  @File LabelChangeHandler end
+  @File Label end
+  @File MenuRoot end
+  @File Interface end
+  @File BrowsedClass end
+  @File BrowsedObject end
+do Project(BrowserInterface,dir,self)
+end;

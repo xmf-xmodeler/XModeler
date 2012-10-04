@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Undo
+  Undo = @File Undo end
+  @File UndoCommandInterpreter end
+  @File UndoEventHandler end
+  @File UndoClient end
+do Project(Undo,dir,self)
+end;
+

@@ -1,0 +1,60 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SlotBox extends Box
+  
+    @Constructor(x,y,width)
+      self.init(Seq{x,y,width,16,0,Color(),Color()});
+      self.refname := "slotbox"
+    end
+    
+    @Operation nextSlot(name,value,isString)
+      if isString then
+        StringSlotText(name,value,0,self.displays->size * 16)
+      else  
+        SlotText(name,value,0,self.displays->size * 16)
+      end
+    end
+    
+    @Operation expandHeight()  
+      let maxNameWidth = 0
+      in @For slotText in displays do
+           maxNameWidth := maxNameWidth.max(slotText.name.width())
+         end;
+         @For slotText in displays do
+           slotText.equals.move(maxNameWidth + 5,slotText.value.y());
+           slotText.value.move(maxNameWidth + 15,slotText.value.y())
+         end
+      end;
+      super()
+    end
+    
+    @Operation maxHeight()
+      if displays.isEmpty() then
+        16
+      else
+        super() + 3
+      end
+    end
+    
+    @Operation maxWidth()
+      super() + 3
+    end
+    
+    @Operation remove(slotText)
+      super(slotText);
+      @For display in displays do
+        if display.name.y >= slotText.name.y
+        then display.moveDown()
+        end
+      end
+    end
+    
+  end

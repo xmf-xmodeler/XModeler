@@ -1,0 +1,24 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Evaluator;
+
+@Handler Dot in Eval(aDot,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aDot.target,
+      @Operation(next,result,call,return)
+        self.eval(aDot.target,env,target,imports,next,result,call,return,
+          @Operation(object)
+            if object.isReallyKindOf(XCore::Object)
+            then result(aDot,object.get(aDot.name),cont)
+            else self.error("No slot named " + aDot.name + " in " + object.toString())
+            end
+          end)
+      end)
+  end
+end;

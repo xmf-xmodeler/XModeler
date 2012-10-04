@@ -1,0 +1,107 @@
+parserImport XOCL;
+
+import IO;
+import Clients::TextEditor;
+import HTML;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:35 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class HTMLElement isabstract extends Browsable
+  
+    @Constructor() ! end
+    
+    @Operation atomic():Boolean
+      // Returns true when there can be no contents.
+      // HTML elements are displayed in the form <TAG>
+      // rather than <TAG> ... </TAG>.
+      false
+    end
+    
+    @Operation HTMLAttributeValue(name:String):String
+      // Maps the name to the value of a slot.
+      // Usually just gets the value of the slot...
+      self.get(name)
+    end
+    
+    @Operation HTMLAttributes():Seq(String)
+    
+      // The names of the attributes that are meaningful
+      // as HTML attributes. Normally the names of the
+      // object slots, but occasionally this may change...
+      
+      self.of().allAttributes()
+        ->select(a | 
+          a.type = String or 
+          a.type = Integer or 
+          a.type = Boolean)
+        ->asSeq
+        .name
+        ->map("toString")
+    end
+    
+    @Operation tag():String
+    
+      // Returns the tag used for the HTML markup.
+      // Usually the name of the class, but occasionally
+      // this may change...
+      
+      self.of().name().toString()
+    end
+    
+    @Operation view()
+    
+      // Create an HTML viewer and show the receiver...
+      
+      let browser = HTMLViewer(self.writeString());
+          client = xmf.clientNamed("com.ceteva.text")
+      in client.newBrowser(browser);
+         browser
+      end
+    end
+    
+    @Operation write(out:OutputChannel)
+      if self.atomic()
+      then self.writeAtomic(out)
+      else self.writeComposite(out)
+      end
+    end
+    
+    @Operation writeAtomic(out:OutputChannel)
+      format(out,"<~S ",Seq{self.tag()});
+      @For a in self.HTMLAttributes() do
+        format(out,"~S='~X'",Seq{a,self.HTMLAttributeValue(a)});
+        if not isLast then format(out," ") end
+      end;
+      format(out,">~%")
+    end
+    
+    @Operation writeComposite(out:OutputChannel)
+      format(out,"<~S ",Seq{self.tag()});
+      @For a in self.HTMLAttributes() do
+        format(out,"~S='~X'",Seq{a,self.HTMLAttributeValue(a)});
+        if not isLast then format(out," ") end
+      end;
+      format(out,">~%");
+      @For e in contents do
+        e.write(out)
+      end;
+      format(out,"</~S>~%",Seq{self.tag()})
+    end
+    
+    @Operation writeString():String
+      let sout = StringOutputChannel()
+      in self.write(sout);
+         sout.getString()
+      end
+    end
+
+  end

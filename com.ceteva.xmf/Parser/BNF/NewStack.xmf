@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class NewStack extends Recognizer
+  
+    // This recognizer is pushed on the success stack of a
+    // machine state when a nonterminal is called. When it
+    // is performed, the nonterminal will have succeeded
+    // and the original stack is restored together with the
+    // value returned by the nonterminal. The cut stack is
+    // also popped back in order to revert back to the cut
+    // state present at the previous call. The environment
+    // is also saved and restored.
+  
+    @Attribute stack : Seq(Element) end
+    @Attribute locals : Element end
+    
+    @Constructor(stack,locals) end
+    
+    @Operation parse(machine)
+      let value = machine.popStack()
+      in machine.stack := stack;
+         machine.locals := locals;
+         machine.popCut();
+         machine.pushStack(value)
+      end
+    end
+    
+  end

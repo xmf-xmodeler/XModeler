@@ -1,0 +1,92 @@
+parserImport XOCL;
+
+// An indexed container is a class that manages a hashtable associating
+// keys with values. The Container::add/1 operation is implemented by
+// IndexedContainer to add the argument as both an index and a value. The
+// class IndexedContainer provides a 2-place operation for 'add' that
+// allows the index to be different from the value. Note that 'remove/1'
+// expects to be supplied with the index.
+
+context IndexedContainer
+  @Operation add(index:Element,element:Element):Container
+    self.contents.put(index,element);
+    self
+  end
+  
+context IndexedContainer
+  @Operation addContentDaemon(actionSource,daemon:Operation):Container
+    let container = self then
+        d = 
+      @Operation contentDaemon(index,newBucket,oldBucket) 
+        let
+          contents = container.contents();
+          oldValues = oldBucket->collect(pair | pair->tail);
+          newValues = newBucket->collect(pair | pair->tail)
+        in
+           if newValues->includesAll(oldValues)
+           then 
+             let newElement = (newValues-oldValues)->head
+             in daemon.invoke(actionSource,Seq{contents,contents->excluding(newElement)})
+             end
+           else 
+             let oldElement = (oldValues-newValues)->head
+             in daemon.invoke(actionSource,Seq{contents,contents->including(oldElement)})
+             end
+           end
+        end
+      end
+    in
+      contents.addDaemon(d);
+      d
+    end
+  end
+  
+context IndexedContainer
+  @Operation contentDaemons():Seq(Operation)
+    contents.daemons()->select(d | d.name().toString() = "contentDaemon")
+  end
+
+context IndexedContainer
+  @Operation contents():Set(Element)
+    contents.values()->excluding(self)
+  end
+  
+context IndexedContainer
+  // Initialise a container by initialising the contents.
+  // A container uses an indexed set to allow for specialization
+  // to a name space. A general container just uses the table
+  // as a set.
+  @Operation init()
+    self.contents := if contents = null then Table(10) else contents end;
+    //self.initContents();
+    super()
+  end
+  
+context IndexedContainer
+  @Operation index(key:Element):Element
+    contents.get(key)
+  end
+  
+context IndexedContainer
+  // Initialise the contents of a container.
+  @Operation initContents()
+    let keys = contents.keys()
+    in @While not keys->isEmpty do
+         let key = keys->sel
+         in keys := keys->excluding(key);
+            contents.get(key).init()
+         end
+       end
+    end
+  end 
+  
+context IndexedContainer
+  @Operation indices():Set(Element)
+    contents.keys()
+  end
+  
+context IndexedContainer
+  @Operation removeContentDaemon(daemon:Operation):Container
+    contents.removeDaemon(daemon);
+    self
+  end

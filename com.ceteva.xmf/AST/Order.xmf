@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Order in AST(aOrder,arg,seen)
+  let second = self.dispatch(aOrder.second,arg);
+      first = self.dispatch(aOrder.first,arg)
+  in ASTNode(aOrder,Seq{first,second})
+  end
+end;

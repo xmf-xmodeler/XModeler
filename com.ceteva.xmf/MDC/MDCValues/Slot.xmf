@@ -1,0 +1,497 @@
+parserImport XOCL;
+
+import MDC;
+import Values;
+
+context ! Values
+
+  // Class deployed by Tony Clark on Wed Dec 21 09:34:22 GMT 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Slot 
+
+    @Attribute owner   : Object (?,!) end
+    @Attribute value   : Element (?,!) end
+    @Attribute type    : Element (?,!) end
+    @Attribute display : Root::Tools::DiagramTools::Diagrams::Display (?,!) end
+    
+    @Constructor(type,value,display) end
+    
+    @Operation allValues()
+      if self.hasAtomicType()
+      then value.allValues()
+      else 
+        value->iterate(v V = Seq{} |
+          V + v.allValues()
+        )
+      end
+    end
+    
+    @Operation applyTheme(tool,theme,adding)
+      if self.hasAtomicType()
+      then value.applyTheme(tool,theme,adding)
+      else 
+        @For v in value do
+          v.applyTheme(tool,theme,adding)
+        end
+      end
+    end
+    
+    @Operation changeDisplayValue(value,tool,display,new,old)
+    
+      // Called when the display has changed and the underlying object slot
+      // is to be updated. 
+      
+      let v = self.coerceValue(new);
+          ownerElement = owner.element();
+          slotName = type.attribute().name()
+      in if ownerElement.legalSlotChangeCheck(slotName,v)
+         then
+           value.setElement(v);
+           MDCSetSlot(ownerElement,slotName,v);
+           display.setText(type.type().display().applyFilter(new));
+           tool.slotChangedEvent(ownerElement,slotName,v,old)
+         else
+           display.setText(type.type().display().applyFilter(old))
+         end
+      end
+    end
+    
+    @Operation clicks(display,clicks)
+      if self.hasAtomicType()
+      then value.clicks(display,clicks)
+      else
+        @For v in value do
+          v.clicks(display,clicks)
+        end
+      end
+    end
+    
+    @Operation coerceValue(value:String)
+    
+      // Used to translate a display change into a value
+      // for a slot based on the type of the attribute...
+      
+      @Case type.attribute().underlyingType() of
+        [String] do
+          value
+        end
+        [Integer] do
+          value.asInt()
+        end
+        [Boolean] do
+          value.asBool()
+        end
+        [Float] do
+          value.asFloat()
+        end
+        else value
+      end
+    end
+
+    @Operation delinkTool(value)
+      if value.isReallyKindOf(Values::Object)
+      then
+        @Find(s,value.slots)
+          when s.value.isReallyKindOf(ControlledObject)
+          do
+            let tool = s.value.tool
+            in
+              if tool.owner() <> null
+              then tool.removeFromOwner()
+              end
+            end
+        end
+      end
+    end
+    
+    @Operation displayChanged(tool,display,new,old)
+    
+      // If the slot has a value with the associated display
+      // then update the owning object.
+      
+      if value <> null
+      then
+        if type.attribute().hasAtomicType()
+        then 
+          if value.display() = display
+          then 
+            self.changeDisplayValue(value,tool,display,new,old)
+          else value.displayChanged(tool,display,new,old)
+          end
+        else 
+          @Find(v,value)
+            when v.display() = display
+            do self.changeDisplayValue(v,tool,display,new,old)
+            else 
+              @For v in value do
+                v.displayChanged(tool,display,new,old)
+              end
+          end
+        end
+      end
+    end
+    
+    @Operation displayRemoved(tool,display)
+    
+      // If the display corresponds to the display element for
+      // the value of the slot then set the value of the slot
+      // to be null, otherwise try each element of the collection
+      // and remove if necessary, otherwise descend into to the
+      // slot value...
+      
+      if value <> null
+      then
+        if type.attribute().hasAtomicType()
+        then
+          if display = value.display()
+          then self.value := null
+          else value.displayRemoved(tool,display)
+          end
+        else
+          @Find(v,value)
+            when v.display() = display
+            do let object = owner.element();
+                   name = type.attribute().name()
+               in self.value := value->excluding(v);
+                  tool.slotChangedEvent(object,name,object.get(name)->excluding(v.element()),object.get(name));
+                  MDCReduceSlot(object,name,v.element())
+               end
+            else 
+              @For v in value do
+                v.displayRemoved(tool,display)
+              end
+          end
+        end
+      end
+    end
+    
+    @Operation findDisplayValue(display)
+      if value = null
+      then null
+      elseif type.attribute().hasSeqType() or type.attribute().hasSetType()
+      then
+        @Find(v,value)
+          when v.findDisplayValue(display) <> null
+          do v.findDisplayValue(display)
+          else null
+        end
+      else value.findDisplayValue(display)
+      end
+    end
+    
+    @Operation findElementValue(element)
+      if value = null
+      then null
+      elseif type.attribute().hasSeqType() or type.attribute().hasSetType()
+      then
+        @Find(v,value)
+          when v.findElementValue(element) <> null
+          do v.findElementValue(element)
+          else null
+        end
+      else value.findElementValue(element)
+      end
+    end
+    
+    @Operation findRootValue(object)
+    
+      // If the type of the slot has a diagram
+      // container type then the values are 
+      // displayed as nodes...
+      
+      if self.hasAtomicType()
+      then
+        if value <> null
+        then value.findRootValue(object)
+        else null
+        end
+      else
+        let root = null
+        in @For v in value when root = null do
+             root := v.findRootValue(object)
+           end;
+           root
+        end
+      end
+    end
+    
+    @Operation hasAtomicType():Boolean
+      type.attribute().hasAtomicType()
+    end
+    
+    @Operation modifyDisplay(tool,new,old)
+      
+      // Called when the underlying value has changed.
+      
+      if value <> null
+      then
+        if type.attribute().hasAtomicType()
+        then value.modifyDisplay(tool,new,old)
+        else 
+          let added = new - old;
+              deleted = old - new
+          in
+           
+            // Add in new values... 
+          
+            @For value in added do
+               let newDisplay = type.addNew(tool,display,type.type().display().displayType().name().toString()) then
+                   newValue = type.type().build(tool,value,newDisplay)
+               in self.value := self.value + Seq{newValue};
+                  type.type().display().setDisplay(tool,newValue,value);
+                  type.type().populate(tool,newValue,value)
+               end
+             end;
+             
+             // Get rid of stuff that has been deleted...
+             
+             @For value in deleted do
+               @Find(v,self.value)
+                 when v.element() = value
+                 do v.display().delete(true);
+                    self.value := self.value->excluding(v)
+               end
+             end
+          end
+        end
+      end
+      
+    end
+    
+    @Operation multipleRootsChanged(tool,new,old)
+    
+      // Calculate the values that are deleted and move them onto
+      // the free list. For each added value, create a new node if
+      // necessary and add them to the values...
+      
+      let added = new - old;
+          deleted = old - new then
+          nodeType = type.type().nodeType()
+      in @For value in deleted do
+           let deletedValue = tool.findRootValue(value)
+           in if deletedValue <> null
+              then 
+              
+                // If the deleted value is linked in then
+                // move it to the free  node list, otherwise
+                // delete the node...
+                
+                // Moving roots to the free node list seems 
+                // wrong. The rationale is that the node is
+                // still linked and should be shown, but then
+                // this is not what would be shown on a diagram
+                // generated from scratch...
+                
+                if true //tool.diagram().graph.edgesConnectedTo(deletedValue.display())->isEmpty
+                then deletedValue.display().delete();
+                     self.value := self.value->excluding(deletedValue)
+                else tool.addToFree(deletedValue)
+                end
+              end
+           end
+         end;
+         @For value in added do
+           let addedValue = tool.findRootValue(value)
+           in if addedValue = null 
+              then 
+                let newNode = nodeType.new(10,10,tool)
+                in self.value := self.value->including(type.type().newNode(tool,value,newNode))
+                end
+              else self.value := self.value->including(addedValue)
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation newNode(tool,node)
+      if type.attribute().hasAtomicType()
+      then
+        if value <> null
+        then self.setNode(tool,node)
+        end
+      else 
+        @For value in value do
+          value.newNode(tool,node)
+        end
+      end
+    end
+    
+    @Operation nodeRemoved(tool,node)
+    
+      // If the node is the display for the value
+      // of the slot then we must be at the controlled
+      // element. Update it appropriately...
+      
+      if value <> null
+      then
+        if type.attribute().hasAtomicType()
+        then 
+          if value.display() = node
+          then
+            let object = owner.element();
+                name = type.attribute().name() then
+                old = object.get(name)
+            in self.value := null;
+               owner.element().set(type.attribute().name(),null);
+               tool.slotChangedEvent(object,name,null,old);
+               self.delinkTool(old)
+            end
+          end
+        else 
+          @Find(v,value)
+            when v.display() = node
+            do let object = owner.element();
+                   name = type.attribute().name() then
+                   new = object.get(name)->excluding(v.element());
+                   old = object.get(name)
+               in self.value := value->excluding(v);
+                  MDCSetSlot(object,name,new);
+                  tool.slotChangedEvent(object,name,new,old);
+                  self.delinkTool(v)
+               end
+          end
+        end
+      end
+    end      
+    
+    @Operation populate(tool,new,old)
+    
+      // Called when the value of the slot has changed to the 
+      // supplied new value from the supplied old value.
+      
+      type.populate(tool,owner,owner.element())
+      
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Slot~%~V",Seq{indent+2});
+      format(out,"Type: ~S~%~V",Seq{type,indent+2});
+      format(out,"Value~%~V",Seq{indent+4});
+      if self.hasAtomicType()
+      then value.pprint(out,indent+4)
+      else
+        @For v in value do
+          v.pprint(out,indent+4);
+          if not isLast
+          then format(out,"~%~V",Seq{indent+4})
+          end
+        end
+      end;
+      format(out,"~%~Vend",Seq{indent+2})
+    end
+    
+    @Operation rootChanged(tool,new,old)
+    
+      // The slot is owned by the controlled element and
+      // therefore we must arrange for the new value to 
+      // be shown as a node and for the old value to be
+      // moved over to a free node value.
+      
+      if type.attribute().hasAtomicType()
+      then self.singleRootChanged(tool,new,old)
+      else self.multipleRootsChanged(tool,new,old)
+      end
+    end
+    
+    @Operation setNode(tool,node)
+    
+      // A new node has been added. Assumes that the
+      // owner of the slot is the root object. If the
+      // current value of the slot is not null then
+      // it becomes a free floating node on the diagram...
+      
+      if node.type() = type.type().nodeType()
+      then 
+        if type.attribute().hasAtomicType()
+        then 
+          let classifier = type.type().classifier() then
+              newValue = classifier();
+              object = owner.element();
+              name = type.attribute().name() then
+              oldValue = object.get(name)
+          in MDCSetSlot(object,name,newValue);
+             tool.objectCreatedEvent(newValue);
+             tool.slotChangedEvent(object,name,newValue,oldValue);
+             if value <> null then tool.addToFree(value) end;
+             self.value := type.type().newNode(tool,newValue,node)
+          end
+        else 
+          let classifier = type.type().classifier() then
+              newValue = classifier();
+              object = owner.element();
+              name = type.attribute().name() then
+              oldValue = object.get(name)
+          in MDCExtendSlot(object,name,newValue);
+             tool.objectCreatedEvent(newValue);
+             tool.slotChangedEvent(object,name,oldValue->including(newValue),oldValue);
+             self.value := self.value->including(type.type().newNode(tool,newValue,node))
+          end
+        end
+      end
+    end
+    
+    @Operation singleRootChanged(tool,new,old)
+    
+      // The value of the slot has changed. We must
+      // deal with the old value by moving to the free
+      // list of values...
+      
+      let newValue = tool.findRootValue(new);
+          oldValue = tool.findRootValue(old)
+      in if oldValue <> null
+         then oldValue.display().delete()
+         end;
+         if new <> null
+         then
+           if newValue = null
+           then 
+             let nodeType = type.type().nodeType() then
+                 newNode = nodeType.new(10,10,tool)
+             in self.value := type.type().newNode(tool,new,newNode)
+             end
+           else self.value := newValue
+           end
+         end
+      end
+    end
+    
+    @Operation stateChanged(tool,object,slot,new,old)
+    
+      // Called to propagate the state changed message down
+      // the object tree. Note than a slot value may be
+      // displayed, but the value may be null.
+      
+      if value <> null
+      then
+        if type.attribute().hasAtomicType()
+        then value.stateChanged(tool,object,slot,new,old)
+        else 
+          @For v in value do
+            v.stateChanged(tool,object,slot,new,old)
+          end
+        end
+      end
+    end
+    
+    @Operation toString()
+      let v = 
+        if value = null 
+        then "null" 
+        elseif type.attribute().hasAtomicType()
+        then value.element().toString() 
+        else value->collect(v | v.element().toString())
+        end
+      in "<Slot " + type.attribute().name() + " = " + v + ">"
+      end
+    end
+      
+
+  end

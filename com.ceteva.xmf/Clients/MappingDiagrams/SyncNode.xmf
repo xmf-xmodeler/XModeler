@@ -1,0 +1,68 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import MappingDiagrams;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class SyncNode extends ClassifierNode
+    
+    @Attribute name    : Text   end
+    @Attribute package : String end
+    @Attribute shape   : SyncShape end
+  
+    @Constructor(name,package,x,y)
+      self.width := 70;
+      self.height := 40;
+      self.shape := SyncShape(0,0,width,height);
+      self.name := Text(name,width.div(4),(height.div(2))-5,true)
+    end
+
+    @Operation dispose()
+      name.dispose();
+      shape.dispose();
+      super()
+    end
+
+    @Operation minWidth()
+      2 * name.maxWidth()
+    end
+    
+    @Operation minHeight()
+      2 * name.maxHeight()
+    end
+    
+    @Operation name()
+      self.name.text()
+    end
+    
+    @Operation setName(name)
+      self.name.setText(name)
+    end
+    
+    @Operation resize(width,height)
+      let width = width.max(self.minWidth());
+          height = height.max(self.minHeight())
+      in 
+        super(width,height);
+        self.name.move(width.div(4),(height.div(2))-5);
+        self.shape.resize(width,height);
+        @For port in ports do
+          port.resize(width,height)
+        end
+      end
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+    
+    @Operation addDisplays()
+      self.add(shape);
+      self.add(name) 
+    end
+  end

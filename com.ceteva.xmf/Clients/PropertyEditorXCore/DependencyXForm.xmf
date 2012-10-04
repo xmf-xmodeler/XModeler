@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import XMap;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class DependencyXForm extends ObjectXForm
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once DependencyXForm::daemons_sourceChanged(element,"source") end;
+      @SlotValueChanged multi once DependencyXForm::daemons_targetChanged(element,"target") end
+    end
+
+    @Operation daemons_sourceChanged(e,slot,newSource,oldSource)
+      if newSource = null and element.target = null
+      then
+        form.closeCommand()
+      end
+    end
+
+    @Operation daemons_targetChanged(e,slot,newTarget,oldTarget)
+      if newTarget = null and element.source = null
+      then
+        form.closeCommand()
+      end
+    end
+
+  end

@@ -1,0 +1,49 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class NameBox extends Box
+  
+    @Attribute name : String end
+    @Attribute type : String end
+  
+    @Constructor(name,type,x,y,width)
+      self.init(Seq{x,y,width,25,0,Color(),Color()});
+      self.name := Text("object",5,3,true);
+      self.type := Text(" : "+type,40,3,false);
+      self.refname := "namebox"
+    end
+    
+    @Operation addDisplays()
+      self.add(name);
+      self.add(type)
+    end
+    
+    @Operation expandHeight()
+      type.move(name.width() + self.separator(),type.y());
+      super()
+    end
+    
+    @Operation maxHeight()
+      super() + 3
+    end
+    
+    @Operation maxWidth()
+      super() + 3
+    end
+    
+    @Operation separator()
+      5
+    end
+    
+    @Operation setType(newType)
+      self.type.setText(" : "+newType)
+    end
+    
+  end

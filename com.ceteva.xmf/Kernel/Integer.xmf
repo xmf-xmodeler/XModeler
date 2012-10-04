@@ -1,0 +1,351 @@
+parserImport XOCL;
+
+context Integer
+  @Operation abs():Integer
+    @Doc 
+      Returns the absolute value of an integer.
+    end
+    if self < 0 
+    then 0 - self
+    else self
+    end
+  end
+  
+context Integer
+  @Operation add(other)
+    @Doc
+      Adds an integer to another integer
+      of a float.
+    end
+    if other.isReallyKindOf(Integer)
+    then self + other
+    elseif other.isReallyKindOf(Float)
+    then Float(self,0) + other
+    else other.add(self)
+    end
+  end
+  
+context Integer
+  @Operation asFloat():Float
+    Float(self,0)
+  end
+  
+context Integer
+  @Operation asInt():Integer
+    self
+  end
+  
+context Integer
+  @Operation asSeq():Seq(Integer)
+    @Doc 
+      Turns an integer into a 24 bit sequence of
+      binary values.
+    end
+    let s = Seq{};
+        i = 23
+    in @While i >= 0 do
+          s := Seq{self.bit(i) | s};
+          i := i - 1
+       end;
+       s
+    end
+  end
+  
+context Integer
+  @Operation bit(index)
+    @Doc
+      Returns the ith bit after converting
+      an integer into a 24 bit sequence of
+      binary values.  
+    end
+    self.rsh(index) and 1
+  end
+  
+context Integer
+  @Operation byte(index:Integer):Integer
+  
+    @Doc
+      Returns the byte of an indexed by index. 
+      Bytes are indexed from 1 (low) to
+      4 (high).
+    end
+    
+    let byte = self and 255.lsh(8 * (index - 1))
+    in byte.rsh(8 * (index - 1))
+    end
+  end
+  
+context Integer
+  @Operation ceiling():Integer
+    @Doc
+      Rounds a float down to an integer.
+    end
+    self
+  end
+  
+context Integer
+  @Operation div(other:Integer):Integer
+
+    @Doc
+      Integer division returns the number of times an integer
+      can be divided by other a whole number of
+      times.
+    end
+    
+    if other <> 0
+    then
+      Kernel_div(self,other)
+    else self.error("Cannot perform " + self.toString() + ".div(0)")
+    end
+    
+  end
+  
+context Integer
+  @Operation greater(other:Integer)
+    @Doc
+      Returns true if an integer is greater than
+      other.
+    end
+    if other.isKindOf(Integer)
+    then self > other
+    elseif other.isKindOf(Float)
+    then Float(self,0) > other
+    else self.error("Integer::greater: illegal argument " + other.toString())
+    end
+  end
+  
+context Integer
+  @Operation floor():Integer
+    @Doc
+      Rounds a float down to an integer.
+    end
+    self
+  end
+  
+context Integer
+  @Operation isAlphaChar():Boolean
+    @Doc
+      Returns true if an integer is a valid alphanumeric value.
+    end
+    self.isLowerCaseChar() or
+    self.isUpperCaseChar()
+  end
+       
+context Integer
+  @Operation isLowerCaseChar():Boolean
+    @Doc
+      Returns true if an integer is a valid lower case alphanumeric value.
+    end
+    "a"->at(0) <= self and "z"->at(0) >= self
+  end
+  
+context Integer
+  @Operation isNewLineChar():Boolean
+    @Doc
+      Returns true if an integer is the new line alphanumeric value.
+    end
+    "\n\r"->includes(self)
+  end
+  
+context Integer
+  @Operation isNumericChar():Boolean
+    @Doc
+      Returns true if an integer is a valid numeric alphanumeric value.
+    end
+    "0"->at(0) <= self and "9"->at(0) >= self
+  end
+  
+context Integer
+  @Operation isUpperCaseChar():Boolean
+    @Doc
+      Returns true if an integer is a valid upper case alphanumeric value.
+    end
+    "A"->at(0) <= self and "Z"->at(0) >= self
+  end
+  
+context Integer
+  @Operation isWhiteSpaceChar():Boolean
+    @Doc
+      Returns true if an integer is the white space alphanumeric value.
+    end
+    " \t\n\r"->includes(self)
+  end
+  
+context Integer
+  @Operation less(other)
+    @Doc
+      Returns true if the integer is lower than other.
+    end
+    if other.isKindOf(other)
+    then self < other
+    elseif other.isKindOf(Float)
+    then Float(self,0) < other
+    else self.error("Integer::less: illegal argument " + other.toString())
+    end
+  end
+  
+context Integer
+  @Operation lsh(n:Integer):Integer
+    @Doc
+      Left shift bit operation.
+    end
+    if n <= 0
+    then self
+    else (self * 2).lsh(n - 1)
+    end
+  end
+
+context Integer
+  @Operation max(other:Integer):Integer
+    @Doc
+      Compares an integer with other and returns
+      the maximum value.
+    end
+    if self > other
+    then self
+    else other
+    end
+  end
+  
+context Integer
+  @Operation min(other:Integer):Integer
+    @Doc
+      Compares an integer with other and returns
+      the minimum value.
+    end
+    if self < other
+    then self
+    else other
+    end
+  end
+  
+context Integer
+  @Operation mod(other:Integer):Integer
+    @Doc
+      Returns the remainder when an integer is divided by other.
+    end
+    Kernel_mod(self,other)
+  end
+  
+context Integer
+  @Operation mul(other)
+    @Doc
+      Multiples an integer by other.
+    end
+    if other.isKindOf(Integer)
+    then self * other
+    elseif other.isKindOf(Float)
+    then Float(self,0) * other
+    else self.error("Integer::mul: illegal operand " + other.toString())
+    end
+  end
+  
+context Integer
+  @Operation pow(other):Float
+    self.asFloat().pow(other)
+  end
+  
+context Integer
+  @Operation random(upper:Integer)
+    
+    // returns a random integer between 0 and the upper limit
+    
+    (Float::random() * upper).round()
+    
+  end
+  
+context Integer
+  @Operation round():Integer
+    @Doc
+      Rounds a float to the nearest whole integer.
+    end
+    self
+  end
+  
+context Integer
+  @Operation rsh(n:Integer):Integer
+    @Doc
+      Right shift bit operation.
+    end
+    if n <= 0
+    then self
+    else self.div(2).rsh(n - 1)
+    end
+  end
+  
+context Integer
+  @Operation slash(other)
+    @Doc
+      Divides an integer by other.
+    end
+    if other.isKindOf(Integer)
+    then self.div(other)
+    elseif other.isKindOf(Float)
+    then Float(self,0) / other
+    else self.error("Integer::slash: illegal operand " + other.toString())
+    end
+  end
+  
+context Integer
+  @Operation sqrt()
+    @Doc
+      Returns the square root of an integer.
+    end
+    Float(self,0).sqrt()
+  end
+  
+context Integer
+  @Operation sub(other)
+    @Doc
+      Substracts other from an integer.
+    end
+    if other.isKindOf(Integer)
+    then self - other
+    elseif other.isKindOf(Float)
+    then Float(self,0) - other
+    else self.error("Integer::sub: illegal operand " + other.toString())
+    end
+  end
+  
+context Integer
+  @Operation toString():String
+    @Doc
+      Converts an integer to a string.
+    end
+    Kernel_valueToString(self)
+  end
+  
+context Integer
+  @Operation to(i:Integer):Seq(Integer)
+    @Doc
+      Returns a sequence [self,i] where i is the
+      argument. Providing self <= i then both self
+      and i are present in the sequence.
+    end
+    let s = Seq{}
+    in @While i >= self do
+         s := Seq{i | s};
+         i := i - 1
+       end;
+       s
+    end
+  end
+  
+context Integer
+  @Operation toString(radix:Integer):String
+    @Doc
+      Converts an integer to a string using the
+      supplied radix.
+    end
+    let m = self.mod(radix);
+        d = self.div(radix) then
+        pre = if d = 0 then "" else d.toString(radix) end;
+        post = 
+          if m < 10 
+          then Seq{"0"->at(0) + m}.asString()
+          else Seq{"a"->at(0) + (m - 10)}.asString()
+          end
+    in pre + post
+    end
+  end
+    

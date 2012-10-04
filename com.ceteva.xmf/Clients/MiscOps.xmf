@@ -1,0 +1,1082 @@
+parserImport XOCL;
+parserImport XMap;
+
+import XCore;
+import Clients;
+
+context XCore::Element
+  @Operation labelString()
+    self.toString()
+  end 
+
+context XCore::NamedElement
+  @Operation labelString()
+    let name = self.name.toString() in
+      if not name = "" then
+        name
+      else
+        "<anon : "+self.of().nameString()+">"
+      end
+    end
+  end 
+
+context XCore::Attribute
+  @Operation labelString()
+    self.attString()
+  end 
+
+context XCore::Multiplicity
+  @Operation labelString()
+    self.multString()
+  end 
+
+context XCore::Operation
+  @Operation labelString()
+    self.name.toString() + "()"
+  end 
+
+context XCore::Constructor
+  @Operation labelString()
+    formats("~S(~{,~;~S~})",Seq{self.owner().name(),self.names})
+  end
+
+context XCore::SeqOfElement
+  @Operation labelStringIterator(startString : String, separator : String)
+    let s = startString;
+        maxLength = 100;
+        maxReached = false
+    in
+      @For e in self do
+        if not maxReached
+        then
+          if e.isReallyKindOf(String)
+          then s := s + "\"" + e.labelString() + "\"" + separator 
+          else s := s + e.labelString() + separator
+          end;
+          if s.size() > maxLength
+          then maxReached := true
+          end
+        end
+      end;
+      
+      if not self->isEmpty
+      then s := s.truncate(s.size() - separator.size())
+      end;
+      
+      if s.size() > maxLength
+      then s := s.truncate(maxLength) + " ... "
+      end;
+      
+      s + "}"
+    end
+  end
+
+context XCore::SeqOfElement
+  @Operation labelString()
+    let separator = if self.isProperSequence() then "," else " | " end
+    in
+      self->asProperSeq.labelStringIterator("Seq{" , separator)
+    end
+  end
+
+context XCore::SetOfElement
+  @Operation labelString()
+    self->asSeq.labelStringIterator("Set{" , ",")
+  end
+
+context XCore::Element
+  @Operation nameString()
+    try
+      let
+        registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.editText") then
+        con = registryPoint.find(self.of()) then
+        editTextOp = con.getValue(0)
+      in
+        editTextOp(self)
+      end
+    catch(exception)
+      exception.edit()
+    end
+  end 
+
+context XCore::Element
+  @Operation slotAffectsLabel(slot : String)
+    false
+  end
+
+context XCore::Attribute
+  @Operation slotAffectsLabel(slot : String)
+    if slot = "type"
+    then true
+    else false
+    end
+  end
+
+context XCore::Element
+  @Operation doc()
+    null
+  end
+
+context XCore::Element
+  @Operation doubleClick()
+    self.edit()
+  end
+
+context XCore::ConstraintReport
+  @Operation doubleClick()
+    let con = self.constraint() in
+      if con<>null then
+        con.edit()
+      else
+        self
+      end
+    end
+  end
+
+context Walkers::TypeCheckReport
+  @Operation doubleClick()
+    if self.isKindOf(Walkers::TypeCheckExp)
+    then self.exp().pprint().edit()
+    else self.edit()
+    end
+  end 
+
+context XCore::Element
+  @Operation edit()
+    let dialogClient = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+      if dialogClient <> null
+      then 
+        dialogClient.newMessageDialog(self.toString())
+      else
+        format(stdout,"Dialog client not available.~%")
+      end
+    end;
+    self
+  end
+  
+context XCore::String
+  @Operation edit()
+    @Doc
+      Launches an editor for a string.
+    end
+    let textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient) 
+    in if textEditorClient <> null
+       then
+         let 
+           title = self then
+           cr = self.indexOf("\n") 
+         in
+           if cr <> 0-1 then
+             title := title.subString(0,cr)
+           end;
+           let editor = Clients::TextEditor::Editor(self,title,title,false) 
+           in 
+             textEditorClient.newTextEditor(editor);
+             editor.setText(self.toString())
+           end
+         end
+       end
+    end;
+    self
+  end
+  
+context Object
+  @Operation addMissingSlot(attribute)
+    let question = 
+      "An object of type " + self.of().toString() + " is missing the slot " + attribute.name() +
+      ". Do you want this to be added?"
+    in
+      if xmf.preference("AddMissingSlots") orelse xmf.question(question)
+      then
+        self.addStructuralFeature(attribute.name,attribute.getInitialValue())
+      else
+        throw Exceptions::NoSlot(self,attribute.name())
+      end
+    end
+  end
+  
+context Object
+  @Operation synchronise()
+  
+    // check that the object has slots of the correct
+    // type for each of the attributes
+    
+    @For attribute in self.of().allAttributes()
+    do
+      if self.hasSlot(attribute.name())
+      then
+        if not self.get(attribute.name).isKindOf(attribute.type)
+        then
+          self.removeStructuralFeature(attribute.name);
+          self.addStructuralFeature(attribute.name,attribute.getInitialValue())
+        end
+      else
+        self.addStructuralFeature(attribute.name,attribute.getInitialValue())
+      end
+    end;
+    
+    // check that all the slots in the object are of
+    // an attribute in the object's class
+    
+    @For sf in self.getStructuralFeatureNames()
+    do
+      if not self.of().hasAttribute(sf)
+      then
+        self.removeStructuralFeature(sf)
+      end
+    end
+  end
+  
+context Object
+  @Operation slotMissing(slot:Symbol)
+    let attribute = self.of().getAttribute(slot.toString())
+    in
+      if attribute <> null
+      then
+        self.addMissingSlot(attribute);
+        self.get(slot)
+      else
+        throw Exceptions::NoSlot(self,slot)
+      end
+    end    
+  end
+  
+context Object
+  @Operation slotMissing(slot:Symbol,value:Element)
+    let attribute = self.of().getAttribute(slot.toString())
+    in
+      if attribute <> null
+      then
+        self.addMissingSlot(attribute);
+        self.set(slot,value)
+      else
+        throw Exceptions::NoSlot(self,slot)
+      end
+    end
+  end
+  
+
+context XCore::Object
+  @Operation edit()
+    let mappingClient = xmf.findClient(Clients::PropertyEditorXCore::MappingClient) in
+      if mappingClient <> null
+      then 
+        mappingClient.showPropertyEditor(self)
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context XCore::SetOfElement
+  @Operation edit()
+    let formClient = xmf.findClient(Clients::Forms::FormClient) in
+      if formClient <> null
+      then 
+        formClient.newForm(CollectionViewer::CollectionForm(self))
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context XCore::SeqOfElement
+  @Operation edit()
+    let formClient = xmf.findClient(Clients::Forms::FormClient) in
+      if formClient <> null
+      then 
+        formClient.newForm(CollectionViewer::CollectionForm(self))
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context XCore::Vector
+  @Operation edit()
+    let formClient = xmf.findClient(Clients::Forms::FormClient) in
+      if formClient <> null
+      then 
+        formClient.newForm(CollectionViewer::CollectionForm(self))
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context XCore::Table
+  @Operation edit()
+    let formClient = xmf.findClient(Clients::Forms::FormClient) in
+      if formClient <> null
+      then 
+        formClient.newForm(CollectionViewer::TableEditor(self))
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context Arrays::Simple2DArray
+  @Operation edit()
+    let formClient = xmf.findClient(Clients::Forms::FormClient) in
+      if formClient <> null
+      then 
+        formClient.newForm(CollectionViewer::Array2DEditor(self))
+      else
+        format(stdout,"Forms client not available.~%")
+      end
+    end;
+    self
+  end
+
+context XCore::ConstraintReport
+  @Operation edit()
+    let formsClient = xmf.findClient(Clients::Forms::FormClient) in
+      let constraintViewer = Clients::ReportConstraint::Report(self) in
+        if formsClient <> null
+        then
+          formsClient.newForm(constraintViewer)
+        else
+          format(stdout,"Forms client not available.~%")
+        end
+      end
+    end;
+    self
+  end
+  
+context XCore::Exception
+  @Operation edit()
+    try
+      let formsClient = xmf.findClient(Clients::Forms::FormClient) then 
+          viewer = Clients::ExceptionReport::ExceptionForm(self) 
+      in if formsClient <> null
+         then
+           formsClient.newForm(viewer);
+           xmf.killProgressDialogs()
+         else
+          self.printBacktrace()
+         end
+      end;
+      self 
+    catch(exception)
+      // An exception thrown when processing an exception is not good news.
+      // The best we can hope for is to report a message and carry on.
+      xmf.warning("Exception occurred when processing an exception (see Root::xx)");
+      Root::xx := exception
+    end
+  end
+  
+context Walkers::TypeCheckReport
+  @Operation edit()
+    let formsClient = xmf.findClient(Clients::Forms::FormClient) in
+      let typeCheckViewer = Clients::TypeCheck::Report(self) in
+        if formsClient <> null
+        then
+          formsClient.newForm(typeCheckViewer)
+        else
+          format(stdout,"Forms client not available.~%")
+        end
+      end
+    end
+  end
+
+context XCore::Element
+  @Operation createDiagram()
+    xmf.diagramManager().newDiagram(self)
+  end
+
+context XCore::Element
+  @Operation createDiagramType(type,name,showDiagram)
+    xmf.diagramManager().newDiagram(self,name,type,showDiagram)
+  end
+
+context XCore::Element
+  @Operation createDiagramType(type,showDiagram)
+    self.createDiagramType(type,null,showDiagram)
+  end
+
+context XCore::Element
+  @Operation createDiagramType(type)
+    self.createDiagramType(type,null,true)
+  end
+
+context XCore::Element
+  @Operation selectDiagram()
+    let diagrams = xmf.diagramManager().diagramsFor(self)
+    in
+      if diagrams->isEmpty
+      then
+        self.createDiagram()
+      else
+        let diagram = xmf.select("Show Diagram","Choose a diagram to view.",diagrams,null,null)
+        in
+          if diagram <> null
+          then
+            diagram.setFocus();
+            diagram
+            /* let diagram = diagrams->select(d | d.toString() = choice)->sel
+            in
+              diagram.setFocus();
+              diagram
+            end */
+          else null
+          end
+        end
+      end
+    end
+  end
+
+context XCore::Package
+  @Operation createClassDiagram_raw(name,total)
+    let mappingClient = xmf.findClient(Clients::MappingMapping::MappingClient)
+    in
+      if mappingClient <> null
+      then mappingClient.createDiagram(self,name,total)
+      else format(stdout,"Class diagram client not available.~%")
+      end
+    end 
+  end 
+
+context XCore::Package
+  @Operation createClassDiagram(total)
+    self.createClassDiagram(null,total)
+  end
+
+context XCore::Package
+  @Operation createClassDiagram(name,total,showDiagram)
+    let diagramType = 
+      if total
+      then "Class Diagram (Total View)"
+      else "Class Diagram"
+      end
+    in xmf.diagramManager().newDiagram(self,name,diagramType,showDiagram)
+    end
+  end
+  
+context XCore::Package
+  @Operation createClassDiagram(name,total)
+    self.createClassDiagram(name,total,true)
+  end
+
+context XCore::Snapshot
+  @Operation createSnapshotDiagram_raw(name,total)
+    let mappingClient = xmf.findClient(Clients::SnapshotMapping::MappingClient)
+    in
+      if mappingClient <> null
+      then mappingClient.createDiagram(self,name,total)
+      else format(stdout,"Snapshot client not available.~%"); null
+      end
+    end 
+  end
+
+context XCore::Snapshot
+  @Operation createSnapshotDiagram(total)
+    self.createSnapshotDiagram(null,total)
+  end
+
+context XCore::Snapshot
+  @Operation createSnapshotDiagram(name,total,showDiagram)
+    let diagramType = 
+      if total
+      then "Snapshot Diagram (Total View)"
+      else "Snapshot Diagram"
+      end
+    in xmf.diagramManager().newDiagram(self,name,diagramType,showDiagram)
+    end
+  end
+
+context XCore::Snapshot
+  @Operation createSnapshotDiagram(name,total)
+    self.createSnapshotDiagram(name,total,true)
+  end
+
+/*context XCore::Element
+  @Operation showAsSnapshot_raw(name)
+    let snapshot = self.toSnapshot() then
+        diagram = snapshot.createSnapshotDiagram_raw(name)
+    in
+      xmf.diagramManager().addDiagram(snapshot,diagram); // adds the element-diagram binding on top
+      diagram                                            // of the default snapshot-diagram binding
+    end
+  end 
+*/
+context Package
+  @Operation createAndLayoutDiagram(file)
+    self.createAndLayoutDiagram(file,null)
+  end
+
+context Package
+  @Operation createAndLayoutDiagram(file,name,showDiagram)
+    let diagram = xmf.diagramManager().newDiagram(self,name,"Class Diagram (Total View)",showDiagram);
+        layoutOp = 
+          @Operation(d)
+            @WithoutRendering(d)
+              d.loadLayout(file)
+            end
+          end
+    in
+      if diagram.isReallyKindOf(DiagramsMapping::DiagramStub)
+      then diagram.setPostHandler(layoutOp)
+      else layoutOp.invoke(null,Seq{diagram})
+      end
+    end
+  end
+
+context Package
+  @Operation createAndLayoutDiagram(file,name)
+    self.createAndLayoutDiagram(file,name,true)
+  end
+
+context Package
+  @Operation showAndLayoutDiagram(file)
+    let mappingClient = xmf.findClient(Clients::MappingMapping::MappingClient) in
+      if mappingClient <> null
+      then 
+        mappingClient.showAndLayoutDiagram(self,file)
+      else
+        format(stdout,"Mapping diagram client not available.~%")
+      end
+    end
+  end
+
+context XCore::Package
+  @Operation showCode()
+    let textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient) in
+      if textEditorClient <> null
+      then
+        let title = self.name.toString() then
+            editor = Clients::PackageTextEditor::PackageEditor(self,title,true) 
+        in textEditorClient.newTextEditor(editor);
+           let rules = OCL::OCL.grammar.terminals()->asSeq in
+             rules->iterate(rule S="" | editor.addWordRule(rule,Clients::TextEditor::Editor::blue))
+           end;
+           editor.setCode(self.lift().pprint(),self.owner())  
+        end
+      end
+    end
+  end
+
+context XCore::Element
+  @Operation showAndLayoutDiagram(file)
+    let element = self.showDiagram()
+    in
+      let diagram = 
+        if element.isReallyKindOf(Diagrams::Diagram)
+        then element
+        elseif element.of().allOperations()->exists(op | op.name = Symbol("diagram") and op.arity = 0)
+        then element.diagram()
+        elseif element.hasStructuralFeature("diagram")
+        then element.diagram
+        else null
+        end
+      in
+        if diagram <> null
+        then
+          @WithoutRendering(element)
+            @Busy("Drawing Diagram") 
+              diagram.loadLayout(file)
+            end
+          end;
+          element
+        else
+          format(stdout,"%S cannot handle message 'showAndLayoutDiagram'.~%",Seq{element})
+        end
+      end
+    end
+  end
+
+context SeqOfElement
+  @Operation sortByString():Seq(Element)
+    self.sortByString(false)
+  end
+
+context SeqOfElement
+  // Sort a sequence of elements by their toString() value.
+  @Operation sortByString(namedElementsFirst:Boolean):Seq(Element)
+    let lessThan =
+      if namedElementsFirst
+      then
+        @Operation(x,y)
+          if x.isKindOf(NamedElement) andthen not y.isKindOf(NamedElement)
+          then true
+          elseif not x.isKindOf(NamedElement) andthen y.isKindOf(NamedElement)
+          then false
+          else x.labelString().lowerCase()<y.labelString().lowerCase()
+          end
+        end
+      else
+        @Operation(x,y) x.toString()<y.toString() end
+      end
+    in
+      self->qsort(lessThan)
+    end
+  end
+
+context XCore::Constraint
+  @Operation setName(newValue)
+    super(newValue)
+  end
+/*
+context XCore::Constraint
+  @Operation recompileOperation(operation)
+    let opString = operation.source()
+    then opAS = OCL::OCL.grammar.parseString(opString,"Exp1",Seq{XOCL})
+    then opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true)
+    then newOp = opASfun()
+    in
+       newOp.setDoc(operation.doc().doc);
+       newOp
+    end
+  end
+*/
+context Associations::End
+  @Operation setName(newName)
+  
+    // Dont recompile an association end. The context will not be reset properly
+    // since the body is created in a nested environment.
+    
+    XCore::NamedElement::setName.invoke(self,Seq{newName})
+  end
+  
+context Clients
+
+  @Class LabelledCollection
+  
+    @Doc
+      Used to display the results of collection-construction
+      operations in the property editor.
+    end
+  
+    @Attribute label : String end
+    @Attribute elements : Seq(Element) end
+    
+    @Constructor(label,elements) end
+    
+    @Operation toString():String
+      label
+    end
+    
+  end
+  
+context XCore::Container
+  @Operation find()
+    let message = "Type a predicate expression to be applied to each element in " + 
+                  self.toString() + ".\n" +
+                  "The name self is used for each candidate element.\n" +
+                  "The result of the operation is a collection of candidates\n" +
+                  "that satisfy the predicate." then
+        predicate = xmf.getExp("Find",message)
+    in if predicate <> null 
+       then 
+         let fun = Compiler::compileToFun("",predicate,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},false);
+             results = Seq{};
+             contents = self.allContents()->asSeq then
+             progress = xmf.progress(contents->size)
+         in @For x in contents do 
+              if try fun.invoke(x,Seq{}) catch(x) false end
+              then 
+                results := Seq{x | results};
+                progress.addWork("+ " + x.toString(),1)
+              else progress.addWork("- " + x.toString(),1)
+              end
+            end;
+            progress.finishWork("Find Completed");
+            LabelledCollection("Results for " + predicate.pprint().subst("","\n",true),results)
+         end
+       end
+    end
+  end
+  
+context XCore::CompiledOperation
+  
+  @Operation update(newOp)
+    
+       // When an operation is modified we recompile it. This results in a new operation.
+       // We need the old operation to persist since it is referenced by a variety of
+       // other elements. So the features of the new recompiled operation are copied
+       // over to the old operation causing the old operation to take on all the 
+       // new features. Since the modification is occurring out of context we leave
+       // any contextual information alone in the old operation (for example imports and
+       // globals). Note that the kernel operations are used to stop operation daemons
+       // being fired.
+       
+       self.setName(newOp.name);
+       self.setCodeBox(newOp.codeBox);
+       self.setArity(newOp.arity);
+       self.setDoc(newOp.documentation);
+       self.setSig(newOp.sig);
+       self.setProperties(newOp.properties);
+       
+       self.resetDynamics()
+       
+     end
+     
+context CompiledOperation
+
+  @Operation resetDynamics()
+  
+    // The variables scoped over the body of an operation are either local to the
+    // operation or are dynamic to the operation. Dynamics variables are defined in
+    // name spaces. The name spaces scoped over an operation *should* be as
+    // follows in order of precedence.
+    //   
+    // (1) The owner of the operation.
+    // (2) The imports of the owner of the operation.
+    // (3) The owners of the owner of the operation transitively.
+    // (4) The local imports of the operation (often defined in a file).
+    // (5) XCore.
+    // (6) Root
+    //
+    // This operation resets (1) - (3), (5) - (6). 
+       
+       let owner = self.owner()
+       in if owner.isReallyKindOf(XCore::NameSpace)
+          then 
+            self.setDynamics(Seq{});
+            self.importNameSpace(Root);
+            self.importNameSpace(XCore);
+            @For nameSpace in self.owner().allOwners()->butLast do
+              self.importNameSpace(nameSpace)
+            end;
+            @For nameSpace in self.owner().imports do
+              self.importNameSpace(nameSpace)
+            end;
+            self.importNameSpace(owner)
+          end
+       end
+          
+     end
+     
+     
+context Element
+  @Operation deployXML()
+    @Doc
+      This operation prompts for a target XML file and writes the
+      receiver to an XML file in standard XMF XML format.
+    end
+    let file = xmf.saveFile(xmf.projDir(),"*.xml")
+    in
+      if file <> ""
+      then
+        let fout = IO::XMLOutputChannel(IO::FileOutputChannel(file))
+        in fout.writeValue(self);
+           fout.close();
+           xmf.message("Written " + self.toString() + " to " + file)
+        end
+      end
+    end
+  end 
+  
+context Projects::ProjectManager
+  @Operation loadMosaicProject(fix:Boolean)
+    @Doc
+      Loads a XAR project into mosaic prompting for the file path.
+      The project is added to the project manager that handles the
+      message. Returns the project.
+    end
+    let selectedFile = xmf.openFile(xmf.projDir(),"*.xar") in
+      if selectedFile<>""
+      then self.loadMosaicProject(selectedFile,fix)
+      else "cancelled"
+      end
+    end
+  end
+  
+context Projects::ProjectManager
+  @Operation fixMosaicProject(project,mappings)
+  
+    @Doc
+      This operation is called if the version number of the tool used to save the project
+      is different from that used to load the project.  Any code which updates clients to
+      work with a later version of the tool should be placed in here.
+    end
+    
+    // pre-version 1 snapshots are not supported, these should be removed
+    
+    @For mapping in mappings
+    do
+      if mapping.isKindOf(Clients::SnapshotMapping::SnapshotXSnapshotDiagram)
+      then
+        let snapshot = mapping.snapshot
+        in
+          if snapshot.hasSlot("instanceOf")
+          then
+            if snapshot.owner <> null
+            then
+              snapshot.owner.remove(snapshot)
+            end;
+        	mappings := mappings->excluding(mapping);
+            xmf.errorMessage("Snapshot " + snapshot.name() + " is legacy and cannot be loaded.")
+          end
+        end
+      end
+    end;
+    mappings
+  
+  end
+  
+context Projects::ProjectManager
+  @Operation loadMosaicProject(path:String,fix:Boolean)
+  
+    @Doc
+      Loads a XAR project into mosaic. The project is added to the project 
+      manager that handles the message. Returns the project.
+    end
+    
+    let dialog = xmf.busy("Loading")
+    in try
+         let pair = self.loadProject(path,fix)
+         in if pair <> null
+            then
+              let project = pair->head;
+                  mappings = pair->tail;
+                  clients = xmf.getAllClients() 
+              in 
+                  // if the tool used to save the project is different
+                  // from the current version, we perform a fix to make
+                  // sure it works
+                  
+                  if project.version() <> xmf.version()
+                  then mappings := self.fixMosaicProject(project,mappings)
+                  end;
+                  @For client in clients do
+                   let clientMappings = Seq{} in
+                     @For mapping in mappings do
+                       if client.handles(mapping.of()) 
+                       then 
+                         clientMappings := clientMappings->including(mapping)
+                       end
+                     end;
+                     client.renewAll(clientMappings)
+                   end
+                 end;
+                 dialog.finished();
+                 project
+              end
+            else
+              dialog.finished();
+              null
+            end
+         end
+      catch(exception)
+        dialog.finished();
+        throw exception
+      end
+    end
+  end
+  
+context XCore::NameSpace
+  @Operation generateHTML()
+    let dir = xmf.selectDirectory(xmf.homeDir())
+    in
+      if dir <> ""
+      then
+        let dialog = xmf.busy("Generating HTML")
+        in
+          try
+            self.writeHTML(dir);
+            dialog.finished();
+            xmf.message("HTML successfully generated.")
+          catch(exception)
+            dialog.finished();
+            exception.edit()
+          end
+        end
+      end
+    end
+  end
+
+context XCore::NameSpace
+  @Operation nameChanged(namedElement,newName,oldName)
+    if namedElement.legalNameChangeCheck(newName,oldName)
+    then
+      contents.remove(oldName);
+      contents.remove(newName);
+      contents.put(newName,namedElement)
+    else
+      namedElement.name := oldName
+    end
+  end
+  
+context XCore::Snapshot
+  @Operation legalNameChangeCheck(element,newName,oldName)
+    newName := Symbol(newName.toString());
+    if newName.toString() = ""
+    then
+      xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\". The empty string is "
+         + "not a valid name for a named element.");
+      false
+    elseif not newName.isValidName() 
+    then  xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\" as the name is illegal. "
+        + "A valid name must start with a letter, followed by letters, numbers or an underscore.");
+      false
+    elseif contents.hasKey(newName) andthen contents.get(newName) <> element
+    then
+      xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\" as an element "
+        + "already exists in " + self.toString() + " with the same name.");
+      false
+    else
+      true
+    end  
+  end  
+  
+context XCore::Snapshot  
+  @Operation nameChanged(element,newName,oldName)
+    if self.legalNameChangeCheck(element,newName,oldName)
+    then    
+      newName := Symbol(newName.toString());
+      oldName := Symbol(oldName.toString());
+      if newName <> oldName
+      then
+        contents.remove(newName);
+        contents.remove(oldName);
+        contents.put(newName,element)
+      end
+    else
+      contents.remove(Symbol(oldName));
+      contents.put(Symbol(oldName),element)
+    end
+  end
+
+context XMap::Map
+  @Operation nameChanged(namedElement,newName,oldName)
+    if namedElement.legalNameChangeCheck(newName,oldName)
+    then
+      contents.remove(oldName);
+      contents.remove(newName);
+      contents.put(newName,namedElement)
+    else
+      namedElement.name := oldName
+    end
+  end
+
+context Projects::ProjectManager
+  @Operation nameChanged(namedElement,newName,oldName)
+    contents.remove(oldName);
+    contents.remove(newName);
+    contents.put(newName,namedElement)
+  end
+
+context XCore::Element
+  @Operation legalSlotChangeCheck(slot,newValue)
+    self.legalSlotChangeCheck(slot,newValue,self.get(slot))
+  end
+
+context XCore::Element
+  @Operation legalSlotChangeCheck(slot,newValue,oldValue)
+    if slot.toString() = "name"
+    then self.legalNameChangeCheck(newValue,oldValue)
+    else true
+    end
+  end
+
+context XCore::Element
+  @Operation legalNameChangeCheck(newName,oldName)
+    true
+  end
+
+// File names can be anything
+context IO::File
+  @Operation legalNameChangeCheck(newName,oldName)
+    true
+  end
+
+context XCore::NamedElement
+  @Operation legalNameChangeCheck(newName,oldName)
+    newName := Symbol(newName.toString());
+    if newName.toString() = ""
+    then
+      xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\". The empty string is "
+         + "not a valid name for a named element.");
+      false
+    elseif not newName.isValidName() 
+    then  xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\" as the name is illegal. "
+        + "A valid name must start with a letter, followed by letters, numbers or an underscore.");
+      false
+    elseif owner <> null
+      andthen owner.contents.keys().includes(newName)
+      andthen owner.getContents(newName) <> self
+    then
+      xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\" as an element "
+         + "already exists in " + self.owner().toString() + " with the same name.");
+      false
+    else
+      true
+    end
+  end
+
+context XCore::Operation
+  @Operation legalNameChangeCheck(newName,oldName)
+    newName := Symbol(newName.toString());
+    if newName.toString() = ""
+    then
+      xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\". The empty string is "
+         + "not a valid name for a named element.");
+      false
+    elseif not newName.isValidName() 
+    then  xmf.warning(
+        "Cannot set name of " + oldName +" to \"" + newName + "\" as the name is illegal. "
+        + "A valid name must start with a letter, followed by letters, numbers or an underscore.");
+      false
+    else
+      true
+    end
+  end
+
+context XCore::Snapshot
+  @Operation addObject()
+    let
+      rootName = "Available Classes" then
+      tree = self.getInstantiableClassTree() then
+      //expand = Seq{rootName,instanceOf} then
+      class = xmf.treeSelection("Please Select a Class to Instantiate",tree,Seq{rootName},null)
+    in
+      if class <> rootName and class <> null
+      then self.add(class())
+      end
+    end
+  end
+  
+context XCore::Snapshot
+  @Operation add(name:String,element:Element)
+    let name = if name = "" then self.newName("object") else name end
+    in 
+      self.putElement(name,element);
+      if element.isKindOf(Contained)
+      then
+        @SlotValueChanged multi once XCore::Snapshot::containedOwnerChanged(element,"owner") end
+      end
+    end
+  end
+  
+context XCore::Snapshot
+  @Operation containedOwnerChanged(element,slot,newOwner,oldOwner)
+    if newOwner = null
+    then self.remove(element)
+    end
+  end
+  
+context XCore::Snapshot
+  @Operation remove(element:Element)
+    let name = self.nameFor(element)
+    in
+      contents.remove(name);
+      self.objects := self.objects->excluding(element);
+      if element.isKindOf(Contained)
+      then
+        element.removeDaemonsWithTarget(self,true)
+      end
+    end
+  end

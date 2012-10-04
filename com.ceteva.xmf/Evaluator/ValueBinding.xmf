@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler ValueBinding in Eval(aValueBinding,arg,seen)
+  if seen
+  then aValueBinding
+  else
+    let value = self.dispatch(aValueBinding.value,arg);
+        name = self.dispatch(aValueBinding.name,arg)
+    in aValueBinding
+    end
+  end
+end;

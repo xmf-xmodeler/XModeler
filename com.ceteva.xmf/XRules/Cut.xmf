@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class Cut extends Root::XRules::Action
+
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+    
+      // When called reverts the current fail to that which was
+      // supplied when the current clause was called. Any choice
+      // points that have been added since the call of the clause
+      // name will be discarded...
+      
+      succ(env,cut)
+    end
+    
+    @Operation vars(vars)
+      vars
+    end
+
+  end

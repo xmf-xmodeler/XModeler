@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Loop extends Recognizer
+  
+    // Loop is used by StarCons to cons the result of the first and subsequent
+    // parses.
+  
+    @Attribute parser : Recognizer end
+    @Attribute values : Seq(Element) end
+    
+    @Constructor(parser,values) end
+    
+    @Operation parse(machine)
+      let value = machine.popStack()
+      in machine.pushStack(values + Seq{value});
+         machine.choice();
+         machine.pushSuccess(Loop(parser,machine.popStack()));
+         parser.parse(machine)
+      end
+    end
+    
+    @Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+    
+  end
+		

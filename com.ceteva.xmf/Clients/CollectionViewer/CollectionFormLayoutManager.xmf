@@ -1,0 +1,70 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class CollectionFormLayoutManager extends StandardPELayoutManager
+
+    @Attribute collectionItemHeight : Float = 13.1 (?,!) end
+    @Attribute tableRowHeight : Integer = 16 end
+    @Attribute tableHeaderHeight : Integer = 23 end
+
+    @Operation layoutContents()
+      @For displays inSeq displayCollections do
+        @TypeCase(displays)
+          Seq(SingletonDisplay) do
+            self.setY(self.layoutSingletons(displays,x,y))
+          end     
+          Seq(CollectionDisplay) do
+            self.setY(self.layoutCollections(displays,x,y))
+          end
+          Seq(TableEditorTable) do
+            self.setY(self.layoutTables(displays,x,y))
+          end
+          String do
+            if displays="separator" then
+              owner.addElement(FormLabel(x,y," "));
+              self.setY(y + separatorHeight)
+            end
+          end
+          else self.error("I don't know how to add " + displays.toString() + " to a CollectionFormLayoutManager.")
+        end
+      end
+    end
+
+    @Operation layoutCollections(displays:Seq(CollectionDisplay),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let display = displays->asSeq.at(0) then
+            listSize = display.list.contents->size().max(1) then
+            localColWidth = 600;
+            localColHeight = (listSize*collectionItemHeight).round() + 22 then
+            finalY = startY + localColHeight + singletonHeight
+        in
+          display.addToForm(owner,startX,startY,0,localColWidth,localColHeight);
+          owner.addElement(FormLabel(0,startY + localColHeight + singletonHeight," "));
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+    @Operation layoutTables(displays:Seq(TableEditorTable),startX:Integer,startY:Integer)
+      if not displays->isEmpty then
+        let tableDisplay = displays->asSeq.at(0) then
+            tableHeight = (tableDisplay.rows*tableRowHeight) + tableHeaderHeight then
+            finalY = startY + tableHeight
+        in
+          tableDisplay.addToForm(owner,startX,startY);
+          finalY
+        end
+      else
+        startY
+      end
+    end
+
+  end

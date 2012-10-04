@@ -1,0 +1,36 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Scope
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Scope ::= d = Dec ds = (';' Dec)* { Scope(Seq{d | ds}) }.
+      
+      Dec ::=  TypeDec | SetDec.
+      
+      SetDec ::= e = LogicalExp { SetDec(e) }.
+      
+      TypeDec ::= 'type' modifiers = TypeDecModifier* ts = ScopedTypes { TypeDec(ts,modifiers) }.
+      
+      TypeDecModifier ::= '+' { "+" } | '-' { "-" }.
+      
+      ScopedTypes ::= t = LogicalExp ts = (',' LogicalExp)* { Seq{t | ts} }.
+      
+    end
+    
+    @Attribute decs : Set(Dec) (?) end
+    
+    @Constructor(decs) ! end
+    
+    @Operation addExp(net:Performable):Performable
+      decs->iterate(dec code = net | dec.addExp(code))
+    end
+    
+  end

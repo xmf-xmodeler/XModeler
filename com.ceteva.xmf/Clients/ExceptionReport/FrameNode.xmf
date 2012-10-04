@@ -1,0 +1,69 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import Exceptions;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class FrameNode extends TreeNode
+  
+    @Attribute frame : StackFrame end
+    
+    @Constructor(frame)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      let values = frame.values;
+          names = frame.paramNames();
+          types = frame.paramTypes();
+          local = 0
+      in if frame.operation() <> null
+         then self.addItem(OperationNode(frame.operation()))
+         end;
+         if frame.target <> null
+         then self.addItem(SelfNode(frame.target))
+         end;
+         @For name in names do
+            if not values->isEmpty
+            then 
+              self.addItem(ArgNode(name,values->head));
+              values := values->tail
+            end
+         end;
+         @While not values->isEmpty do
+           self.addItem(LocalNode(local,values->head));
+           local := local + 1;
+           values := values->tail
+         end
+      end
+    end
+    
+    @Operation doubleSelected()
+      self
+    end 
+    
+    @Operation setReportText()
+      self.text := frame.name() + "(" + 
+        @For name,value in frame.paramNames(),frame.values produce
+          value.toString()
+        end->separateWith(",") + ")"
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Frame.gif"
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        node.pprint(out,indent+2)
+      end
+    end
+
+  end

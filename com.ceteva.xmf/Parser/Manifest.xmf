@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Parser
+  BNF     = @Ref BNF     end
+  Machine = @Ref Machine end
+do 
+  let Parser = ProjectManager("Parser",dir,self)
+  in Parser.add(BNF);
+     Parser.add(Machine)
+  end
+end;

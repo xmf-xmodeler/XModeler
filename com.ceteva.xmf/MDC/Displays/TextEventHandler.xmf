@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class TextEventHandler isabstract extends EventHandler
+  
+    @Attribute textChangedHandler : Operation = TextEventHandler::defaultTextChangedHandler (?,!) end
+    
+    @Operation defaultTextChangedHandler(tool,display,new,old) 
+      null 
+    end
+    
+    @Operation handleTextChanged(tool,display,new,old)
+      (self.textChangedHandler)(tool,display,new,old)
+    end
+    
+  end
+    
+    

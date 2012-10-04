@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Constp in AST(aConstp,arg,seen)
+  ASTNode(aConstp)
+end;

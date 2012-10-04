@@ -1,0 +1,185 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation OCLtoMicroJava(exp,locals) 
+  
+    @Case exp of
+    
+      Let(bindings,body) do LetToMicroJava(bindings,body,locals) end
+    
+      [| @While <| e |> do <| b |> end |] do
+      
+        jt + Seq{[| @Statement while(popStack().isTrue()) { <* jb + jt *> } end |]}
+        
+          where jt = OCLtoMicroJava(e,locals);
+                jb = OCLtoMicroJava(b,locals)
+          
+      end
+    
+      [| if <| e1 |> then <| e2 |> else <| e3 |> end |] do
+      
+        jes1 + Seq{[| @Statement if(popStack().isTrue()) { <* jes2 *> } else { <* jes3 *> } end |]}
+        
+          where jes1 = OCLtoMicroJava(e1,locals);
+                jes2 = OCLtoMicroJava(e2,locals);
+                jes3 = OCLtoMicroJava(e3,locals)
+      end
+      
+      [| <| n |> := <| e |> |] do 
+      
+        Seq{CommentLine(exp.pprint())} +
+      
+        OCLtoMicroJava(e,locals) + 
+        
+        Seq{[| @Statement locals.set(<Int(locals->indexOf(n))>); end |]} end
+    
+      [| <| o |> . <| n |> := <| e |> |] do 
+      
+        Seq{CommentLine(exp.pprint())} +
+        OCLtoMicroJava(e,locals) +
+        OCLtoMicroJava(o,locals) +
+        Seq{[| @Statement fieldUpdate(<JString(n)>); end |]}
+        
+      end
+      
+      [| <| o |> . <| n |> |] do
+      
+        Seq{CommentLine(exp.pprint())} +
+        OCLtoMicroJava(o,locals) +
+        Seq{[| @Statement fieldRef(<JString(n)>); end |]}
+        
+      end
+        
+      IntExp(v) do Seq{[| @Statement pushStack(new Int(<Int(v)>)); end |]} end
+       
+      BoolExp(b) do Seq{[| @Statement pushStack(new Bool(<Boolean(b)>)); end |]} end
+      
+      StrExp(s) do Seq{[| @Statement pushStack(new Str(<JString(s)>)); end |]} end
+      
+      OCL::Var(v) do 
+      
+        if locals->includes(v)
+        then
+          Seq{[| @Statement pushStack(locals.ref(<Int(locals->indexOf(v))>)); end |]} 
+        else
+          Seq{[| @Statement global(<JString(v)>); end |]}
+        end
+      
+      end
+      
+      [| self |] do Seq{[| @Statement pushStack(this); end |]} end
+      
+      OCL::BinExp(e1,op,e2) do binExpToMicroJava(e1,op,e2,locals) end
+      
+      [| not <| e |> |] do OCLtoMicroJava(e,locals) + Seq{[| @Statement boolNot(); end |]} end
+      
+      [| <| C |> -> <| op |> (<| x |> | <| e |>) |] do 
+      
+        iterExpToMicroJava(C,op,x,e,locals) 
+        
+      end
+      
+      [| <| C |> -> iterate(<| x |> <| y |> = <| e |> | <| b |>) |] do
+      
+        iterateToMicroJava(C,x,y,e,b,locals) 
+        
+      end
+      
+      [| <| C |> -> <| message |> (<| e |>) |] do
+      
+        OCLtoMicroJava(e,locals) +
+        OCLtoMicroJava(C,locals) + 
+        Seq{[| @Statement call(<JString(message)>,1); end |]}
+        
+      end
+      
+      [| <| C |> -> <| message |> |] do
+      
+        OCLtoMicroJava(C,locals) + 
+        Seq{[| @Statement call(<JString(message)>,0); end |]}
+        
+      end
+      
+      [| <| e |>.isKindOf(<| t |>) |] do 
+      
+        @Case t of
+        
+          OCL::Var(tname) do
+      
+            OCLtoMicroJava(e,locals) +
+            Seq{[| @Statement instanceOf(<JString(t.name)>); end |]}
+            
+          end
+          
+          OCL::Path(OCL::Var(n),ns) do
+          
+            OCLtoMicroJava(e,locals) +
+            //Seq{[| @Statement instanceOf(<NamedType(Seq{n|ns})>); end |]}
+            Seq{[| @Statement instanceOf(<JString(ns->last)>); end |]}
+            
+          end
+          
+          else Seq{CommentLine("Unknown type for Java: " + t.toString())}
+          
+        end
+        
+      end
+      
+      OCL::Send(target,message,args) do
+      
+        Seq{CommentLine(exp.pprint())} +
+        args->collect(arg | OCLtoMicroJava(arg,locals))->flatten +
+        OCLtoMicroJava(target,locals) +
+        Seq{[| @Statement call(<JString(message)>,<Int(args->size)>); end |]}
+        
+      end
+      
+      OCL::Apply(op,args) do
+      
+        Seq{CommentLine(exp.pprint())} +
+        args->collect(arg | OCLtoMicroJava(arg,locals))->flatten +
+        OCLtoMicroJava(op,locals) +
+        Seq{[| @Statement apply(<Int(args->size)>); end |]}
+        
+      end
+      
+      [| <| e1 |>; <| e2 |> |] do
+      
+        OCLtoMicroJava(e1,locals) +
+        OCLtoMicroJava(e2,locals)
+        
+      end
+      
+      OCL::Path(root,names) do
+        OCLtoMicroJava(OCL::Var(names->last),locals)
+      end
+      
+      else Seq{CommentLine("Cannot translate OCL: " + exp.toString())}
+      
+    end
+    
+  end
+  
+context Mappings
+
+  @Map TranslateOCL(OCL::OCL,Element) -> Statement
+  
+    @Clause MapOCL
+    
+      e,locals do OCLtoMicroJava(e,locals)
+          
+    end 
+    
+  end

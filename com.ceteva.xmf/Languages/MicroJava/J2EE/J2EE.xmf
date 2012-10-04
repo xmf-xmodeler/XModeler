@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+
+context MicroJava
+
+  @Package J2EE
+  
+    @Doc 
+      This package defines mappings that transform XCore elements into J2EE
+      beans.
+    end
+  
+  end

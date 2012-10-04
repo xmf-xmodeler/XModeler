@@ -1,0 +1,54 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Manifests;
+import LoadTime;
+
+context Manifests
+
+  @Class ManifestEntry isabstract extends Syntax
+  
+    // An entry in a manifest can add to the current load path. Elements of a manifest should
+    // be sub-classes of ManifestEntry and can further extend the load path.
+  
+    @Attribute path     : String             end
+    @Attribute loadTime : LoadTime = RunTime end
+    
+    @Grammar extends OCL::OCL.grammar 
+    
+      OptBuilds ::= '{' n = Name ns = (',' Name)* '}' { ns->asSet->including(n) } | { Set{} }.
+      
+      MPath ::=  n = MPathEntry ns = ('/' MPathEntry)*  { Seq{n|ns}->separateWith("/") } | Str.
+      
+      MPathEntry ::= Name.
+      
+      LoadTime ::= '^' LoadDirective | { RunTime }.
+      
+      LoadDirective ::= 
+      
+        'CompileTime' { CompileTime } |
+        
+        'RunTime' { RunTime } |
+        
+        'Both' { Both } |
+        
+        'None' { None }.
+      
+    end
+    
+    @AbstractOp build(dir:String) end
+    
+    @AbstractOp deleteBinary(dir:String) end
+    
+    @AbstractOp deref(dir:String):ManifestEntry end
+    
+    @AbstractOp load(dir:String,loadSource:Boolean) end
+    
+    @AbstractOp refresh(dir) end
+    
+    @AbstractOp stale():Boolean end
+    
+    @AbstractOp touch(dir:String,source:Boolean) end
+    
+  end

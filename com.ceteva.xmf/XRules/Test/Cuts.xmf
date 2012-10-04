@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport XRules;
+
+// Add various cuts to the following clause definitions
+// in order to observe what happens when choices are denied.
+  
+context Test
+  @Rule X(A) ! Y(A) Z(A) end
+
+context Test
+  @Rule X(A) Z(A) end
+
+context Test
+  @Rule Y(100) end
+
+context Test
+  @Rule Y(200) end
+
+context Test
+  @Rule Z(300) end
+
+context Test
+  @Rule Z(200) end
+
+   

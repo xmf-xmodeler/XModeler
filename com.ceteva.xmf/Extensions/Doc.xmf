@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Doc extends AbstractDoc
+  
+    @Doc
+      This class represents a documentation definition. It is
+      sugar for an expression that constructs a kernel documentation
+      object containing a documentation string.
+    end
+  
+    @Attribute doc : String end
+    
+    @Constructor(doc) end
+  
+    @Grammar  
+    
+      Doc ::= doc = (Not('end') Char)* { Doc(doc->asString) }.
+      
+    end
+    
+    @Operation desugar()
+      [| XCore::Doc(<StrExp(doc)>) |]
+    end
+    
+    @Operation lift()
+      [| XOCL::Doc(<StrExp(doc)>) |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Doc~%~V",Seq{indent + 2});
+      format(out,"~S~%~V",Seq{doc,indent});
+      format(out,"end")
+    end
+    
+  end

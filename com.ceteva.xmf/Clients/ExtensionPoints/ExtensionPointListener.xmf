@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Clients;
+
+context ExtensionPoints
+
+  @Class ExtensionPointListener
+  
+    @AbstractOp contributionAdded(extensionPointId,contribution) 
+    end
+    
+    @AbstractOp contributionRemoved(extensionPointId,contribution)
+    end
+    
+  end

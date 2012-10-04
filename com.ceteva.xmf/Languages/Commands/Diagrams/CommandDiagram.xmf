@@ -1,0 +1,196 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import Languages;
+import Commands;
+import Diagrams;
+import IO;
+import Graphs;
+
+context Diagrams
+
+  @Class CommandDiagram extends Diagram
+  
+    @Attribute falseEdges       : Set(FalseEdge)    (+,-) end
+    @Attribute nextEdges        : Set(NextEdge)     (+,-) end
+    @Attribute trueEdges        : Set(TrueEdge)     (+,-) end
+    
+    @Attribute blockNodes       : Set(BlockNode)    (+,-) end
+    @Attribute guardNodes       : Set(GuardNode)    (+,-) end
+    @Attribute skipNodes        : Set(SkipNode)     (+,-) end
+    @Attribute valueDecNodes    : Set(ValueDecNode) (+,-) end
+    @Attribute typeDecNodes     : Set(TypeDecNode)  (+,-) end
+    
+    @Operation addEdge(edge)
+      @TypeCase(edge)
+        FalseEdge do
+          self.addToFalseEdges(edge);
+          super(edge)
+        end
+        NextEdge do
+          self.addToNextEdges(edge);
+          super(edge)
+        end
+        TrueEdge do
+          self.addToTrueEdges(edge);
+          super(edge)
+        end
+      end
+    end
+    
+    @Operation addNode(node)
+      @TypeCase(node)
+        BlockNode do
+          self.addToBlockNodes(node);
+          super(node)
+        end
+        GuardNode do
+          self.addToGuardNodes(node);
+          super(node)
+        end
+        SkipNode do
+          self.addToSkipNodes(node);
+          super(node)
+        end
+        ValueDecNode do
+          self.addToValueDecNodes(node);
+          super(node)
+        end
+        TypeDecNode do
+          self.addToTypeDecNodes(node);
+          super(node)
+        end
+        else self.error("I don't know how to add " + node.toString() + " to a program diagram.")
+      end
+    end
+    
+    @Operation defineEdgeToolGroups()
+      let newFalse = 
+            @Operation(sourcePort,targetPort) 
+              self.newFalseEdge(sourcePort,targetPort) 
+            end;
+          newNext = 
+            @Operation(sourcePort,targetPort) 
+              self.newNextEdge(sourcePort,targetPort) 
+            end;
+          newTrue = 
+            @Operation(sourcePort,targetPort) 
+              self.newTrueEdge(sourcePort,targetPort) 
+            end
+      in self.defineToolGroup("New Edge");
+         self.defineNewHandler("New Edge","False",true,"XCore/Generalization.gif",newFalse);
+         self.defineNewHandler("New Edge","Next",true,"XCore/Generalization.gif",newNext);
+         self.defineNewHandler("New Edge","True",true,"XCore/Generalization.gif",newTrue)
+      end 
+    end
+    
+    @Operation newFalseEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner then
+          edge = FalseEdge(sourcePort,targetPort)
+      in edge.new(self);
+         self.addEdge(edge);
+         edge
+      end
+    end
+    
+    @Operation newNextEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner then
+          edge = NextEdge(sourcePort,targetPort)
+      in edge.new(self);
+         self.addEdge(edge);
+         edge
+      end
+    end
+    
+    @Operation newTrueEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner then
+          edge = TrueEdge(sourcePort,targetPort)
+      in edge.new(self);
+         self.addEdge(edge);
+         edge
+      end
+    end
+    
+    @Operation defineNodeToolGroups()
+      let newBlock = 
+            @Operation(x,y)
+              self.newBlockNode(x,y)
+            end;
+          newGuard = 
+            @Operation(x,y)
+              self.newGuardNode(x,y)
+            end;
+          newSkip = 
+            @Operation(x,y)
+              self.newSkipNode(x,y)
+            end;
+          newValueDec =
+            @Operation(x,y)
+              self.newValueDecNode(x,y)
+            end;
+          newTypeDec =
+            @Operation(x,y)
+              self.newTypeDecNode(x,y)
+            end
+      in self.defineToolGroup("New Node");
+         self.defineNewHandler("New Node","Block",false,"XCore/Class.gif",newBlock);
+         self.defineNewHandler("New Node","Guard",false,"XCore/Class.gif",newGuard);
+         self.defineNewHandler("New Node","Skip",false,"XCore/Class.gif",newSkip);
+         self.defineNewHandler("New Node","Value Dec",false,"XCore/Class.gif",newValueDec);
+         self.defineNewHandler("New Node","Type Dec",false,"XCore/Class.gif",newTypeDec)
+      end
+    end
+    
+    @Operation newBlockNode(x,y)
+      let node = BlockNode(x,y)
+      in self.add(node);
+         node.new(self)
+      end
+    end
+    
+    @Operation newGuardNode(x,y)
+      let node = GuardNode(x,y)
+      in self.add(node);
+         node.new(self)
+      end
+    end
+    
+    @Operation newSkipNode(x,y)
+      let node = SkipNode(x,y)
+      in self.add(node);
+         node.new(self)
+      end
+    end
+    
+    @Operation newValueDecNode(x,y)
+      let node = ValueDecNode(x,y)
+      in self.add(node);
+         node.new(self)
+      end
+    end
+    
+    @Operation newTypeDecNode(x,y)
+      let node = TypeDecNode(x,y)
+      in self.add(node);
+         node.new(self)
+      end
+    end
+    
+    @Operation removeNode(node)
+      super(node);
+      @TypeCase(node)
+        BlockNode    do self.removeFromBlockNodes(node)    end
+        GuardNode    do self.removeFromGuardNodes(node)    end
+        SkipNode     do self.removeFromSkipNodes(node)    end
+        ValueDecNode do self.removeFromValueDecNodes(node) end
+        TypeDecNode  do self.removeFromTypeDecNodes(node)  end
+        else self
+      end
+    end
+    
+  end

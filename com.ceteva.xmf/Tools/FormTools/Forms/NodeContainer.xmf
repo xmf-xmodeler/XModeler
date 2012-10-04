@@ -1,0 +1,47 @@
+parserImport XOCL;
+//parserImport Tools::Basic;
+
+// If this file is changed then it will NOT COMPILE user normal make . xmfe
+// because of the dependency on Tools::Basic::WithoutEvents. Compile this
+// file within Mosaic and then rebuild.
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class NodeContainer isabstract
+  
+    @Operation newNode(name:String)
+    
+      // Find the named type in the contents of the type of the receiver
+      // and create a new node and add it to the receiver
+      
+      self.handleNewRequest(name)
+    end
+  
+    @Operation ref(path:Seq(String)):Seq(FormElement)
+    
+      // The path is a sequence of names that are
+      // used to navigate through the components
+      // of the receiver. The result is a sequence
+      // since more than one element in a container
+      // may have the same name due to *.
+      
+      if path->isEmpty
+      then Seq{self}
+      else
+        let namedElements = self.nodes()->select(e | e.type().name().toString() = path->head)
+        in namedElements->collect(e | e.ref(path->tail))->flatten
+        end
+      end
+    end
+    
+    @Operation ref1(path:Seq(String))
+      @Find(value,self.ref(path))
+        else self.error("Cannot find element at location " + path->separateWith("::") + " in " + self.toString())
+      end
+    end
+    
+  end

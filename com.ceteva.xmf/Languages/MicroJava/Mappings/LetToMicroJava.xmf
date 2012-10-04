@@ -1,0 +1,36 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation LetToMicroJava(bindings,body,locals) 
+  
+    let names = bindings.name then
+        letLocals = locals + names then
+        valueCode = 
+          bindings->collect(b |
+           
+            Seq{CommentLine(b.name + " = " + b.value.pprint())} +
+            
+            OCLtoMicroJava(b.value,locals) + 
+            
+            Seq{[| 
+                  @Statement 
+                    locals.set(<Int(letLocals->indexOf(b.name))>,popStack()); 
+                  end 
+                |]})->flatten;
+        bodyCode = OCLtoMicroJava(body,letLocals)
+    in valueCode + bodyCode
+    end
+    
+  end

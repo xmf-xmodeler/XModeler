@@ -1,0 +1,112 @@
+parserImport XOCL;
+
+context Package
+  @Operation deployWalker()
+    @Doc
+      Deploys a walker for the classes in the package. The
+      walker is a new class added to the package. Create an
+      instance of the class and then use the deploy operation
+      to supply an instance of a class in the package. The
+      deployed walker is a skeleton that requires you to 
+      modify the source code to perform appropriate actions
+      as it walks the structure.
+    end
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir <> ""
+       then 
+         let name = xmf.getString("Walker Name","Name of walker class","")
+         in if name <> null
+            then 
+              let 
+                basics = Seq{Integer,Boolean,String,Float,Vector,Table,Null} then
+                extras = xmf.selects("Basic Types","Choose basic types to include in walker",basics,null,null)
+              in
+                if extras <> 0-1
+                then
+                  let
+                    packages = Root.allContentsOf(Package)->asSeq->sortNamedElements  then
+                    package = xmf.select("Target Package","Host Package for Walker",packages,Root,null)
+                  in 
+                    if package <> null
+                    then
+                      @Busy("Deploying Walker for " + self.name())
+                        self.writeWalker(dir,name,extras,package)
+                      end;
+                      if xmf.question("Compile and load walker?")
+                      then 
+                        @Busy("Building Walker for " + self.name())
+                          Compiler::compileFile(dir + "/Manifest",true,true);
+                          let manifest = (dir + "/Manifest.o").loadBin(true)
+                          in manifest.build(dir);
+                             manifest.load(dir)
+                          end
+                        end
+                      end
+                    else 
+                      xmf.message("Deployment Cancelled")
+                    end
+                  end
+                else 
+                  xmf.message("Deployment Cancelled")
+                end
+              end
+            else 
+              xmf.message("Deployment Cancelled")
+            end
+         end
+       else 
+         xmf.message("Deployment Cancelled")
+       end
+    end
+  end
+  
+context Package
+  @Operation writeWalker(dir:String,name:String,extras:Seq(Classifier),package:Package)
+    let manifest = OrderedContainer()
+    in manifest.add(name);
+       @For c in classes->reject(c | c.name().toString() = name) + extras->asSet do
+         let file = c.name() + ".xmf" then
+             path = dir + "/" + file;
+             object = "a" + c.name();
+             A = if c.isKindOf(Class) then c.allAttributes()->asSeq else Seq{} end
+         in @WithOpenFile(fout -> path)
+              format(fout,"parserImport Walkers;~%~%import ~S;~%import ~S;~%~%",Seq{self.path(),package.path()});
+              format(fout,"@Handler ~S in ~S(~S,arg,seen)~%",Seq{c.name(),name,object});
+              format(fout,"  if seen~%");
+              format(fout,"  then ~S~%",Seq{object});
+              format(fout,"  else~%");
+              if A->isEmpty
+              then format(fout," ~S~%",Seq{object})
+              else
+                format(fout,"    let ~{;~%        ~;~S~}~%",Seq{
+                  A->collect(a | 
+                    if a.hasAtomicType()
+                    then formats("~S = self.dispatch(~S.~^~^~S,arg)",Seq{a.name(),object})
+                    else formats("~S = ~S.~^~^~S->collect(x | self.dispatch(x,arg))",Seq{a.name(),object})
+                    end)
+                });
+                format(fout,"    in ~S~%",Seq{object});
+                format(fout,"    end~%")
+              end;
+              format(fout,"  end~%");
+              format(fout,"end;~%")
+            end;
+            manifest.add(c.name())
+         end
+       end;
+       @WithOpenFile(fout -> dir + "/" + name + ".xmf")
+         format(fout,"parserImport XOCL;~%~%import Walkers;~%~%");
+         format(fout,"context ~S~%",Seq{package.path()});
+         format(fout,"  @Class ~S metaclass Dispatcher~%",Seq{name});
+         format(fout,"  end~%")
+       end;
+       @WithOpenFile(fout -> dir + "/Manifest.xmf")
+         format(fout,"parserImport Manifests;~%~%@Manifest CodeWalker~%");
+         @For file in manifest.contents() do
+           format(fout,"  @File ~S end~%",Seq{file})
+         end;
+         format(fout,"end;~%")
+       end
+    end
+  end
+    

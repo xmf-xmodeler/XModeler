@@ -1,0 +1,115 @@
+parserImport XOCL;
+parserImport StateMachines;
+
+context StateMachines
+  @Package TrafficLights
+  
+    @Clock Clock(Controller) end
+    
+    @StateMachine Controller
+    
+      @Attribute light1 : TrafficLight end
+      @Attribute light2 : TrafficLight end
+      
+      @InitialState RedGreen end
+      @State AmberGreenAmber end
+      @State GreenRed end
+      @State GreenAmberAmber end
+      
+      @Transition event() RedGreen -> AmberGreenAmber
+        when true
+        do light1.colours(false,true,false);
+           light2.colours(false,true,true)
+      end
+      
+      @Transition event() AmberGreenAmber -> GreenRed
+        when true
+        do light1.colours(false,false,true);
+           light2.colours(true,false,false)
+      end
+      
+      @Transition event() GreenRed -> GreenAmberAmber
+        when true
+        do light1.colours(false,true,true);
+           light2.colours(false,true,false)
+      end
+      
+      @Transition event() GreenAmberAmber -> RedGreen
+        when true
+        do light1.colours(true,false,true);
+           light2.colours(false,false,true)
+      end
+      
+      
+    end
+    @StateMachine TrafficLight
+      @Attribute id : Integer end
+      @Attribute red : Boolean end
+      @Attribute amber : Boolean end
+      @Attribute green : Boolean end
+      @InitialState Display end
+      @Transition colours(r:Boolean,a:Boolean,g:Boolean) Display -> Display 
+        when true
+        do self.red := r;
+           self.amber := a;
+           self.green := g;
+           self.trace(self)
+      end
+      @Transition () Display -> Display
+        when red
+        do self.trace("FIRE!!!!!!!!!!")
+      end
+    end
+  end
+
+context StateMachines
+  @Package VendingMachine
+    @StateMachine VM
+      @Attribute cans : Integer end
+      @Attribute price : Integer end
+      @Attribute coins : Integer end
+      @InitialState Idle end
+      @State Vending end
+      @State Change end
+      @Transition setCoins(c:Integer)
+        Vending -> Vending
+        when true
+        do self.coins := c
+      end
+      @Transition insert(n:Integer) 
+        Idle -> Vending 
+        when true
+        do self.coins := coins + n
+      end
+      @Transition insert(n:Integer)
+        Vending -> Vending
+        when true
+        do self.setCoins(coins + n)
+      end
+      @Transition vend()
+        Vending -> Idle
+        when coins > price
+        do self.coins := 0
+      end
+    end
+    @StateMachine A
+      @Attribute b : B end
+      @InitialState s end
+      @Transition start(n : Integer)
+        s -> s
+        when n > 0
+        do self.trace(n);
+           b.message(n - 1)
+      end
+    end
+    @StateMachine B
+      @Attribute a : A end
+      @InitialState s end
+      @Transition message(n:Integer)
+        s -> s
+        when n > 0
+        do self.trace(n);
+           a.start(n - 1)
+      end
+    end
+  end

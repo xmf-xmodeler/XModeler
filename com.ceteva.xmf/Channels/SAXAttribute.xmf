@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context IO
+
+  @Class SAXAttribute
+  
+    @Attribute name : Buffer = Buffer(24,true) end
+    @Attribute value : Buffer = Buffer(24,true) end
+    
+    @Constructor(name,value) ! end
+    
+  end

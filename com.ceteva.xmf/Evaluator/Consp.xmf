@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Consp in Eval(aConsp,arg,seen)
+  null
+end;

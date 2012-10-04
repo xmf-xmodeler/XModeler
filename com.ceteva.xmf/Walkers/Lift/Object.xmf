@@ -1,0 +1,27 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Object in Lift(o,arg,encountered)
+  if o.isKindOf(Drop)
+  then o.lift()
+  elseif encountered
+  then
+    [| <arg>.ref(<IntExp(stack.indexOf(o))>) |]
+  else
+    stack.push(o);
+    let var = Var(self.newVar())
+    in [| <arg>.push(<self.newExp(o)>);
+          let <var.name> = <arg>.top()
+          in
+            <o.getStructuralFeatureNames()->iterate(n exp = var |
+              [| <exp>; 
+                 <var>.<n.toString()> := 
+                   <self.dispatch(o.get(n),arg)> 
+              |])>
+          end
+       |]
+    end
+  end 
+end;

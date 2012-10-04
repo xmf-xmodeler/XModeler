@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class ConstraintSourceTextBox extends CodeboxDisplayTextBox
+
+    /* @Operation checkParsable(op:CompiledOperation,value:String,strippedSource)
+      try
+        OCL::OCL.grammar.parseString(value,"Exp1",Seq{XOCL});
+        true
+      catch(exception)
+        let dialog = xmf.findClient(DialogBoxes::DialogBoxClient) in
+          dialog.newTextAreaDialog(
+            DialogBoxes::TextAreaDialog::error,
+            exception.message,
+            self.stripOperationSyntax(op,exception.consumed)
+          );
+          false
+        end
+      end
+    end */
+
+    @Operation codeboxEditorType()
+      ConstraintSourceEditor
+    end
+
+    @Operation reassembleSource(op,newSource)
+      "@Operation "
+        + op.name().toString()
+        + "(classifier : Element):Element "
+        + newSource
+        + " end"
+    end
+
+    @Operation setTextIn(text:String)
+      let 
+        op = contex.get(slotName) then
+        source = self.reassembleSource(op,text)
+      in
+        if Clients::checkParsable(op,source)
+        then
+          Clients::setSource(op,source)
+        else
+          self.commandInterpreter().forceFocusCommand(self)
+        end
+      end
+    end
+
+    @Operation stripOperationSyntax(op,text:String)
+      let
+        header = "@Operation " + op.name().toString() + "(classifier : Element):Element ";
+        footer = " end"
+      in
+        text.subst("",header,false).subst("",footer,false)
+      end
+   end
+
+  end

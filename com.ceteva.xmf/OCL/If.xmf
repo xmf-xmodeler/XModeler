@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class If extends OCL::OCL
+  
+    @Doc
+      A conditional expression evaluates a test expression and then performs one
+      of two possible expressions depen-ding on whether the test produces 'true' or
+      'false'.
+    end
+  
+    @Attribute test : OCL::OCL end
+    @Attribute "then" : OCL::OCL end
+    @Attribute "else" : OCL::OCL end
+    
+    @Operation init(args):Element 
+      if args->size = 2
+      then 
+        self.test := args->at(0);
+        self.set("then",args->at(1));
+        self.set("else",BoolExp(false))
+      end;
+      if args->size = 3
+      then
+        self.test := args->at(0);
+        self.set("then",args->at(1));
+        self.set("else",args->at(2))
+      else self
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"if ~S~%~Vthen~%~V~S~%~Velse~%~V~S~%~Vend",Seq{
+        test.pprint(indent),
+        indent,
+        indent + 2,
+        self.get("then").pprint(indent + 2),
+        indent,
+        indent + 2,
+        self.get("else").pprint(indent + 2),
+        indent})
+    end
+    
+    @Operation toString()
+      "If(" + test.toString() + "," + self.get("then").toString() + "," + self.get("else").toString() + ")"
+    end
+    
+  end

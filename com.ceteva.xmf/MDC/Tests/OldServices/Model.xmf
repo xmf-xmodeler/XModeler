@@ -1,0 +1,159 @@
+parserImport XOCL;
+parserImport XRules;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+
+context Root
+  @Package Services
+    @Class Named isabstract
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class Resource metaclass BrowsedClass extends Named
+    end
+    @Class Service metaclass BrowsedClass extends Named
+      @Attribute resources : Seq(Resource) end
+      @Interface
+        @Child resources end
+        @Image "Projects/Project" end
+        @MenuRoot Services::Service end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+    end
+    @Class Model metaclass BrowsedClass 
+      @Attribute groups : Seq(Group) (?) end
+      @Attribute Candidates : Seq(Candidate) (+) end
+      @Interface
+        @Child groups end
+        @Child Candidates end
+        @Image "Projects/Project" end
+        @MenuRoot Services::Model end
+        @Menu New::Candidate addCandidate end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+      @Operation addCandidate()
+        let candidate = Services::Candidate()
+        in self.addToCandidates(candidate);
+           candidate.setModel(self)
+        end
+      end
+    end
+    @Class Candidate metaclass BrowsedClass
+      @Attribute properties : Properties = Services::Properties() end
+      @Attribute services : Seq(Service) end
+      @Attribute model : Model (!) end
+      @Interface
+        @Child properties end
+        @Child services end
+        @Image "Projects/Project" end
+        @MenuRoot Services::Candidate end
+        @Menu Show show end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+      @Operation show()
+        let env = properties.env() then
+            pair =
+              @WithRules(ServiceRules)
+                 Equals(Env,<env>)
+                 Show(<model.groups()>,Env,S)
+                 return Seq{S|Env}
+               end then
+            service = if pair = "FAIL" then null else pair->head end;
+            env = if pair = "FAIL" then null else pair->tail end
+        in service.edit();
+           if env <> null then properties.setValues(env) end
+        end
+      end
+    end
+    @Class Properties metaclass BrowsedClass 
+      @Attribute properties : Seq(Property) end
+      @Interface
+        @Child properties end
+        @Image "Projects/Project" end
+        @MenuRoot Services::Properties end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+      @Operation env()
+        properties->collect(p | Seq{p.name|p.getValue()})
+      end
+      @Operation setValues(env)
+        @For p in properties do
+          p.setValue(env)
+        end
+      end
+    end
+    @Class Property metaclass BrowsedClass extends Named
+      @Attribute value : String end
+      @Interface
+        @Image "Projects/Project" end
+        @MenuRoot Services::Property end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+      @Operation getValue()
+        if value = "?"
+        then XRules::Var()
+        else value
+        end
+      end
+      @Operation setValue(env)
+        let cell = env.assoc(name)
+        in if cell <> null
+           then self.value := cell->head->tail
+           end
+        end
+      end
+      @Operation toString()
+        name + " = " + value
+      end
+    end
+    @Class Group metaclass BrowsedClass extends Named
+      @Attribute services : Seq(Service) end
+      @Attribute constraint : Constraint end
+      @Interface
+        @Child services end
+        @Image "Projects/Project" end
+        @MenuRoot Services::Group end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Save::XTO Object::saveXTO end
+      end
+    end
+    @Class CLabel
+      // Just used for the editor....
+      @Attribute constraint : String end
+      @Attribute group : Group end
+    end
+    @Class Constraint isabstract end
+    @Class BinRel extends Constraint 
+      @Attribute left : Exp end
+      @Attribute right : Exp end
+    end
+    @Class BinCon extends Constraint 
+      @Attribute left : Constraint end
+      @Attribute right : Constraint end
+    end
+    @Class True extends Constraint end
+    @Class Equals extends BinRel end
+    @Class And extends BinCon end
+    @Class Or extends BinCon end
+    @Class Not extends Constraint
+      @Attribute constraint : Constraint end
+    end
+    @Class Exp isabstract end
+    @Class Const extends Exp
+      @Attribute value : Element end
+    end
+    @Class Attribute extends Exp,Named
+    end
+  end

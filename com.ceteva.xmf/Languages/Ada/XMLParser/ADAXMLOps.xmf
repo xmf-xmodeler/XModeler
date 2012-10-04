@@ -1,0 +1,1672 @@
+// Operations called by the AdaXML parser
+
+context AdaParser
+@Operation BlockBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ label = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"label");
+ declParts = AdaParser::dataFilter(data,Root::Languages::Ada::Bodies::DeclPart,"declParts");
+ statements = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"statements");
+ exceptionHandlers = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::ExceptionHandler,"exceptionHandlers");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Block[ labels = labels,label = label->asSet(),declParts = declParts,statements = statements,exceptionHandlers = exceptionHandlers,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimSpecsBody(data,endName)
+let
+ discrimSpecs = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::DiscrimSpec,"discrimSpecs")
+in
+ Seq{endName | Root::Languages::Ada::Specs::DiscrimSpecs[ discrimSpecs = discrimSpecs]}
+end
+end
+
+
+context AdaParser
+@Operation PackageSpecBody(data,endName,name)
+let
+ genericFormals = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::GenericFormal,"genericFormals");
+ pragmas = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Pragma,"pragmas");
+ private = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::PrivatePart,"private");
+ decs = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::DeclItem,"decs");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::PackageSpec[ genericFormals = genericFormals,name = name,pragmas = pragmas->asSet(),private = private->asSet(),decs = decs,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExitBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::dataFilter(data,Root::Languages::Ada::Names::Name,"name");
+ condition = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"condition");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Exit[ labels = labels,name = name->asSet(),condition = condition->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AssignmentBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ expression = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expression");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Assignment[ labels = labels,name = name,expression = expression,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ContextSpecBody(data,endName)
+let
+ withClauses = AdaParser::dataFilter(data,Root::Languages::Ada::Units::WithClause,"withClauses");
+ useClauses = AdaParser::dataFilter(data,Root::Languages::Ada::Units::UseClause,"useClauses");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::ContextSpec[ withClauses = withClauses->asSet(),useClauses = useClauses->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation TypeDefBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::TypeDef[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation CaseBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ caseAlts = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::CaseAlt,"caseAlts");
+ cond = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"cond");
+ pragmas = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Pragma,"pragmas");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Case[ labels = labels,caseAlts = caseAlts,cond = cond,pragmas = pragmas,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SimpleLoopBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ label = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"label");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body");
+ designator = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Designator,"designator");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::SimpleLoop[ labels = labels,label = label->asSet(),body = body,designator = designator->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimBoxBody(data,endName) Root::Languages::Ada::Specs::DiscrimBox[ ]
+end
+
+
+context AdaParser
+@Operation GotoBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Goto[ labels = labels,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ReQueueBody(data,endName,withAbort)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ReQueue[ labels = labels,name = name,withAbort = withAbort = "true",nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DesignatorBody(data,endName,name) Root::Languages::Ada::Statements::Designator[ name = name]
+end
+
+
+context AdaParser
+@Operation ProcedureSpecBody(data,endName,abstract,name)
+let
+ parameters = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::Parameter,"parameters");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::ProcedureSpec[ parameters = parameters,abstract = abstract = "true",name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ProcedureCallBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ProcedureCall[ labels = labels,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation LabelBody(data,endName,name) Root::Languages::Ada::Statements::Label[ name = name]
+end
+
+
+context AdaParser
+@Operation ConstraintBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Constraint[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubprogramSpecBody(data,endName,abstract)
+let
+ parameters = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::Parameter,"parameters");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::SubprogramSpec[ parameters = parameters,abstract = abstract = "true",nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation IfBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ clauses = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::CondClause,"clauses");
+ elseClause = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"elseClause");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::If[ labels = labels,clauses = clauses,elseClause = elseClause,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation CodeBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ qualified = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Qualified,"qualified");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Code[ labels = labels,qualified = qualified,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation CondClauseBody(data,endName)
+let
+ cond = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"cond");
+ statements = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"statements");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::CondClause[ cond = cond,statements = statements,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation FunctionSpecBody(data,endName,abstract,name)
+let
+ parameters = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::Parameter,"parameters");
+ returnType = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"returnType");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::FunctionSpec[ parameters = parameters,abstract = abstract = "true",returnType = returnType,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation IntegerTypeBody(data,endName)
+let
+ rangeConstraint = AdaParser::valueFilter(data,Root::Languages::Ada::Types::Ranges::RangeConstraint,"rangeConstraint");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::IntegerType[ rangeConstraint = rangeConstraint,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation WhileLoopBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ cond = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"cond");
+ label = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"label");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body");
+ designator = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Designator,"designator");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::WhileLoop[ labels = labels,cond = cond,label = label->asSet(),body = body,designator = designator->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation CaseAltBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body");
+ choices = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Choice,"choices");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::CaseAlt[ labels = labels,body = body,choices = choices,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimSpecBody(data,endName,isAccess)
+let
+ mark = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"mark");
+ initializer = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"initializer");
+ names = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::DiscrimName,"names")
+in
+ Seq{endName | Root::Languages::Ada::Specs::DiscrimSpec[ mark = mark,initializer = initializer->asSet(),names = names,isAccess = isAccess = "true"]}
+end
+end
+
+
+context AdaParser
+@Operation EnumerationTypeBody(data,endName)
+let
+ ids = AdaParser::dataFilter(data,Root::Languages::Ada::Types::PrimitiveTypes::EnumId,"ids");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::EnumerationType[ ids = ids,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ForLoopBody(data,endName,id,isReversed)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ discreteRange = AdaParser::valueFilter(data,Root::Languages::Ada::Types::Ranges::DiscreteRange,"discreteRange");
+ label = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"label");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body");
+ designator = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Designator,"designator");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ForLoop[ labels = labels,id = id,isReversed = isReversed = "true",discreteRange = discreteRange,label = label->asSet(),body = body,designator = designator->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation LoopBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ label = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"label");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body");
+ designator = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Designator,"designator");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Loop[ labels = labels,label = label->asSet(),body = body,designator = designator->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RepSpecBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::RepSpec[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PrivateTypeBody(data,endName,tagged,isLimited)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::PrivateType[ tagged = tagged,isLimited = isLimited = "true",nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ParenthesizedPrimaryBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ParenthesizedPrimary[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptChoiceOthersBody(data,endName) Root::Languages::Ada::Statements::ExceptChoiceOthers[ ]
+end
+
+
+context AdaParser
+@Operation ParameterBody(data,endName,name,mode)
+let
+ type = AdaParser::valueFilter(data,Root::Languages::Ada::Types::TypeRef::TypeRef,"type");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::Parameter[ name = name,mode = mode,type = type,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation FixedTypeBody(data,endName)
+let
+ range = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::FixedType[ range = range->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ChoiceDiscreteWithRangeBody(data,endName)
+let
+ withRange = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::DiscreteWithRange,"withRange");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ChoiceDiscreteWithRange[ withRange = withRange,body = body]}
+end
+end
+
+
+context AdaParser
+@Operation NullBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Null[ labels = labels,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PrivatePartBody(data,endName)
+let
+ decs = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::DeclItem,"decs");
+ pragmas = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Pragma,"pragmas");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Specs::PrivatePart[ decs = decs,pragmas = pragmas->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AccessTypeBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::AccessType[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ChoiceExpBody(data,endName)
+let
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ChoiceExp[ expr = expr,body = body]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptChoiceBody(data,endName) Root::Languages::Ada::Statements::ExceptChoice[ ]
+end
+
+
+context AdaParser
+@Operation DiscrimPartBody(data,endName) Root::Languages::Ada::Specs::DiscrimPart[ ]
+end
+
+
+context AdaParser
+@Operation FloatTypeBody(data,endName)
+let
+ range = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::FloatType[ range = range->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ChoiceOthersBody(data,endName)
+let
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ChoiceOthers[ body = body]}
+end
+end
+
+
+context AdaParser
+@Operation DelayBody(data,endName,isUntil)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ expression = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expression");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Delay[ labels = labels,expression = expression,isUntil = isUntil = "true",nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimNameBody(data,endName,name) Root::Languages::Ada::Specs::DiscrimName[ name = name]
+end
+
+
+context AdaParser
+@Operation RealTypeBody(data,endName)
+let
+ range = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::RealType[ range = range->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPExpBody(data,endName)
+let
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPExp[ expr = expr,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptChoiceNameBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ExceptChoiceName[ name = name]}
+end
+end
+
+
+context AdaParser
+@Operation GenericDeclBody(data,endName)
+let
+ genericFormals = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::GenericFormal,"genericFormals");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::GenericDecl[ genericFormals = genericFormals,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AccessTypeSubTypeIndBody(data,endName,constant,all)
+let
+ subTypeInd = AdaParser::valueFilter(data,Root::Languages::Ada::Types::TypeRef::SubTypeInd,"subTypeInd");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::AccessTypeSubTypeInd[ constant = constant = "true",all = all = "true",subTypeInd = subTypeInd,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExpressionBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Expression[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ReturnBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ expr = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Return[ labels = labels,expr = expr->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyStubTaskDeclBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::BodyStubTaskDecl[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation EnumIdBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::PrimitiveTypes::EnumId[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPCompAssocBody(data,endName)
+let
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ choices = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Choice,"choices");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPCompAssoc[ expr = expr,choices = choices,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptionHandlerBody(data,endName)
+let
+ exceptChoices = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::ExceptChoice,"exceptChoices");
+ statements = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"statements");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ExceptionHandler[ exceptChoices = exceptChoices,statements = statements,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation TypeDeclBody(data,endName,name)
+let
+ typeCompletion = AdaParser::dataFilter(data,Root::Languages::Ada::Types::TypeDef,"typeCompletion");
+ discrimPart = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::DiscrimPart,"discrimPart");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::TypeDecl[ name = name,typeCompletion = typeCompletion->asSet(),discrimPart = discrimPart->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation TypeRefBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::TypeRef::TypeRef[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPExpWithValuesBody(data,endName)
+let
+ values = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Value,"values");
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPExpWithValues[ values = values,expr = expr,nodes = nodes]}
+end
+end
+
+context AdaParser
+@Operation PPValuesBody(data,endName)
+let
+ values = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Value,"values");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPValues[ values = values, nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AbortBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ names = AdaParser::dataFilter(data,Root::Languages::Ada::Names::Name,"names");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Abort[ labels = labels,names = names,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation NumberDeclBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::NumberDecl[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubTypeMarkBody(data,name,endName)
+let
+ name = 
+   if name <> "" 
+   then Languages::Ada::Names::SimpleName[name=name]
+   else AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name")
+   end;
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::TypeRef::SubTypeMark[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPValuesBody(data,endName)
+let
+ values = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Value,"values");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPValues[ values = values,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptionHandlerNameBody(data,endName,name)
+let
+ exceptChoices = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::ExceptChoice,"exceptChoices");
+ statements = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"statements");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::ExceptionHandlerName[ exceptChoices = exceptChoices,statements = statements,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyStubPackageDeclBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::BodyStubPackageDecl[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubTypeIndBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ constraint = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Constraint,"constraint");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::TypeRef::SubTypeInd[ name = name,constraint = constraint->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ChoiceBody(data,endName)
+let
+ body = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"body")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Choice[ body = body]}
+end
+end
+
+
+context AdaParser
+@Operation StatementBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Statement[ labels = labels,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimSpecsBody(data,endName)
+let
+ discrimSpecs = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::DiscrimSpec,"discrimSpecs")
+in
+ Seq{endName | Root::Languages::Ada::Decls::DiscrimSpecs[ discrimSpecs = discrimSpecs]}
+end
+end
+
+
+context AdaParser
+@Operation RangeBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::Range[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation QualifiedExpressionBody(data,endName)
+let
+ qualified = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Qualified,"qualified");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::QualifiedExpression[ qualified = qualified,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RaiseBody(data,endName)
+let
+ labels = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Label,"labels");
+ name = AdaParser::dataFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Statements::Raise[ labels = labels,name = name->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubtypeDeclBody(data,endName,name)
+let
+ isName = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"isName");
+ constraint = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Constraint,"constraint");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::SubtypeDecl[ isName = isName,name = name,constraint = constraint->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscreteRangeNameBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ constraint = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Ranges::Range,"constraint");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::DiscreteRangeName[ name = name,constraint = constraint->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BinaryBody(data,endName,op)
+let
+ left = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"left");
+ right = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"right");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Binary[ op = op,left = left,right = right,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation GenericPackageInstanceBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Generics::GenericPackageInstance[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimBoxBody(data,endName) Root::Languages::Ada::Decls::DiscrimBox[ ]
+end
+
+
+context AdaParser
+@Operation RangeConstraintBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::RangeConstraint[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation QualifiedBody(data,endName)
+let
+ parenthesizedPrimary = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::ParenthesizedPrimary,"parenthesizedPrimary");
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Qualified[ parenthesizedPrimary = parenthesizedPrimary,name = name]}
+end
+end
+
+
+context AdaParser
+@Operation SimpleNameBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Names::SimpleName[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubprogramRenameDeclBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ subprogramDecl = AdaParser::valueFilter(data,Root::Languages::Ada::Decls::SubprogramDecl,"subprogramDecl");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::SubprogramRenameDecl[ name = name,subprogramDecl = subprogramDecl,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscreteRangeRangeBody(data,endName)
+let
+ range = AdaParser::valueFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::DiscreteRangeRange[ range = range,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPExpWithNullRecordBody(data,endName)
+let
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPExpWithNullRecord[ expr = expr,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation NameBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Names::Name[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyStubDeclBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::BodyStubDecl[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscreteRangeBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::DiscreteRange[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AllocatorQualifiedBody(data,endName)
+let
+ qualified = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Qualified,"qualified");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::AllocatorQualified[ qualified = qualified,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation IndexedCompBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes");
+ values = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Value,"values")
+in
+ Seq{endName | Root::Languages::Ada::Names::IndexedComp[name = name, values = values, nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyStubSubProgDeclBody(data,endName)
+let
+ subProg = AdaParser::valueFilter(data,Root::Languages::Ada::Specs::SubprogramSpec,"subProg");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::BodyStubSubProgDecl[ subProg = subProg,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SimpleRangeConstraintBody(data,endName)
+let
+ range = AdaParser::valueFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::SimpleRangeConstraint[ range = range,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExpressionNameBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ExpressionName[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AttributeBody(data,endName,attribute)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Names::Attribute[ attribute = attribute,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RenameDeclBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::RenameDecl[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RangeNameExprBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::RangeNameExpr[ name = name,expr = expr,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation LiteralBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Literal[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SelectedCompBody(data,endName,scname)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Names::SelectedComp[ name = name,scname = scname,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DeclItemBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::DeclItem[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RangeExprBody(data,endName)
+let
+ lhs = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"lhs");
+ rhs = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"rhs");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::RangeExpr[ lhs = lhs,rhs = rhs,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscreteWithRangeBody(data,endName)
+let
+ range = AdaParser::valueFilter(data,Root::Languages::Ada::Types::Ranges::Range,"range");
+ name = AdaParser::dataFilter(data,Root::Languages::Ada::Names::Name,"name")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::DiscreteWithRange[ range = range,name = name->asSet()]}
+end
+end
+
+
+context AdaParser
+@Operation PkgBodyBody(data,endName,name)
+let
+ declPart = AdaParser::dataFilter(data,Root::Languages::Ada::Bodies::DeclPart,"declPart");
+ statements = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"statements");
+ exceptionHandlers = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::ExceptionHandler,"exceptionHandlers");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::PkgBody[ declPart = declPart,name = name,statements = statements,exceptionHandlers = exceptionHandlers,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DeclBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::Decl[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RangeNameBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::Ranges::RangeName[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AllocatorNameBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::AllocatorName[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DeclPartBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::DeclPart[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PackageRenameDeclBody(data,endName,packageName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::PackageRenameDecl[ name = name,packageName = packageName,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation CompDeclBody(data,endName,name)
+let
+ componentSubType = AdaParser::valueFilter(data,Root::Languages::Ada::Types::CompositeTypes::ComponentSubType,"componentSubType");
+ initializer = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"initializer");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::CompDecl[ name = name,componentSubType = componentSubType,initializer = initializer->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PPNullRecordBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::PPNullRecord[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DeclPartItemBody(data,endName)
+let
+ declItem = AdaParser::valueFilter(data,Root::Languages::Ada::Decls::DeclItem,"declItem");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::DeclPartItem[ declItem = declItem,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ObjectDeclSubTypeBody(data,endName,qualifier,name)
+let
+ initializer = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"initializer");
+ subTypeInd = AdaParser::valueFilter(data,Root::Languages::Ada::Types::TypeRef::SubTypeInd,"subTypeInd");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::ObjectDeclSubType[ qualifier = qualifier,name = name,initializer = initializer->asSet(),subTypeInd = subTypeInd,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ComponentSubTypeBody(data,endName,aliased)
+let
+ subTypeInd = AdaParser::valueFilter(data,Root::Languages::Ada::Types::TypeRef::SubTypeInd,"subTypeInd");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::ComponentSubType[ aliased = aliased = "true",subTypeInd = subTypeInd,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AllocatorBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Allocator[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::Body[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation BodyStubSubBodyDeclBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::BodyStubSubBodyDecl[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation RecordTypeBody(data,endName,limited,null,tagged)
+let
+ pragmas = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Pragma,"pragmas");
+ components = AdaParser::dataFilter(data,Root::Languages::Ada::Types::CompositeTypes::CompDecl,"components");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::RecordType[ limited = limited = "true",null = null = "true",pragmas = pragmas->asSet(),tagged = tagged,components = components,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ValueBody(data,endName) Root::Languages::Ada::Expressions::Value[ ]
+end
+
+
+context AdaParser
+@Operation DeclPartBodyBody(data,endName)
+let
+ body = AdaParser::valueFilter(data,Root::Languages::Ada::Bodies::Body,"body");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::DeclPartBody[ body = body,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimSpecBody(data,endName,isAccess)
+let
+ initializer = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Expression,"initializer");
+ mark = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"mark");
+ names = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::DiscrimName,"names")
+in
+ Seq{endName | Root::Languages::Ada::Decls::DiscrimSpec[ initializer = initializer->asSet(),mark = mark,names = names,isAccess = isAccess = "true"]}
+end
+end
+
+
+context AdaParser
+@Operation DerivedTypeBody(data,endName,new,abstract,private)
+let
+ recordType = AdaParser::dataFilter(data,Root::Languages::Ada::Types::CompositeTypes::RecordType,"recordType");
+ subTypeInd = AdaParser::valueFilter(data,Root::Languages::Ada::Types::TypeRef::SubTypeInd,"subTypeInd");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::DerivedType[ new = new = "true",abstract = abstract = "true",private = private = "true",recordType = recordType->asSet(),subTypeInd = subTypeInd,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation UsedCharBody(data,endName,charLiteral)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::UsedChar[ charLiteral = charLiteral,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubprogramBodyBody(data,endName)
+let
+ subprogramSpec = AdaParser::valueFilter(data,Root::Languages::Ada::Specs::SubprogramSpec,"subprogramSpec");
+ blockBody = AdaParser::dataFilter(data,Root::Languages::Ada::Statements::Statement,"blockBody");
+ declPart = AdaParser::dataFilter(data,Root::Languages::Ada::Bodies::DeclPart,"declPart");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Bodies::SubprogramBody[ subprogramSpec = subprogramSpec,blockBody = blockBody,declPart = declPart,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ObjectDeclBody(data,endName,qualifier,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::ObjectDecl[ qualifier = qualifier,name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation UnconstrainedArrayTypeBody(data,endName)
+let
+ componentSubType = AdaParser::valueFilter(data,Root::Languages::Ada::Types::CompositeTypes::ComponentSubType,"componentSubType");
+ names = AdaParser::dataFilter(data,Root::Languages::Ada::Names::Name,"names");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::UnconstrainedArrayType[ componentSubType = componentSubType,names = names,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation UnaryBody(data,endName,op)
+let
+ arg = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"arg");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::Unary[ op = op,arg = arg,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ConstrainedArrayTypeBody(data,endName)
+let
+ componentSubType = AdaParser::valueFilter(data,Root::Languages::Ada::Types::CompositeTypes::ComponentSubType,"componentSubType");
+ discreteRanges = AdaParser::dataFilter(data,Root::Languages::Ada::Types::Ranges::DiscreteRange,"discreteRanges");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::ConstrainedArrayType[ componentSubType = componentSubType,discreteRanges = discreteRanges,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DeclItemPragmaBody(data,endName)
+let
+ pragma = AdaParser::valueFilter(data,Root::Languages::Ada::Units::Pragma,"pragma");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::DeclItemPragma[ pragma = pragma,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AdaNameBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::AdaName[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ValueDiscreteWithRangeBody(data,endName)
+let
+ withRange = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::DiscreteWithRange,"withRange")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ValueDiscreteWithRange[ withRange = withRange]}
+end
+end
+
+
+context AdaParser
+@Operation ArrayTypeBody(data,endName)
+let
+ componentSubType = AdaParser::valueFilter(data,Root::Languages::Ada::Types::CompositeTypes::ComponentSubType,"componentSubType");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Types::CompositeTypes::ArrayType[ componentSubType = componentSubType,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ExceptionDeclBody(data,endName,name)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::ExceptionDecl[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PragmaBody(data,endName,name,val)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::Pragma[name = name,val = val,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ValueExprBody(data,endName)
+let
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ValueExpr[ expr = expr]}
+end
+end
+
+
+context AdaParser
+@Operation CompilationUnitBody(data,endName,private)
+let
+ contextSpec = AdaParser::dataFilter(data,Root::Languages::Ada::Specs::ContextSpec,"contextSpec");
+ unit = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Unit,"unit");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::CompilationUnit[ private = private = "true",contextSpec = contextSpec->asSet(),unit = unit->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubprogramDeclBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::SubprogramDecl[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AdaProgramBody(data,endName,resourceName)
+let
+ compilationUnits = AdaParser::dataFilter(data,Root::Languages::Ada::Units::CompilationUnit,"compilationUnits");
+ pragmas = AdaParser::dataFilter(data,Root::Languages::Ada::Units::Pragma,"pragmas");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::AdaProgram[ resourceName = resourceName,compilationUnits = compilationUnits->asSet(),pragmas = pragmas->asSet(),nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation NullLiteralBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::NullLiteral[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation WithClauseBody(data,name,endName)
+let
+ name = if name <> "" 
+        then Languages::Ada::Names::SimpleName[name=name] 
+        else AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name")
+        end;
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::WithClause[ name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation GenericFormalBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::GenericFormal[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation UnitBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::Unit[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation NumericLiteralBody(data,endName,value)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::NumericLiteral[ value = value,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation NodeBody(data,endName,name,val)
+let
+ children = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"children");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Node[ name = name,val = val,children = children,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation GenericDeclPackageSpecBody(data,endName)
+let
+ packageSpec = AdaParser::valueFilter(data,Root::Languages::Ada::Specs::PackageSpec,"packageSpec");
+ genericFormals = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::GenericFormal,"genericFormals");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::GenericDeclPackageSpec[ packageSpec = packageSpec,genericFormals = genericFormals,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation UseClauseBody(data,endName,type)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::UseClause[ type = type = "true",name = name,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation ValueCompAssocBody(data,endName)
+let
+ choices = AdaParser::dataFilter(data,Root::Languages::Ada::Expressions::Choice,"choices");
+ expr = AdaParser::valueFilter(data,Root::Languages::Ada::Expressions::Expression,"expr")
+in
+ Seq{endName | Root::Languages::Ada::Expressions::ValueCompAssoc[ choices = choices,expr = expr]}
+end
+end
+
+
+context AdaParser
+@Operation AdaSystemBody(data,endName)
+let
+ programs = AdaParser::dataFilter(data,Root::Languages::Ada::Units::AdaProgram,"programs");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+  Root::Languages::Ada::Units::AdaSystem[programs = programs->asSet(),nodes = nodes]
+end
+end
+
+
+context AdaParser
+@Operation ExceptionRenameDeclBody(data,endName)
+let
+ name = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"name");
+ exceptionName = AdaParser::valueFilter(data,Root::Languages::Ada::Names::Name,"exceptionName");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::ExceptionRenameDecl[ name = name,exceptionName = exceptionName,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation AdaObjectBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::AdaObject[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation GenericDeclSubprogramBody(data,endName)
+let
+ subprogramSpec = AdaParser::valueFilter(data,Root::Languages::Ada::Specs::SubprogramSpec,"subprogramSpec");
+ genericFormals = AdaParser::dataFilter(data,Root::Languages::Ada::Decls::GenericFormal,"genericFormals");
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::GenericDeclSubprogram[ subprogramSpec = subprogramSpec,genericFormals = genericFormals,nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation SubUnitBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::SubUnit[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimPartBody(data,endName) Root::Languages::Ada::Decls::DiscrimPart[ ]
+end
+
+
+context AdaParser
+@Operation PackageBodyBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::PackageBody[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation DiscrimNameBody(data,endName,name) Root::Languages::Ada::Decls::DiscrimName[ name = name]
+end
+
+
+context AdaParser
+@Operation RenameUnitBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Units::RenameUnit[ nodes = nodes]}
+end
+end
+
+
+context AdaParser
+@Operation PackageDeclBody(data,endName)
+let
+ nodes = AdaParser::dataFilter(data,Root::Languages::Ada::Node,"nodes")
+in
+ Seq{endName | Root::Languages::Ada::Decls::PackageDecl[ nodes = nodes]}
+end
+end
+

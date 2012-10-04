@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolComponentType isabstract extends RightClickable, Instantiable
+  
+    @Attribute operations : Seq(Operation) (+,-) end
+  
+    @Operation sendMessage(target,message,args)
+      @Find(operation,operations)
+        when operation.name.toString() = message
+        do operation.invoke(target,args)
+        else self.error("Cannot find operation with name " + message)
+      end
+    end
+  
+  end

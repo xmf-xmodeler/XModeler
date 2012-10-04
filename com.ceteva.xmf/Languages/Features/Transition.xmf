@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+
+context Features
+  @Class Transition
+  
+    @Attribute source : String end
+    @Attribute target : String end
+    
+    @Constructor(source,target)
+    end
+    
+    @Operation toString()
+      source + "->" + target
+    end
+  
+  end

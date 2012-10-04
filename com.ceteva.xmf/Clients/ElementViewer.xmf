@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Class ElementViewer isabstract extends ElementViewerInterface
+
+    @Doc
+      This class should be sub-classed by any widget which reflects a model element.
+    end
+
+    @Attribute element : Element (?,!) end
+
+  end

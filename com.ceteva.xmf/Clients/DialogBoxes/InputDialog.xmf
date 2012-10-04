@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+context DialogBoxes
+
+  @Class InputDialog extends ContainedClientElement
+  
+    @Attribute title    : String end
+    @Attribute question : String end
+    @Attribute value    : String end
+    
+    @Constructor(title,question,value) end
+        
+    @Operation new()
+      self.commandInterpreter().newInputDialog(self)
+    end
+  
+  end

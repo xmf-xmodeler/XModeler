@@ -1,0 +1,90 @@
+parserImport XOCL;
+
+context CodeBox
+  @Operation binaryString():String
+    let s = ""
+    in @Count i from 0 to self.codeSize() - 1 do
+         s := s + self.instrAt(i) + ",";
+         s := s + self.operandsAt(i);
+         if (i + 1) < (self.codeSize() - 1)
+         then s := s + ","
+         end
+       end;
+       s
+    end
+  end
+  
+context CodeBox
+  @Operation codeSize()
+    Kernel_codeBoxCodeSize(self)
+  end
+
+context CodeBox
+  @Operation constants()
+    Kernel_codeBoxConstants(self)
+  end
+  
+context CodeBox
+  @Operation init(args)
+    Kernel_mkCodeBox(args->at(0))
+  end
+  
+context CodeBox
+  @Operation instrAt(index)
+    Kernel_codeBoxInstrAt(self,index)
+  end
+  
+context CodeBox
+  @Operation locals()
+    Kernel_codeBoxLocals(self)
+  end
+  
+context CodeBox
+  @Operation name()
+    Kernel_codeBoxName(self)
+  end
+
+context CodeBox
+  @Operation operandsAt(index)
+    Kernel_codeBoxOperandsAt(self,index)
+  end
+  
+context CodeBox
+  @Operation resourceName()
+    Kernel_codeBoxResourceName(self)
+  end
+  
+context CodeBox
+  @Operation setCode(instrs)
+    Kernel_codeBoxSetCode(self,instrs)
+  end
+   
+context CodeBox
+  @Operation setConstants(constants)
+    Kernel_codeBoxSetConstants(self,constants)
+  end
+  
+context CodeBox
+  @Operation setName(name)
+    Kernel_codeBoxSetName(self,name)
+  end
+  
+context CodeBox
+  @Operation setInstrAt(index,instr,operands)
+    Kernel_codeBoxSetInstrAt(self,index,instr,operands)
+  end
+  
+context CodeBox
+  @Operation setResourceName(resourceName)
+    Kernel_codeBoxSetResourceName(self,resourceName)
+  end
+
+context CodeBox
+  @Operation setSource(source)
+    Kernel_codeBoxSetSource(self,source)
+  end
+
+context CodeBox
+  @Operation source()
+    Kernel_codeBoxSource(self)
+  end

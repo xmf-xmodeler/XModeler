@@ -1,0 +1,179 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import Displays;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)RootNode"()
+  // Offer the available attributes from the root element
+  // type and add in a root node...
+  let C = event.tool().find(event.parent()).classifier() then
+      A = C.allAttributes()->asSeq then
+      m1 = formats("~S has the following attributes:~%~{~%~;  ~$~S : ~S~}",Seq{C.name(),A->collect(a | Seq{a.name(),a.type.name()})}) then
+      m2 = "Please choose an attribute to represent as a root node." then
+      a = xmf.select("Root Attribute",m1 + "\n" + m2,A,Seq{},null)
+  in if a = null
+     then event.value().delete()
+     else 
+       let type = a.underlyingType() then
+           C = Root.allContentsOf(Class)->select(c | c.inheritsFrom(type))->asSeq then
+           type = 
+             if C->size = 0
+             then type // Should not happen!
+             elseif C->size = 1 
+             then C->head 
+             else xmf.select("Subtype","Select a type of " + type.name(),C,null,null) 
+             end
+       in if type = null
+          then event.value().delete()
+          else
+            let nodeType = NodeType() then
+                rootNode = Root_x_Node(a,Classifier_x_Node(type,nodeType));
+                menuNode = event.value().ref1(Seq{"Menu"});
+                tool = event.tool() then
+                rootElementType = tool.find(event.value().owner())
+            in nodeType.setName(rootNode.toString());
+               nodeType.hasPort := true;
+               rootElementType.add(rootNode);
+               rootElementType.displayType().add(nodeType);
+               event.value().setTextIn(a.name() + ":" + type.name());
+               tool.register(event.value(),rootNode);
+               tool.register(rootNode,event.value());
+               tool.register(menuNode,nodeType.menu());
+               tool.register(nodeType.menu(),menuNode)
+            end
+          end
+       end
+     end
+   end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)FreeNode"()
+  // Offer all available classes (should just be reachable classes) ...
+  let tree = makePackageTree(Root) then
+      class = xmf.treeSelection("Please Select a Class for a Node",tree,Seq{Root},null)
+  in if class = null
+     then event.value().delete()
+     else 
+        let 
+           nodeType = NodeType(class.name()) then
+           rootNode = Free_x_Node(Classifier_x_Node(class,nodeType));
+           menuNode = event.value().ref1(Seq{"Menu"});
+           tool = event.tool() then
+           rootElementType = tool.find(event.value().owner())
+        in nodeType.hasPort := true;
+           rootElementType.add(rootNode);
+           rootElementType.displayType().add(nodeType);
+           event.value().setTextIn(class.toString());
+           tool.register(event.value(),rootNode);
+           tool.register(rootNode,event.value());
+           tool.register(menuNode,nodeType.menu());
+           tool.register(nodeType.menu(),menuNode)
+        end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)RootNode"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let rootElementType = event.tool().find(event.owner());
+        rootNode = event.tool().find(event.value()) then
+        nodeType = rootNode.type().nodeType() then
+        menu = nodeType.menu();
+        tool = event.tool()
+    in 
+       // Delete the root node mapping...
+    
+       rootElementType.deleteFromNodes(rootNode);
+       
+       // If the deleted node type is at the end of a class
+       // edge source or target then the class edge has to go.
+       
+       @Find(map,rootElementType.classEdges())
+         when map.sourceNode().type().nodeType() = nodeType or
+              map.targetNode().type().nodeType() = nodeType
+         do tool.find(map.edgeType()).delete()
+       end;
+       
+       // If the deleted node type is at the end of an
+       // attribute edge source or target then the attribute
+       // edge has to go.
+       
+       @Find(map,rootElementType.edges())
+         when map.source().type().nodeType() = nodeType or
+              map.target().type().nodeType() = nodeType
+         do tool.find(map.edgeType()).delete()
+       end;
+            
+       rootElementType.displayType().deleteFromNodeTypes(nodeType);
+       tool.deregister(event.value());
+       tool.deregister(rootNode);
+       tool.deregister(tool.find(menu));
+       tool.deregister(menu)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)FreeNode"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let rootElementType = event.tool().find(event.owner());
+        freeNode = event.tool().find(event.value()) then
+        nodeType = freeNode.type().nodeType() then
+        menu = nodeType.menu();
+        tool = event.tool()
+    in 
+       // Delete the free node mapping...
+       
+       rootElementType.deleteFromNodes(freeNode);
+       
+       // If the deleted node type is at the end of a class
+       // edge source or target then the class edge has to go.
+       
+       @Find(map,rootElementType.classEdges())
+         when map.sourceNode().type().nodeType() = nodeType or
+              map.targetNode().type().nodeType() = nodeType
+         do tool.find(map.edgeType()).delete()
+       end;
+       
+       // If the deleted node type is at the end of an
+       // attribute edge source or target then the attribute
+       // edge has to go.
+       
+       @Find(map,rootElementType.edges())
+         when map.source().type().nodeType() = nodeType or
+              map.target().type().nodeType() = nodeType
+         do tool.find(map.edgeType()).delete()
+       end;
+       
+       rootElementType.displayType().deleteFromNodeTypes(nodeType);
+       tool.deregister(event.value());
+       tool.deregister(freeNode);
+       tool.deregister(tool.find(menu));
+       tool.deregister(menu)
+    end
+  end
+end;
+
+// Used to build a tree for free nodes.
+context MDC
+ @Operation makePackageTree(nameSpace)
+   @TypeCase(nameSpace)
+     Package do Seq{nameSpace,makePackageTrees(nameSpace)} end
+     Class do Seq{nameSpace} end
+     NameSpace do Seq{nameSpace,makePackageTrees(nameSpace)} end
+   end
+ end
+ 
+context MDC
+  @Operation makePackageTrees(nameSpace)
+    let N = nameSpace.contentsOf(NameSpace)->excluding(null)->asSeq->sortNamedElements_CaseIndependent()
+    in N->collect(n | makePackageTree(n))
+    end
+  end

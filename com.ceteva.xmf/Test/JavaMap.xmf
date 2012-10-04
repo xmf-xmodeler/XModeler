@@ -1,0 +1,186 @@
+parserImport XOCL;
+
+import XML;
+
+context Root
+
+  @Package JavaMap
+  
+    @Package Java
+    
+      @Doc
+        A model of Java program structure.
+      end
+      
+      @Class Program
+        @Attribute classes : Set(Class) end
+        @Constructor(classes) ! end
+      end
+      
+      @Class Class
+        @Attribute name : String end
+        @Attribute members : Set(Member) end
+        @Constructor(name,members) ! end
+      end
+      
+      @Class Member isabstract
+        @Attribute name : String end
+        @Constructor(name) ! end
+      end
+      
+      @Class Field extends Member
+        @Attribute type : String end
+        @Constructor(name,type) end
+      end
+      
+      @Class Method extends Member
+        @Attribute args : Seq(Arg) end
+        @Attribute type : String end
+        @Constructor(name,args,type) end
+      end
+      
+      @Class Arg 
+        @Attribute name : String end
+        @Attribute type : String end
+        @Constructor(name,type) ! end
+      end
+      
+    end
+    
+    @Package Mapping
+    
+      @Doc
+        A mapping from Java program structure to XML. Each program element is
+        transformed into an XML element. Each class gets a unique identifier
+        that is used when references to types occur in the program. Mappings 
+        are classes with mapping clauses. A mapping clause consists of a
+        pattern and an action with bindings (like XMT). A mapping instance
+        transforms a value by applying it to the value. Within the body of
+        clauses, the mapping is referenced as 'self'.
+      end
+      
+    
+      @Map MapProg(Java::Program)->Element 
+      
+        @Doc
+          Note that XMF mappings have a signature (seen above) that defines
+          the types of the inputs (potentially more than one) and the output.
+          NB XML is imported at this point so Element is actually XML::Element
+          and Attribute is XML::Attribute. In most cases, mappings refer to
+          subordinate mappings via attributes. Note that it is convenient to
+          initialise the attributes when a new instance is created.
+        end
+      
+        @Attribute mapClass : MapClass = MapClass(self) end
+        @Attribute idTable : Table = Table(10) end
+        
+        @Operation getId(name)
+        
+          @Doc
+            Identifiers for types are alloctated by this mapping.
+            All subordinate mappings can reach this mapping via
+            their 'owner' slot.
+          end
+          
+          if idTable.hasKey(name)
+          then idTable.get(name)
+          else
+            idTable.put(name,"id" + idTable.keys()->size.toString());
+            idTable.get(name)
+          end
+        end
+        
+        @Clause Java::Program(C) do 
+          Element("Program",Set{},E) 
+            where 
+              E = C->collect(c | mapClass(c)) 
+        end
+        
+      end
+      
+      @Map MapClass(Java::Class)->Element
+      
+        @Attribute owner : MapProg end
+        @Attribute mapMember : MapMember = MapMember(self) end
+        
+        @Constructor(owner) end
+        
+        @Operation getId(name)
+          owner.getId(name)
+        end
+        
+        @Clause Java::Class(name,M) do
+          Element("Class",Set{
+            Attribute("name",name),
+            Attribute("id",self.getId(name))},E)
+              where
+                E = M->collect(m | mapMember(m))
+        end
+        
+      end
+      
+      @Map MapMember(Java::Member)->Element
+      
+        @Attribute owner : MapClass end
+        @Attribute mapArg : MapArg = MapArg(self) end
+        
+        @Constructor(owner) end
+        
+        @Operation getId(name)
+          owner.getId(name)
+        end
+        
+        @Clause Java::Field(name,type) do
+          Element("Field",Set{
+            Attribute("name",name),
+            Attribute("type",self.getId(type))},Set{})
+        end
+        
+        @Clause Java::Method(name,A,type) do
+          Element("Method",Set{
+            Attribute("name",name),
+            Attribute("type",self.getId(type))},E)
+              where
+                E = A->collect(a | mapArg(a))
+        end
+        
+      end
+      
+      @Map MapArg(Java::Arg)->Element
+      
+        @Attribute owner : MapClass end
+        
+        @Constructor(owner) end
+        
+        @Operation getId(name)
+          owner.getId(name)
+        end
+        
+        @Clause Java::Arg(name,type) do
+          Element("Arg",Set{
+            Attribute("name",name),
+            Attribute("type",self.getId(type))},Set{})
+        end
+        
+      end
+      
+    end
+    
+    @Operation test()
+      let a1 = JavaMap::Java::Arg("a1","C");
+          a2 = JavaMap::Java::Arg("a2","D")then
+          m = JavaMap::Java::Method("m",Seq{a1,a2},"D");
+          f = JavaMap::Java::Field("x","C") then
+          d = JavaMap::Java::Class("D",Set{f});
+          c = JavaMap::Java::Class("C",Set{f,m}) then
+          p = JavaMap::Java::Program(Set{c});
+          m = JavaMap::Mapping::MapProg()
+      in @Count x from 0 to 10000 m (p) end;
+         m(p).pprint(stdout,0) 
+      end
+    end
+    
+  end
+      
+      
+         

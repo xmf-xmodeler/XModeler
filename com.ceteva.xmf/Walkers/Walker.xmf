@@ -1,0 +1,172 @@
+parserImport XOCL;
+
+context Walkers
+
+  @Class Walker isabstract
+  
+    @Doc
+      An element walker is used to perform some arbitrary task over the
+      structure of a value. A walker recursively descen-ds into an elements
+      structure and dispatches to appropriate operations depen-ding on the
+      values of component elements. A walker handles cycles in a value by
+      dispatching to a special operation after an element has been encountered
+      for the first time. To create your own walker you should specialise this
+      class or one of its descen-dants and implement the abstract operations
+      or override the provided operations.
+    end
+     
+     @Attribute table : Table end
+     @Attribute refCount : Integer end
+     @Attribute visited : Integer (?) end
+     
+     @Constructor()
+       self.initWalker()
+     end
+     
+     @AbstractOp defaultWalk(e:Element,arg:Element):Element
+       // Called when the type of e is unknown.
+     end
+     
+     @Operation encounter(e:Element)
+       self.encounter(e,self.newRef())
+     end
+     
+     @Operation encounter(e:Element,v:Element)
+       // Save a reference to v against the walked value e.
+       table.put(e,v)
+     end
+     
+     @Operation encountered(e:Element):Boolean
+       // Returns true when we have already walked e.
+       table.hasKey(e)
+     end
+     
+     @Operation getRef(e:Element):Element
+       table.get(e)
+     end
+     
+     @Operation initWalker()
+       self.table := Table(100)
+     end
+     
+     @Operation newRef():Integer
+       self.refCount := refCount + 1;
+       refCount
+     end
+     
+     @Operation reset()
+       // Call reset each time you walk a fresh value.
+       table.clear();
+       self.refCount := 0;
+       self.visited := 0
+     end
+     
+     @AbstractOp reWalk(e:Element,arg:Element):Element end
+     
+     @Operation walk(e:Element,arg:Element):Element
+       // Walk the element e with respect to the argument.
+       self.visited := self.visited + 1;
+       if Kernel_tableHasKey(table,e) //self.encountered(e)
+       then self.reWalk(e,arg)
+       else
+         @CaseInt[34] Kernel_tag(e) of 
+           XMF::ARRAY do self.walkVector(e,arg) end
+           XMF::BOOL do self.walkBoolean(e,arg)   end
+           XMF::BUFFER do self.walkBuffer(e,arg) end
+           XMF::CLIENT do self.walkClient(e,arg) end
+           XMF::CODE do self.walkCode(e,arg) end
+           XMF::CODEBOX do self.walkCodeBox(e,arg) end
+           XMF::CONS do self.walkSeq(e,arg) end
+           XMF::CONT do self.walkCont(e,arg) end
+           XMF::DAEMON do self.walkDaemon(e,arg) end
+           XMF::FLOAT do self.walkFloat(e,arg) end
+           XMF::FOREIGNFUN do self.walkForeignFun(e,arg) end
+           XMF::FOREIGNOBJ do self.walkForeignObj(e,arg) end
+           XMF::FUN do self.walkFun(e,arg) end
+           XMF::HASHTABLE do self.walkTable(e,arg) end
+           XMF::INPUT_CHANNEL do self.walkInputChannel(e,arg) end
+           XMF::INT do self.walkInteger(e,arg) end
+           XMF::NEGINT do self.walkInteger(e,arg) end
+           XMF::NIL do self.walkNil(arg) end
+           XMF::OBJ do self.walkObject(e,arg) end
+           XMF::OUTPUT_CHANNEL do self.walkOutputChannel(e,arg) end
+           XMF::SET do self.walkSet(e,arg) end
+           XMF::STRING do self.walkString(e,arg) end
+           XMF::SYMBOL do self.walkSymbol(e,arg) end
+           XMF::THREAD do self.walkThread(e,arg) end
+           XMF::UNDEFINED do self.walkNull(arg) end
+           else self.defaultWalk(e,arg)
+         end
+       end
+     end
+     
+     @AbstractOp walkBoolean(b:Boolean,arg:Element):Element end
+     
+     @Operation walkBuffer(buffer,arg)
+       @Count i from 0 to buffer->size do
+         self.walk(buffer->at(i),arg)
+       end;
+       buffer
+     end
+     
+     @Operation walkClient(client,arg)
+       client
+     end
+     
+     @Operation walkCode(code,arg) code end
+     
+     @Operation walkCodeBox(codeBox,arg) codeBox end
+     
+     @Operation walkCont(cont,arg) cont end
+     
+     @Operation walkDaemon(daemon,daemon) daemon end
+     
+     @Operation walkFloat(float,arg) float end
+     
+     @Operation walkForeignFun(fun,arg) fun end
+     
+     @Operation walkForeignObj(obj,arg) obj end
+     
+     @Operation walkFun(fun,arg) fun end
+     
+     @Operation walkInputChannel(inch,arg) inch end
+     
+     @AbstractOp walkInteger(i:Integer,arg:Element):Element end
+     
+     @Operation walkNil(arg:Element):Element Seq{} end
+     
+     @AbstractOp walkNull(arg:Element):Element end
+     
+     @Operation walkObject(o:Object,arg:Element):Element 
+       self.encounter(o);
+       self.walkPreObject(o,arg);
+       @For name in o.getStructuralFeatureNames() do
+         self.walkSlot(o,name,arg)
+       end;
+       self.walkPostObject(o,arg)
+     end
+     
+     @Operation walkOutputChannel(out,arg) out end
+     
+     @AbstractOp walkPreObject(o:Object,arg:Element) end
+     
+     @AbstractOp walkPostObject(o:Object,arg:Element) end
+     
+     @AbstractOp walkOperation(o:Operation,arg:Element):Element end
+     
+     @AbstractOp walkSeq(s:SeqOfElement,arg:Element):Element end
+     
+     @AbstractOp walkSet(s:SetOfElement,arg:Element):Element end
+     
+     @AbstractOp walkSlot(o:Object,s:String,arg:Element) end
+     
+     @AbstractOp walkString(s:String,arg:Element):Element end
+     
+     @AbstractOp walkTable(t:Table,arg:Element):Element end
+     
+     @Operation walkThread(thread,arg) thread end
+     
+     @AbstractOp walkVector(v:Vector,arg:Element):Element end
+     
+   end
+            

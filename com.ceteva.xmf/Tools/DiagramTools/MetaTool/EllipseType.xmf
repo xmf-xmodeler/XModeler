@@ -1,0 +1,57 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool 
+
+  @PaddedBox EllipseType(ALIGN)
+    pad = 3
+    @Box ellipseAttribute(ALIGN,HORIZONTAL,hideLeft,hideRight,hideTop,hideBottom)
+      padLeft = 3
+      padRight = 3
+      padTop = 3
+      padBottom = 3
+      @Or FilledOrUnfilled
+        @Image filledEllipseImage(LEFT)
+          "FilledEllipse.gif"
+          width = 16
+          height = 16
+          @Menu
+            @MenuAction Unfilled self.owner().changeTo("FilledOrUnfilled","unfilledEllipseImage") end
+          end
+        end
+        @Image unfilledEllipseImage(LEFT)
+          "UnfilledEllipse.gif"
+          width = 16
+          height = 16
+          @Menu
+            @MenuAction Filled self.owner().changeTo("FilledOrUnfilled","filledEllipseImage") end
+          end
+        end
+      end
+      @PaddedText name(CENTRE)
+        "Ellipse Attribute Name"
+        pad = 3
+        @Menu
+          @MenuAction Delete self.owner().owner().delete(true) end
+          @MenuItems Edit
+            @MenuAction Diagram self.owner().owner().edit() end
+            @MenuAction Model tool.find(self.owner().owner()).edit() end
+          end
+        end
+      end
+      Justification
+      MenuType
+    end
+  end

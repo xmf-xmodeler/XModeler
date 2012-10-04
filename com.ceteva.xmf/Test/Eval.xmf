@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Parser::Machine;
+import Env;
+
+context Root
+  @Operation eval(grammar:Grammar)
+  
+    // Implements a simple XOCL execution loop. This shows
+    // how program code is performed. A performable element
+    // is synthesized by a parser and then evaluated in a 
+    // given context.
+    
+    let state = State(grammar,stdin) then // Parser machine
+        target = null;                    // Value of 'self'
+        env = NullEnv();                  // Variable values
+        imports = Seq{Root,XCore}         // Imported name spaces
+    in @While true do
+         // Print a prompt. ~F ensures flush...
+         format(stdout,"> ~F");
+         // Parse the input and synthesize a performable element...
+         let performable = state.run("TopLevelExp") then
+             // Evaluate the element in a context defining
+             // self, variables and imports.
+             value = performable.eval(target,env,imports)
+         in // Print the result...
+            format(stdout,"~S~%",Seq{value})
+         end
+       end
+    end
+  end

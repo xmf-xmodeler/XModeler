@@ -1,0 +1,20 @@
+parserImport Manifests;
+
+@Manifest FormEvents
+
+  FormEvents = @File FormEvents       end
+               @File Change           end
+               @File TextFieldChanged end
+               @File CheckBoxChanged  end
+               @File ComboChanged     end
+               @File DoubleClick      end
+               @File IndexChanged     end
+               @File ListChanged      end
+               @File NodeChanged      end
+               @File NodeSelected     end
+               @File New              end
+               @File NewNode          end
+               @File Delete           end
+               @File DeleteNode       end
+do FormEvents
+end;

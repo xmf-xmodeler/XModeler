@@ -1,0 +1,428 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+import Exceptions;
+import Env;
+
+context Parser 
+
+  @Class Grammar extends Syntax,XCore::NamedElement
+  
+    @Attribute imports : Seq(NameSpace)        (?)     end  // Used for global variable references.
+    @Attribute cache   : Table = Table(100)    (?)     end  // Used to cache clause name lookups.
+    @Attribute clauses : Seq(Clause)           (+,-,?) end  // The clauses of the grammar.
+    @Attribute debug   : Boolean               (?,!)   end  // Whether the grammar is debugged or not.
+    @Attribute parents : Seq(Grammar)          (?,+,-) end  // Parent grammars, inherit clauses.
+    
+    @Doc
+      An XML grammar defines how to parse an XML element and
+      to synthesise an XMF value from it. A grammar is a name 
+      space for its clauses.
+    end
+    
+    @XOCL::Bind clauseCounter = 0 end
+    
+    @Grammar extends OCL::OCL.grammar 
+    
+      Grammar ::= name = Name parents = GrammarParents clauses = Clause* { 
+      
+        [| @Imports(imports)
+             let grammar = <clauses->iterate(c g = Grammar(name) | g.add(c))>.imports := imports
+             in <parents->iterate(parent exp = [| grammar |] | [| <exp>.addToParents(<parent>) |])>;
+                grammar.compile()
+             end
+           end
+        |]
+        
+      }.
+      
+      GrammarParents ::= 'extends' e = Exp es = (',' Exp)* { Seq{e | es} } | { Seq{} }.
+      
+      Clause ::= name = Name '::=' def = Disjunct '.' { Clause(name,Seq{def}) }.
+      
+      Disjunct ::= p = Conjunct ('|' q = Disjunct p = { Or(p,q) })* {p}.
+      
+      Conjunct ::= p = ClauseBind (q = Conjunct p = { And(p,q) })* {p}.
+      
+      ClauseBind ::= name = Name '=' p = Repeat { Bind(Seq{name},p) } | ClauseUpdate.
+      
+      ClauseUpdate ::= name = Name ':=' p = Repeat { Update(name,p) } | Repeat.
+      
+      Repeat ::= p = Opt ('*' { Star(p) } | '+' { Plus(p) } | '#' { Star(p,true) } | {p}).
+      
+      Opt ::= '[' p = ClauseAtom ']' { Opt(p) } | ClauseAtom.
+      
+      ClauseAtom ::= Element | Empty | Action | Call | Any | Text | Unordered | Repeats | '(' d = Disjunct ')' { Paren(d) }.
+      
+      Element ::= AtomicElement | CompositeElement.
+      
+      Empty ::= 'EMPTY' { Empty() }.
+      
+      Call ::= name = Name { Call(name) } .
+      
+      Action ::= '{' exp = Exp '}' { 
+      
+        if exp.isKindOf(Command)
+        then Commands(Seq{exp})
+        else Action(Seq{Exp(exp,exp.FV()->asSeq,null)}) 
+        end
+        
+      }.
+      
+      Any ::= 'ANY' { Any() }.
+      
+      Text ::= 'TEXT' { Text() }.
+      
+      Unordered ::= 'Set' '{' UnorderedElements '}'.
+      
+      UnorderedElements ::= p = ClauseBind (q = UnorderedElements p = { Unordered(p,q) })* {p}.
+      
+      AtomicElement ::= '<' tag = Tag attributes = Attributes '/>' { Element(tag,attributes,Case(Seq{},Empty())) }.
+      
+      CompositeElement ::= '<' tag = Tag attributes = Attributes '>' children = Case '</' Tag '>' { Element(tag,attributes,children) }.
+      
+      Tag ::= Str | n = Name ('.' m = Name n = { n + "." + m } | ':' m = Name n = { n + ":" + m })* {n}.
+      
+      Case ::= 'case' C = CaseClause* o = Otherwise 'end' { Case(C,o) } | o = Children { Case(Seq{},o) }.
+      
+      CaseClause ::= g = Guard 'do' p = Disjunct 'end' { CaseClause(g,p) }.
+      
+      Otherwise ::= 'else' Disjunct.
+      
+      Guard ::= b = BoolAnd bs = ('or' BoolAnd)* { bs->iterate(b x = b | BoolOr(x,b)) }.
+      
+      BoolAnd ::= b = BoolAtom bs = ('and' BoolAtom)* { bs->iterate(b x = b | BoolAnd(x,b)) }.
+      
+      BoolAtom ::= Equals | '(' b = Guard ')' { b } .
+      
+      Equals ::= e1 = GuardExp '=' e2 = GuardExp { Equals(e1,e2) }.
+      
+      GuardExp ::= Const | AttRef.
+      
+      Const ::= s = Str { Const(s) }.
+      
+      AttRef ::= n = Tag { AttRef(n) }.
+      
+      Children ::= Disjunct | { Empty() }.
+      
+      Attributes ::= atts = Attribute* { atts }.
+      
+      Attribute ::= var = Name tag = AttributeTag default = AttributeDefault { BindAtt(var,tag,default) }.
+      
+      AttributeTag ::= '=' Tag | { "" }.
+      
+      AttributeDefault ::= ':=' d = Exp { Exp(d) } | { null }. 
+      
+      Repeats ::= 'Repeat' '{' C = RepeatClauses '}' { Repeat(C) }.
+      
+      RepeatClauses ::= r = RepeatClause rs = (';' RepeatClause)* { Seq{r | rs} }.
+      
+      RepeatClause ::= n = Name '=' d = Disjunct {
+      
+        RepeatClause(n,d)
+        
+      }.
+      
+    end  
+    
+    @Constructor(name,imports) 
+      self.setName(name)
+    end
+    
+    @Constructor(name,imports,clauses)
+      self.setName(name)
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Clause do 
+          self.addToClauses(element)
+        end
+      end
+    end
+    
+    @Operation allClauses():Seq(Clause)
+    
+      // Returns the clauses defined by this grammar and those that
+      // are inherited from its parents.
+      
+      parents->iterate(parent allClauses = clauses | 
+        clauses + parent.allClauses())
+    end
+    
+    @Operation BNF():Grammar
+    
+      // Return a new grammar in binding normal form. All nested
+      // patterns that binds will have been augmented with binding
+      // actions.
+      
+      let grammar = Grammar(name,imports)
+      in @For clause in self.allClauses() do
+           grammar.add(clause.BNF())
+         end;
+         grammar
+      end
+    end
+    
+    @Operation checkForMissingClauses()
+      @For clause in self.allClauses() do
+        clause.checkForMissingClauses(self)
+      end
+    end
+    
+    @Operation checkLL1()
+      // Check that all entries in the parse table are singular.
+      let OK = true
+      in @For clause in self.allClauses() do
+           OK := OK and clause.checkLL1()
+         end;
+         if not OK
+         then
+           format(stdout,"There were errors in the following grammar:~%");
+           self.pprint(stdout,0)
+         end
+      end
+    end
+    
+    @Operation clauseNamed(name:String):Clause
+      if cache.hasKey(name)
+      then cache.get(name)
+      else
+        @Find(clause,self.allClauses())
+          when name = clause.name().toString()
+          do cache.put(name,clause);
+             clause
+          else null
+        end
+      end
+    end
+    
+    @Operation compile()
+      // Compiles the grammar into a predictive parser table.
+      self.checkForMissingClauses();
+      let normalForm = self.normalForm()
+      in normalForm.computeFirstAndFollowSets();
+         normalForm.populatePPT();
+         normalForm
+      end
+    end
+    
+    @Operation CNF():Grammar
+      // All disjuncts are replaced with calls to new clauses where the disjuncts
+      // are split into different bodies.
+      let grammar = Grammar(name,imports)
+      in @For clause in self.allClauses() do
+           clause.CNF(
+             @Operation(clauses)
+               @For clause in clauses do
+                 grammar.add(clause)
+               end
+             end)
+         end;
+         grammar
+      end
+    end
+    
+    @Operation computeFirstAndFollowSets()
+      let changed = false
+      in @Repeat
+           changed := false;
+           @For clause in self.allClauses() do 
+             @For body in clause.bodies() do
+               let patterns = body.flatten()
+               in if patterns->forAll(pattern | pattern.nullable(self))
+                  then 
+                    changed := changed or not clause.nullable();
+                    clause.setNullable(true)
+                  end;
+                  @Count i from 0 to patterns->size do
+                    let Y = patterns->at(i)
+                    in if Y.isKindOf(Element)
+                       then 
+                         let case = Y.children() then
+                             clauses = case.clauses() then
+                             children = clauses->collect(c | c.pattern())->including(case.otherwise())
+                         in @For child in children do
+                              if child.isKindOf(Call) 
+                              then 
+                                let follow = child.follow(self) then
+                                    newFollow = follow->including("/" + Y.tag())
+                                in changed := changed or not newFollow = follow;
+                                   child.setFollow(newFollow,self)
+                                end
+                              end
+                            end
+                         end
+                       end
+                    end;
+                    let prefix = patterns->take(i)
+                    in if prefix->forAll(pattern | pattern.nullable(self))
+                       then 
+                         let newFirst = clause->first() + patterns->at(i).first(self)
+                         in changed := changed or not (newFirst = clause.first());
+                            clause.setFirst(newFirst)
+                         end
+                       end
+                    end;
+                    let suffix = patterns->drop(i + 1);
+                        Y = patterns->at(i)
+                    in if Y.isKindOf(Call) andthen suffix->forAll(pattern | pattern.nullable(self))
+                       then
+                         let newFollow = Y.follow(self) + clause.follow()
+                         in changed := changed or not newFollow = Y.follow(self);
+                            Y.setFollow(newFollow,self)
+                         end
+                       end
+                    end;
+                    let Y = patterns->at(i);
+                        rest = patterns->drop(i + 1)
+                    in if Y.isKindOf(Call)
+                       then
+                         @Count j from 0 to rest->size do
+                           let prefix = rest->take(j)
+                           in if prefix->forAll(pattern | pattern.nullable(self))
+                              then 
+                                let newFollow = Y.follow(self) + rest->at(j).first(self)
+                                in changed := changed or not newFollow = Y.follow(self);
+                                   Y.setFollow(newFollow,self)
+                                end
+                              end
+                           end
+                         end
+                        end
+                    end 
+                  end 
+               end
+             end
+           end
+         until not changed
+         end
+      end
+    end 
+    
+    @Operation debug(indent,string,args)
+      if debug
+      then 
+        format(stdout,"~V",Seq{indent});
+        format(stdout,string,args)
+      end
+    end
+    
+    @Operation NNF():Grammar
+    
+      // Return a new grammar in nested normal form. All nested
+      // patterns will have been lifted into new clauses.
+      
+      let grammar = Grammar(name,imports)
+      in @For clause in self.allClauses() do
+           clause.NNF(
+             @Operation(clauses)
+               @For clause in clauses do
+                 grammar.add(clause)
+               end
+             end)
+         end;
+         grammar
+      end
+    end
+    
+    @Operation normalForm():Grammar
+      self.ONF().BNF().NNF().SNF().CNF()
+    end
+    
+    @Operation ONF():Grammar
+    
+      // Return a new grammar in optional normal form. All optionals
+      // [X] are replaced with (X | EMPTY).
+      
+      let grammar = Grammar(name,imports)
+      in @For clause in self.allClauses() do
+           grammar.add(clause.ONF())
+         end;
+         grammar
+      end
+    end
+    
+    @Operation populatePPT()
+      @For clause in self.allClauses() do
+        clause.populatePPT(self)
+      end;
+      self.checkLL1();
+      self
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Grammar ~S~%~V",Seq{name,indent+2});
+      @For clause in self.allClauses() do
+        clause.pprint(out,indent+2);
+        if not isLast then format(out,"~%~V",Seq{indent+2}) end
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation pprintParseTable(out,width)
+      let terminals = self.terminals()->asSeq then
+          sheet = Sheet(self.allClauses().name,terminals);
+          cells = 
+            @For clause in self.allClauses() produce
+              @For terminal in terminals produce
+                if clause.PPT().hasKey(terminal)
+                then clause.PPT().get(terminal)->collect(patterns | "[" + patterns->collect(pattern | pattern.pprint())->separateWith(" ") + "]")->separateWith(" ")
+                else ""
+                end
+              end
+            end
+      in sheet.initCells(cells);
+         sheet.pprint(out,width);
+         self
+      end
+    end
+    
+    @Operation predict(clauseName:String,tag:String):Seq(Pattern)
+      let clause = self.clauseNamed(clauseName)
+      in if clause <> null
+         then clause.predict(tag)
+         else self.error("Cannot find a clause named " + clauseName)
+         end
+      end
+    end
+    
+    @Operation removeClauseNamed(name:String)
+      let clause = self.clauseNamed(name)
+      in if clause <> null
+         then self.deleteFromClauses(clause)
+         else self
+         end
+      end
+    end
+    
+    @Operation SNF():Grammar
+    
+      // Return a new grammar in star normal form. All occurrences
+      // of X* will have been replaced will references to right recursive
+      // clauses.
+      
+      let grammar = Grammar(name,imports)
+      in @For clause in self.allClauses() do
+           clause.SNF(
+             @Operation(clauses)
+               @For clause in clauses do
+                 grammar.add(clause)
+               end
+             end)
+         end;
+         grammar
+      end 
+    end
+    
+    @Operation terminals():Set(String)
+      self.allClauses()->iterate(clause T = Set{} |
+        T + clause.terminals())
+    end
+    
+  end

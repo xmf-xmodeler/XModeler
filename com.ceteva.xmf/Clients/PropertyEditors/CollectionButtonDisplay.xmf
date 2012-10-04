@@ -1,0 +1,128 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CollectionButtonDisplay
+  
+    @Attribute buttons : Seq(FormButton) end
+    @Attribute list : FormList end
+    @Attribute label : FormLabel end
+    @Attribute element : Element end
+    @Attribute slotName : String end // used for daemon monitoring
+  
+    @Constructor(buttons,list,element)
+      self.label := FormLabel(0,0,"Collection slots");
+      self.slotName := null
+    end
+
+    @Operation addLabelToForm(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+
+    @Operation addListToForm(form,x,y,width,height)
+      self.list.setX(x);
+      self.list.setY(y);
+      self.list.setWidth(width);
+      self.list.setHeight(height);
+      form.addElement(self.list)
+    end
+
+    @Operation getListElementFor(e)
+      @Find(item,self.list.contents)
+        when item.element = e
+        else null
+      end
+    end
+
+    @Operation resetList(coll)
+      self.resetList(coll,false)
+    end
+
+    @Operation resetList(coll,alwaysRefresh:Boolean)
+      let
+        newSlotName = coll.name.toString()
+      in
+        if slotName<>newSlotName or alwaysRefresh then
+          self.slotName := newSlotName;
+          list.clearContents();
+          let
+            slotvalue = self.element.get(newSlotName) then
+            values =
+              if coll.type.inheritsFrom(Table) then
+                self.sort(slotvalue.values()->asSeq)
+              elseif coll.type.inheritsFrom(SetOfElement) then
+                if not slotvalue.isKindOf(SetOfElement) andthen not slotvalue.isKindOf(SeqOfElement) then
+                  let
+                    dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) then                 
+                    ok = dialog.newConfirmDialog("Cannot display the value of '" + newSlotName + "' because it is not a set. Do you want to put the current slot value into a set?")
+                  in
+                    if ok then
+                      self.element.set(newSlotName,Set{slotvalue});
+                      slotvalue := self.element.get(newSlotName)
+                    else
+                      slotvalue := Set{"ERROR: Slot value not valid"}
+                    end
+                  end
+                end;
+                self.sort(slotvalue->asSeq)
+              else
+                if not slotvalue.isKindOf(SetOfElement) andthen not slotvalue.isKindOf(SeqOfElement) then
+                  let
+                    dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) then                 
+                    ok = dialog.newConfirmDialog("Cannot display the value of '" + newSlotName + "' because it is not a sequence. Do you want to put the current slot value into a sequence?")
+                  in
+                    if ok then
+                      self.element.set(newSlotName,Seq{slotvalue});
+                      slotvalue := self.element.get(newSlotName)
+                    else
+                      slotvalue := Seq{"ERROR: Slot value not valid"}
+                    end
+                  end
+                end;
+                slotvalue
+              end
+          in
+            if not values->isEmpty then
+              @For e inSeq values do
+                let
+                  editable = e.isKindOf(NamedElement);          
+                  itemText = e.labelString()
+                then            
+                  item = CollectionListElement(itemText,e)
+                in
+                  list.addItem(item)
+                end           
+              end
+            end
+          end;
+          list.renewContents()
+        end
+      end
+    end
+
+    @Operation lessThan(x,y):Boolean
+      if x.isKindOf(NamedElement) andthen not y.isKindOf(NamedElement) then
+        true
+      elseif not x.isKindOf(NamedElement) andthen y.isKindOf(NamedElement) then
+        false
+      else
+        x.labelString()<y.labelString()
+        //x.labelString().toLower()<y.labelString().toLower()
+      end
+    end
+
+    @Operation sort(sequence : SeqOfElement)
+      if not sequence->isEmpty then
+        sequence->qsort(@Operation(x,y) self.lessThan(x,y) end)
+      else
+        sequence
+      end
+    end
+
+  end

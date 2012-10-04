@@ -1,0 +1,18 @@
+import Compiler;
+
+compileFile("Languages/Ada/Bodies",true,true);
+compileFile("Languages/Ada/Boot",true,true);
+compileFile("Languages/Ada/Ada",true,true);
+compileFile("Languages/Ada/Decls",true,true);
+compileFile("Languages/Ada/Expressions",true,true);
+compileFile("Languages/Ada/Generics",true,true);
+compileFile("Languages/Ada/Manifest",true,true);
+compileFile("Languages/Ada/Names",true,true);
+compileFile("Languages/Ada/Specs",true,true);
+compileFile("Languages/Ada/Statements",true,true);
+compileFile("Languages/Ada/Types",true,true);
+compileFile("Languages/Ada/Units",true,true);
+compileFile("Languages/Ada/ResolveRefs",true,true); 
+compileFile("Languages/Ada/XMLParser/AdaXML",true,true); 
+compileFile("Languages/Ada/XMLParser/AdaXMLOps",true,true); 
+compileFile("Languages/Ada/AdaTools/Queries/AdaQueries",true,true); 

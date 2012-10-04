@@ -1,0 +1,13 @@
+import Compiler;
+
+compileFile("Clients/MappingDiagrams/MappingDiagrams",true,true);
+compileFile("Clients/MappingDiagrams/MappingDiagram",true,true);
+compileFile("Clients/MappingDiagrams/MapShape",true,true);
+compileFile("Clients/MappingDiagrams/MapNode",true,true);
+compileFile("Clients/MappingDiagrams/DomainEdge",true,true);
+compileFile("Clients/MappingDiagrams/RangeEdge",true,true);
+compileFile("Clients/MappingDiagrams/ScopeEdge",true,true);
+compileFile("Clients/MappingDiagrams/SyncNode",true,true);
+compileFile("Clients/MappingDiagrams/SyncShape",true,true);
+compileFile("Clients/MappingDiagrams/Boot",true,true);
+compileFile("Clients/MappingDiagrams/Manifest",true,true);

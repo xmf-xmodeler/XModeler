@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class NewNode extends New
+  
+    @Attribute node : Node (?) end
+    
+    @Constructor(node) ! end
+    
+    @Operation raisedName():String
+      "New_" + node.type().name()
+    end
+    
+  end

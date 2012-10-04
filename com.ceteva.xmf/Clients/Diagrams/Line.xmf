@@ -1,0 +1,104 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Line extends Display
+  
+    @Bind solidLine      = 1 end
+    @Bind dashLine       = 2 end
+    @Bind dottedLine     = 3 end
+    @Bind dashDottedLine = 4 end
+    @Bind dashDotDotLine = 5 end
+    
+    @Attribute x2 	 		: Integer (?,!) end
+    @Attribute y2 	 		: Integer (?,!) end
+    @Attribute lineStyle	: Integer (?,!) end
+    @Attribute color 		: Color = static Color() (?,!) end
+    
+    @Constructor(x,y,x2,y2,color) end
+    
+    @Constructor(id,x,y,x2,y2,color) ! end
+    
+    @Operation expandHeight()
+      self
+    end
+    
+    @Operation expandWidth()
+      self
+    end
+    
+    @Operation maxHeight()
+      y.max(y2)
+    end
+    
+    @Operation maxWidth()
+      x.max(x2)
+    end
+    
+    @Operation packHeight()
+      self
+    end
+    
+    @Operation packWidth()
+      self
+    end
+    
+    @Operation resize(width,height)
+      self.resize(x,y,x + width,y + height)
+    end
+    
+    @Operation resize(x1,y1,x2,y2)
+      self.x := x1;
+      self.y := y1;
+      self.x2 := x2;
+      self.y2 := y2;
+      @Command(self) resizeLineCommand(self) end
+    end
+    
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newLineCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+
+    @Operation renew(parent) 
+      @Command(self) newLineCommand(parent,self) end;
+      self.setRightClickMenu();
+      self
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x1",x};
+        y = Seq{"y1",y};
+        x2 = Seq{"x2",x2};
+        y2 = Seq{"y2",y2};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden};
+        shown = Seq{"shown",shown};
+        lineStyle = Seq{"lineStyle",lineStyle} then
+        attributes = Seq{id,x,y,x2,y2,width,height,hidden,shown,lineStyle}
+      in
+        @Command(self) startElement("line",attributes) end;
+        @Command(self) endElement("line") end
+      end
+    end
+
+    @Operation setColor(color:Color)
+      self.color := color;
+      @Command(self) setColor(self,color) end
+    end
+    
+    @Operation x1() x end
+    
+    @Operation y1() y end
+  
+  end

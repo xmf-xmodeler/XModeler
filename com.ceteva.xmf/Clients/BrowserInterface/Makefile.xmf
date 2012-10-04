@@ -1,0 +1,27 @@
+import Compiler;
+
+compileFile("Clients/BrowserInterface/Boot",true,true);
+compileFile("Clients/BrowserInterface/Manifest",true,true);
+compileFile("Clients/BrowserInterface/BrowserInterface",true,true);
+compileFile("Clients/BrowserInterface/Displays/Makefile",true,true);
+("Clients/BrowserInterface/Displays/Makefile.o").loadBin(true);
+compileFile("Clients/BrowserInterface/InterfaceElement",true,true);
+compileFile("Clients/BrowserInterface/OperationRefSyntax",true,true);
+compileFile("Clients/BrowserInterface/Child",true,true);
+compileFile("Clients/BrowserInterface/ChildSortMode",true,true);
+compileFile("Clients/BrowserInterface/InheritChildren",true,true);
+compileFile("Clients/BrowserInterface/Menu",true,true);
+compileFile("Clients/BrowserInterface/Delete",true,true);
+compileFile("Clients/BrowserInterface/Property",true,true);
+compileFile("Clients/BrowserInterface/Extend",true,true);
+compileFile("Clients/BrowserInterface/Select",true,true);
+compileFile("Clients/BrowserInterface/Remove",true,true);
+compileFile("Clients/BrowserInterface/Image",true,true);
+compileFile("Clients/BrowserInterface/EditableTextOp",true,true);
+compileFile("Clients/BrowserInterface/LabelChangeGuard",true,true);
+compileFile("Clients/BrowserInterface/LabelChangeHandler",true,true);
+compileFile("Clients/BrowserInterface/Label",true,true);
+compileFile("Clients/BrowserInterface/MenuRoot",true,true);
+compileFile("Clients/BrowserInterface/Interface",true,true);
+compileFile("Clients/BrowserInterface/BrowsedClass",true,true);
+compileFile("Clients/BrowserInterface/BrowsedObject",true,true);

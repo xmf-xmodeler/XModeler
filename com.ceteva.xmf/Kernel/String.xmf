@@ -1,0 +1,853 @@
+parserImport XOCL;
+
+context String
+  @Operation asBool():Boolean
+  
+    @Doc
+      Converts a string into a Boolean provided it has 
+      the string value true or false. String can be lower
+      or upper case. An exception is raised if the string
+      is invalid.
+    end
+  
+    let selfLower = self.toLower() in
+      if selfLower = "true" then true
+      elseif selfLower = "false" then false
+      else throw Exceptions::StringConversionError(self,Boolean,"Value must be \"true\" or \"false\".")
+      end
+    end
+  end
+  
+context String
+  @Operation isBool():Boolean
+    let selfLower = self.toLower()
+    in
+      selfLower = "true" or selfLower = "false"
+    end
+  end  
+
+context String
+  @Operation asFloat():Float
+  
+    @Doc
+      Converts a string into a Float. It splits the string
+      on its decimal point, converts the two strings into
+      integers and passes them to the Float constructor.
+      An execption is raised if the result is not a Float.
+    end
+    
+    try
+      let stringSeq = self.splitBy(".",0,0) then
+          prefix = stringSeq->at(0) then
+          suffix = 
+            if stringSeq.size()>1
+            then stringSeq->at(1)
+            else "0"
+            end
+      in
+        prefix.asInt(); // these are tests to check the prefix
+        suffix.asInt(); // and suffix parse as integers
+        Float(prefix,suffix)*1
+      end
+    catch(exception)
+      throw Exceptions::StringConversionError(self,Float)
+    end
+  end
+
+context String
+  @Operation asInt():Integer
+    
+    @Doc
+      Converts a string into an Integer. Raises an exception
+      if it cannot be converted.
+    end
+  
+    let chars = self->stripTrailingWhiteSpace->asSeq;
+        isNeg = false;
+        int = 0
+    in @While not chars->isEmpty do
+          let char = chars->head
+          in if "0"->at(0) <= char and "9"->at(0) >= char
+             then 
+               int := (int * 10) + (char - "0"->at(0));
+               chars := chars->tail
+             elseif char = "-"->at(0) and int = 0
+             then 
+               isNeg := true;
+               chars := chars->tail
+             else throw Exceptions::StringConversionError(self,Integer)
+                  //chars := chars->tail
+             end
+          end
+       end;
+       if isNeg
+       then 0 - int
+       else int
+       end
+    end
+  end
+
+context String
+
+  @Operation asSeq():Seq(Integer)
+    @Doc
+      Converts a string into a sequence of character codes.
+    end
+    
+    Kernel_asSeq(self)
+  end
+  
+context String
+ 
+  @Operation asSet():Set(Integer)
+    @Doc
+      Converts a string into a set of character codes.
+    end
+    Kernel_asSet(self)
+  end
+  
+context String
+
+  @Operation asSymbol():Symbol
+    @Doc
+      Converts a string into a Symbol. In general, symbols
+      can be processed more efficiently than strings, e.g. 
+      as indexes in table lookups.
+    end
+    Symbol(self)
+  end
+  
+context String
+  @Operation at(i:Integer):Integer
+    @Doc
+      Returns the ith character in a string
+      starting from position 0.
+    end
+    self->at(i)
+  end
+  
+context String
+  @Operation default()
+    @Doc 
+      Returns the default value for a string: the empty string
+    end
+    ""
+  end
+
+context String
+  @Operation deleteFile():Boolean
+    @Doc
+      Deletes the file given by a string path. 
+      Raises an exception if the file does not exist
+      or cannot be deleted.
+    end
+    Kernel_deleteFile(self)
+  end
+  
+context String
+  @Operation copyFile(file:String):Boolean
+    Kernel_copyFile(self,file)
+  end
+
+context String
+  @Operation drop(n:Integer)
+    @Doc
+      Removes the first i elements from a string.
+    end
+    self->asSeq->drop(n)->asString
+  end
+  
+context String
+  @Operation exec(args:Seq(String))
+    @Doc
+      Currently not supported.
+    end
+    let inputOutputPair = Kernel_exec(self,args) then
+        input = inputOutputPair->head;
+        output = inputOutputPair->tail
+    in Seq{IO::StandardInputChannel(input) | IO::StandardOutputChannel(output)}
+    end
+  end
+  
+context String
+  @Operation fileExists():Boolean
+    @Doc
+      Returns true if the file given by a string
+      path exists, otherwise false.
+    end
+    Kernel_fileExists(self)
+  end
+  
+context String
+  @Operation fileSize():Integer
+    @Doc
+      Returns the size of a file given by a string path.
+    end
+    Kernel_fileSize(self)
+  end
+  
+context String
+  @Operation greater(other:String):Boolean
+    @Doc
+      Returns true if a string is greater than the
+      supplied string. The strings are compared alphabetically.
+    end
+    self > other.toString()
+  end
+  
+context String
+  @Operation hasPrefix(prefix:String):Boolean
+    @Doc
+      Returns true if a string is prefixed by
+      the string, prefix.
+    end
+    self->asSeq->hasPrefix(prefix->asSeq)
+  end
+  
+context String
+  @Operation hasSuffix(suffix:String):Boolean
+    @Doc
+      Returns true if a string has a suffix,
+      suffix.
+    end
+    self->asSeq->hasSuffix(suffix->asSeq)
+  end
+  
+context String
+  @Operation indexOf(char:String):Integer
+    @Doc
+      Returns the index of a character, char in a string.
+    end
+    self->asSeq->indexOf(char->at(0))
+  end
+  
+context String
+  @Operation indexOf(pattern:String,start:Integer)
+    let 
+      currStart = start;
+      success = false
+    in
+      @While(currStart + pattern.size() <= self.size() and not success)
+      do
+        let
+          currentSPos = currStart;
+          currentPPos = 0;
+          found = true
+        in
+          @While(currentPPos < pattern.size())
+          do
+            if self.at(currentSPos) <> pattern.at(currentPPos)
+            then
+              found := false
+            end;
+            currentSPos := currentSPos + 1;
+            currentPPos := currentPPos + 1
+          end;
+          if found
+          then
+            success := true
+          else
+            currStart := currStart + 1
+          end
+        end 
+      end;
+      if success
+      then
+        currStart
+      else
+        0-1
+      end
+    end
+  end
+  
+context String
+  @Operation indexOf2(pattern:String,start:Integer)
+    Kernel_indexOf(self,pattern,start)
+  end
+  
+context String
+  @Operation isDir():Boolean
+    @Doc
+      Returns true when the receiver is a directory.
+    end
+    Kernel_isDir(self)
+  end
+  
+context String
+  @Operation isOlder(file:String):Boolean
+    @Doc
+      Compares the last modified date of the file referenced by
+      a string path with file. Returns true if file is older.
+    end
+    Kernel_isOlder(self,file)
+  end
+  
+context String
+  @Operation isReadOnly():Boolean
+    Kernel_fileReadOnly(self)  
+  end
+  
+context String
+  @Operation lastIndexOf(pattern:String,start:Integer)
+    Kernel_lastIndexOf(self,pattern,start)
+  end
+  
+context String 
+  @Operation loadBin()
+    @Doc
+      Load the binary for the file referenced by a string path. 
+      Raises an exception if it does not exist.
+    end
+    self.loadBin(true)
+  end
+  
+context String
+  @Operation loadBin(verbose:Boolean)
+    @Doc
+      Load the binary for the file referenced by a string 
+      path. Displays loading information if verbose is true.
+      Raises an exception if it does not exist.
+    end
+    if Kernel_needsGC() 
+    then gc()
+    end;
+    if verbose 
+    then
+      if Root.hasElement("stdout") and
+         Root.hasElement("Time")
+      then
+        let t = Time()
+        in format(stdout,"[ Loading ~<40,.>S ",Seq{self});
+           stdout.flush();
+           let value = Kernel_loadbin(self)
+           in (Time() - t).pprint(stdout);
+              format(stdout," ]~%");
+              value
+           end
+        end
+      else
+        Kernel_write(Kernel_stdout,"[ Load " + self + "... ");
+        let value = Kernel_loadbin(self)
+        in Kernel_write(Kernel_stdout,"]\n");
+           value
+        end
+      end
+    else Kernel_loadbin(self)
+    end
+  end
+  
+context String
+  @Operation less(other:String):Boolean
+    @Doc
+      Returns true if a string is less than the
+      supplied string. The strings are compared alphabetically.
+    end
+    self < other.toString()
+  end
+
+context String
+  @Operation lookup():Element
+    @Doc
+      Returns the value of the dynamic variable with the
+      name defined by self or raises an error otherwise.
+    end
+    if Kernel_hasVar(self)
+    then Kernel_getVar(self)
+    else self.error("Unbound variable")
+    end
+  end
+  
+context String
+  let buffer = Buffer(100,true) in
+  @Operation lookupPath(nameSpace:NameSpace):NamedElement
+    @Doc
+      Receiver should be a path X::Y::Z. Result is
+      the value of the path with respect to the
+      supplied name space or null.
+    end
+    let index = 0;
+        size = self.size()
+    in @While index < size and nameSpace <> null do
+         buffer.setSize(0);
+         @While index < size andthen self->at(index) <> ":"->at(0) do
+           buffer.add(self->at(index));
+           index := index + 1
+         end;
+         index := index + 2;
+         let found = false
+         in @For name inTableKeys nameSpace.contents do
+              if buffer.stringEqual(name.toString())
+              then 
+                found := true;
+                nameSpace := nameSpace.contents.get(name)
+              end
+            end;
+            if not found
+            then nameSpace := null
+            end
+         end
+       end;
+       nameSpace
+     end
+   end
+   end
+
+context String
+  @Operation lowerCase():String
+    @Doc
+      Returns the lower case equivalent of the string.
+    end
+    Kernel_lowerCase(self)
+  end
+
+context String
+  @Operation lowerCaseInitialLetter():String
+    @Doc
+      Makes the first letter of a string lower case.
+    end
+    let letters = self->asSeq
+    in if letters->isEmpty
+       then self
+       else 
+         let initialLetter = letters->head;
+             a = "a"->at(0);
+             A = "A"->at(0);
+             Z = "Z"->at(0)
+         in if A <= initialLetter and Z >= initialLetter
+            then initialLetter := (initialLetter - A) + a
+            end;
+            Seq{initialLetter | letters->tail}->asString
+         end
+       end
+     end
+   end
+  
+context String
+  @Operation mkDir():Boolean
+    @Doc
+      Creates a directory. Returns true when the directory
+      already exists or is successfully created. Returns
+      false when the directory cannot be created.
+    end
+    Kernel_mkDir(self)
+  end
+  
+context String
+  @Operation padTo(width:Integer,char:Integer):String
+    @Doc
+      Pads after a string with additional character codes
+      up to width. 
+    end
+    if self->size < width
+    then (self + Seq{char}->asString)->padTo(width,char)
+    else self
+    end
+  end
+  
+context String
+  @Operation padFrom(width:Integer,char:Integer):String
+    @Doc
+      Pads ups to a string with additional character codes
+      up to width. 
+    end
+    if self->size < width
+    then (Seq{char}->asString + self)->padFrom(width,char)
+    else self
+    end
+  end
+  
+context String
+  @Operation parentDir():String
+    @Doc 
+      Returns the parent directory of the
+      file referenced by a string path. Returns an
+      exception if it cannot be found.
+    end
+    let chars = self->asSeq->reverse;
+        stripped = false;
+        slash = "/"->at(0);
+        bslash = "\\"->at(0)
+    in @While not chars->isEmpty and not stripped do
+         let char = chars->head
+         in chars := chars->tail;
+            if char = slash or char = bslash
+            then stripped := true
+            end
+         end
+       end;
+       if stripped
+       then chars->reverse->asString
+       else self.error("Cannot find parent directory: " + self)
+       end
+    end
+  end
+  
+context String
+  @Operation readFile():String
+    @Doc
+      Reads the file referenced by a string path, provided 
+      that it exists.
+    end
+    if self.fileExists()
+    then 
+      let size = self.fileSize() then
+          v = Vector(size) then
+          fin = IO::FileInputChannel(self) then
+          chars = fin.read(v) 
+      in if chars < size
+         then self.error("Read error in " + self + ": expected " + size + " but got " + chars)
+         else 
+           fin.close();
+           v.asString()
+         end
+      end
+    else throw Exceptions::FileNotFound(self)
+    end
+  end
+  
+context String
+  @Operation renameFile(newName:String):Boolean
+    @Doc 
+      Renames a file referenced by a string path. A 
+      rename is only performed if the file exists and 
+      there doesnt exist a file with the new name.
+    end
+    Kernel_renameFile(newName,self)
+  end
+  
+context String
+  @Operation repeat(n:Integer)
+    @Doc
+      Duplicates a string the given
+     number of times.
+    end
+    if n <= 0
+    then ""
+    else self + self.repeat(n - 1)
+    end
+  end
+
+context String
+  @Operation replaceUnderscoresWithSpaces()
+    self.subst(" ","_",true)
+  end
+  
+context String
+  @Operation reverse():String
+    @Doc
+      Reverses the characters in a string.
+    end
+    self->asSeq->reverse->asString
+  end
+  
+context String
+  @Operation getLastModified():String
+    if self.fileExists()
+    then 
+      let t = Kernel_getLastModified(self)
+      in
+        Time(t.at(0),t.at(1),t.at(2),t.at(3))
+      end
+    else false
+    end
+  end
+  
+context String
+  @Operation setFileLastModified(time:Time):Boolean
+    @Doc
+      Sets the last modified date of the file to the
+      supplied instance of Time. Returns true when
+      the update was successful.
+    end
+    if self.fileExists()
+    then Kernel_setFileLastModified(self,time.hours,time.minutes,time.minutes,time.milliseconds)
+    else false
+    end
+  end
+  
+context String
+  @Operation size():Integer
+    @Doc
+      Returns the size of a string.
+    end
+    Kernel_size(self)
+  end
+  
+context String
+  @Operation splitBy(chars:String,start:Integer,last:Integer):Seq(String)
+    @Doc
+      Splits a string into a sequence of strings around some characters.
+      The variables start and last can be used to filter the returned string
+      by returning the characters from start to last. Setting start and
+      last to 0 will return the whole string.   
+    end
+    if last >= self->size
+    then 
+      if start < last
+      then Seq{self.subString(start,self->size)}
+      else Seq{}
+      end
+    else 
+      if chars->asSeq->includes(self->asSeq->at(last))
+      then Seq{self.subString(start,last) |
+               self.splitBy(chars,last+1,last+1)}
+      else self.splitBy(chars,start,last+1)
+      end
+    end
+  end
+
+context String
+  @Operation stripLeadingWhiteSpace():String
+    @Doc
+      Strips any leading whitespace from a string.
+    end
+    let space = " "->at(0);
+        newLine = "\n"->at(0);
+        return = "\r"->at(0);
+        origSeq = self->asSeq;
+        strippedSeq = Seq{}
+    in
+      @For c in origSeq do
+        if not (c = space or c = newLine or c = return) or not strippedSeq = Seq{}
+        then
+          strippedSeq := strippedSeq + Seq{c}
+        end
+      end;
+      strippedSeq->asString
+    end
+  end
+
+context String
+  @Operation stripOut(s:String)
+    self.subst("",s,true)
+  end
+
+context String
+  @Operation stripTrailingWhiteSpace():String
+    @Doc
+      Strips any trailing whitespace from a string.
+    end
+    let space = " "->at(0);
+        newLine = "\n"->at(0);
+        return = "\r"->at(0);
+        origSeq = self->asSeq->reverse;
+        strippedSeq = Seq{}
+    in
+      @For c in origSeq do
+        if not (c = space or c = newLine or c = return) or not strippedSeq = Seq{}
+        then
+          strippedSeq := strippedSeq + Seq{c}
+        end
+      end;
+      strippedSeq->reverse->asString
+    end
+  end
+
+context String
+  @Operation stripWhiteSpace():String
+    @Doc
+      Strips any leading and trailing whitespace from a string.
+    end
+    self.stripLeadingWhiteSpace()
+        .stripTrailingWhiteSpace()
+  end
+
+context String
+  @Operation subString(firstChar:String,pastLastChar:String):String
+    @Doc
+      Uses indices to chop up a string. The first
+      index is the starting character and the second index is 
+      1+ the final character.
+    end
+    self->asSeq->subSequence(firstChar,pastLastChar)->asString
+  end
+  
+context String
+  @Operation subString2(startIndex:Integer,endIndex:Integer):String
+    Kernel_subString(self,startIndex,endIndex)
+  end
+  
+context String
+  let buffer = Buffer(100,true) in
+  @Operation subst(new:String,old:String,all:Boolean)
+    @Doc
+      Substitutes the string old in a string with new. If all is
+      set to false, just replaces the first occurence. If
+      true replaces them all.  
+    end
+    //self->asSeq->subst(new->asSeq,old->asSeq,all)->asString
+    buffer.setSize(0);
+    let done = false;
+        i = 0
+    in @While i < self->size  do
+         let hasPrefix = all or not done;
+             j = 0
+         in @While j < old->size and hasPrefix do
+              hasPrefix := self->at(i + j) = old->at(j);
+              j := j + 1
+            end;
+            if hasPrefix 
+            then
+              buffer.append(new);
+              i := i + old->size;
+              done := true
+            else
+              buffer.add(self->at(i));
+              i := i + 1
+            end
+         end
+       end
+    end;
+    buffer.toString()
+  end
+  end
+  
+context String
+  @Operation toString():String
+    @Doc
+      Prints a string.
+    end
+    self
+  end
+  
+context String
+  @Operation toLower():String
+    @Doc
+      Converts all characters in a string to lower case.
+    end
+    let chars = "AZa"->asSeq
+    in
+      self->asSeq->collect(char | 
+        if chars->at(0) <= char and char <= chars->at(1)
+        then chars->at(2) + (char - chars->at(0))
+        else char
+        end)->asString
+    end
+  end
+  
+context String
+  @Operation toUpper():String
+    @Doc
+      Converts all characters in a string to upper case.
+    end
+    let chars = "azA"->asSeq
+    in
+      self->asSeq->collect(char | 
+        if chars->at(0) <= char and char <= chars->at(1)
+        then chars->at(2) + (char - chars->at(0))
+        else char
+        end)->asString
+    end
+  end
+  
+context String
+  @Operation toFilePath()
+    let path = self.splitBy("/",0,0)
+    in
+      let directory = IO::Directory(path.head())
+      in
+        self.toFilePath(directory,path.tail())
+      end
+    end
+  end
+  
+context String
+  @Operation toFilePath(directory:IO::Directory,path:Seq(String))
+    if path.size() <> 1
+    then
+      let dir = IO::Directory(path.head())
+      in 
+        directory.add(dir);
+        self.toFilePath(dir,path.tail())
+      end
+    else
+      let file = IO::File(directory,path.head())
+      in
+        directory.add(file);
+        file
+      end
+    end
+  end
+  
+context String
+  @Operation truncate(width:Integer):String
+    @Doc
+      Truncates a string by width characters.
+    end
+    if self->size > width
+    then self->asSeq->take(width)->asString
+    else self
+    end
+  end
+  
+context String
+  @Operation upperCaseInitialLetter():String
+    @Doc 
+      Makes the first letter of a string upper case.
+    end
+    let letters = self->asSeq
+    in if letters->isEmpty
+       then self
+       else 
+         let initialLetter = letters->head;
+             A = "A"->at(0);
+             a = "a"->at(0);
+             z = "z"->at(0)
+         in if a <= initialLetter and z >= initialLetter
+            then initialLetter := (initialLetter - a) + A
+            end;
+            Seq{initialLetter | letters->tail}->asString
+         end
+       end
+     end
+   end
+
+context String
+   @Operation isValidName():String
+     @Doc 
+       Returns true if the name is valid, i.e. it only contains valid 
+       alpha and numeric characters (and underscore) and starts with a letter.
+     end
+     self->size > 0 and
+     self->at(0).isAlphaChar() and
+     let i = 1;
+         validName = true
+     in @While i < self->size and validName do
+          let c = self->at(i)
+          in
+            validName :=
+              c.isAlphaChar() or
+              c.isNumericChar() or
+              c = "_"->at(0);
+            i := i + 1
+          end
+        end;
+        validName
+     end
+   end
+
+context String
+   @Operation stripInvalidNameChars():String
+     @Doc 
+       Returns the string resulting be removing all invalid name
+       characters, i.e. those that are not alpha-numeric
+       characters or the underscore character.
+     end
+     let newStringSeq = Seq{}
+     in @For c in self.asSeq()
+        do
+          if c.isAlphaChar() or c.isNumericChar() or c = "_"->at(0)
+          then newStringSeq := newStringSeq + Seq{c}
+          end
+        end;
+        newStringSeq.asString()
+     end
+   end
+
+context String
+  @Operation parseAndEval()
+    let exp = OCL::OCL.grammar.parseString(self,"Exp1",Seq{XOCL})
+    in
+      exp.eval(null,Env::NullEnv(),Seq{XCore,Root})
+    end
+  end

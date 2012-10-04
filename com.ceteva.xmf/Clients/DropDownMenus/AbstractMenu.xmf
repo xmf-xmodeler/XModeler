@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Clients;
+import DropDownMenus;
+
+context DropDownMenus
+
+  @Class AbstractMenu extends ContainedClientElement
+  
+    @Attribute name     : String (?) end
+    
+    @Constructor(name)
+    end
+    
+  end

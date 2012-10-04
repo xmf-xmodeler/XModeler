@@ -1,0 +1,20 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Constructor in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::Constructor
+  @Operation lift():Performable
+    try
+      let body = OCL::OCL.grammar.parseString(self.source,"Exp",Seq{XOCL})
+      in XOCL::Constructor(names,false,null,body)
+      end
+    catch(exception)
+      format(stdout,"Error ~S lifing constructor ~S",Seq{exception,self});
+      [| self.error(<StrExp("Missing constructor.")>) |]
+    end
+  end

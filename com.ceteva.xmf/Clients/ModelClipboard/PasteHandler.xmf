@@ -1,0 +1,137 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class PasteHandler isabstract
+
+    // con.getValue(0) = description
+    // con.getValue(1) = condition
+    // con.getValue(2) = pre-cut/copy action
+    // con.getValue(3) = post-cut/copy action
+    
+    @Operation acceptPaste(target,source,isCopy)
+      @Doc
+        This operation determines whether or not a 'Paste from Clipboard' action is accepted.
+      end
+
+      let targetElement = target.element();
+          sourceElement = source.element();
+          widget = target.pasteHandler()
+      in
+        if targetElement <> null
+        then
+          let contributions =
+                try xmf.registry().getExtensionPoint("com.ceteva.xmf.clipboard.paste").find(targetElement.of())
+                catch(exception) exception.edit()
+                end;
+              accept = false
+          in
+            target.setValidContributions(Seq{});
+            @For con in contributions do
+              let acceptOp = con.getValue(1)
+              in
+                if acceptOp.invoke(null,Seq{targetElement,sourceElement,widget,isCopy})
+                then target.addToValidContributions(con);
+                     accept := true
+                end
+              end
+            end;
+            accept
+          end
+        end
+      end
+    end
+
+    @Operation chooseContribution(target)
+      @Doc
+        This operation determines which contribution to use as a basis for the pre- and post- actions.
+      end
+
+      let targetElement = target.element();
+          validContributions = target.validContributions()
+      in
+        if targetElement <> null
+        then
+          if validContributions->isEmpty
+          then xmf.warning("There is no valid paste operation to be performed.")
+          else
+            let con = 
+                  if validContributions->size = 1
+                  then validContributions->at(0)
+                  else xmf.select("Select Paste Action",
+                                  "Choose the appropriate paste action",
+                                  validContributions,
+                                  null,
+                                  PasteHandler::contributionStringOp)
+                  end
+            in
+              if con <> null
+              then target.setValidContributions(Seq{con})
+              else target.setValidContributions(Seq{})
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation contributionStringOp(con)
+      con.getValue(0)
+    end
+
+    @Operation preHandlePaste(target,source,isCopy)
+      @Doc
+        This operation determines how the 'Paste from Clipboard' action is handled before the cut/copy.
+      end
+      
+      let targetElement = target.element();
+          sourceElement = source.element();
+          widget = target.pasteHandler();
+          validContributions = target.validContributions()
+      in
+          if not validContributions->isEmpty
+          then
+            let con = validContributions->at(0) then
+                handlerOp = con.getValue(2)
+            in
+              handlerOp.invoke(null,Seq{targetElement,sourceElement,widget,isCopy})
+            end
+        end
+      end
+    end
+
+    @Operation postHandlePaste(target,source,isCopy)
+      @Doc
+        This operation determines how the 'Paste from Clipboard' action is handled after the cut/copy.
+      end
+      
+      let targetElement = target.element();
+          sourceElement = source.element();
+          widget = target.pasteHandler();
+          validContributions = target.validContributions()
+      in
+          if not validContributions->isEmpty
+          then
+            let con = validContributions->at(0) then
+                handlerOp = con.getValue(3)
+            in
+              handlerOp.invoke(null,Seq{targetElement,sourceElement,widget,isCopy})
+            end
+        end
+      end
+    end
+
+    @Operation pasteFromClipboard()
+      xmf.clipboard().paste(self.getClipboardTarget())
+    end
+
+    @AbstractOp getClipboardTarget():ClipboardTarget
+      @Doc
+        This operation generates an appropriate ClipboardTarget for the clipboard to handle the paste.
+      end
+    end
+
+  end

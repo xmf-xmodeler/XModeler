@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+import Languages;
+import Commands;
+import Expressions;
+import Values;
+
+context Expressions
+
+  @Class Const extends Exp
+  
+    @Attribute value : Element end
+  
+    @Constructor(value) ! end
+    
+    @Operation compile(typeEnv,valueEnv):Seq(Instr)
+      @TypeCase(value)
+        Boolean do if value then Seq{PushTrue()} else Seq{PushFalse()} end end
+        Integer do Seq{PushInteger(value)} end
+        String  do Seq{PushString(value)} end
+      end
+    end
+    
+    @Operation desugar1()
+      @TypeCase(value)
+        Boolean do BoolExp(value) end
+        Integer do IntExp(value) end
+        String  do StrExp(value) end
+      end
+    end
+    
+    @Operation desugar2(typeEnv):Performable
+      self.desugar1()
+    end
+    
+    @Operation eval(target,env,imports)
+      @TypeCase(value)
+        Boolean do Bool(value) end
+        Integer do Int(value) end
+        String  do Str(value) end
+      end
+    end
+    
+    @Operation pprint(out)
+      format(out,"~S",Seq{value})
+    end
+    
+  end

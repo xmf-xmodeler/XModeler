@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler TypeExp in PPrint(aTypeExp,arg,seen)
+  if seen
+  then aTypeExp
+  else
+ aTypeExp
+  end
+end;

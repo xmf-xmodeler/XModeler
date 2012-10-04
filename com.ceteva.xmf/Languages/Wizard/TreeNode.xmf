@@ -1,0 +1,36 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TreeNode
+  
+    @Attribute id : String end
+    @Attribute text : String end
+    @Attribute iconFilePath : String end
+    @Attribute isExpanded : Boolean end
+    @Attribute givesReport : Boolean end
+    @Attribute parent : String end
+    
+    @Constructor(id,text,iconFilePath,isExpanded,givesReport,parent) end
+    
+    @ToXML(TREE_NODE)[
+      Id=id,
+      Text=text,
+      Icon_Filepath = iconFilePath,
+      Is_Expanded = isExpanded,
+      Gives_Report = givesReport,
+      ?(parent <> "") ref_Tree_Node = parent]
+    end  
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

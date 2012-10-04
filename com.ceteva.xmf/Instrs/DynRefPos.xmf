@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class DynRefPos extends Instr
+  
+    @Doc
+      This machine instruction references a dynamic variable. The 
+      position in the source file is recorded.
+    end
+  
+    @Attribute name      : String end
+    @Attribute offset    : Integer end
+    @Attribute lineCount : Integer end
+    
+    @Constructor(name,lineCount) end
+    
+    @Operation assemble(codeBox)
+      let offset = codeBox.constOffset(name)
+      in if offset < 256
+         then 
+           self.offset := offset;
+           codeBox.addInstr(self)
+         else Dynamic(name).assemble(codeBox)
+         end
+      end
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(offset,lineCount.byte(2),lineCount.byte(1))
+    end
+    
+    @Operation toString():String
+      "<DynRefPos " + name + "," + offset + " " + lineCount + ">"
+    end
+    
+  end
+  

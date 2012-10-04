@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport XRules;
+  
+context Root::Test
+  @Rule Append(Seq{},l,l) end
+  
+context Root::Test
+  @Rule Append(Seq{h | l1},l2,Seq{h | l3})
+    Append(l1,l2,l3)
+  end

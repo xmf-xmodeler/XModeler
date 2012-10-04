@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Page 
+
+    @Attribute title : String (?,!) end
+    @Attribute stylesheet : String (?,!) end
+    @Attribute entries : Seq(Entry) (?,!,+,-) end
+
+    @Constructor(entries) ! end
+    @Constructor(title,entries) ! end
+    
+    @Operation contents()
+      entries
+    end
+    
+    @Operation show()
+     
+      // Use this to show the documentation in XMF...
+      
+      let textClient = xmf.textClient() 
+      in if textClient <> null
+         then
+           let browser = Browser("<html></html>")
+           in textClient.newBrowser(browser);
+              self.show(browser)
+           end   
+         end
+      end
+    end
+    
+    @Operation show(browser)
+      let html = self.html(browser)
+      in browser.setURL(html);
+         browser
+      end
+    end
+    
+  end

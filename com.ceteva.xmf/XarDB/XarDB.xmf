@@ -1,0 +1,208 @@
+parserImport XOCL;
+
+import Stacks;
+import IO;
+
+context Root
+  @Package XarDB
+    @Doc
+      This package defines classes that implement a debugger for Xar files.
+    end
+    
+    // The following constants are used as machine byte codes for save/load
+    // machine instructions. They must mirror exactly those instructions
+    // that occur in the VM save and load mechanism. XAR files consist of
+    // sequences of these instructions together with their operands.
+    
+    @Bind  MKARRAY          = 1  end
+    @Bind  SETARRAY         = 2  end
+    @Bind  MKCODE           = 3  end
+    @Bind  MKINT            = 4  end
+    @Bind  MKSTRING         = 5  end
+    @Bind  MKCODEBOX        = 7  end
+    @Bind  SETCODEBOX       = 8  end
+    @Bind  MKTRUE           = 9  end
+    @Bind  MKFALSE          = 10 end
+    @Bind  MKFUN            = 11 end
+    @Bind  SETFUN           = 12 end
+    @Bind  MKUNDEF          = 13 end
+    @Bind  MKOBJ            = 14 end
+    @Bind  MKCONS           = 16 end
+    @Bind  SETCONS          = 17 end
+    @Bind  MKNIL            = 18 end
+    @Bind  TABLE            = 21 end
+    @Bind  PUT              = 22 end
+    @Bind  MKFOREIGNFUN     = 24 end
+    @Bind  GLOBAL_DYNAMICS  = 25 end
+    @Bind  MKDYNAMIC_TABLE  = 26 end
+    @Bind  MKNEGINT         = 27 end
+    @Bind  MKFLOAT          = 28 end
+    @Bind  REFARRAY         = 29 end
+    @Bind  REFSTRING        = 30 end
+    @Bind  REFOBJ           = 31 end
+    @Bind  REFFUN           = 32 end
+    @Bind  REFCONS          = 33 end
+    @Bind  REFSYMBOL        = 34 end
+    @Bind  REFVALUE         = 35 end
+    @Bind  MKCONS_NONSHARE  = 36 end
+    @Bind  MKARRAY_NONSHARE = 37 end
+    @Bind  MKNEWLISTENER    = 38 end
+    @Bind  HOTLOAD          = 39 end
+    @Bind  MKSYMBOL         = 40 end
+    @Bind  MKLIST           = 41 end
+    @Bind  SETOBJ           = 42 end
+    @Bind  MKSET            = 43 end
+    @Bind  LISTCONS         = 44 end
+    @Bind  MKSIG            = 45 end
+    @Bind  MKARG            = 46 end
+    @Bind  MK_ELEMENT_TYPE  = 47 end
+    @Bind  NULLGLOBS        = 48 end
+    @Bind  MKGLOBALS        = 49 end
+    @Bind  MKDAEMON         = 50 end
+    @Bind  LOOKUP           = 51 end
+    @Bind  MKNULLSLOT       = 52 end
+    @Bind  MKNILSLOT        = 53 end
+    @Bind  MKEMPTYSLOT      = 54 end
+    @Bind  MKZEROSLOT       = 55 end
+    @Bind  MKTRUESLOT       = 56 end
+    @Bind  MKFALSESLOT      = 57 end
+    @Bind  END              = 255 end
+    
+    // The XarDB machine performs XAR instructions with respect to
+    // the following stack. The machine constructs the instructions
+    // to reflect the structure of the data that will be constructed
+    // if the instructions are performed by the VM loader.
+    
+    @Bind stack             = Stack() end
+    
+    // The VM loader uses a collection of stacks to save data as
+    // it is created. The stacks are used to faithfully recreate
+    // the sharing structure of the original data when it was saved.
+    // The following globals are used to allocate indices as the XarDB
+    // mimics the VM loader.
+    
+    @Bind arrayIndex        = 0       end
+    
+    @Bind stringIndex       = 0       end
+    
+    @Bind objectIndex       = 0       end
+    
+    @Bind funIndex          = 0       end
+    
+    @Bind consIndex         = 0       end
+    
+    @Bind symbolIndex       = 0       end
+    
+    @Bind valueIndex        = 0       end
+    
+    @Operation load(file:String):XarFile
+    
+      @Doc
+        Loads and returns the supplied Xar file. The result
+        contains a structure that reflects the data that will be
+        built if the VM loads the file. The structure is a tree
+        whose nodes are Xar instructions; the tree can be inspected
+        to show the structure of the Xar file; it can be edited
+        to change the structure and then written back to a file
+        for subsequent loading by the VM.
+      end
+      
+      if file.fileExists()
+      then 
+        let fin = FileInputChannel(file) then
+            gin = GZipInputChannel(fin);
+            done = false
+        in reset();
+           @While not done do
+             let instr = gin.read()
+             in if instr = END
+                then done := true
+                else processInstr(instr,gin)
+                end
+             end
+           end;
+           XarFile(file).add(stack.top())
+        end
+      else self.error("XarDB::load: no such file: " + file)
+      end
+    end
+    
+    @Operation nextIndex(type)
+      @Case type of
+        [Array] do
+          let index = arrayIndex
+          in XarDB::arrayIndex := index + 1;
+             index
+          end
+        end
+        [String] do
+          let index = stringIndex
+          in XarDB::stringIndex := index + 1;
+             index
+          end
+        end
+        [Object] do
+          let index = objectIndex
+          in XarDB::objectIndex := index + 1;
+             index
+          end
+        end
+        [Operation] do
+          let index = funIndex
+          in XarDB::funIndex := index + 1;
+             index
+          end
+        end
+        [Seq(Element)] do
+          let index = consIndex
+          in XarDB::consIndex := index + 1;
+             index
+          end
+        end
+        [Symbol] do
+          let index = symbolIndex
+          in XarDB::symbolIndex := index + 1;
+             index
+          end
+        end
+        else
+          let index = arrayIndex
+          in XarDB::arrayIndex := index + 1;
+             index
+          end
+      end     
+    end
+    
+    @Operation read8(inch:InputChannel):Integer
+      inch.read()
+    end
+    
+    @Operation read16(inch:InputChannel):Integer
+      inch.read().lsh(8) or inch.read()
+    end
+    
+    @Operation read24(inch:InputChannel):Integer
+      inch.read().lsh(16) or inch.read().lsh(8) or inch.read()
+    end
+    
+    @Operation readString(inch:InputChannel,chars:Integer):String
+      let string = Seq{}
+      in @Count x from 0 to chars do
+          string := Seq{inch.read() | string}
+        end;
+        string->reverse->asString
+      end
+    end
+    
+    @Operation reset()
+      XarDB::stack.empty();
+      XarDB::arrayIndex := 0;
+      XarDB::stringIndex := 0;
+      XarDB::objectIndex := 0;
+      XarDB::funIndex := 0;
+      XarDB::consIndex := 0;
+      XarDB::symbolIndex := 0;
+      XarDB::valueIndex := 0
+    end
+ 
+  end

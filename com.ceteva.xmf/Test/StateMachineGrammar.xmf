@@ -1,0 +1,18 @@
+parserImport Parser::BNF;
+
+import StateMachines;
+import Parser::BNF;
+
+context System
+
+  @Grammar
+  
+    System ::= classes = Class* {  System(classes) }.
+    Class ::= 'class' name = Name fields = Name* machine = Machine 'end' { Class(name,fields,machine) }.
+    Machine ::= 'machine' '(' start = Name ')' transitions = Transition* 'end' 
+      { StateMachine(start,transitions.source + transitions.target,transitions) }.
+    Transition ::= 'trans' source = Name 'when' guard = Exp 'become' target = Name 'do' action = Action { Transition(source,target,guard,action) }.
+    Exp ::= 'true' { Const(true) } | name = Name { Var(name) } | 'self' { Self() }.
+    Action ::= target = Exp '.' message = Name { send(target,message) }.
+    
+  end

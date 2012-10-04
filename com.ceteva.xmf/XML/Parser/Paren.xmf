@@ -1,0 +1,84 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Paren extends Pattern
+  
+    @Doc
+      Records the position of parentheses in a grammar element.
+    end
+    
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation binds():Seq(String)
+      pattern.binds()
+    end
+    
+    @Operation BNF():Pattern
+      Paren(pattern.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation CNF(handler:Operation)
+      pattern.CNF(
+        @Operation(pattern,newClauses)
+          handler(Paren(pattern),newClauses)
+        end)
+    end
+    
+    @Operation first(grammar)
+      pattern.first(grammar)
+    end
+    
+    @Operation follow(grammar)
+      pattern.follow(grammar)
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      pattern.flatten()
+    end
+    
+    @Operation NNF(handler:Operation)
+      pattern.NNF(
+        @Operation(pattern,newClauses)
+          handler(Paren(pattern),newClauses)
+        end)
+    end
+    
+    @Operation nullable(grammar)
+      pattern.nullable(grammar)
+    end
+    
+    @Operation ONF():Pattern
+      Paren(pattern.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"(");
+      pattern.pprint(out,indent);
+      format(out,")")
+    end
+    
+    @Operation SNF(handler:Operation)
+      pattern.SNF(
+        @Operation(pattern,newClauses)
+          handler(Paren(pattern),newClauses)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      pattern.terminals()
+    end
+    
+  end

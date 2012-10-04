@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Syntaxp in PPrint(aSyntaxp,out,seen)
+  format(out,"[| ");
+  self.mark(
+    @Operation()
+      self.dispatch(aSyntaxp.exp,out)
+    end);
+  format(out," |]")
+end;

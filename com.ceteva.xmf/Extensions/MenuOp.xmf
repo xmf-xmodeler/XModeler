@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context XOCL
+  @Class Op
+    @Grammar extends Root::OCL::OCL.grammar
+      Op ::= 
+        name = OpName ps = Properties 
+        '(' args = OpArgs multi = OpMulti ')'
+        type = OpType
+        body = Exp+
+          p = pState
+        { ps->iterate(p x = Operation(name,args + multi,type).add(body).setIsMultiArgs(not multi->isEmpty).setImports(p.imports->excluding(XCore)->excluding(Root)->map("pathSeq")) |
+            [| <x>.setProperty(<StrExp(p->at(0))>,<p->at(1)>) |]
+          )
+         }.
+      OpName ::= name = AName { if name.isKindOf(String) then Symbol(name) else name end } | { Symbol("anonymous") }.
+      OpArgs ::= arg = OpArg args = (',' OpArg)* { Seq{arg | args } } | { Seq{} }.
+      OpArg ::= Pattern | '!' Drop. // Distinguishes between a dropped name and a dropped pattern.
+      OpMulti ::= '.' multi = Pattern { Seq{multi} } | { Seq{} }.
+      OpType ::= ':' TypeExp | { NamedType() }.
+      Properties ::= '[' p = Property ps = (',' Property)* ']' { Seq{p|ps} } | { Seq{} }.
+      Property ::= n = Name '=' e = Exp { Seq{n,e} }.
+    end
+  end

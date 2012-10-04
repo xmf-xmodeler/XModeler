@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class EllipseType extends DisplayType
+  
+    @Attribute x        : Integer    end
+    @Attribute y        : Integer    end
+    @Attribute width    : Integer    end
+    @Attribute height   : Integer    end
+    
+    @Constructor(x,y,width,height) ! end
+    
+    @Operation new(tool,parent,x,y,w,h,name)
+      let image = Ellipse(x,y,width,height,true) then
+          object = ToolObject(self,image)
+      in parent.add(object.element);
+         object.element.new(parent);
+         object
+      end
+    end
+    
+  end

@@ -1,0 +1,14 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler NamedType in Eval(aNamedType,arg,seen)
+  if seen
+  then aNamedType
+  else
+    let path = aNamedType.path->collect(x | self.dispatch(x,arg))
+    in aNamedType
+    end
+  end
+end;

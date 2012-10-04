@@ -1,0 +1,13 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class DropDownLayout extends Layout
+    
+    @ToXML(DropDownLayout)[x,y,width,height] end 
+    
+  end

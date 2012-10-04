@@ -1,0 +1,18 @@
+parserImport Manifests;
+
+import MDC;
+
+@Manifest MDCTests
+  @File UseCase end
+  @File StateMachine end
+  @File Shapes end
+  @File Model end
+  @File Process end
+  @File Modules end
+  @File Goals end
+  @File CPM end
+  @File Circuits end
+  @File Military end
+  @File DFD end
+do shapeDir(xmf.homeDir() + "/MDC/Shapes")
+end;

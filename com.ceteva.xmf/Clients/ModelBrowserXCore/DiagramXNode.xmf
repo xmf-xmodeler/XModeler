@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class DiagramXNode extends ElementXNode
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once DiagramXNode::daemons_diagramNameChanged(element,"name") end;
+      self
+    end
+
+    @Operation daemons_diagramNameChanged(e,slot,newName,oldName)
+      self.node.textChangedOut(self.element.labelString())
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.removeDaemonsWithTarget(self,true)
+    end
+
+  end

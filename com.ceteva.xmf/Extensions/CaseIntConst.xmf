@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import XOCL;
+
+context XOCL
+
+  @Class CaseIntConst extends CaseIntValue
+  
+    @Attribute value : Performable end  // Might be a sequence of integers if dropped.
+    
+    @Constructor(value) ! end
+    
+    @Operation addLabel(label,jumpTable)
+      if value.isKindOf(Seq(Element))
+      then
+        @For i in value do
+          jumpTable.put(i,label)
+        end
+      else jumpTable.put(self.rangeSize(),label)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      if value.isKindOf(Seq(Element))
+      then 
+        @For i in value do
+          format(out,"~S",Seq{i});
+          if not isLast
+          then format(out,",")
+          end
+        end
+      else value.pprint(out,indent)
+      end 
+    end
+    
+    @Operation rangeSize():Integer
+      try
+        value.eval(null,Env::NullEnv(),Seq{Root,XCore})
+      catch(exception)
+        self.error("CaseInt constant: " + self.toString() + " " + exception.message)
+      end
+    end
+    
+  end

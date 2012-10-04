@@ -1,0 +1,7 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Boot",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Package",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Class",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Enum",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Attribute",true,true);

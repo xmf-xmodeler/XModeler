@@ -1,0 +1,26 @@
+parserImport Features;
+
+context Root
+  @Feature F0
+   
+    @Feature F1 isabstract
+      @Feature A
+      end
+    end
+    
+    @Feature F2 extends F1
+      @Feature B
+      end
+      
+      @Behaviour
+        Initial -> A
+        Initial -> B
+      end
+    end
+    
+    @Behaviour
+      Initial -> F1
+      Initial -> F2
+    end
+     
+  end

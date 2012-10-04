@@ -1,0 +1,237 @@
+parserImport XOCL;
+
+import Dialogs;
+import IO;
+
+context Dialogs
+
+  @Class TextDisplay extends Display
+  
+    @Doc
+      The TextDisplay class implements the Display operations to produce a command
+      line interface for dialogs.
+    end
+  
+    @Attribute messages : Seq(String) end
+    @Attribute dialogs : Seq(Operation) end
+    @Attribute input : InputChannel end
+    @Attribute output : OutputChannel end
+    
+    @Constructor(input,output) end
+    @Constructor(input,output,messages,dialogs) ! end
+    
+    @Operation choose(continuation:Operation,default:Operation) 
+      format(output,"Please choose one of the following options:~%~%");
+      self.printOptions();
+      let option = self.getOption()
+      in if option = null 
+         then default(self)
+         else 
+           let delayedDialog = dialogs->at(option-1)
+           in ((delayedDialog())(continuation))(self)
+           end
+         end
+      end
+    end
+    
+    @Operation getOption():Integer
+      format(output,"~%Please type in a number in the range ~S to ~S followed by ENTER: ~F",Seq{1,messages->size + 1});
+      let option = TokenInputChannel(input).readToken()
+      in if option.isKindOf(Integer)
+         then
+           if 0 < option and option <= messages->size
+           then option
+           else 
+             if option = messages->size + 1
+             then null
+             else self.getOption()
+             end
+           end
+        else self.getOption()
+        end
+      end
+    end   
+    
+    @Operation option(message:String,dialog:Operation) 
+      self.messages := messages + Seq{message};
+      self.dialogs := dialogs + Seq{dialog}
+    end
+    
+    @Operation printOptions()
+      let index = 1
+      in @For m in messages do
+           format(output,"~S: ~S~%",Seq{index,messages->at(index-1)});
+           index := index + 1
+         end;
+         format(output,"~S: None of the above.~%",Seq{messages->size + 1})
+      end
+    end
+    
+    @Operation readBoolean(label:String,continuation:Operation)
+      try 
+        let symbol = TokenInputChannel(input).readToken()
+        in if symbol.isKindOf(Symbol)
+           then 
+             if symbol.name = "true"
+             then (continuation(true))(self)
+             else (continuation(false))(self)
+             end
+           else 
+             if label = null
+             then format(output,"Please type true or false.~%")
+             else format(output,label); output.flush()
+             end;
+             self.readBoolean(label,continuation)
+           end
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self.readBoolean(label,continuation)
+      end
+    end       
+    
+    @Operation readElement(label:String,continuation:Operation)
+      try
+        if label = null
+        then format(output,"Type in an expression terminated by a semicolon followed by ENTER: ~F")
+        else format(output,label); output.flush()
+        end;
+        let value = EvalInputChannel(OCL::OCL.grammar,"TopLevelExp",input,Seq{Root,XCore}).readValue()
+        in (continuation(value))(self)
+        end
+      catch(exception)
+        exception.println();
+        self.readElement(label,continuation)
+      end
+    end
+    
+     @Operation readInteger(label:String,continuation:Operation)
+       try 
+        if label = null
+        then format(output,"Type in an integer terminated by ENTER: ~F")
+        else format(output,label); output.flush()
+        end;
+        let int = TokenInputChannel(input).readToken()
+        in if int.isKindOf(Integer)
+           then (continuation(int))(self)
+           else 
+             format(output,"Please type an integer.~%");
+             self.readInteger(label,continuation)
+           end
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self.readInteger(label,continuation)
+      end
+    end       
+    
+    @Operation readString(label:String,continuation:Operation)
+      try
+        if label = null
+        then format(output,"Type in a line of characters terminated by ENTER: ~F")
+        else format(output,label); output.flush()
+        end;
+        let string = "";
+            newline = false;
+            firstChar = true
+        in @While not input.eof() and not newline do
+             let c = if firstChar then firstChar := false; input.readNonWhiteSpace() else input.read() end
+             in if c.isNewLineChar()
+                then newline := true
+                else string := string + Seq{c}->asString
+                end
+             end
+           end;
+           (continuation(string))(self)
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self.readString(label,continuation)
+      end
+    end
+    
+    @Operation readSymbol(label:String,continuation:Operation)
+      try
+        if label = null
+        then format(output,"Type in a name followed by ENTER: ~F")
+        else format(output,label); output.flush()
+        end;
+        let symbol = TokenInputChannel(input).readToken()
+        in if symbol.isKindOf(Symbol)
+           then (continuation(symbol))(self)
+           else 
+             format(output,"Expecting a symbol:~S~%",Seq{symbol});
+             self.readSymbol(label,continuation)
+           end
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self.readSymbol(label,continuation)
+      end
+    end
+    
+    @Operation readYesOrNo(continuation:Operation)
+      try 
+        let symbol = TokenInputChannel(input).readToken()
+        in if symbol.isKindOf(Symbol)
+           then 
+             if symbol.name = "yes"
+             then (continuation(true))(self)
+             else 
+               if symbol.name = "no"
+               then (continuation(false))(self)
+               else 
+                 format(output,"Please type yes or no.~%");
+                 self.readYesOrNo(continuation)
+               end
+             end
+           else 
+             format(output,"Please type yes or no.~%");
+             self.readYesOrNo(continuation)
+           end
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self.readYesOrNo(continuation)
+      end
+    end
+    
+    @Operation reset() 
+      self.messages := Seq{};
+      self.dialogs := Seq{}
+    end
+    
+    @Operation separator(continuation:Operation)
+      format(output,"~%");
+      continuation(self)
+    end
+    
+    @Operation show(label:String,value:Element,continuation:Operation)
+      if label = ""
+      then value.println()
+      else format(output,"~<20>S: ~S~%",Seq{label,value})
+      end;
+      continuation(self)
+    end
+    
+    @Operation value(label:String,type:Seq(String),continuation:Operation)
+      let classifier = type->iterate(name nameSpace = XCore | nameSpace.getElement(name))
+      in @Case classifier of 
+           [Element] do self.readElement(label,continuation) end
+           [Symbol] do self.readSymbol(label,continuation) end
+           [String] do self.readString(label,continuation) end
+           [Boolean] do self.readBoolean(label,continuation) end
+           [Integer] do self.readInteger(label,continuation) end
+           else self.error("Unknown type " + classifier.path())
+         end
+      end
+    end
+    
+    @Operation yesOrNo(question:String,continuation:Operation)
+      format(output,"~S (yes or no): ~F",Seq{question});
+      self.readYesOrNo(continuation)
+    end
+    
+  end
+    
+    

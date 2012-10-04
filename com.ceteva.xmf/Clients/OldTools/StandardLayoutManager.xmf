@@ -1,0 +1,248 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class StandardLayoutManager extends LayoutManager
+  
+    @Doc
+      The standard layout manager handles container types that
+      use the HORIZONTAL, VERTICAL and OVERLAY container types 
+      and which use the layout attribute on display attribute
+      types.
+    end
+  
+     @Operation layout(container,object,x,y,width,height)
+     
+      object.move(x,y);
+      object.resize(width,height);
+      
+      @Case container.layout of
+      
+        "HORIZONTAL" do
+          self.horizontalLayout(object,width,height)
+        end
+        "OVERLAY" do
+          self.overlayLayout(object,width,height)
+        end
+        "VERTICAL" do
+          self.verticalLayout(object,width,height)
+        end
+        else self.error("Unknown layout format: " + container.layout)
+      
+      end
+      
+    end
+    
+    @Operation horizontalLayout(object,width,height)
+    
+      // Layout elements in object from left to right. The layout annotations
+      // on the attributes are used to control how each of the elements is
+      // placed and sized within the container.
+    
+      let minWidth = object.slots->iterate(s w = 0 | s.minWidth() + w) then
+          padding = 
+            if width > minWidth and not object.elements()->isEmpty
+            then (width - minWidth).div(object.elements()->size) 
+            else 0 
+            end;
+          type = object.type then
+          attributes = type.orderAttributes();
+          point = Point(0,0) // Bug in closures prevents this from just being 'x'.
+      in @For attribute in attributes do
+           @Case attribute.layout of
+             "ALIGN" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let width = value.minWidth() + padding
+                    in value.type.layout(value,point.x,point.y,width,height);
+                       point.x := point.x + width
+                    end
+                  end
+               end
+             end
+             "CENTRE" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let minWidth = value.minWidth() + padding;
+                        minHeight = value.minHeight() then
+                        x = if width > minWidth then point.x + (width - minWidth).div(2) else point.x end;
+                        y = if height > minHeight then (height - minHeight).div(2) else 0 end
+                    in value.type.layout(value,x,y,minWidth,minHeight);
+                       point.x := point.x + minWidth
+                    end
+                  end
+               end
+             end
+             "LEFT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let width = value.minWidth() + padding;
+                        minHeight = value.minHeight() 
+                    in value.type.layout(value,point.x,point.y,width,minHeight);
+                       point.x := point.x + width
+                    end
+                  end
+               end
+             end
+             "RIGHT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let minWidth = value.minWidth() + padding;
+                        height = value.minHeight() then
+                        x = if width > minWidth then width - minWidth else minWidth - width end
+                    in value.type.layout(value,x,point.y,minWidth,height);
+                       point.x := point.x + minWidth
+                    end
+                  end
+               end
+             end
+           end
+         end
+       end
+     end
+    
+    @Operation overlayLayout(object,width,height)
+    
+      // Cause all the object slot values to be formatted on
+      // top of each other. Note that the order of display is
+      // important to be able to see the appropriate elements.
+      
+      let attributes = object.type.orderAttributes()
+      in @For attribute in attributes do
+           @Case attribute.layout of
+             "ALIGN" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    value.type.layout(value,0,0,width,height)
+                  end
+               end
+             end
+             "CENTRE" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let minWidth = value.minWidth();
+                        minHeight = value.minHeight() then
+                        x = if width > minWidth then (width - minWidth).div(2) else 0 end;
+                        y = if height > minHeight then (height - minHeight).div(2) else 0 end
+                    in value.type.layout(value,x,y,minWidth,minHeight)
+                    end
+                  end
+               end
+             end
+             "LEFT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let minWidth = value.minWidth() 
+                    in value.type.layout(value,0,0,minWidth,height)
+                    end
+                  end
+               end
+             end
+             "RIGHT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    let minWidth = value.minWidth() then
+                        x = if width > minWidth then width - minWidth else minWidth - width end
+                    in value.type.layout(value,x,0,minWidth,height)
+                    end
+                  end
+               end
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation verticalLayout(object,width,height)
+    
+      // Layout elements in object from top to bottom. The layout annotations
+      // on the attributes are used to control how each of the elements is
+      // placed and sized within the container.
+      
+      //format(stdout,"Vertical layout ~S w = ~S h = ~S~%",Seq{object,width,height});
+    
+      let minHeight = object.slots->iterate(s h = 0 | s.minHeight() + h) then
+          padding = 
+            if height > minHeight and not object.elements()->isEmpty
+            then (height - minHeight).div(object.elements()->size) 
+            else 0 
+            end;
+          type = object.type then
+          attributes = type.orderAttributes();
+          point = Point(0,0) // Bug in closures prevents this from just being 'y'.
+      in //format(stdout,"minHeight = ~S padding = ~S~%",Seq{minHeight,padding});
+         @For attribute in attributes do
+           //format(stdout,"Attribute = ~S point = ~S~%",Seq{attribute,point});
+           @Case attribute.layout of
+             "ALIGN" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    //format(stdout,"value = ~S point = ~S~%",Seq{value,point});
+                    let height = value.minHeight() + padding
+                    in value.type.layout(value,point.x,point.y,width,height);
+                       point.y := point.y + height
+                    end
+                  end
+               end
+             end
+             "CENTRE" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    //format(stdout,"value = ~S point = ~S~%",Seq{value,point});
+                    let height = value.minHeight() + padding;
+                        minWidth = value.minWidth() then
+                        x = if width > minWidth then (width - minWidth).div(2) else 0 end
+                    in value.type.layout(value,x,point.y,minWidth,height);
+                       point.y := point.y + height
+                    end
+                  end
+               end
+             end
+             "LEFT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    //format(stdout,"value = ~S point = ~S~%",Seq{value,point});
+                    let height = value.minHeight() + padding;
+                        minWidth = value.minWidth() 
+                    in value.type.layout(value,point.x,point.y,minWidth,height);
+                       point.y := point.y + height
+                    end
+                  end
+               end
+             end
+             "RIGHT" do
+               let name = attribute.name then
+                   values = if attribute.isSeq then object.slotValue(name) else Seq{object.slotValue(name)} end
+               in @For value in values do
+                    //format(stdout,"value = ~S point = ~S~%",Seq{value,point});
+                    let height = value.minHeight() + padding;
+                        minWidth = value.minWidth() then
+                        x = if width > minWidth then width - minWidth else minWidth - width end
+                    in value.type.layout(value,x,point.y,minWidth,height);
+                       point.y := point.y + height
+                    end
+                  end
+               end
+             end
+           end
+         end
+       end
+     end
+     
+   end
+    

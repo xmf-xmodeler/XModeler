@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+context Root
+  @Package STM
+    @Class StateMachine
+      @Attribute states : Seq(State) end
+      @Attribute trans : Seq(Trans) end
+      @Constraint AllStatesUniquelyNamed
+        states->forAll(s1 |
+          not states->exists(s2 |
+            s1 <> s2 and s1.name = s2.name))
+        fail "States must have unique names."
+      end
+    end
+    @Class State
+      @Attribute name : String end
+      @Attribute machine : StateMachine = StateMachine() end
+      @Constructor(name) ! end
+    end
+    @Class Trans 
+      @Attribute source : State end
+      @Attribute target : State end
+      @Attribute label : String end
+      @Constructor(source,target) ! end
+    end
+  end
+  

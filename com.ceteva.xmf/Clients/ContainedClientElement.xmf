@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Class ContainedClientElement isabstract extends ClientElement, Contained, Commandable
+  
+    //@Attribute commandInterpreter : Element end
+  
+    @Operation commandInterpreter()
+      // Don't cache the command interpreter if the contained client element is already disposed...
+      if id <> null
+      then
+        if self.commandInterpreter = null
+        then self.commandInterpreter :=
+          if owner <> null
+          then
+            xmf.clientManager().addToCommandInterpreterCacheRegistry(self);
+            owner.commandInterpreter()
+          else 
+            self.error(
+              self.of().nameString() + ": Cannot find the command interpreter for " +
+              self.toString() + " as it has no owner.")
+          end
+        end;
+        self.commandInterpreter
+      else
+        if owner <> null
+        then owner.commandInterpreter()
+        else self.error(self.of().nameString() + ": Cannot find the command interpreter for " +
+                        self.toString() + " as it has no owner.")
+        end
+      end
+    end
+    
+    @Operation dispose()
+      super();
+      self.commandInterpreter := null;
+      xmf.clientManager().removeFromCommandInterpreterCacheRegistry(self)
+    end
+    
+    @Operation eventHandler()
+      if owner <> null
+      then owner.eventHandler()
+      else self.error("Cannot find the event handler for " + self.toString())
+      end
+    end
+    
+    @Operation hasCommandInterpreter()
+      if self.commandInterpreter = null
+      then
+        if owner <> null
+        then
+          owner.hasCommandInterpreter()
+        else 
+          false
+        end
+      else
+        true
+      end
+    end
+
+  end

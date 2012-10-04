@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class BrowsedObject extends Object
+  
+    // Basic API for a browsed object. Works in collaboration
+    // with BrowsedClass...
+    
+    @Operation getChildren()
+      // Causes interfaces to inherits the child definitions...
+      try
+        let localInterface = self.of().interface()
+        in
+          if localInterface <> null andthen not localInterface.inheritChildren()
+          then
+            localInterface.getChildrenFor(self)
+          else
+            self.of().allBrowsedParents()->prepend(self.of())
+              ->iterate(browsedClass C = Seq{} |
+                if browsedClass.interface() = null
+                then C
+                else C + browsedClass.interface().getChildrenFor(self)
+                end
+              )
+          end
+        end
+      catch(exception)
+        xmf.message(exception.toString());
+        Seq{}
+      end
+    end
+
+    @Operation getChildrenToolTips()
+      self.getChildren()->collect(e | e.labelString())
+    end
+    
+  end

@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import StateMachines;
+
+context StateMachines
+
+  @Class Return extends Performable
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Return ::= e = Exp { Return(e) }.
+      
+    end
+  
+    @Attribute value : Performable end
+    
+    @Constructor(value) ! end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      value.compile(env,frame,isLast,saveSource)
+    end
+    
+    @Operation desugar()
+      value
+    end
+    
+    @Operation eval(target,env,imports)
+      value.eval(target,env,imports)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Return ");
+      value.pprint(out,indent);
+      format(out," end")
+    end
+    
+  end

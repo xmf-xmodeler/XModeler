@@ -1,0 +1,7 @@
+parserImport XOCL;
+
+import MDC;
+
+context Types
+
+  @Enum ContainerType(Immediate,Box,Diagram) end

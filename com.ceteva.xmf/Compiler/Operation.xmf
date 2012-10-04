@@ -1,0 +1,125 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+import Exceptions;
+
+context Operation
+  @Operation FV():Element
+    performable.FV()->reject(name |
+      self.newParams()->exists(p |
+        p.name = name))
+  end
+
+context Operation  
+  @Operation maxLocals():Element  
+    0
+  end      
+   
+context Operation
+
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    
+    @Doc
+      Compiles an operation in the supplied environment. The frame argument defines the level
+      of lexical nesting scope for the operation where 0 is at the top level. The parameter
+      names are added to the environment as local variables. We calculate the free variables
+      of the operation and these are pushed onto the stack before the operation is created
+      (using the MkOp instruction). The free variables will wind up in the globals list of the
+      operation. The globals list of the new operation is linked to the globals list of 
+      the lexically surrounding operation.
+    end
+    
+    let newParams = self.newParams() then
+        paramNames = newParams.name;
+        matchBody = self.matchCode(newParams.name,parameters,performable) then
+        freeVars = matchBody.FV()->reject(v | paramNames->includes(v)); 
+        localVars = env.locals();   
+        globalVars = Seq{} then
+        freeVars = freeVars->intersection(localVars+globalVars)->reject(fv | paramNames->includes(fv))->asSeq then
+        funEnv = env.deleteLocals().newFrame().newGlobals(freeVars).newLocals(paramNames) then
+        globalRefs = env.refs(freeVars); 
+        docCode = self.doc().compile(env,frame,false,true);
+        bodyCode = matchBody.compile(funEnv,frame + 1,true,saveSource);
+        source = if saveSource and Compiler::saveSource then self.pprint(4) else "" end;
+        properties = self.parserImportProperty()
+    in //format(stdout,"~S ~%~S~%~S~%~S~%",Seq{env,freeVars,globalRefs,bodyCode});
+       Seq{Const(self.toSig() + properties)} +
+       docCode + 
+       globalRefs + 
+       Seq{MkOp(name,parameters->size,isMultiArgs,freeVars->size,matchBody.maxLocals(),source,bodyCode + Seq{Return()})} 
+    end
+            
+  end
+  
+context Operation
+  @Operation parserImportProperty()
+  
+    // Return a property list for the parser imports of this
+    // operation definition. Many operations just import XOCL
+    // and we use this as the default.
+    
+    if imports.equals(Seq{Seq{"Root","XOCL"}})
+    then Seq{}
+    else Seq{Seq{Symbol("parserImports") | imports}}
+    end
+  end
+    
+context Operation
+  @Operation lift()
+    let nameExp = 
+         @TypeCase(name) 
+           OCL::Drop do name.lift() end
+           String do StrExp(name) end
+           Symbol do StrExp(name.name) end
+           else throw TypeError(name,String)
+         end
+    in Apply(self.typeExp(),Seq{nameExp,self.liftParameters(),type.lift(),performable.lift(),self.doc().lift(),BoolExp(isMultiArgs),imports.lift()})
+    end
+  end 
+  
+context Operation 
+  @Operation liftParameters()
+    SetExp("Seq",parameters->collect(p | p.lift()))
+  end   
+  
+context Operation
+  @Operation matchCode(paramNames:Seq(String),patterns:Seq(Pattern),body:Performable):Performable
+    let isBacktracking = patterns->exists(pattern | pattern.needsBacktrack())
+    in if isBacktracking
+       then [| let backtrack = @Operation() self.error("Match failed.") end
+               in <self.matchAll(paramNames,patterns,body,isBacktracking)>
+               end
+            |] 
+       else self.matchAll(paramNames,patterns,body,isBacktracking)
+       end
+    end
+  end
+  
+context Operation 
+  @Operation matchAll(paramNames:Seq(String),patterns:Seq(Pattern),body:Performable,isBacktracking:Boolean):Performable
+    if paramNames->isEmpty
+    then body
+    else 
+      let paramName = paramNames->head;
+          pattern = patterns->head;
+          value = Var(paramNames->head);
+          preMessage = "Match failed in operation " + name + ". Supplied parameter ";
+          postMessage = " does not match " + patterns->head.pprint() then
+          fail = 
+           if isBacktracking
+           then [| backtrack() |] 
+           else [| self.error(<StrExp(preMessage)> + <value> + <StrExp(postMessage)>) |]
+           end
+       in pattern.matchCode(Var(paramName),self.matchAll(paramNames->tail,patterns->tail,body,isBacktracking),fail)
+       end
+    end
+  end  
+  
+context Operation
+  @Operation newParams():Seq(Parameter)
+    // The parameters of an operation are all patterns. Some of these
+    // will need to be replaced with named parameters that are then
+    // matched against the pattern.
+    parameters->collect(p | p.newParam())
+  end

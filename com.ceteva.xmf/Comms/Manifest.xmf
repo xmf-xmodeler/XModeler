@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Comms
+  @File Comms  end
+  @File Client end
+  @File Server end
+do
+  Project(Comms,dir,self)
+end;

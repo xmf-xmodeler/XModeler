@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Languages;
+import StateMachines;
+
+context StateMachines
+
+  @Class ControllerClass extends Class
+  
+    @Operation defaultParents():Set(Classifier)
+      Set{ControllerObject}
+    end
+  end

@@ -1,0 +1,49 @@
+context Set
+  @Operation equals(other):Boolean
+    if other.isKindOf(Set)
+    then
+      elementType.equals(other.elementType)
+    else false
+    end
+  end
+  
+context Seq
+  @Operation inheritsFrom(c:Classifier):Boolean
+    if c.isKindOf(Set)
+    then elementType.inheritsFrom(c.elementType)
+    else c = Element
+    end
+  end
+  
+context Set
+  // Create a new set type by applying the class Set to a type.
+  @Operation init(args)
+    let type = args->at(0)
+    in if type = Element
+       then SetOfElement
+       else
+         self.setElementType(type);
+         self.parents := Set{SetOfElement};
+         self.default := Set{}
+       end
+    end
+  end
+  
+context Set
+  @Operation setElementType(type:Classifier)
+    self.elementType := type;
+    if type.hasSlot("name")
+    then self.name := "Set(" + type.name.toString() + ")"
+    else self.name := "Set(" + type.toString() + ")"
+    end;
+    self
+  end
+  
+context Set
+  // Create a new set type by sending an existing set type
+  // a message with the element type.
+  @Operation setType(type:Classifier)
+    let setType = Set.new()
+    in setType.setElementType(type) 
+    end
+  end

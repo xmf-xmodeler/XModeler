@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Features;
+
+context ! Features
+  @Class FeatureDef extends Sugar
+  
+    @Attribute name			: String end
+    @Attribute isabstract	: Boolean end
+    @Attribute parents 		: Set(Exp) end
+    @Attribute contents		: Seq(Exp) end
+    
+    @Constructor(name,isabstract,parents,contents)
+    end
+    
+    @Operation desugar()
+      // [| Features::Feature(<name>,<isabstract>,<parents>,<contents>) |]
+      [| 
+         let f = Features::Feature(<name>,<isabstract>,<parents>) 
+         in
+           @XOCL::For content in <contents>
+           do
+             f.add(content)
+           end;
+           f
+         end
+      |]
+    end
+  
+  end

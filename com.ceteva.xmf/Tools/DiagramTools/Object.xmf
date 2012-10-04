@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Structure;
+
+context Object
+
+  @Operation showDiagram()
+  
+    // Specialize this in order to create the empty diagram and
+    // then populate it.
+    
+    let tool = super()
+    in if tool.isReallyKindOf(Tools::Basic::Tool)
+       then
+         self.observeBy(tool);
+         tool
+       else tool
+       end
+    end
+  end
+  
+context Object
+
+  @Operation showAndLayoutDiagram(file)
+    
+      // Display the diagram and then apply the layout from the
+      // supplied XML file.
+      
+      let tool = self.showDiagram()
+      in @WithoutRendering(tool.diagram())
+           @Busy("Drawing Diagram")
+             tool.diagram().loadLayout(file)
+           end
+         end;
+         tool
+      end
+    end
+    
+    

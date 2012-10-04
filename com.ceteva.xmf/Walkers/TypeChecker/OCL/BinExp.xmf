@@ -1,0 +1,84 @@
+parserImport XOCL;
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler BinExp in TypeChecker(exp,env,encountered)
+  let leftType = self.dispatch(exp.left,env);
+      rightType = self.dispatch(exp.right,env)
+  in @Case exp.binOp of 
+       "+" do
+         @Case leftType.type(),rightType.type() of
+           [String],[String] do 
+             TypeCheckExp(exp,String,Seq{leftType,rightType}) 
+           end
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Integer,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "-" do
+         @Case leftType.type(),rightType.type() of
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Integer,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "*" do
+         @Case leftType.type(),rightType.type() of
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Integer,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "/" do
+         @Case leftType.type(),rightType.type() of
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Float,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       ">" do
+         @Case leftType.type(),rightType.type() of
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Boolean,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "<" do
+         @Case leftType.type(),rightType.type() of
+           [Integer],[Integer] do 
+             TypeCheckExp(exp,Boolean,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "and" do
+         @Case leftType.type(),rightType.type() of
+           [Boolean],[Boolean] do 
+             TypeCheckExp(exp,Boolean,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "or" do
+         @Case leftType.type(),rightType.type() of
+           [Boolean],[Boolean] do 
+             TypeCheckExp(exp,Boolean,Seq{leftType,rightType})
+           end
+           else TypeCheckExp(exp,Element,Seq{leftType,rightType})
+         end
+       end
+       "=" do 
+         TypeCheckExp(exp,Boolean,Seq{leftType,rightType}) 
+       end
+       else TypeCheckFails("unknown binary op " + exp.binOp,TypeCheckExp(exp,Element,Seq{leftType,rightType}))
+     end
+  end
+end;

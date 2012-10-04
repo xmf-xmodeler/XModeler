@@ -1,0 +1,97 @@
+parserImport XOCL;
+parserImport XRules;
+
+import XRules;
+
+// The following binary relations provide useful builtin predicates
+// for rules. Copy the relations and add them to your application...
+  
+context Test
+  @Relate Seq_x_String
+     S1:Seq(Element) = S2.asSeq()
+     S2:String = S1.asString()
+  end
+  
+context Test
+  @Relate ToString
+    E:Element = E
+    S:String = E.toString()
+  end
+  
+context Test
+  @Relate Floor
+    F:Float = I.asFloat()
+    I:Integer = F.floor()
+  end
+  
+context Test
+  @Relate Ceiling
+    F:Float = I.asFloat()
+    I:Integer = F.ceiling()
+  end
+  
+context Test
+  @Relate StringLength
+    S:String = S
+    L:Integer = S->size
+  end
+  
+context Test
+  @Relate SeqLength
+    S:Seq(Element) = S
+    L:Integer = S->size
+  end
+  
+context Test
+  @Builtin Mod(x,y,z)[rules,indent,env,succ,fail,exception]
+    x := deref(x,env);
+    y := deref(y,env);
+    z := deref(z,env); 
+    if x.isKindOf(Integer) and
+       y.isKindOf(Integer) 
+    then 
+      env := unify(z,x.mod(y),env);
+      if env = null
+      then fail()
+      else succ(env,fail)
+      end
+    else fail()
+    end
+  end
+  
+context Test
+  @Builtin Div(x,y,z)[rules,indent,env,succ,fail,exception]
+    x := deref(x,env);
+    y := deref(y,env);
+    z := deref(z,env); 
+    if x.isKindOf(Integer) and
+       y.isKindOf(Integer)
+    then 
+      env := unify(z,x.div(y),env);
+      if env = null
+      then fail()
+      else succ(env,fail)
+      end
+    else fail()
+    end
+  end
+  
+context Test
+  @Builtin Pow(x,y,z)[rules,indent,env,succ,fail,exception]
+    x := deref(x,env);
+    y := deref(y,env);
+    z := deref(z,env); 
+    if (x.isKindOf(Integer) or x.isKindOf(Float)) and
+       (y.isKindOf(Integer) or y.isKindOf(Float))
+    then 
+      env := unify(z,x.pow(y),env);
+      if env = null
+      then fail()
+      else succ(env,fail)
+      end
+    else fail()
+    end
+  end
+  
+// End of useful builtins.
+  

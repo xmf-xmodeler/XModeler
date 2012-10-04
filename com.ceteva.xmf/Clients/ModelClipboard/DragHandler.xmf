@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DragHandler isabstract extends CutCopyHandler
+
+    @Operation drag()
+      let mode = xmf.clipboard().transactionMode()
+      in
+        if mode = "copy"
+        then self.copyToClipboard()
+        elseif mode = "move"
+        then if self.cutEnabled()
+             then self.cutToClipboard()
+             else xmf.warning("Cannot move this element.")
+             end
+        else self.defaultDrag()
+        end
+      end
+    end
+    
+    @Operation defaultDrag()
+      if self.cutEnabled()
+      then self.cutToClipboard()
+      else self.copyToClipboard()
+      end
+    end
+
+  end

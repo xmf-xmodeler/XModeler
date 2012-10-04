@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class LabelChangeHandler extends OperationRefSyntax
+
+    @Grammar extends OperationRefSyntax.grammar
+      LabelChangeHandler ::= opRef = Path { LabelChangeHandler(opRef) }.
+    end
+
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.labels.changeHandler";
+          class = class;
+          opRef = opRef then
+          op = 
+            @Operation(element,text)
+              if opRef->size = 1
+              then class.getOperation(opRef->head,2).invoke(self,Seq{element,text}) 
+              else opRef.lookup().invoke(self,Seq{element,text})
+              end
+            end
+      in registry.addContribution(id,
+           Contribution(class,Seq{op}))
+      end 
+    end
+
+  end

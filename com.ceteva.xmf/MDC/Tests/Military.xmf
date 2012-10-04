@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+context Root
+  @Package Military
+    @Class Plan
+      @Attribute ships : Set(Battleship) end
+      @Attribute carriers : Set(AircraftCarrier) end
+      @Attribute planes : Set(Plane) end
+      @Attribute wayPoints : Set(WayPoint) end
+    end
+    @Class Routed isabstract
+      @Attribute wayPoint : WayPoint end
+    end
+    @Class Battleship extends Routed end
+    @Class AircraftCarrier extends Routed end
+    @Class Plane extends Routed end
+    @Class WayPoint 
+      @Attribute next : WayPoint end
+    end
+    @Operation initDiagram(tool : XCore::Element):XCore::Element
+      let text = Clients::Diagrams::Image(xmf.homeDir() + "/MDC/Tests/continents.png",0,0,(612 * 1.25).floor(),(358 * 1.25).floor())
+      in tool.diagram().add(text);
+         text.new(tool.diagram())
+      end
+    end
+  end
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

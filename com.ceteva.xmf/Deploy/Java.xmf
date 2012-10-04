@@ -1,0 +1,334 @@
+parserImport XOCL;
+
+// Deploy any package as a Java package. The Java package contains
+// a Java class for each class in the XMF package. A default strategy
+// is used to map each XMF class to a Java class.
+
+import IO;
+
+context Package 
+  @Operation deployJava()
+    // Choose the directory and name of the
+    // directory to deploy into.
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then
+         let name = xmf.getString("Package Name","Name of Java package (P.Q.R creates a folder named R)",name)
+         in if name <> null
+            then 
+              self.deployJava(dir,name);
+              xmf.message("Java Deployed as package " + name + " in " + dir);
+              true
+            else false
+            end
+         end
+       else false
+       end
+     end
+   end
+
+context Package
+  @Operation deployJava(root:String)
+    self.deployJava(root,self.name())
+  end
+  
+context Package 
+  @Operation deployJava(root:String,pname:String)
+  
+    // pname may be . separated. The last name is the name of the file to
+    // create in the root directory.
+    
+    let dirName = pname.splitBy(".",0,0)->last then
+        deployDir = root + "/" + dirName
+    in if if deployDir.fileExists()
+          then xmf.question("Overwrite " + deployDir)
+          else true
+          end
+       then
+         if deployDir.mkDir()
+         then 
+           self.deployJavaClasses(deployDir,pname);
+           self.deployJavaPackages(deployDir,pname);
+           true
+         else 
+           xmf.warning("Cannot create directory " + deployDir);
+           false
+         end
+       else false
+       end
+    end
+  end
+  
+context Package
+  @Operation deployJavaPackages(deployDir,pname)
+    @For package in packages
+    do
+      let 
+        pname = pname + "." + package.name();
+        deployDir = deployDir
+      in
+        package.deployJava(deployDir,pname)
+      end
+    end
+  end
+  
+context Package
+  @Operation deployJavaClasses(deployDir:String,pname:String)
+    @For class in classes do
+      class.deployJava(deployDir,self,pname)
+    end
+  end
+  
+context Class
+  @Operation deployJava(deployDir:String,package:Package,pname:String)
+    @WithOpenFile(fout -> deployDir + "/" + name + ".java")
+      format(fout,"package ~S;~%~%",Seq{pname});
+      if parents->select(p | package.classes->includes(p))->isEmpty
+      then format(fout,"public class ~S ",Seq{name})
+      else format(fout,"public class ~S extends ~S ",Seq{name,parents->sel.name})
+      end;
+      self.deployJavaImplementsHook(fout,package,pname);
+      format(fout,"{~%~%");
+      format(fout," // Attributes...~%~%");
+      @For attribute in self.javaAttributes(package) do
+        attribute.deployJava(fout,package)
+      end;
+      format(fout,"~%");
+      format(fout," // Accessors...~%~%");
+      @For attribute in self.javaAttributes(package) do
+        attribute.deployAccessor(fout,package)
+      end;
+      format(fout,"~%");
+      format(fout," // Updaters...~%~%");
+      @For attribute in self.javaAttributes(package) do
+        attribute.deployUpdater(fout,package)
+      end;
+      format(fout,"~%");
+      self.deployJavaHook(fout,package,pname);
+      format(fout," // Display...~%~%");
+      format(fout,"  public String toString() {~%");
+      format(fout,"    String s = \"~S[\";~%",Seq{name});
+      @For attribute in self.allAttributes() when attribute.underlyingType().isKindOf(DataType) do
+        format(fout,"    s = s + \"~S=\" + ~S();~%",Seq{attribute.name,attribute.name});
+        if not isLast then format(fout,"    s = s + \",\";~%") end
+      end;
+      format(fout,"    return s + \"]\";~%");
+      format(fout,"  }~%~%");
+      format(fout," // Operation stubs...~%~%");
+      @For operation in operations do
+        operation.deployJava(fout);
+        if not isLast then format(fout,"~%") end
+      end;
+      self.deployJavaSerializer(fout,package);
+      format(fout,"}~%")
+    end
+  end
+  
+context Class
+  @Operation deployJavaSerializer(out:OutputChannel,package:Package)
+    format(out," // XML Serialization...~%~%");
+    format(out,"  public void writeXML(java.io.PrintStream out,java.util.Hashtable idTable) {~%");
+    format(out,"    if(idTable.containsKey(this))~%");
+    format(out,"      out.print(\"<Ref id='\" + idTable.get(this) + \"'/>\");~%");
+    format(out,"    else {~%");
+    format(out,"      String id = Integer.toHexString(this.hashCode()).toUpperCase();~%");
+    format(out,"      out.print(\"<Object id='\" + id + \"'\");~%");
+    @For attribute in self.allAttributes() when attribute.underlyingType().isKindOf(DataType) do
+      @Case attribute.underlyingType() of
+        [Integer] do
+          format(out,"      out.print(\" ~S='I:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+        end
+        [Boolean] do
+          format(out,"      out.print(\" ~S='B:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+        end
+        [String] do
+          format(out,"      out.print(\" ~S='S:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+        end
+        else format(out,"      out.print(\" ~S='\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+      end
+    end;
+    format(out,"      out.print(\">\");~%");
+    @For attribute in self.allAttributes()->asSeq->sortNamedElements when not attribute.underlyingType().isKindOf(DataType) do
+      format(out,"      out.print(\"<Slot name='~S'>\");~%",Seq{attribute.name()});
+      @Case attribute.type of
+        Set[ ] do
+          format(out,"      out.print(\"<Set>\");~%");
+          format(out,"      for(int i = 0; i < ~S.size(); i++) {~%",Seq{attribute.name()});
+          format(out,"         ~S o = (~S)~S.elementAt(i);~%",Seq{attribute.underlyingType().name(),attribute.underlyingType().name(),attribute.name()});
+          format(out,"         o.writeXML(out,idTable);~%");
+          format(out,"      }~%");
+          format(out,"      out.print(\"</Set>\");~%")
+        end
+        Seq[ ] do
+          format(out,"      out.print(\"<List>\");~%");
+          format(out,"      for(int i = 0; i < ~S.size(); i++) {~%",Seq{attribute.name()});
+          format(out,"         ~S o = (~S)~S.elementAt(i);~%",Seq{attribute.underlyingType().name(),attribute.underlyingType().name(),attribute.name()});
+          format(out,"         o.writeXML(out,idTable);~%");
+          format(out,"      }~%");
+          format(out,"      out.print(\"</List>\");~%")
+        end
+        else format(out,"         if(~S == null) out.print(\"<Null/>\"); else ~S.writeXML(out,idTable);~%",Seq{attribute.name(),attribute.name()})
+      end;
+      format(out,"      out.print(\"</Slot>\");~%")
+    end;
+    format(out,"      out.print(\"</Object>\");~%");
+    format(out,"    }~%");
+    format(out,"  }~%")
+  end
+  
+context Class
+  @Operation deployJavaHook(out:OutputChannel,package:Package,pname:String)
+    null
+  end
+  
+context Class
+  @Operation deployJavaImplementsHook(out:OutputChannel,package:Package,pname:String)
+    null
+  end
+  
+context Class
+  @Operation javaAttributes(package:Package)
+    self.allAttributes()->select(a | 
+      let type = a.underlyingType()
+      in package.classes->includes(type) or
+         XCore.classes->includes(type) or
+         type.isKindOf(DataType)
+      end)->reject(a |
+        a.owner() <> self and
+        package.classes->includes(a.owner()))
+  end
+  
+context Attribute
+  @Operation deployJava(out:OutputChannel,package:Package)
+    format(out,"  private ~S ~S;~%",Seq{type.javaTypeName(package),name})
+  end
+  
+context Attribute 
+  @Operation deployAccessor(out:OutputChannel,package:Package)
+    @Case type of
+      Set(T) do
+        if T.isKindOf(DataType)
+        then format(out,"  public ~S[] ~S() { return ~S; }~%",Seq{T.javaTypeName(package),name,name})
+        else format(out,"  public java.util.Vector ~S() { return ~S; }~%",Seq{name,name})
+        end
+      end
+      Seq(T) do
+        if T.isKindOf(DataType)
+        then format(out,"  public ~S[] ~S() { return ~S; }~%",Seq{T.javaTypeName(package),name,name})
+        else format(out,"  public java.util.Vector ~S() { return ~S; }~%",Seq{name,name})
+        end
+      end
+      else format(out,"  public ~S ~S(){ return ~S; }~%",Seq{type.javaTypeName(package),name,name})
+    end
+  end
+  
+context Attribute
+  @Operation deployUpdater(out:OutputChannel,package:Package)
+  
+    // A basic updater operation that sets the slot.
+    
+    let uname = name.toString().upperCaseInitialLetter()
+    in @Case type of
+        Set(T) do
+          if T.isKindOf(DataType)
+          then format(out,"  public void set~S(~S value) { this.~S = value; ",Seq{uname,T.javaTypeName(package),name})
+          else format(out,"  public void set~S(java.util.Vector value) { this.~S = value; ",Seq{uname,name})
+          end
+        end
+        Seq(T) do
+          if T.isKindOf(DataType)
+          then format(out,"  public void set~S(~S value) { this.~S = value; ",Seq{uname,T.javaTypeName(package),name})
+          else format(out,"  public void set~S(java.util.Vector value) { this.~S = value; ",Seq{uname,name})
+          end
+        end
+        else format(out,"  public void set~S(~S value){ this.~S = value; ",Seq{uname,type.javaTypeName(package),name})
+       end;
+       self.deployUpdaterHook(out,package);
+       format(out,"}~%")
+    end
+  end
+  
+context Attribute
+  @Operation deployUpdaterHook(out:OutputChannel,package:Package)
+    // Used to add event raising and the like to the basic updater
+    // definition.
+    null
+  end
+  
+context Operation
+  @Operation deployJava(out:OutputChannel)
+    format(out,"  public ~S ~S(",Seq{self.javaTypeName(self.type()),self.name()});
+    @For name, type in self.paramNames(), self.paramTypes()
+    do
+      format(out,"~S ~S",Seq{self.javaTypeName(type),name});
+      if not isLast
+      then
+        format(out,",")
+      end
+    end;
+    format(out,") {~%");
+    format(out,"    return null;~%");
+    format(out,"  }~%")
+  end
+  
+context Operation
+  @Operation javaTypeName(type:Element):String
+    @Case type of
+      Integer do
+        "int"
+      end
+      Boolean do
+        "boolean"
+      end
+      String do
+        "String"
+      end
+      SetOfElement do
+        "Vector"
+      end
+      SeqOfElement do
+        "Vector"
+      end
+    end
+  end
+  
+context Classifier
+  @Operation javaTypeName(package:Package):String
+    @Case self of
+      Set(T) do
+        if T.isKindOf(DataType)
+        then T.javaTypeName(package) + "[]"
+        else "java.util.Vector"
+        end
+      end
+      Seq(T) do
+        if T.isKindOf(DataType)
+        then T.javaTypeName(package) + "[]"
+        else "java.util.Vector"
+        end
+      end
+      [Integer] do
+        "int"
+      end
+      [Boolean] do
+        "boolean"
+      end
+      [String] do
+        "String"
+      end
+      [Float] do
+        "double"
+      end
+      [Table] do
+        "java.util.Hashtable"
+      end
+      else 
+        if package.classes->includes(self)
+        then name
+        else "Object"
+        end
+    end
+  end
+     
+
+      

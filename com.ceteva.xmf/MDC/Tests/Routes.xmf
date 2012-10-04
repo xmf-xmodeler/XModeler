@@ -1,0 +1,187 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+
+context Root
+
+  @Package Routes
+  
+    @Class Graph metaclass BrowsedClass
+    
+      @Attribute locations : Set(Location) (?,+,-,^) end
+      @Attribute routes : Set(Route) (?,+,-,^) end
+      
+      @Interface
+        @Image "StateMachines/StateMachine" end
+        @MenuRoot Routes::Graph end
+        @Child locations end
+        @Child routes end
+        @Menu Add::Location addLocation end
+        @Menu Add::Route addRoute end
+        @Menu Check check end
+        @Menu Java java end
+      end
+      
+      @Constraint UniqueLocations
+        self.dupLocNames()->isEmpty
+      fail "duplicates: " + self.dupLocNames()->asSeq.separateWith(" and ")
+      end
+      
+      @Operation addRoute()
+        if locations->isEmpty
+        then xmf.message("No locations available")
+        else
+          let source = xmf.select("Source","Choose Location",locations->asSeq,null,null)
+          in if source <> null
+             then 
+               let target = xmf.select("Taget","Choose Location",locations->asSeq,null,null)
+               in if target <> null
+                  then self.addToRoutes(Route(source,target))
+                  end
+               end
+             end
+          end
+        end
+      end
+      
+      @Operation addLocation()
+        self.addToLocations(Location("<LABEL>"))
+      end
+      
+      @Operation check()
+        self.of().classify(self).edit()
+      end
+      
+      @Operation deleteLocation(location)
+        @For route in routes do
+          if route.source() = location or
+             route.target() = location
+          then route.delete()
+          end
+        end;
+        self.deleteFromLocations(location)
+      end
+      
+      @Operation dupLocNames()
+        locations->select(l1 |
+          locations->exists(l2 |
+            l1 <> l2 and
+            l1.label() = l2.label()))->map("label")
+      end
+      
+      @Operation java()
+        let table = Table(10);
+            code = "Graph test() {\n  Graph g = new Graph();\n"
+        in @For l in locations do
+             code := code + l.java(table)
+           end;
+           @For r in routes do
+             code := code + r.java(table)
+           end;
+           (code + "}").edit()
+        end
+      end
+    end
+    
+    @Class Location metaclass BrowsedClass extends Contained
+
+      @Attribute label : String (?,!) end
+      
+      @Constructor(label) ! end
+      
+      @Interface
+        @MenuRoot Routes::Location end
+        @Menu Delete delete end
+        @Label
+          @EditableTextOp      getLabel end
+          @LabelChangeGuard    checkLabel end
+          @LabelChangeHandler  changeLabel end
+        end
+      end
+      
+      @Operation changeLabel(location,newLabel)
+        location.setLabel(newLabel)
+      end
+      
+      @Operation checkLabel(location,newLabel)
+        true
+      end
+      
+      @Operation delete()
+        if owner <> null
+        then owner.deleteLocation(self)
+        end
+      end
+      
+      @Operation getLabel(location)
+        location.label()
+      end
+      
+      @Operation java(table)
+        let var = "loc" + table.keys()->select(o | o.isKindOf(Location))->size
+        in table.put(self,var);
+           formats("  Location ~S = new Location(\"~S\");~%",Seq{var,label})
+        end
+      end
+        
+      
+    end
+    
+    @Class Route metaclass BrowsedClass extends Contained
+    
+      @Attribute source : Location (?) end
+      @Attribute target : Location (?) end
+      @Attribute distance : Integer (?,!) end 
+      
+      @Constructor(source,target) end
+      
+      @Constructor(distance) ! end
+      
+      @Interface
+        @Image "StateMachines/Transition" end
+        @MenuRoot Routes::Location end
+        @Child source end
+        @Child target end
+        @Menu Delete delete end
+        @Label
+          @EditableTextOp      getDistance end
+          @LabelChangeGuard    checkDistance end
+          @LabelChangeHandler  changeDistance end
+        end
+      end
+      
+      @Operation changeDistance(route,newDistance)
+        route.setDistance(newDistance.asInt())
+      end
+      
+      @Operation checkDistance(route,newDistance)
+        try
+          newDistance.asInt();
+          true
+        catch(x)
+          false
+        end
+      end
+      
+      @Operation delete()
+        if owner <> null
+        then owner.deleteFromRoutes(self)
+        end
+      end
+      
+      @Operation getDistance(route)
+        route.distance().toString()
+      end
+      
+      @Operation java(table)
+        let var = "route" + table.keys()->select(o | o.isKindOf(Route))->size
+        in table.put(self,var);
+           formats("  Route ~S = new Route(~S,~S,~S);~%",Seq{var,distance,table.get(source),table.get(target)})
+        end
+      end
+      
+    end
+    
+  end
+  

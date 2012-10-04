@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ContextDef in AST(aContextDef,arg,seen)
+  let element = self.dispatch(aContextDef.element,arg);
+      path = self.dispatch(aContextDef.path,arg)
+  in ASTNode(aContextDef,Seq{path,element})
+  end
+end;

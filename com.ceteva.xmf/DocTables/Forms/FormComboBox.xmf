@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class FormComboBox extends Entry
+
+    @Attribute label  : String (?,!) end
+    @Attribute displays : Seq(String) (?,!) end
+    @Attribute values : Seq(String) (?,!) end
+    @Attribute selected : String (?,!) end
+    
+    @Constructor(label,displays) !
+      self.displays := displays->map("toString");
+      self.values := self.displays
+    end
+
+    @Constructor(label,displays,values) 
+      self.displays := displays->map("toString")
+    end
+    
+    @Operation bind(vEnv,fEnv)
+      if fEnv.binds(label)
+      then
+        let index = displays.indexOf(fEnv.lookup(label))
+        in vEnv.bind(label,values->at(index))
+        end
+      else vEnv
+      end
+    end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Memory
+  
+    @Attribute tokens : Set(Token) (?,+,-) end
+    
+    @Operation add(t:Token)
+      if t.debug()
+      then format(stdout,"[ MEM(+) ~S->including(~S) ]~%",Seq{tokens,t})
+      end;
+      self.addToTokens(t)
+    end
+    
+    @Operation clear()
+      self.tokens := Set{}
+    end
+    
+    @Operation findToken(t:Token)
+      @Find(token,tokens)
+        when token.equals(t)
+      end
+    end
+    
+    @Operation remove(t:Token)
+      if t.debug()
+      then format(stdout,"[ MEM(-) ~S->excluding(~S) ]~%",Seq{tokens,t})
+      end;
+      let storedToken = self.findToken(t)
+      in self.deleteFromTokens(storedToken)
+      end
+    end
+    
+  end

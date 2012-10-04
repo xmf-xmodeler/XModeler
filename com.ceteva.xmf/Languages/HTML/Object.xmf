@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:32 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Object extends Root::HTML::HTMLElement
+
+    @Attribute width : Root::XCore::Integer (?,!) end
+    @Attribute vspace : Root::XCore::Integer (?,!) end
+    @Attribute useMap : Root::XCore::String (?,!) end
+    @Attribute type : Root::XCore::String (?,!) end
+    @Attribute tabIndex : Root::XCore::Integer (?,!) end
+    @Attribute standby : Root::XCore::String (?,!) end
+    @Attribute align : Root::XCore::String (?,!) end
+    @Attribute archive : Root::XCore::String (?,!) end
+    @Attribute border : Root::XCore::Integer (?,!) end
+    @Attribute classId : Root::XCore::String (?,!) end
+    @Attribute codeBase : Root::XCore::String (?,!) end
+    @Attribute codeType : Root::XCore::String (?,!) end
+    @Attribute data : Root::XCore::String (?,!) end
+    @Attribute declare : Root::XCore::Boolean (?,!) end
+    @Attribute height : Root::XCore::Integer (?,!) end
+    @Attribute hspace : Root::XCore::Integer (?,!) end
+    @Attribute name : Root::XCore::String (?,!) end
+    @Attribute noTab : Root::XCore::Boolean (?,!) end
+    @Attribute shapes : Root::XCore::Boolean (?,!) end
+
+    @Constructor(shapes,noTab,name,hspace,height,declare,data,codeType,codeBase,classId,border,archive,align,standby,tabIndex,type,useMap,vspace,width,contents) ! end
+
+  end

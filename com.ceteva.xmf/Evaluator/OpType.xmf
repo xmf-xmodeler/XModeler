@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler OpType in Eval(aOpType,arg,seen)
+  if seen
+  then aOpType
+  else
+    let domains = aOpType.domains->collect(x | self.dispatch(x,arg));
+        range = self.dispatch(aOpType.range,arg)
+    in aOpType
+    end
+  end
+end;

@@ -1,0 +1,66 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import DiagramsMapping;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import Menus;
+
+context SnapshotMapping
+
+  @Class DocXNote extends ElementXNode, RightClickableProxy
+  
+    @Attribute doc	: Object end
+    @Attribute node : NoteNode end
+  
+    @Constructor(doc,node,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{doc.of(),node.of()})
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)
+      let 
+        globalMenu = rightClickable.globalMenu(false);
+        proxyTarget = RightClickableProxy::proxyTarget
+      in
+        globalMenu.add(MenuAction("Edit",proxyTarget,Seq{},DocXNote::edit));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once DocXNote::noteChangedDaemon(node.text,"text") end;
+      @SlotValueChanged multi once DocXNote::docChangedDaemon(doc,"doc") end
+    end
+    
+    @Operation docChangedDaemon(obj,slot,newName,oldName)
+      if node.text.text <> newName
+      then
+        node.text.setText(newName)
+      end
+    end
+    
+    @Operation edit()
+      self.doc.edit()
+    end
+    
+    @Operation element()
+      doc
+    end
+    
+    @Operation noteChangedDaemon(obj,slot,newName,oldName)
+      if doc.doc <> newName
+      then
+        doc.doc := newName
+      end
+    end
+    
+    @Operation removeDaemons()  
+      node.removeDaemonsWithTarget(self,true);
+      doc.removeDaemonsWithTarget(self,true)
+    end
+    
+  end

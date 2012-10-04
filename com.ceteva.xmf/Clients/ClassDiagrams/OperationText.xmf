@@ -1,0 +1,100 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class OperationText extends Text
+    
+    @Attribute operation : CompiledOperation (!,?) end
+    @Attribute opName    : String end
+    
+    @Constructor(opName,x,y)
+      let name = opName + "()" in
+        self.init(Seq{name,x,y,true})
+      end
+    end
+    
+    @Operation legalChange(newName):Boolean
+    
+      // The command to change an operation name is legal when the
+      // name is non-empty and when the owner of the operation is 
+      // not a name space or when the owning name space does not 
+      // contain another element with the same name.
+      
+      let owner = operation.owner()
+      in newName <> "" and
+         if owner.isReallyKindOf(XCore::NameSpace)
+         then not owner.hasElement(newName)
+         else true
+         end
+      end
+    end 
+    
+    /* @Operation moveDown()
+      @Count i from 1 to 16 do
+        self.move(self.x,self.y-1)
+      end
+    end */
+    
+    @Operation name()
+      self.opName
+    end
+    
+    @Operation parseString(value:String)
+      try
+        OCL::OCL.grammar.parseString(value,"Exp1",Seq{XOCL})
+      catch(exception)
+        let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+          dialog.newTextAreaDialog(Clients::DialogBoxes::TextAreaDialog::error,exception.message,exception.consumed);
+          false
+        end
+      end
+    end 
+    
+    @Operation recompile(operation)
+      let opString = operation.source()
+      then opAS = self.parseString(opString)
+      then opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true)
+      then newOp = opASfun()
+      in
+        newOp.setDoc(operation.doc().doc);
+        //self.lastGoodSource := operation.source();
+        operation.update(newOp)
+      end
+    end
+    
+    @Operation setName(n)
+      self.opName := n;
+      let name = n + "()" in
+        self.setText(name)
+      end
+    end
+    
+    @Operation strippedText()
+      self.text.subst("","()",false)
+    end
+    
+    @Operation textChanged(newText)
+      if newText.hasSuffix("()") then
+        newText := newText.subString(0,newText.size()-2)
+      end;
+      if Symbol(newText) <> operation.name() andthen
+         operation.legalNameChangeCheck(newText,operation.name())
+      then
+        let 
+          source = operation.source() then
+          modifiedSource = source.subst(newText,operation.name().toString(),false)
+        in 
+          operation.setSource(modifiedSource);
+          self.recompile(operation)
+        end
+      else
+        self.setName(operation.name().toString())
+      end
+    end
+  end

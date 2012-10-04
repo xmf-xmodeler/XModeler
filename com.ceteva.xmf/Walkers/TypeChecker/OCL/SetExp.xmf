@@ -1,0 +1,21 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler SetExp in TypeChecker(exp,env,encountered)
+  let eTypes = exp.elements->collect(e | self.dispatch(e,env))
+  in if eTypes->asSet->size = 1
+     then 
+       if exp.collType = "Set"
+       then TypeCheckExp(exp,Set(eTypes->sel.type()),eTypes)
+       else TypeCheckExp(exp,Seq(eTypes->sel.type()),eTypes)
+       end
+     else
+       if exp.collType = "Set"
+       then TypeCheckExp(exp,Set(Element),eTypes)
+       else TypeCheckExp(exp,Seq(Element),eTypes)
+       end
+     end
+  end  
+end;

@@ -1,0 +1,217 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Diagrams
+
+  @Class Container isabstract 
+  
+    @Doc 
+      A container has a sequence of display element types and a sequence of 
+      display elements (essentially a node or a box). Each type in the container
+      type is named as is the contents. Therefore elements can be referenced by
+      supplying a path from the receiver to a referenced element. A slight
+      complication occurs when referenced elements occur as part of a STAR-ed
+      type. This means that references produce sequences of elements.
+    end
+    
+    @Attribute starHandlers : Table = Table(10) end
+    
+    @Attribute orHandlers   : Table = Table(10) end
+    
+    @Operation addStarHandler(name:String,handler:Operation)
+    
+      // A container type may include a Star-ed type definition. In this
+      // case the container must support the creation of new instances
+      // of the star-ed display type. The context for this activity is
+      // known when the container is created and is added as a star handler.
+      // These are indexed by the name of the star-ed attribute and are
+      // invoked when a new element of the star-ed type is to be added to
+      // the container.
+      
+      starHandlers.put(name.toString(),handler)
+      
+    end
+    
+    @AbstractOp types():Seq(Element) end
+    
+    @AbstractOp contents():Seq(Display) end
+    
+    @Operation addNew(name:String)
+      
+      // Add a new instance of the star-ed type to the container.
+      
+      if starHandlers.hasKey(name)
+      then (starHandlers.get(name))(self)
+      else self.error("addNew: " + self.toString() + " unknown type: " + name + " known types are: " + starHandlers.keys().toString())
+      end
+    end
+    
+    @Operation changeTo(orName:String,type:String)
+    
+      // Changes the element currently being an instance of a disjunct from orName
+      // to be an instance of type. The current instance os removed and the new 
+      // display instance takes its place.
+      
+      if orHandlers.hasKey(orName)
+      then (orHandlers.get(orName))(type)
+      else self.error("Cannot find or type named " + orName + " in " + orHandlers.keys()->asSeq->separateWith(","))
+      end
+    end
+    
+    @Operation layoutHeight():Integer 
+      @Case self.type().contentLayout() of
+        "HORIZONTAL" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutHeight())) + padTop + padBottom).max(minHeight).min(maxHeight)
+        end
+        "OVERLAY" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutHeight())) + padTop + padBottom).max(minHeight).min(maxHeight)
+        end
+        "VERTICAL" do
+          (self.contents()->iterate(d h = 0 |
+            h + d.layoutHeight()) + padTop + padBottom).max(minHeight).min(maxHeight)
+          /* let h = 0
+          in @For d in self.contents() do
+               let height = d.layoutHeight()
+               in h := h + height;
+                  if not isFirst and d.needsTopAbutt() and height > 0
+                  then h := h - 1
+                  end
+               end
+             end;
+             h
+          end */
+        end
+      end
+    end
+      
+    @Operation layoutWidth():Integer
+      @Case self.type().contentLayout() of
+        "HORIZONTAL" do
+          (self.contents()->iterate(d h = 0 |
+            h + d.layoutWidth()) + padLeft + padRight).max(minWidth).min(maxWidth)
+        end
+        "OVERLAY" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutWidth())) + padLeft + padRight).max(minWidth).min(maxWidth)
+        end
+        "VERTICAL" do
+          (self.contents()->iterate(d h = 0 |
+            h.max(d.layoutWidth())) + padLeft + padRight).max(minWidth).min(maxWidth)
+        end
+      end
+    end
+    
+    @Operation maxLayoutHeight():Integer
+      //self.contents()->iterate(d h = maxHeight | h.min(d.maxLayoutHeight()))
+      self.contents()->iterate(d h = 0 | h + d.maxLayoutHeight()).min(maxHeight)
+    end
+    
+    @Operation maxLayoutWidth():Integer
+      self.contents()->iterate(d w = maxWidth | w.min(d.maxLayoutWidth()))
+    end
+    
+    @Operation minLayoutHeight():Integer
+      self.contents()->iterate(d h = minHeight | h.max(d.minLayoutHeight()))
+    end
+    
+    @Operation minLayoutWidth():Integer
+      self.contents()->iterate(d w = minWidth | w.max(d.minLayoutWidth()))
+    end
+        
+    @Operation orderContents()
+    
+      // The types of the container dictate the order that the elements
+      // should occur in.
+      
+      let ordered = Seq{};
+          unordered = displays
+      in @For type in self.types() do
+           ordered := ordered + unordered->select(d | type.underlyingTypes()->includes(d.type()))
+         end;
+         self.displays := ordered
+      end
+    end
+    
+    @Operation ref(path:Seq(String)):Seq(Element)
+    
+      // References the display element indexed by the given path.
+      // Encountering a Star will produce all the elements.
+      
+      let values = Seq{self}
+      in @While not path->isEmpty and not values->isEmpty do
+           let newValues = Seq{}
+           in @For value in values do
+                let contents = value.contents()
+                in newValues := newValues + contents->select(v | v.type().name().toString() = path->head)
+                end
+              end;
+              values := newValues;
+              path := path->tail
+           end
+         end;
+         values
+      end
+    end
+    
+    @Operation ref1(path:Seq(String)):Element
+    
+      // Expects the reference to produce a single element.
+      // It is an error if the result of ref is not exactly
+      // 1 element.
+      
+      let elements = self.ref(path)
+      in if elements->size = 1
+         then elements->head
+         else self.error("ref1 for " + path.toString() + " in " + self.toString() + " produced " + elements.toString())
+         end
+      end
+    end
+    
+    @Operation setOrHandler(orType,root,parent,path,tool,env,display)
+      
+      // An or handler is used to support switching between disjoint types
+      // using changeTo.
+      
+      orHandlers.put(orType.name().toString(),
+        @Operation(name)
+          if orType.hasTypeNamed(name)
+          then 
+            display.delete(false);
+            let newType = orType.typeNamed(name) then
+                newDisplay = newType.new(root,parent,path,tool,env)
+            in newDisplay.new(parent);
+               self.orderContents();
+               root.layout();
+               self.setOrHandler(orType,root,parent,path,tool,env,newDisplay);
+               tool.raise(DiagramEvents::ChangeTo(root,path,orType.name().toString(),parent,name,newDisplay,display))
+            end
+          else self.error("There is no type called " + name + " in " + orType.toString())
+          end
+        end)
+     end
+    
+    @Operation userOrderContents()
+    
+      // Offer up a dialog that allows the user to place the
+      // contents in order.
+      
+      let newDisplays = xmf.order("Order Contents","Select and order contents",displays)
+      in if newDisplays->size <> displays->size
+         then 
+           if xmf.question("Number of contents has changed. Proceed?")
+           then 
+             self.displays := newDisplays;
+             self.layout()
+           end
+         else 
+           self.displays := newDisplays;
+           self.layout()
+         end
+      end
+    end
+    
+  end

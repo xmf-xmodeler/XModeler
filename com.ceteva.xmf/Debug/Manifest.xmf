@@ -1,0 +1,11 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Debug
+  Debug = @File Debug           end
+          @File CallMonitor     end
+          @File OperationReport end
+          @File MonitorCalls    end
+do Project(Debug,dir,self)
+end;

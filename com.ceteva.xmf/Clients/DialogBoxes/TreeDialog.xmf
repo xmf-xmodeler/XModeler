@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class TreeDialog extends ContainedClientElement
+  
+    @Attribute title  	   : String (?) end
+    @Attribute tree		   : Seq(Element) (?) end
+    @Attribute multiselect : Boolean = false end
+  
+    @Constructor(title,tree)
+    end
+    
+    @Constructor(title,tree,multiselect)
+    end
+    
+    @Operation new()
+      if multiselect
+      then
+        self.commandInterpreter().newMultiSelectionTreeDialog(self)
+      else
+        self.commandInterpreter().newTreeDialog(self)
+      end
+    end
+  
+  end

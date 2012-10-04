@@ -1,0 +1,8 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+context X::Browser
+  @ElementManager Manager !
+  end

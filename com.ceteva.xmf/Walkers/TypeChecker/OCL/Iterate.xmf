@@ -1,0 +1,22 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Iterate in TypeChecker(exp,env,encountered)
+  let cType = self.dispatch(exp.collection,env);
+      vType = self.dispatch(exp.value,exp)
+  in if cType.type().isKindOf(Seq) or cType.type().isKindOf(Set)
+     then 
+       let env = env.bind(exp.name,cType.type().elementType) then
+           env = env.bind(exp.accumulator,vType.type()) then
+           bType = self.dispatch(exp.body,env)
+       in if bType.type().inheritsFrom(vType.type())
+          then TypeCheckExp(exp,vType.type(),Seq{cType,vType,bType})
+          else TypeCheckFails("value/body type mismatch",TypeCheckExp(exp,Element,Seq{cType,vType,bType}))
+          end
+       end
+     else TypeCheckFails("expecting a collection",TypeCheckExp(exp,Element,Seq{cType,vType}))
+     end
+  end
+end;

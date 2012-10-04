@@ -1,0 +1,50 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Record extends Sugar
+  
+    @Doc
+      The reord construct is a way of constructing a new object that
+      by-passes the MOP instantiation protocol. It creates a new 
+      instance of the class with just the specified slots.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Record ::= '(' class = Exp ')' s = Slot ss = (',' Slot)* { Record(class,Seq{s | ss}) }.
+      
+      Slot ::= name = Name '=' value = Exp { Seq{name,value} }.
+      
+    end 
+    
+    @Attribute class : Performable end
+    @Attribute slots : Seq(Element) end
+    
+    @Constructor(class,slots) end
+    
+    @Operation desugar() 
+      slots->iterate(p e = [| Kernel_newObj(<class>) |] |
+        let name = p->at(0);
+            value = p->at(1)
+        in [| Kernel_addAtt(<e>,<OCL::StrExp(name)>,<value>) |]
+        end)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Record(");
+      class.pprint(out,indent);
+      format(out,")~%~Vend",Seq{indent + 2});
+      @For slot in slots do
+        format(out,"~S = ",Seq{slot->at(0)});
+        slot->at(1).pprint(out,indent+2);
+        if not isLast then format(out,",~%~V",Seq{indent+2}) end
+      end;
+      format(out," end")
+    end
+    
+  end

@@ -1,0 +1,8 @@
+parserImport Manifests;
+
+@Manifest PerfMon
+            @Ref[ not Clients.hasElement("Graphs") ] HOME/Clients/Graphs end
+  PerfMon = @File PerfMon end
+            @File Memory  end
+do PerfMon
+end;

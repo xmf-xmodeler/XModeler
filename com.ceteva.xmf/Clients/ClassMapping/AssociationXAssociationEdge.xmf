@@ -1,0 +1,248 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+import Menus;
+
+context ClassMapping
+
+  @Class AssociationXAssociationEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute association : Associations::Association end
+    @Attribute edge        : AssociationEdge (?) end
+    
+    @Constructor(association,edge) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{association.of(),edge.of()});
+      self.setGlobalMenu(edge.end1.name,Symbol("Association Edge Name Diagram Label - End 1"));
+      self.setGlobalMenu(edge.end2.name,Symbol("Association Edge Name Diagram Label - End 2"));
+      self.setGlobalMenu(edge.end1.mult,Symbol("Association Edge Mult Diagram Label - End 1"));
+      self.setGlobalMenu(edge.end2.mult,Symbol("Association Edge Mult Diagram Label - End 2"))
+    end
+
+    @Operation buildGlobalMenu(rightClickable)
+      let globalMenu = rightClickable.globalMenu(false);
+          type = association.of();
+          clientType = rightClickable.of();
+          name1 = edge.end1.name;
+          name2 = edge.end2.name;
+          mult1 = edge.end1.mult;
+          mult2 = edge.end2.mult          
+      in
+        @TypeCase(rightClickable)
+          AssociationEdge
+            do
+              xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                        AssociationXAssociationEdge::proxyElementTarget)
+            end
+          ClassDiagrams::Multiplicity
+            do
+              if rightClickable = mult1
+              then globalMenu.add(MenuAction("Edit",RightClickableProxy::proxyTarget,Seq{},AssociationXAssociationEdge::setEnd1Multiplicity))
+              else globalMenu.add(MenuAction("Edit",RightClickableProxy::proxyTarget,Seq{},AssociationXAssociationEdge::setEnd2Multiplicity))
+              end
+            end
+          Diagrams::Label // name label
+            do
+              if rightClickable = name1
+              then globalMenu.add(MenuAction("Set Multiplicity",RightClickableProxy::proxyTarget,Seq{},AssociationXAssociationEdge::setEnd1Multiplicity))
+              else globalMenu.add(MenuAction("Set Multiplicity",RightClickableProxy::proxyTarget,Seq{},AssociationXAssociationEdge::setEnd2Multiplicity))
+              end
+            end
+        end;
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).association
+    end
+
+    @Operation nameChanged_classDiagramDaemon(association,slot,newName,oldName)
+      if edge.name() <> newName.toString()
+      then edge.setName(newName.toString())
+      end
+    end
+    
+    @Operation delete_classDiagramDaemon(association,slot,newOwner,oldOwner)
+      if newOwner = null
+      then owner.associationRemoved(association)
+      end
+    end
+    
+    @Operation checkAssociationDaemons()
+      @SlotValueChanged multi once AssociationXAssociationEdge::nameChanged_classDiagramDaemon(association,"name") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::delete_classDiagramDaemon(association,"owner") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end1NameChanged_classDiagramDaemon(association.end1,"name") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end1MultChanged_classDiagramDaemon(association.end1,"mult") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end2NameChanged_classDiagramDaemon(association.end2,"name") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end2MultChanged_classDiagramDaemon(association.end2,"mult") end
+    end
+
+    @Operation end1NameChanged_classDiagramDaemon(assocEnd,slot,newName,oldName)
+      self.changeEdgeEndName(edge.end1,newName)
+    end
+
+    @Operation end2NameChanged_classDiagramDaemon(assocEnd,slot,newName,oldName)
+      self.changeEdgeEndName(edge.end2,newName)
+    end
+
+    @Operation changeEdgeEndName(edgeEnd,newName)
+      if edgeEnd.name() <> newName.toString()
+      then edgeEnd.setName(newName.toString())
+      end
+    end
+
+    @Operation end1MultChanged_classDiagramDaemon(assocEnd,slot,newMult,oldMult)
+      if newMult <> oldMult and newMult.isReallyKindOf(XCore::Multiplicity)
+      then edge.end1.setMult(self.calcMultLabelString(newMult))
+      end
+    end
+
+    @Operation end2MultChanged_classDiagramDaemon(assocEnd,slot,newMult,oldMult)
+      if newMult <> oldMult and newMult.isReallyKindOf(XCore::Multiplicity)
+      then edge.end2.setMult(self.calcMultLabelString(newMult))
+      end
+    end
+
+    @Operation calcMultLabelString(mult):String
+      @TypeCase(mult)
+        SingleMult do
+          if mult.isMandatory
+          then "1 <<mandatory>>"
+          else ""
+          end
+        end
+        CollectionMult do
+          if mult.isOrdered
+          then mult.simpleMultString() + " <<ordered>>"
+          else mult.simpleMultString()
+          end
+        end
+        else mult.toString()
+      end
+    end
+   
+    @Operation checkDaemons()
+      super();
+      self.checkAssociationDaemons();
+      self.checkEdgeDaemons()
+    end
+    
+    @Operation nameChangedDaemon(obj,slot,newName,oldName)
+      if association.name.toString() <> newName
+      then association.setName(newName)
+      end
+    end
+    
+    @Operation associationEnd1ChangedDaemon(edge,slot,newPort,oldPort)
+      owner.associationEnd1Changed(self,newPort.owner)
+    end
+    
+    @Operation associationEnd2ChangedDaemon(edge,slot,newPort,oldPort)
+      owner.associationEnd2Changed(self,newPort.owner)
+    end
+    
+    @Operation checkEdgeDaemons()
+      @SlotValueChanged multi once AssociationXAssociationEdge::nameChangedDaemon(edge.name,"text")         end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::associationEnd1ChangedDaemon(edge,"source") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::associationEnd2ChangedDaemon(edge,"target") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end1NameChangedDaemon(edge.end1.name,"text") end;
+      @SlotValueChanged multi once AssociationXAssociationEdge::end2NameChangedDaemon(edge.end2.name,"text") end
+    end
+    
+    @Operation checkLegacy()
+      let owner = association.owner
+      in
+        if owner.isKindOf(Package)
+        then
+          if not owner.associations->includes(association)
+          then
+            owner.associations := owner.associations->including(association)
+          end
+        end
+      end
+    end
+
+    @Operation checkEndMult(assocEnd,edgeEnd)
+      if assocEnd.mult.isReallyKindOf(Associations::Multiplicity)
+      then
+        let multLabelString = edgeEnd.mult.text
+        in
+          @Case multLabelString of
+            "{ordered}" do
+              edgeEnd.setMult("* <<ordered>>");
+              assocEnd.setMultString("$")
+            end
+            "Mandatory 1" do
+              edgeEnd.setMult("1 <<mandatory>>");
+              assocEnd.setMultString("!")
+            end
+          else
+              assocEnd.setMultString(multLabelString)
+          end
+        end
+      end
+    end
+
+    @Operation hotLoaded()
+      self.checkEndMult(association.end1,edge.end1);
+      self.checkEndMult(association.end2,edge.end2);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{association.of(),edge.of()},false);
+      self.setGlobalMenu(edge,Set{association.of(),edge.of()},false);
+      self.setGlobalMenu(edge.end1.name,Symbol("Association Edge Name Diagram Label - End 1"),false);
+      self.setGlobalMenu(edge.end2.name,Symbol("Association Edge Name Diagram Label - End 2"),false);
+      self.setGlobalMenu(edge.end1.mult,Symbol("Association Edge Mult Diagram Label - End 1"),false);
+      self.setGlobalMenu(edge.end2.mult,Symbol("Association Edge Mult Diagram Label - End 2"),false);
+      self.checkLegacy()
+    end
+    
+    @Operation end1NameChangedDaemon(obj,slot,newName,oldName)
+      self.changeAssocEndName(association.end1,newName)
+    end
+    
+    @Operation end2NameChangedDaemon(obj,slot,newName,oldName)
+      self.changeAssocEndName(association.end2,newName)
+    end
+    
+    @Operation changeAssocEndName(assocEnd,newName)
+      if assocEnd.name.toString() <> newName
+      then assocEnd.setName(newName)
+      end
+    end
+
+    @Operation removeDaemons()
+    
+      // Called when this mapping is no longer valid.
+      
+      super();
+      association.removeDaemonsWithTarget(self,true);
+      association.end1.removeDaemonsWithTarget(self,true);
+      association.end2.removeDaemonsWithTarget(self,true);
+      edge.removeDaemonsWithTarget(self,true);
+      edge.name.removeDaemonsWithTarget(self,true);
+      edge.end1.name.removeDaemonsWithTarget(self,true);
+      edge.end2.name.removeDaemonsWithTarget(self,true)
+
+    end
+    
+    @Operation setEnd1Multiplicity()
+      association.end1.setMultString_client()
+    end
+
+    @Operation setEnd2Multiplicity()
+      association.end2.setMultString_client()
+    end
+
+    @Operation element()
+      association
+    end
+
+  end

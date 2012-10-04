@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolComponentAttribute 
+  
+    @Attribute name   : String  (!)      end
+    @Attribute isSeq  : Boolean          end
+    @Attribute type   : DisplayType (!)  end
+    @Attribute layout : String = "ALIGN" end
+    
+    @Constructor(name,isSeq,type,layout) ! end
+    
+    @Constructor(name,isSeq,type) end
+    
+    @Constructor(name,type) end
+    
+    @Operation new(object,tool,parent,x,y,width,height,parentName)
+      if isSeq
+      then object.addToSlots(SequenceSlot(self,Seq{}))
+      else object.addToSlots(SingletonSlot(self,type.new(tool,parent,x,y,width,height,parentName + "::" + name)))
+      end
+    end
+    
+  end

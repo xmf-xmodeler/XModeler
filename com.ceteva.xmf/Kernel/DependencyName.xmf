@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class DependencyName extends NamedElement
+  
+    @Doc
+      A depen-dency name is a name that can be associated with a depen-dency
+      and can represent any textual information relating to that depen-dency.
+      It can be associated to the source, target or the depen-dency itself, and
+      can be set as modifiable or not (this will determince whether or not the
+      diagram labels will be editable).
+      
+      This class is not itself expected to be sub-classes. Instead, the semantics
+      of setting the values of these names is specified by over-riding the
+      'setNameValue' in sub-classes of Depen-dency.
+    end
+     
+    @Attribute value      : String (?)   end
+    @Attribute position   : String       end  // this should be set to one of the bindings below
+    @Attribute modifiable : Boolean      end
+    
+    @Bind SOURCE = "start"  end
+    @Bind TARGET = "end"    end
+    @Bind SELF   = "middle" end
+    
+    @Constructor(name,value,position,modifiable) !
+    end
+    
+    @Operation setValue(value)
+      if owner <> null
+      then owner.setNameValue(self.name().toString(),value)
+      else self.value := value
+      end
+    end
+
+  end

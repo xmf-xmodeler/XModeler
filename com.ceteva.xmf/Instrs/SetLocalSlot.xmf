@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class SetLocalSlot extends Instr
+  
+    @Attribute localName   : String end 
+    @Attribute name        : String end
+    @Attribute localOffset : Integer end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(localName,localOffset,name) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(localOffset,constOffset.byte(2),constOffset.byte(1))
+    end
+    
+    @Operation toString():String
+      "<SetLocalSlot " + name.toString() + " " + localOffset">"
+    end
+    
+  end

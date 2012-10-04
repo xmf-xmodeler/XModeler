@@ -1,0 +1,65 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftWord;
+
+context MicrosoftWord
+
+  @Class Document extends OleObject
+  
+    @Attribute word 	 : Element end
+    @Attribute selection : OleObject end
+    @Attribute style	 : String end
+  
+    @Constructor(word)
+    end
+    
+    @Operation new()
+      self.call("Select",Seq{});
+      self.selection := word.getObject("Selection")
+    end
+    
+    @Operation close()
+      self.call("Close",Seq{});
+      word.deleteFromDocs(self);
+      self.setOwner(null)
+    end
+    
+    @Operation saveAs(filename)
+      self.call("SaveAs",Seq{filename})
+    end
+    
+    @Operation saveAs(filename,type)
+      self.call("SaveAs",Seq{filename,type})
+    end
+    
+    @Operation setStyle(style)
+      selection.setProperty("Style",style)
+    end
+  
+    @Operation writeTitle1(title)
+      self.setStyle("Heading 1");
+      self.writeText(title + "\n")
+    end
+    
+    @Operation writeTitle2(title)
+      self.setStyle("Heading 2");
+      self.writeText(title + "\n")
+    end
+    
+    @Operation writeTitle3(title)
+      self.setStyle("Heading 3");
+      self.writeText(title + "\n")
+    end
+    
+    @Operation writePara(para)
+      self.setStyle("Normal");
+      self.writeText(para + "\n")
+    end
+  
+    @Operation writeText(text)
+      selection.call("TypeText",Seq{text})
+    end 
+  
+  end

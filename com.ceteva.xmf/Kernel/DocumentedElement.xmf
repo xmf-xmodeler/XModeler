@@ -1,0 +1,53 @@
+context DocumentedElement
+
+  // If no documentation is specified for an element
+  // then its documentation *might* be null. In this
+  // case return a default documentation object.
+  
+  let emptyDoc = Doc("No Documentation Specified")
+  in 
+  
+     @Operation ensureDoc(doc):Doc
+     
+       @Doc
+         Used to convert possible types of documentation
+         (null or strings) to an instance of XCore::Doc.
+       end
+       
+       if doc = null or doc = ""
+       then emptyDoc
+       elseif doc.isKindOf(String)
+       then Doc(doc)
+       else doc
+       end
+       
+     end
+     
+   end
+    
+context DocumentedElement
+
+  @Operation doc():Doc
+  
+    @Doc
+      A documented element returns a value of type Doc.
+      the Doc object contains information relating to its
+      owner. 
+    end
+       
+    self.ensureDoc(self.documentation)
+       
+   end
+  
+context DocumentedElement
+
+  @Operation setDoc(doc):Element
+  
+    @Doc
+      Set the documentation. The argument may be an instance of
+      XCore::Doc, null or a string.
+    end
+    
+    self.documentation := self.ensureDoc(doc)
+    
+  end

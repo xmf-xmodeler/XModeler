@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import XOCL;
+
+context Busy
+
+  @Grammar extends OCL::OCL.grammar()
+     
+       Busy ::= '(' label = Exp ')' body = Exp {
+       
+         Busy(label,body)
+         
+       }.
+       
+    end
+    
+    

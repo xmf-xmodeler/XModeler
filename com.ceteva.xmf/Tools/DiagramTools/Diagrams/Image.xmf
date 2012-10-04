@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Image extends Clients::Diagrams::Image, Display
+    
+  end
+  

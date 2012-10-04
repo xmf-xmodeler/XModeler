@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Ellipse extends Clients::Diagrams::Ellipse, Display
+  
+    @Attribute fill : Boolean (!,?) end
+    
+    @Operation new(parent,setMenu)
+    
+      // It is not possible to send the fill state as part of the creation
+      // of an ellipse on the diagram for a standard Box. This specialization
+      // gets round this.
+      
+      let result = super(parent,setMenu)
+      in self.showFill(fill);
+         result
+      end
+    end
+
+    @Operation renew(parent)
+      let result = super(parent)
+      in self.showFill(fill);
+         result
+      end
+    end
+
+    @Operation toString()
+      self.type().name() + "()"
+    end
+    
+  end

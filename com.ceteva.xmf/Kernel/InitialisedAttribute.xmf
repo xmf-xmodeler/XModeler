@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class InitialisedAttribute extends Attribute
+  
+    @Attribute value : Performable end
+    
+  end

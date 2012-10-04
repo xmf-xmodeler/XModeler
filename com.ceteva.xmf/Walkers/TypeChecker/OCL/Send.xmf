@@ -1,0 +1,40 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler Send in TypeChecker(exp,env,encountered)
+  let tType = self.dispatch(exp.target,env);
+      aTypes = exp.args->collect(arg | self.dispatch(arg,env))
+  in @Find(op,tType.type().allOperations())
+       when op.name().toString() = exp.message.toString() and
+            op.arity() = aTypes->size
+       do let oTypes = op.paramTypes()
+          in @Count i from 0 to aTypes->size do
+                let aType = aTypes->at(i).type();
+                    oType = oTypes->at(i)
+                in if not aType.inheritsFrom(oType)
+                   then 
+                     let message =
+                           "Class " + tType.type().toString() + 
+                           " defines an operator named " + 
+                           exp.message.toString() +
+                           " but the declared types " +
+                           oTypes->map("toString")->separateWith(",") + "
+                            do not match the supplied types " +
+                            aTypes->map("type")->map("toString")->separateWith(",")
+                     in TypeCheckFails(message,TypeCheckExp(exp,Element,Seq{tType | aTypes}))
+                     end
+                   end
+                end
+              end;
+              TypeCheckExp(exp,op.type(),Seq{tType | aTypes})
+          end
+        else 
+          let message = "Class " + tType.type().toString() + " does not define an operator named " + exp.message.toString()
+          in TypeCheckFails(message,TypeCheckExp(exp,Element,Seq{tType | aTypes}))
+          end
+        end
+  end             
+end;

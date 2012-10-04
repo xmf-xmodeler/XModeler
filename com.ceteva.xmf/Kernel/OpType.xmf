@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class OpType extends Classifier
+  
+    @Attribute domains : Seq(Classifier) (?) end
+    @Attribute range   : Classifier      (?) end
+    
+    @Constructor(domains,range) end
+    
+    @Operation init()
+      self.name := self.toString();
+      super()
+    end
+    
+    @Operation toString():String
+      let s = "(" 
+      in @For d in domains do
+           s := s + d.name();
+           if not isLast then s := s + "," end
+         end;
+         if range <> null
+         then s := s + ") -> " + range.name()
+         end;
+         s
+      end
+    end
+    
+  end

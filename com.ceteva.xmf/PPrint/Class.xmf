@@ -1,0 +1,39 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler XOCL::Class in PPrint(aClass,out,seen)
+  self.mark(
+    @Operation()
+      format(out,"@Class ~S metaclass ",Seq{aClass.name});
+      self.dispatch(aClass.metaClass,out);
+      format(out," ~[isabstract~;~]",Seq{aClass.isAbstract});
+      if not aClass.parents->isEmpty
+      then 
+        format(out," extends ");
+        @For parent in aClass.parents do
+          self.dispatch(parent,out);
+          if not isLast
+          then format(out,",")
+          end
+        end
+      end;
+      self.indent(
+        @Operation()
+          self.newLine();
+          if aClass.defs.isKindOf(Seq(Element))
+            then
+              @For def in aClass.defs do
+                self.dispatch(def,out);
+                if not isLast
+                then self.newLine()
+                end
+              end
+            else self.dispatch(aClass.defs,out)
+          end
+        end);
+      self.newLine();
+      format(out,"end")
+    end)
+end;

@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftExcel;
+
+context MicrosoftExcel
+
+  @Class Workbook extends OleObject
+  
+    @Attribute excel     : Element end
+    @Attribute sheetsObj : OleObject end
+    @Attribute sheets	 : Seq(Sheet) (+,-) end
+  
+    @Constructor(excel)
+    end
+    
+    @Operation close()
+      self.call("Close",Seq{});
+      word.deleteFromSheets(self);
+      self.setOwner(null)
+    end
+    
+    @Operation new()
+      self.sheetsObj := self.getObject("Worksheets")
+    end
+    
+    @Operation newSheet()
+      let sheet = Worksheet(self)
+      in
+        sheet.setOwner(self);
+        self.commandInterpreter().callAndStore(sheetsObj,"Add",Seq{},sheet);
+        self.addToSheets(sheet);
+        sheet.new();
+        sheet
+      end
+    end
+    
+    @Operation saveAs(filename)
+      self.call("SaveAs",Seq{filename})
+    end
+  
+  end

@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class EnterDyn extends Instr
+ 
+    @Doc
+      This machine instruction corresponds to the frequent occurrence
+      of C(...) in source code where C is a dynamic variable.
+    end
+ 
+    @Attribute arity : Integer end
+    @Attribute name : Symbol end
+    @Attribute nameOffset : Integer end
+    
+    @Constructor(name,arity) end
+    
+    @Operation toString():String
+      "<EnterDyn " + arity + "," + name.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.nameOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(nameOffset.byte(2),arity,nameOffset.byte(1))
+    end
+    
+  end
+  

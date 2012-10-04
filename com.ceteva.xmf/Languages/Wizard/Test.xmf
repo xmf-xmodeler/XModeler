@@ -1,0 +1,114 @@
+parserImport XOCL;
+parserImport Languages::Automata;
+
+import Languages;
+import Wizard;
+import XML;
+import IO;    
+
+let client = Client(999,1956);
+    appClosed = false then
+    machine =
+      
+      // REPLACE WITH THE WEAPONS WIZARD ....
+      
+      @Automaton(Start)
+      
+        @State Start
+          format(client.commandsOutput,"In Starting State~%");
+          let form = ChoiceForm("Choose one of the following:",400,400,Seq{"START","MIDDLE","END"}) then
+              gui = GenericGUISchema(GUI("GUI_1","Start_Screen","ww_icon.ico",Seq{form},Seq{},Seq{},Seq{}))
+          in client.writeXML("GUI.xml",gui);
+             client.send("Load_GUI",Seq{"GUI.xml"});
+             client.wait(@Operation(command) command->head end)
+          end
+        end
+        
+        @State State1
+          format(client.commandsOutput,"In State1~%");
+          let value = client.valueOf("CHOICE_DONE","CHOICE_VALUE")
+          in format(client.commandsOutput,"Value = ~S~%",Seq{value});
+             value
+          end
+        end
+        
+        @State State2
+          format(client.commandsOutput,"In State2~%");
+          let form = TextForm("Please type in your name:",200,200) then
+              gui = GenericGUISchema(GUI("GUI_1","Start_Screen","ww_icon.ico",Seq{form},Seq{},Seq{},Seq{}))
+          in client.writeXML("GUI.xml",gui);
+             client.send("Clear_Form",Seq{});
+             client.send("Launch_Form",Seq{"GUI.xml"});
+             format(client.commandsOutput,"Value = ~S~%",Seq{client.valueOf("TEXT_DONE","TEXT_VALUE")})
+          end
+        end
+        
+        @State State3
+          format(client.commandsOutput,"In State3~%");
+          let form = TableForm("Please complete the table:",200,200,Seq{"Row1","Row2"},Seq{"Col1","Col2","Col3"}) then
+              gui = GenericGUISchema(GUI("GUI_1","Start_Screen","ww_icon.ico",Seq{form},Seq{},Seq{},Seq{}))
+          in client.writeXML("GUI.xml",gui);
+             client.send("Clear_Form",Seq{});
+             client.send("Launch_Form",Seq{"GUI.xml"});
+             client.report("TABLE_DONE",
+               @Operation()
+                 client.sendData(
+                   @Operation(gui)
+                     format(client.commandsOutput,"Value = ~S~%",Seq{gui.find("TABLE")})
+                   end)
+               end)
+          end
+        end
+        
+        @Transition(Start,State1) end
+        
+        @Transition(State1,Start)
+          when(value)
+            value = "START"
+        end
+        
+        @Transition(State1,State1)
+          when(value)
+            value = "MIDDLE"
+        end
+        
+        @Transition(State1,State2) 
+          when(value)
+            value = "END"
+        end
+        
+        @Transition(State2,State3) end
+        
+        @Transition(State3,State3) end
+        
+      end
+      
+      // ... END OF WEAPONS WIZARD 
+      
+      
+      
+      
+      
+      
+in @Fork
+     client.startCommands()
+   end;
+   @Fork
+     client.startGUI();
+     @While client.commandsOutput = null do self.yield() end;
+     format(client.commandsOutput,"Sending Get_Dir~%");
+     client.send("Get_Dir",Seq{});
+     client.wait(
+       @Operation(command)
+         format(client.commandsOutput,"Received ~S~%",Seq{command});
+         if command->head = "Dir_Used"
+         then
+           format(client.commandsOutput,"Setting directory to ~S~%",Seq{command->at(1)});
+           let dir = command->at(1)
+           in client.setDir(dir);
+              machine.run(null)
+           end
+         end
+       end) 
+   end
+end; 

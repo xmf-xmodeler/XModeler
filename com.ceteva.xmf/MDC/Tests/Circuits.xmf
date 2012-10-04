@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context Root
+  @Package Circuits
+    @Class Circuit
+      @Attribute joins : Set(Join) end
+      @Attribute components : Set(Component) end
+    end
+    @Class Join extends Component
+      @Attribute links : Set(Component) end
+    end
+    @Class Component isabstract
+    end
+    @Class Named
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    @Class Source extends Named,Component
+    end
+    @Class Target extends Named,Component
+    end
+    @Class Voltage extends Component end
+    @Class Current extends Component end
+    @Class Resistance extends Component end
+  end
+  

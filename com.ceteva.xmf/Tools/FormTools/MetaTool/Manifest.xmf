@@ -1,0 +1,9 @@
+parserImport Manifests;
+
+@Manifest FormMetaTool
+
+  MetaTool = @File MetaTool end
+             @File Type     end
+             
+do MetaTool
+end;

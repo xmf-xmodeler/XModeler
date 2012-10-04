@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Throw extends Statement
+  
+    @Attribute value    : JExp (?) end
+    
+    @Constructor(value) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"throw ");
+      value.pprint(out);
+      format(out,";")
+    end
+ 
+  end

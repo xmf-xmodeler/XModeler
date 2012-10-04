@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport XML::Generator;
+
+context Class
+  @ToXML toModel(Class,id)[name,isAbstract]
+    attributes*
+  end
+  
+context Attribute
+  @ToXML toModel(Attribute,id,multiplicity=self.modelMultiplicity())[name]
+    type
+  end

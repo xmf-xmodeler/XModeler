@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+  @Class MkObj extends IndexedInstr
+  
+    @Operation labelString():String
+      let type = contents->at(0);
+          properties = contents->at(1);
+          daemons = contents->at(2)
+      in if type.isKindOf(Lookup)
+         then
+           if type.isSimpleLookup()
+           then "[" + index + "] <a " + type.labelString() + ">," + properties.value
+           else super()
+           end
+         else super()
+         end
+      end
+    end
+    
+    @Operation getChildren():Set(Element)
+      let type = contents->at(0);
+          properties = contents->at(1);
+          daemons = contents->at(2)
+      in if type.isKindOf(Lookup)
+         then
+           if type.isSimpleLookup()
+           then 
+             if daemons.isKindOf(Const)
+             then 
+               contents
+                 ->excluding(type)
+                 ->excluding(properties)
+                 ->excluding(daemons)
+                 ->asSet
+             else 
+               contents
+                 ->excluding(type)
+                 ->excluding(properties)
+                 ->asSet
+             end
+           else super()
+           end
+         else super()
+         end
+      end
+    end
+  end

@@ -1,0 +1,11 @@
+import OCL;
+
+context Negate
+  @Operation eval(target,env,imports)
+    let b = exp.eval(target,env,imports)
+    in if b.isKindOf(Boolean)
+       then not b
+       else throw TypeError(b,Boolean)
+       end
+    end
+  end

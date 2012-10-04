@@ -1,0 +1,6 @@
+parserImport XOCL;
+
+context DocTables
+  @Class Properties isabstract
+    @Attribute properties : Env::Env = Env::NullEnv() (?,!) end
+  end

@@ -1,0 +1,81 @@
+parserImport XOCL;
+
+// A forward reference is created by the loader when a path cannot
+// be resolved. A forward ref contains a path, a value and a sequence
+// of listeners. A forward ref is resolvable when the path denotes a
+// named element. Resolution will set the value and GC will replace
+// all occurrences of the ref with the value. Code that encounters a
+// forward ref can add a listener. When the ref is resolved, all the
+// listeners are supplied with the resolved value. This allows all
+// activities that are pending to complete. 
+
+context ForwardRef
+  @Operation addListener(listener:Operation)
+    self.setListeners(self.listeners()->including(listener))
+  end
+  
+context ForwardRef
+  @Operation doubleClick()
+    let newPath = xmf.getString("Set Path","Type new path",self.path()->separateWith("::"))
+    in if newPath <> null
+       then self.setPath(newPath->subst("=","::",true)->splitBy("=",0,0))
+       end
+    end
+  end
+  
+context ForwardRef
+  @Operation labelString()
+    self.path()->separateWith("::")
+  end
+
+context ForwardRef
+  @Operation listeners():Seq(Operation)
+    Kernel_forwardRefListeners(self)
+  end
+  
+context ForwardRef
+  @Operation path():Seq(Symbol)
+    Kernel_forwardRefPath(self)
+  end
+  
+context ForwardRef
+  @Operation resolve()
+    // Try to find the named element and
+    // update the value. Call the listeners
+    // if ref is resolved...
+    let value = self.path().ref(Seq{Root})
+    in if value <> null
+       then 
+         self.setValue(value);
+         @For l in self.listeners() do
+           l(value)
+         end
+       end
+    end
+  end
+
+context ForwardRef
+  @Operation value()
+    Kernel_forwardRefValue(self)
+  end
+  
+context ForwardRef
+  @Operation setPath(path:Seq(Symbol))
+    Kernel_forwardRefSetPath(self,path)
+  end
+  
+context ForwardRef
+  @Operation setValue(value)
+    Kernel_forwardRefSetValue(self,value)
+  end
+  
+context ForwardRef
+  @Operation setListeners(listeners:Seq(Operation))
+    Kernel_forwardRefSetListeners(self,listeners)
+  end
+
+context ForwardRef
+  @Operation toString():String
+    formats("<Ref ~{::~;~S~}>",Seq{Kernel_forwardRefPath(self)})
+  end
+  

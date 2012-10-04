@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class CheckBox extends Clients::Forms::FormCheckBox, FormElement
+  
+    @Attribute checkHandler : Operation (?,!) end
+    
+    @Constructor(value)
+      self.setDaemon()
+    end
+  
+    @Operation actualHeight():Integer
+      10
+    end
+    
+    @Operation actualWidth():Integer
+      10
+    end
+    
+    @Operation checkEvent(checkBox,slot,new,old)
+      checkHandler(self,new,old)
+    end
+    
+    @Operation setDaemon()
+      @SlotValueChanged multi CheckBox::checkEvent(self,"value") end
+    end
+  
+  end

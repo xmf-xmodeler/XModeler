@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+    
+  @Class DataStore extends ProcessComponent, NamedElement
+
+    @Attribute fields : Seq(String) end
+
+    /* @Grammar extends OCL::OCL.grammar
+    
+      DataStore ::= name = Name '(' parameters = Parameters   ')'
+      {
+      
+      }.
+    end */
+    
+    @Constructor(fields) end
+
+    @Operation toString():String
+      "<DataStore " + name + "(" + fields->separateWith(",") + ")>"
+    end
+
+    @Operation addTo(p:Process)
+      p.addStore(self)
+    end
+      
+    @Operation removeFrom(p:Process)
+      p.removeStore(self)
+    end
+
+    @Operation new()
+      DFD::Semantics::DataStore.new().def := self
+    end
+      
+    @Operation code(indent:Integer):String
+      "@DataStore " + name + "(" + fields->separateWith(",") + ") end"
+    end
+      
+    @Operation contextCode():String
+      "import DFD::Syntax;\n\ncontext " + owner.path() + "\n  " + self.code(2)
+    end
+  end

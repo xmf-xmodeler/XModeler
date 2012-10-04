@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package ModelClipboard
+  
+    @Doc
+      The model clipboard facilitates the cut or copy and paste of any model element,
+      effectively enabling model elements to be moved or copied where appropriate.
+    end
+    
+  end

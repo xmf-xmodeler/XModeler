@@ -1,0 +1,18 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler VarUpdate in PPrint(aVarUpdate,out,seen)
+  self.mark(
+    @Operation()
+      if aVarUpdate.name.isKindOf(Drop)
+      then self.dispatch(aVarUpdate.name,out)
+      else format(out,"~S",Seq{aVarUpdate.name})
+      end;
+      format(out," := ");
+      self.indent(
+        @Operation()
+          self.dispatch(aVarUpdate.value,out)
+        end)
+     end)
+end;

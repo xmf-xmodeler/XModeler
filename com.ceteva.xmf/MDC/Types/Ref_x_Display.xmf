@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import MDC::Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+
+context ! Types
+
+  @Class Ref_x_Display extends Display_x_Display
+
+    @Attribute map : Display_x_Display (?,!) end
+    
+    @Constructor(map) 
+      self.displayType := map.displayType()
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        T := map.allMappingTypes(T)
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      Set{}
+    end
+    
+    @Operation build(tool,value,display)
+      map.build(tool,value,display)
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      map.collectionAttributes()
+    end
+    
+    @Operation decreasePadding()
+      map.decreasePadding()
+    end
+    
+    @Operation deref()
+      map.deref()
+    end
+    
+    @Operation increasePadding()
+      map.increasePadding()
+    end
+    
+    @Operation populate(tool,value,element)
+      map.populate(tool,value,element)
+    end
+    
+    @Operation setDisplay(tool,value,element)
+      map.setDisplay(tool,value,element)
+    end
+    
+    @Operation toString()
+      "Ref(" + map.toString() + ")"
+    end
+    
+  end

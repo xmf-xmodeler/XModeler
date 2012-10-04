@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import Enterprise;
+
+context Enterprise
+
+  @Class EnterpriseEventHandler extends EventHandler
+    
+    @Operation dispatchEvent(message,parameters)
+      @Case message.name of
+        "URLRequest" do self.readURLRequest(parameters) end
+      end
+    end
+    
+    @Operation readURLRequest(parameters)
+      let 
+        sessionId = parameters.at(0);
+        request = parameters.at(1)
+      in
+        owner.urlRequest(sessionId,request)
+      end
+    end
+    
+  end

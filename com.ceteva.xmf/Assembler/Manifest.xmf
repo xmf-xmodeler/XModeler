@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Assembler
+  @File Assembler end
+  @File CodeBox   end
+do
+  Project(Assembler,dir,self)
+end;

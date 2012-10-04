@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Negate in PPrint(aNegate,out,seen)
+  format(out,"not ");
+  self.mark(
+    @Operation()
+      self.dispatch(aNegate.exp,out)
+    end)
+end;

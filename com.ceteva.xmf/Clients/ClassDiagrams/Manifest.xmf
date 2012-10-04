@@ -1,0 +1,39 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ClassDiagrams
+  ClassDiagrams = @File ClassDiagrams end
+  @File AttributeBox end
+  @File OperationBox end
+  @File MetaslotBox end
+  @File AttributeName end
+  @File AttributeType end
+  @File AttributeText end
+  @File OperationGroup end
+  @File OperationText end
+  @File MetaslotName end
+  @File MetaslotValue end
+  @File StringMetaslotValue end
+  @File MetaslotText end
+  @File NameBox end
+  @File ElementNode end
+  @File ClassifierNode end
+  @File ClassNode end
+  @File DiagramNode end
+  @File PackageNode end
+  @File NoteNode end
+  @File AttributeLabel end
+  @File StereotypeLabel end
+  @File Multiplicity end
+  @File AttributeEdge end
+  @File DependencyEdge end
+  @File DependencyLabel end
+  @File ContainsEdge end
+  @File InheritanceEdge end
+  @File AssociationEnd end
+  @File AssociationEdge end
+  @File ClassDiagram end
+do Project(ClassDiagrams,dir,self)
+end;

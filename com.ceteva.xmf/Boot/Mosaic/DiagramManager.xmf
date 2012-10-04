@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provide the diagram
+// manager property and associated helper operations.
+
+let diagramManager = Clients::DiagramsMapping::DiagramManager() in
+  xmf.setProperty("diagramManager",diagramManager)
+end;
+
+context XMF
+  @Operation diagramManager()
+    self.property("diagramManager")
+  end
+  

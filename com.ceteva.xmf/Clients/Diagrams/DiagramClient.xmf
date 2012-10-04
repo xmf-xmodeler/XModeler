@@ -1,0 +1,175 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Diagrams;
+
+context Diagrams
+
+  @Class DiagramClient extends Client, DiagramListener
+  
+    @Attribute diagrams : Seq(Diagram) (+,-) end
+    
+    @Constructor(name)
+      self.setCommandInterpreter(DiagramCommandInterpreter());
+      self.setEventHandler(DiagramEventHandler())
+    end
+    
+    @Operation add(diagram,register)
+      self.diagrams := diagrams->prepend(diagram);
+      diagram.setOwner(self);
+      if register
+      then self.registerWithDiagram(diagram)
+      end;
+      diagram
+    end    
+    
+    @Operation add(diagram)
+      self.add(diagram,true)
+    end
+    
+    @Operation closeNonDisplayedDiagrams()
+      @Command(self) closeNonDisplayedDiagrams() end
+    end
+     
+    @Operation globalRenderOff()
+      @Command(self) globalRenderOff() end
+    end
+    
+    @Operation globalRenderOn()
+      @Command(self) globalRenderOn() end
+    end
+
+    @Operation handleDiagramCloseEvent(diagram)
+      self.remove(diagram)
+    end
+
+    @Operation handleDiagramDeleteEvent(diagram)
+      self.remove(diagram)
+    end
+
+    @Operation handleDiagramRenewEvent(diagram)
+      self
+    end
+
+    @Operation hasDiagram(diagram:Diagram):Boolean
+      diagrams->includes(diagram)
+    end
+    
+    @Operation newDiagram(diagram)
+      // Installs the diagram, sends it the 'new' command and then
+      // switches focus to the new diagram.
+      self.add(diagram);
+      diagram.new();
+      self.showDiagram(diagram)
+    end
+    
+    @Operation preSave()
+      let allListeners = Seq{}
+      in
+        @For diagram in diagrams do
+          if diagram.listeners->includes(self)
+          then
+            allListeners := allListeners->prepend(diagram)
+          end
+        end;
+        Root.putElement("diagramClient_listeners",allListeners)
+      end;
+      @For diagram in diagrams do
+        diagram.setOwner(null);
+        self.deregisterFromDiagram(diagram)
+      end
+    end
+    
+    @Operation postSave()
+      if Root.contents.hasKey(Symbol("diagramClient_listeners"))
+      then
+        let allListeners = Root::diagramClient_listeners
+        in
+          @For diagram in allListeners
+          do
+            self.registerWithDiagram(diagram)
+          end
+        end;
+        Root.contents.remove(Symbol("diagramClient_listeners"))
+      end;
+      @For diagram in diagrams do
+        diagram.setOwner(self)
+      end
+    end
+    
+    @Operation renew() 
+    
+      // Called to recreate the state of the client. For example after an
+      // image has been loaded.
+      
+      @For diagram in diagrams do
+        diagram.renew();
+        self.registerWithDiagram(diagram);
+        if diagram.isOpen
+        then self.showDiagram(diagram)
+        end
+      end
+    end
+        
+    @Operation renewDiagram(diagram)
+      // Installs the diagram, sends it the 'renew' command and then
+      // switches focus to the new diagram.
+      self.add(diagram);
+      diagram.renew();
+      self.registerWithDiagram(diagram);
+      self.showDiagram(diagram)
+    end
+    
+    @Operation remove(diagram)
+      self.deregisterFromDiagram(diagram);
+      self.diagrams := diagrams.excluding(diagram);
+      diagram.dispose()
+      //diagram.setOwner(null)
+    end
+    
+    @Operation save(diagram,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName))
+      in try
+           // The diagram must be de-linked from its
+           // parent in order to define the save boundary.
+           diagram.setOwner(null);
+           out.write(diagram,Seq{XCore,Root,Clients,Diagrams});
+           out.close();
+           diagram.setOwner(self);
+           format(stdout,"Written diagram to ~S~%",Seq{fileName})
+         catch(exception)
+           format(stdout,"~S~%",Seq{exception});
+           diagram.setOwner(self)
+         end
+      end
+    end
+
+    @Operation showDiagram(diagram)
+      /* if diagrams->includes(diagram)
+      then 
+        @Command(self) showDiagram(diagram) end
+      else
+        self.add(diagram);
+        @Command(self) showDiagram(diagram) end
+      end */
+      self
+    end
+    
+    @Operation synchronise()
+    
+      // Produces an XML document of the diagram client's state
+      // this is communicated and the remote client is expected
+      // it to use as a basis for synchronising its state
+    
+      
+      @Command(self) startDocument() end;
+      @For diagram in diagrams
+      do
+        diagram.synchronise()
+      end;
+      @Command(self) endDocument() end
+    
+    end
+    
+  end

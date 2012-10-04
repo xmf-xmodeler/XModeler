@@ -1,0 +1,418 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context XDiagMaps::XDiagMap
+
+  @Operation write(dir)
+    
+      // Write out the various components of the tool to the supplied
+      // directory.
+    
+      let manifest = OrderedContainer()
+      in self.writeToolDescriptor(dir,manifest);
+         self.writeToolType(dir,manifest);
+         self.writeElementManager(dir,manifest);
+         self.writeCreateDiagram(dir,manifest);
+         self.writeObservations(dir,manifest);
+         self.writeDiagramManifest(dir,manifest)
+      end
+      
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeAnnotateType(out)
+    
+      // If we support notes than allow annotation edges...
+      
+      if allowNotes
+      then 
+        format(out,"    @EdgeType Annotate Note -> RootNodeType~%");
+        format(out,"      targetHead=arrow ~%");
+        format(out,"      lineStyle=dashLine ~%");
+        format(out,"      @Menu~%");
+        format(out,"        @MenuAction Delete self.delete() end~%");
+        format(out,"      end~%");
+        format(out,"    end~%")
+      end
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeAttributeEdgeTypes(out)
+      @For edge in self.attributeEdges() do
+        edge.writeType(out)
+      end
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeClassEdgeTypes(out)
+      @For edge in self.classEdges() do
+        edge.writeType(out)
+      end
+    end
+    
+context XDiagMaps::XDiagMap
+
+   @Operation writeClassTypes(out)
+   
+     // Write out the node types. Write out all classes as nodes
+     // so that inheritance can be made to work.
+     
+     // Write out a root node type...
+     
+     format(out,"    @NodeType RootNodeType end~%");
+    
+     @For class in package.classes->asSet - self.nodeClasses() do
+       let parents = class.parents->asSeq->select(parent | package.classes->includes(parent))
+       in if parents->isEmpty
+          then format(out,"    @NodeType ~S extends RootNodeType end~%",Seq{class.name()})
+          else format(out,"    @NodeType ~S extends ~{,~;~S~} end~%",Seq{class.name(),parents.name})
+          end
+       end
+     end;
+    
+     @For node in nodes do
+       node.writeType(out,4,package.classes)
+     end
+    
+   end
+   
+context XDiagMaps::XDiagMap
+
+   @Operation writeDiagramManifest(dir:String,manifest:OrderedContainer)
+     // Write the files in the order that should be loaded...
+     @WithOpenFile(out -> dir + "/Manifest.xmf")
+       format(out,"parserImport Manifests;~%~%");
+       format(out,"@Manifest Type~%");
+       @For file in manifest.contents() do
+         format(out,"  @File ~S end~%",Seq{file})
+       end;
+       format(out,"end;~%");
+       Clients::XmfFileTree::XmfManifest(IO::Directory(dir,Seq{".*.xmf"}),"Manifest.xmf")
+     end
+   end
+      
+context XDiagMaps::XDiagMap
+
+   @Operation writeElementManager(dir:String,manifest:OrderedContainer)
+  
+     // Write an event handler for all the events that can occur on the diagram editor.
+     // Events include node and edge creation, and edge re-linking. Use the set of visited 
+     // classes to guide the event handler definitions...
+    
+     let dir = dir + "/ElementManager"
+     in if dir.mkDir()
+        then 
+          @WithOpenFile(out -> dir + "/ElementManager.xmf")
+            writeToolHeader(out);
+            format(out,"@ElementManager ~S::~S::Manager ~%",Seq{class.path(),toolDescriptorType});
+            format(out,"end;~%");
+            manifest.add("ElementManager/ElementManager")
+          end;
+    
+          @For node in nodes do
+            node.writeHandlers(dir,toolDescriptorType,class,manifest)
+          end;
+         
+          @For edge in edges do
+            edge.writeHandlers(dir,toolDescriptorType,class,manifest)
+          end
+    
+        else throw CancelDeploy()
+        end
+     end
+   end
+   
+context XDiagMaps::XDiagMap
+
+   @Operation writeNotes(out)
+     // If we support notes then allow them as a node type...
+     if allowNotes
+     then
+       format(out,"  @NodeType Note(hasport)
+                       minWidth=30
+                       minHeight=80
+                       @Box box(ALIGN)
+                         fillColor=\"251,243,149\"
+                         @Text note(multiline,ALIGN) \"This is a note.\" 
+                           minHeight = 50
+                           minWidth = 50
+                         end
+                       end
+                       @Menu
+                         @MenuAction Delete self.delete() end
+                       end
+                     end~%")
+     end
+   end
+   
+context XDiagMaps::XDiagMap
+  @Operation writeObservations(dir,manifest)
+  
+    // Write handlers for each of the observed classes...
+    
+    @For observation in observations do
+      observation.writeHandlers(dir,toolDescriptorType,self,manifest)
+    end
+  end
+   
+context XDiagMaps::XDiagMap
+
+   @Operation writeSetNotesLayoutId(out)
+   
+     // If we support notes then all the nodes representing
+     // notes must have their layout ids set to be the text
+     // contained in the node...
+     
+     if allowNotes
+     then
+       format(out,"    @For node in tool.diagram().nodes() do~%");
+       format(out,"      if node.type().name().toString() = \"Note\"~%");
+       format(out,"      then node.setLayoutId(node.ref1(Seq{\"box\",\"note\"}).text())~%");
+       format(out,"      end~%");
+       format(out,"    end;~%")
+     end
+     
+   end
+   
+context XDiagMaps::XDiagMap
+
+   @Operation writeCreateDiagram(dir:String,manifest:OrderedContainer)
+  
+     // Construct a show diagram operation for the root class.
+    
+     @WithOpenFile(out -> dir + "/CreateDiagram.xmf")
+      format(out,"parserImport XOCL;~%~%");
+      format(out,"~%");
+      format(out,"let~%");
+      format(out,"  descriptor = xmf.toolManager().toolDescriptor(~S::~S,\"~S\");~%",Seq{package.path(),class.name(),toolDescriptorType});
+      format(out,"  handler = ~%");
+      format(out,"~%");
+
+       format(out,"  @Operation (element,name)~%");
+       format(out,"    let tool = element.createTool(\"~S\") then~%",Seq{toolDescriptorType});
+       format(out,"        diagram = tool.diagram();~%");
+       format(out,"        flatten = Walkers::Flatten() then~%");
+       format(out,"        dummy = flatten.walk(element,10) then~%");
+       format(out,"        A = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)));~%",Seq{self.attributeEdges()->collect(edge | edge.attribute().owner().path())->asSeq});
+       format(out,"        N = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)));~%",Seq{self.nodeClasses()->collect(class | class.path())->asSeq});
+       format(out,"        E = flatten.results()->select(o | Seq{~{,~;~S~}}->exists(c | o.of().inheritsFrom(c)))~%",Seq{self.edgeClasses()->collect(class | class.path())->asSeq});
+       format(out,"    in @Busy(\"Generating Tool\")~%");
+       format(out,"         @WithoutRendering(diagram)~%");
+      format(out,"           tool.setHandleEvents(false);~%");
+      format(out,"           @For n in N do~%");
+      format(out,"             @Find(c,Seq{~{,~;~S~}}) when n.of() = c do~%",Seq{self.nodeClasses()->collect(class | class.path())->asSeq});
+      format(out,"               let node = (xmf.toolManager().toolDescriptor(~S::~S,\"~S\"))::Editor.nodeType(c.name().toString()).new(10,10,tool)~%",Seq{package.path(),class.name(),toolDescriptorType});
+      format(out,"               in~%");
+      format(out,"                  @CaseObj n of~%");
+      
+      @For node in nodes do
+        node.writeCreateDiagram(out)
+      end;
+      
+      format(out,"                    else null~%");
+      format(out,"                  end;~%");
+      format(out,"                  tool.register(node,n);~%");
+      format(out,"                  tool.register(n,node)~%");
+      format(out,"               end~%");
+      format(out,"             end~%");
+      format(out,"           end;~%");
+      
+      @For edge in self.classEdges() do
+        edge.writeCreateDiagram(out,class,toolDescriptorType)
+      end;
+        
+      @For edge in self.attributeEdges() do
+        edge.writeCreateDiagram(out,class,toolDescriptorType)
+      end;
+      
+      format(out,"           tool.setHandleEvents(true);~%");
+      format(out,"           diagram~%");
+      format(out,"         end~%");
+      format(out,"       end~%");
+      format(out,"    end~%");
+      format(out,"  end~%");
+      format(out,"~%");
+
+      format(out,"then~%");
+      format(out,"  contribution = Clients::DiagramsMapping::DiagramContribution(~%");
+      format(out,"                   \"~S\",~%",Seq{diagramType});
+      format(out,"                   ~S,~%",Seq{class.path()});
+      format(out,"                   handler)~%");
+      format(out,"in~%");
+      format(out,"  descriptor.setDiagramContribution(contribution);~%");
+      format(out,"  xmf.diagramManager().addContribution(contribution)~%");
+      format(out,"end;~%");
+      manifest.add("CreateDiagram")
+    end
+    
+  end
+    
+context XDiagMaps::XDiagMap
+
+   @Operation writeToolDescriptor(dir:String,manifest:OrderedContainer)
+     @WithOpenFile(out -> dir + "/ToolDescriptor.xmf")
+       writeToolHeader(out);
+       format(out,"let toolDescriptor = @ToolDescriptor ~S::~S end;~%",Seq{class.path(),toolDescriptorType});
+       format(out,"    id = \"com.ceteva.xmf.menus\"~%");
+       format(out,"in~%");
+       format(out,"  toolDescriptor.addContribution(id,~%");
+       format(out,"    Clients::ExtensionPoints::Contribution(Basic::ObjectManager,Seq{~%");
+       format(out,"      Seq{~S},~%",Seq{class.path()});
+       format(out,"      Basic::ObjectManager::addInstance,~%");
+       format(out,"      Seq{\"Add Element\",\"~S\"},\"\"~%",Seq{class.name()});
+       format(out,"    }));~%");
+       format(out,"  toolDescriptor.addContribution(id,~%");
+       format(out,"    Clients::ExtensionPoints::Contribution(~S,Seq{~%",Seq{class.path()});
+       format(out,"      Seq{},~%");
+       format(out,"      Object::saveXTO,~%");
+       format(out,"      Seq{\"Save As ...\"},\"\"~%");
+       format(out,"    }));~%");
+       format(out,"  toolDescriptor.updateRegistry()~%");
+       format(out,"end;~%");
+       manifest.add("ToolDescriptor")
+     end
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeToolMenu(out)
+      format(out,"  @Menu~%");
+      format(out,"    @MenuAction Edit~%");
+      format(out,"      tool.element().edit()~%");
+      format(out,"    end~%");
+      format(out,"    @MenuAction Browse~%");
+      format(out,"      tool.element().browse()~%");
+      format(out,"    end~%");
+      format(out,"    @MenuAction Check~%");
+      format(out,"      tool.element().of().classify(tool.element()).edit()~%");
+      format(out,"    end~%");
+      format(out,"    @MenuAction Copy tool.diagram().copyDiagramToClipboard() end~%");
+      format(out,"  end~%") 
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeToolType(dir:String,manifest:OrderedContainer)
+    
+      // A tool type defines a collection of node types and edge types. Each node and
+      // edge type must have an entry in the tool bar for the tool. 
+    
+      @WithOpenFile(out -> dir + "/Type.xmf")
+        writeToolHeader(out);
+        self.writeTypeComment(out);
+        format(out,"@ToolType ~S::~S::~S::Editor~%",Seq{package.path(),class.name(),toolDescriptorType});
+        self.writeClassTypes(out);
+        self.writeNotes(out);
+        self.writeClassEdgeTypes(out);
+        self.writeAttributeEdgeTypes(out);
+        self.writeAnnotateType(out);
+        self.writeToolBar(out);
+        self.writeToolMenu(out);
+        format(out,"end;~%");
+        manifest.add("Type")
+      end
+    
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeToolBar(out)
+      format(out,"    @ToolBar~%");
+      format(out,"      @ToolGroup Nodes~%");
+      
+      if allowNotes
+      then format(out,"      @ToolButton Note icon = \"XCore/Object.gif\" end~%")
+      end;
+      
+      @For class in self.nodeClasses() do
+        format(out,"        @ToolButton ~S icon = \"XCore/Object.gif\" end~%",Seq{class.name()})
+      end;
+      format(out,"      end~%");
+      format(out,"      @ToolGroup Edges~%");
+      
+      if allowNotes
+      then format(out,"        @ToolButton Annotate isEdge icon = \"Tools/CurlEdge.gif\" end~%")
+      end;
+      
+      @For edge in self.attributeEdges() do
+        format(out,"        @ToolButton ~S isEdge icon = \"Tools/CurlEdge.gif\" end~%",Seq{edge.name()})
+      end;
+      @For class in self.edgeClasses() do
+        format(out,"        @ToolButton ~S isEdge icon = \"Tools/CurlEdge.gif\" end~%",Seq{class.name()})
+      end;
+      format(out,"     end~%");
+      format(out,"   end~%")
+    end
+    
+context XDiagMaps::XDiagMap
+
+    @Operation writeTypeComment(out)
+      format(out,"// *** Guide to main diagram type elements ***~%");
+      format(out,"// -------------------------------------------~%");
+      format(out,"//~%");
+      format(out,"// @NodeType Name(hasport)~%");
+      format(out,"//   displays~%");
+      format(out,"//   menu~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"// @Box Name([VERTICAL|HORIZONTAL|OVERLAY],[ALIGN|LEFT|RIGHT|CENTRE],[nofill],[hideTop|hideBottom|hideLeft|hideRight]*)~%");
+      format(out,"//   [minHeight=N]~%");
+      format(out,"//   [minWidth=N]~%");
+      format(out,"//   [fillColor=\"r,g,b\"]~%");
+      format(out,"//   displays~%");
+      format(out,"//   menu~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"// @Text Name([ALIGN|LEFT|RIGHT|CENTRE],[underlne],[italics],[hasport],[readonly])~%");
+      format(out,"//   text~%");
+      format(out,"//   [padLeft=N]~%");
+      format(out,"//   [padRight=N]~%");
+      format(out,"//   [padTop=N]~%");
+      format(out,"//   [padBottom=N]~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"//  @Ellipse Name([ALIGN|LEFT|RIGHT|CENTRE],[noOutline],[nofill],[hasport])~%");
+      format(out,"//   [width=N]~%");
+      format(out,"//   [height=N]~%");
+      format(out,"//   [fillColor=\"r,g,b\"]~%");
+      format(out,"//   [padLeft=N]~%");
+      format(out,"//   [padRight=N]~%");
+      format(out,"//   [padTop=N]~%");
+      format(out,"//   [padBottom=N]~%");
+      format(out,"//  end~%");
+      format(out,"//~%");  
+      format(out,"// @Star Name~%");
+      format(out,"//   displays~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"// @Image Name([ALIGN|LEFT|RIGHT|CENTRE],[hasport])~%");
+      format(out,"//   file~%");
+      format(out,"//   [width=N]~%");
+      format(out,"//   [height=N]~%");
+      format(out,"//   [minHeight=N]~%");
+      format(out,"//   [minWidth=N]~%");
+      format(out,"//   [padLeft=N]~%");
+      format(out,"//   [padRight=N]~%");
+      format(out,"//   [padTop=N]~%");
+      format(out,"//   [padBottom=N]~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"// @EdgeType Name SourceName -> TargetName~%");
+      format(out,"//   [sourceHead = noArrow|arrow|blackDiamond|whiteDiamond|blackArrow|whiteArrow]~%");
+      format(out,"//   [targetHead = noArrow|arrow|blackDiamond|whiteDiamond|blackArrow|whiteArrow]~%");
+      format(out,"//   [lineStyle= solidLine|dashLine|dottedLine|dashDottedLine|dashDotDotLine]~%");
+      format(out,"//   labels~%");
+      format(out,"//   menu~%");
+      format(out,"// end~%");
+      format(out,"//~%");
+      format(out,"// @Label Name(end|start|middle,x,y,[readOnly],[underline],[multiline])~%");
+      format(out,"//   label~%");
+      format(out,"//   [truncate=N]~%");
+      format(out,"// end~%");
+      format(out,"//~%~%")
+    
+    end

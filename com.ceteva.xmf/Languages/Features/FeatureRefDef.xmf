@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Features;
+import XOCL;
+import OCL;
+
+context Features
+  @Class FeatureRefDef extends Sugar
+  
+    @Attribute path : Performable end
+    
+    @Constructor(path)
+    end
+    
+    @Operation desugar()
+      [| Features::FeatureRef(<path>) |]
+    end
+  
+  end

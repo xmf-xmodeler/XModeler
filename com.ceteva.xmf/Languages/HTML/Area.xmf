@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:35 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Area extends Root::HTML::HTMLElement
+
+    @Attribute tabBorder : Root::XCore::Integer (?,!) end
+    @Attribute tabIndex : Root::XCore::Integer (?,!) end
+    @Attribute target : Root::XCore::String (?,!) end
+    @Attribute shape : Root::XCore::String (?,!) end
+    @Attribute onFocus : Root::XCore::String (?,!) end
+    @Attribute noTab : Root::XCore::Boolean (?,!) end
+    @Attribute noHref : Root::XCore::Boolean (?,!) end
+    @Attribute onBlur : Root::XCore::String (?,!) end
+    @Attribute href : Root::XCore::String (?,!) end
+    @Attribute coords : Root::XCore::String (?,!) end
+    @Attribute alt : Root::XCore::String (?,!) end
+    @Attribute accessKey : Root::XCore::String (?,!) end
+
+    @Operation atomic():Boolean
+      true
+    end
+
+  end

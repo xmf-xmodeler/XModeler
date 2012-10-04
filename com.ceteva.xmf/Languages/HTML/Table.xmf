@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:32 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Table extends Root::HTML::HTMLElement
+
+    @Attribute width : Root::XCore::Integer (?,!) end
+    @Attribute vspace : Root::XCore::Integer (?,!) end
+    @Attribute summary : Root::XCore::String (?,!) end
+    @Attribute rules : Root::XCore::String (?,!) end
+    @Attribute noWrap : Root::XCore::Boolean (?,!) end
+    @Attribute hspace : Root::XCore::Integer (?,!) end
+    @Attribute height : Root::XCore::Integer (?,!) end
+    @Attribute cols : Root::XCore::Integer (?,!) end
+    @Attribute cellSpacing : Root::XCore::Integer (?,!) end
+    @Attribute cellPadding : Root::XCore::Integer (?,!) end
+    @Attribute frame : Root::XCore::String (?,!) end
+    @Attribute borderColorLight : Root::XCore::String (?,!) end
+    @Attribute borderColorDark : Root::XCore::String (?,!) end
+    @Attribute bordercolor : Root::XCore::String (?,!) end
+    @Attribute border : Root::XCore::Integer (?,!) end
+    @Attribute bgcolor : Root::XCore::String (?,!) end
+    @Attribute background : Root::XCore::String (?,!) end
+    @Attribute align : Root::XCore::String (?,!) end
+
+    @Constructor(align,background,bgcolor,border,bordercolor,borderColorDark,borderColorLight,frame,cellPadding,cellSpacing,cols,height,hspace,noWrap,rules,summary,vspace,width,contents) ! end
+
+  end

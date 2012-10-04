@@ -1,0 +1,9 @@
+parserImport XOCL;
+import Frames;
+
+// define support classes within the context of package Frames
+context Frames
+
+		// the following classes are for test purposes only
+		@Class TestHarness         end
+

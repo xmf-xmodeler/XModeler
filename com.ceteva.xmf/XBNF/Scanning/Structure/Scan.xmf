@@ -1,0 +1,107 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning;
+import Structure;
+import Automata;
+import Actions;
+import IO; 
+
+context Scanner
+
+  @Operation scan(input:InputChannel)
+  
+    self.scan(input,scanningTable,actionTable,parent)
+    
+  end
+  
+context Scanner
+  
+  @Operation scan(input:InputChannel,scanningTable:Vector,actionTable:Vector,parent:Scanner)
+    
+      // Scan the supplied input channel and return the next token.
+      // The scanner records the last final state reached (a Token
+      // entry in the action table) since we want to return the longest
+      // token that is countered. Scan until we reach an error
+      // state (state 0) and then backtrack to the last good state.
+      
+    @WithoutSourcePos
+      let lastFinal = 0;
+          lastTokenSize = 0;
+          inputPositionAtLastFinal = 0;
+          char = 0;
+          Token = Token;
+          Ignore = Ignore;
+          Error = Error;
+          Do = Do;
+          tokenHandledByDo = false
+      in token.setSize(0);
+         self.resetStates();
+         self.type := (0-1); // Initially we do not have one...
+         @While not self.allStatesTerminal() and (self.charIndex < buffer->size orelse not input.eof()) and not tokenHandledByDo do
+           char := self.read(input);
+           self.updateStates(char);
+           let action = self.mostSpecificAction() 
+           in @CaseObj action of
+                Token[ ] do 
+                  // We have recognized a token. This may not be
+                  // the longest token we can recognize in this
+                  // scanning request, therefore register it as
+                  // the last final state and backtrack to it if
+                  // the next state is an error state.
+                  lastFinal := self.mostSpecificState();
+                  self.type := action.index();
+                  self.token.add(char);
+                  lastTokenSize := token->size;
+                  inputPositionAtLastFinal := charIndex 
+                end
+                Ignore[ ] do
+                  // Ignore any chars read to date and reset.
+                  self.resetStates();
+                  lastFinal := 0;
+                  lastTokenSize := 0;
+                  inputPositionAtLastFinal := 0
+                end
+                Error[ ] do
+                  // Something went wrong and we cannot recover.
+                  self.error("Error in scanning: " + token)
+                end
+                Do[name] do
+                  // Do an action defined by the scanner. This
+                  // may produce a final state or may just consume
+                  // input. Return true if a final state was reached.
+                  tokenHandledByDo := self.send(name,Seq{action,input});
+                  if not tokenHandledByDo 
+                  then
+                    self.resetStates();
+                    lastFinal := 0;
+                    lastTokenSize := 0;
+                    inputPositionAtLastFinal := 0
+                  end
+                end
+                else self.token.add(char)
+              end
+           end
+         end;
+         if tokenHandledByDo
+         then
+           scanResult->head := token;
+           scanResult->tail->head := type;
+           scanResult
+         elseif lastFinal <> 0
+         then 
+           self.charIndex := inputPositionAtLastFinal;
+           token.setSize(lastTokenSize);
+           scanResult->head := token;
+           scanResult->tail->head := type;
+           scanResult
+         elseif self.eof(input)
+         then 
+           scanResult->head := token;
+           scanResult->tail->head := 0; // EOF
+           scanResult
+         else self.error("Scanner")
+         end
+       end
+     end
+   end

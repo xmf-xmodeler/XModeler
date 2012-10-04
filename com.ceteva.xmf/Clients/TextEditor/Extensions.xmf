@@ -1,0 +1,29 @@
+context Root
+  @Operation showWelcomePage()
+    let textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient)
+    in
+      textEditorClient.showWelcomePage()
+    end   
+  end
+  
+context IO::File
+  @Operation editText()
+    xmf.fileEditorManager().edit(self,true)
+  end
+  
+context IO::File
+  @Operation doubleClick()
+    self.editText()
+  end
+  
+context XMF
+  @Operation loadXip(url:String)
+    let success = Clients::TextEditor::HTMLViewer::loadXip(url)
+    in
+      if success = false
+      then
+        xmf.warning("Could not find file '" + url + "'")
+      end;
+      success
+    end
+  end

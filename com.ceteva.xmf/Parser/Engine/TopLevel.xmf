@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import TopLevel;
+import Exceptions;
+
+context Loop
+
+  @Operation read(state)
+  
+    // Read a command by parsing using the OCL grammar...
+    // Throws an exception if a parse error occurs.
+    
+    try 
+      let e =  Parser::BNF::Engine()
+      in let result = e.parse(null,O,Seq{Parser::BNF::Call("TopLevelCommand")},Parser::Tokenizer(stdin),Seq{XCore,Root})
+         in if e.parseError()
+            then e.expected()
+            else result
+            end
+         end
+       end
+    catch(x)
+      @TypeCase(x)
+        Parser::ParseError do
+          Root::xx := x;
+          x.pprint().edit();
+          null
+        end
+        else throw x
+      end
+    end
+    
+  end

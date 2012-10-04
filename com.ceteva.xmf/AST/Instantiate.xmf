@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Instantiate in AST(aInstantiate,arg,seen)
+  let args = aInstantiate.args->collect(x | self.dispatch(x,arg));
+      class = self.dispatch(aInstantiate.class,arg)
+  in ASTNode(aInstantiate,Seq{class} + args)
+  end
+end;

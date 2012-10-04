@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Projects
+  @File Projects end
+  @File Project end
+  @File ProjectStub end
+  @File ProjectManager end
+  @File ProjectManagerContainer end
+  @File XMF end
+do
+  Project(Projects,dir,self)
+end;

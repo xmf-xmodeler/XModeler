@@ -1,0 +1,32 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler SlotUpdate in Eval(aSlotUpdate,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aSlotUpdate.target,
+      @Operation(next,result,call,return)
+        self.eval(aSlotUpdate.target,env,target,imports,next,result,call,return,
+          @Operation(object)
+            if object.isReallyKindOf(XCore::Object)
+            then 
+              next(aSlotUpdate.value,
+                @Operation(next,result,call,return)
+                  self.eval(aSlotUpdate.value,env,target,imports,next,result,call,return,
+                    @Operation(value)
+                      object.set(aSlotUpdate.name,value);
+                      result(aSlotUpdate,object,cont)
+                    end)
+                end)
+            else self.error(object.toString() + " is not an object.")
+            end
+          end)
+      end)
+  end
+end;

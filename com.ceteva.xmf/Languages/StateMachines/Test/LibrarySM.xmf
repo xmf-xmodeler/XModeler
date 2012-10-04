@@ -1,0 +1,26 @@
+parserImport XOCL;
+parserImport Languages::StateMachines;
+
+import Library;
+ 
+Root::SM :=  
+   
+  @StateMachine(OnShelf) 
+    
+    @State OnShelf  
+      SM.messages.println();
+      @Send SM Borrow(1) end;
+      SM.messages.println()
+    end
+      
+    @State OnLoan
+      "OnLoanState".println();
+      true
+    end
+    
+    @Transition Borrow(x : Integer) (OnShelf,OnLoan)
+      when true do
+        (args) self.returnDate := args->at(1)
+    end
+  
+  end; 

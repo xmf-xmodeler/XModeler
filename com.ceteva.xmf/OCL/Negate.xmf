@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Negate extends OCL::OCL
+  
+    @Attribute exp : OCL::OCL end
+    
+    @Constructor(exp) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"not ~S",Seq{exp.pprint(indent)})
+    end
+    
+  end

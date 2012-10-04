@@ -1,0 +1,22 @@
+import OCL;
+import Instrs;
+
+context StrExp
+  @Operation FV():Element
+    Set{}
+  end
+
+context StrExp
+  @Operation maxLocals():Element
+    0
+  end
+
+context StrExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    Seq{PushString(value)}
+  end
+  
+context StrExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{StrExp(value)})
+  end

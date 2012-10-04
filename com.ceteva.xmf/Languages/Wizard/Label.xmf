@@ -1,0 +1,27 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Label extends Layout
+  
+    @Attribute id : String end
+    @Attribute text : String end
+    @Attribute iconFilePath : String end
+    @Attribute iconAlignment : String end
+    
+    @Constructor(id,text,iconFilePath,iconAlignment,x,y,width,height) end
+    
+    @ToXML(LABEL)[Id=id,Text=text,X_Position = x,Y_Position = y,X_Size = width,Y_Size = height] end  
+     
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end 
+    
+  end

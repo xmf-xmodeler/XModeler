@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.0"?>
+<plugin>
+
+     <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="Diagram editor"
+            default="true"
+            icon="icons/Diagram.gif"
+            contributorClass="com.ceteva.diagram.action.WorkbenchContribution"
+            class="com.ceteva.diagram.Diagram"
+            id="com.ceteva.diagram.Diagram">
+      </editor>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="Diagram Editor"
+            class="com.ceteva.diagram.preferences.DiagramPreferencePage"
+            id="com.ceteva.diagram.preferences.diagramPreferences">
+      </page>
+   </extension>
+
+   <extension
+         point="org.eclipse.ui.startup">
+         <startup class="com.ceteva.diagram.DiagramStartup"/>
+   </extension> 
+   
+   <!-- <extension point="org.eclipse.ui.views">
+     <category
+       id="org.eclipse.gef"
+       name="GEF Debug views">
+     </category>
+     <view
+       id="GEF Debug console"
+       name="GEF Trace Console"
+       category="org.eclipse.gef"
+       class="org.eclipse.gef.ui.console.DebugGEF"
+       icon="icons/debugGEF.gif">
+     </view>
+   </extension> -->
+
+</plugin>

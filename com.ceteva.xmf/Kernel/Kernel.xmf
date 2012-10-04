@@ -1,0 +1,1093 @@
+/* This is the Kernel Bootstrap file. It defines the essential classes 
+   and operations necessary to construct the rest of the Kernel. It is
+   responsible for defining the key classes and packages and communicating
+   them to the VM. When XMF boots this file is loaded onto a raw VM. The
+   raw VM does not have any definitions pre-loaded into it, but does expect
+   to be supplied with a small number of key definitions via Kernel_setTypes.
+   Since nothing exists when this file is loaded, most of the definitions
+   are performed using the Kernel_ operations that provide raw access to the
+   underlying VM. This file is very sensitive to change in the sense that
+   many language constructs cannot be used because the components that
+   the language constructs depend on are not defined. If possible do not
+   add features to this file. Add operations to classes defined in this
+   file in the appropriate Kernel file for that class. If possible do
+   not add new classes to this file, add a new class definition to the
+   Kernel directory. Note that you cannot load this file twice (unlike most
+   other files in the XMF system). */  
+
+parserImport XOCL;  
+   
+let 
+    // Create the Kernel classes. 
+ 
+    Attribute             = Kernel_mkObj();
+    BehaviouralFeature    = Kernel_mkObj();
+    Bind                  = Kernel_mkObj();
+    Boolean               = Kernel_mkObj();
+    Buffer                = Kernel_mkObj();
+    Class                 = Kernel_mkObj();
+    Classifier            = Kernel_mkObj();
+    CodeBox               = Kernel_mkObj();
+    CompiledOperation     = Kernel_mkObj();
+    Constraint            = Kernel_mkObj();
+    Constructor           = Kernel_mkObj();
+    Contained             = Kernel_mkObj();
+    Container             = Kernel_mkObj(); 
+    DataType              = Kernel_mkObj();
+    Daemon                = Kernel_mkObj();
+    Doc                   = Kernel_mkObj();
+    DocumentedElement     = Kernel_mkObj();
+    Element               = Kernel_mkObj();
+    Exception             = Kernel_mkObj();
+    Float                 = Kernel_mkObj();
+    ForeignOperation      = Kernel_mkObj();
+    ForeignObject         = Kernel_mkObj();
+    ForwardRef            = Kernel_mkObj();
+    IndexedContainer      = Kernel_mkObj();
+    Integer               = Kernel_mkObj();
+    MachineException      = Kernel_mkObj();
+    NamedElement          = Kernel_mkObj();
+    NameSpace             = Kernel_mkObj();
+    Null                  = Kernel_mkObj();
+    Object                = Kernel_mkObj();
+    Op                    = Kernel_mkObj();
+    Package               = Kernel_mkObj();
+    Parameter             = Kernel_mkObj();
+    Performable           = Kernel_mkObj();
+    Resource              = Kernel_mkObj();
+    CollDataType          = Kernel_mkObj();
+    SeqDataType           = Kernel_mkObj();
+    SetDataType           = Kernel_mkObj();
+    CollType              = Kernel_mkObj();
+    SeqType               = Kernel_mkObj();
+    SetType               = Kernel_mkObj();
+    String                = Kernel_mkObj();
+    StructuralFeature     = Kernel_mkObj();
+    Symbol                = Kernel_mkObj();
+    Table                 = Kernel_mkObj();  
+    Thread                = Kernel_mkObj();  
+    TypedElement          = Kernel_mkObj();     
+    Vector                = Kernel_mkObj();     
+
+    // Packages and namespaces:
+   
+    XCore                  = Kernel_mkObj();
+    Root                  = Kernel_mkObj();
+    
+    // Collection type constructor: 
+     
+    mkCollType = @Operation(collType,parents,default)
+      @Operation(elementType)
+        let type = Kernel_mkObj()
+        in Kernel_setOf(type,collType); 
+           Kernel_addAtt(type,"name",Kernel_mkSymbol(collType.name + "(" + elementType.name + ")"));
+           Kernel_addAtt(type,"parents",parents);
+           Kernel_addAtt(type,"operations",Set{});
+           Kernel_addAtt(type,"elementType",elementType);
+           Kernel_addAtt(type,"constraints",Set{});
+           Kernel_addAtt(type,"default",default);
+           Kernel_addAtt(type,"documentation",null);
+           Kernel_addAtt(type,"owner",type);
+           Kernel_addAtt(type,"contents",Kernel_mkTable(100));
+           Kernel_addAtt(type,"bindings",Set{});
+           Kernel_addAtt(type,"imports",Seq{});
+           Kernel_addAtt(type,"grammar",null);
+           type
+         end
+      end
+    end 
+
+  in
+    let
+
+      // A standard class creation operation:
+
+      mkClass = @Operation(
+                  class,          // The class object to be updated.
+                  parents,        // A set of parent classes.
+                  isAbstract,     // A boolean determines whether we can have instances.
+                  attributes,     // A set of attributes for the class.
+                  name,           // A string naming the class.
+                  operations,     // A set of operations for instances of the class.
+                  constraints,    // A set of constraints that classify instances of the class.
+                  default,        // The default value for the class.
+                  owner)          // The owner of the class (null, itself or a name space).
+         Kernel_setOf(class,Class);
+         Kernel_addAtt(class,"parents",parents);
+         Kernel_addAtt(class,"isAbstract",isAbstract);
+         Kernel_addAtt(class,"attributes",attributes);
+         Kernel_addAtt(class,"name",Kernel_mkSymbol(name));
+         Kernel_addAtt(class,"operations",operations);
+         Kernel_addAtt(class,"constraints",constraints);
+         Kernel_addAtt(class,"default",default);
+         Kernel_addAtt(class,"documentation",null);
+         Kernel_addAtt(class,"owner",owner);
+         Kernel_addAtt(class,"contents",Kernel_mkTable(100));
+         Kernel_addAtt(class,"bindings",Set{});
+         Kernel_addAtt(class,"constructors",Seq{});
+         Kernel_addAtt(class,"imports",Seq{});
+         class
+      end;
+      
+      mkDataType = @Operation(dataType,parents,name,operations,constraints,default,owner)
+        Kernel_setOf(dataType,DataType);
+        Kernel_addAtt(dataType,"parents",parents);
+        Kernel_addAtt(dataType,"name",Kernel_mkSymbol(name));
+        Kernel_addAtt(dataType,"operations",operations);
+        Kernel_addAtt(dataType,"constraints",constraints);
+        Kernel_addAtt(dataType,"default",default);
+        Kernel_addAtt(dataType,"documentation",null);
+        Kernel_addAtt(dataType,"owner",owner);
+        Kernel_addAtt(dataType,"contents",Kernel_mkTable(100));
+        Kernel_addAtt(dataType,"bindings",Set{});
+        Kernel_addAtt(dataType,"imports",Seq{});
+        dataType
+      end;
+      
+      // Collection type constructors:
+      
+      mkSetType = mkCollType(SetDataType,Set{SetType},Set{});
+      mkSeqType = mkCollType(SeqDataType,Set{SeqType},Seq{});
+
+      // A standard attribute creation operation:
+
+      mkAtt = @Operation(name,type,owner,isComposite)
+         let att = Kernel_mkObj()
+         in Kernel_setOf(att,Attribute);
+            Kernel_addAtt(att,"name",Kernel_mkSymbol(name));
+            Kernel_addAtt(att,"type",type);
+            Kernel_addAtt(att,"owner",owner);
+            Kernel_addAtt(att,"documentation",null);
+            Kernel_addAtt(att,"init",null);
+            Kernel_addAtt(att,"isComposite",false);
+            Kernel_addAtt(att,"mult",null);
+            att
+         end
+      end;
+      
+      // Operations:
+      
+      Classifier_add =
+        @Operation add(namedElement:NamedElement)
+          if namedElement.isKindOf(Op)
+          then 
+            self.addOperation(namedElement); 
+            super(namedElement)
+          else 
+            namedElement.setOwner(self); 
+            super(namedElement)
+          end
+        end;
+  
+      Classifier_inheritsFrom =
+       @Operation inheritsFrom(c:Classifier):Boolean
+         if self = c
+         then true
+         else self.parents->exists(parent | parent.inheritsFrom(c))
+         end
+        end;
+      
+      Classifier_addOperation =
+        @Operation addOperation(op)
+          if self.hasOperation(op.name,op.arity)
+          then self.removeOperation(self.getOperation(op.name,op.arity))
+          else self
+          end;
+          self.operations := self.operations.including(op);
+          op.setOwner(self);
+          resetOperatorTable();
+          self
+        end;
+        
+      Classifier_default =
+        @Operation default()
+          default
+        end;
+        
+      Classifier_getOperation = 
+        @Operation getOperation(name,arity)
+          self.operations.select(@Operation(op) op.name = name and op.arity = arity end)->sel
+        end;
+        
+      Classifier_hasOperation =
+        @Operation hasOperation(name,arity)
+          operations->exists(op | op.name = name and op.arity = arity)
+        end;
+        
+      Classifier_removeOperation =
+        @Operation removeOperation(op)
+          op.owner := null;
+          self.operations := operations->excluding(op)
+        end;
+        
+      Contained_setOwner =
+        @Operation setOwner(container:Element)
+          self.owner := container
+        end;
+        
+      Contained_removeFromOwner =
+        @Operation removeFromOwner()
+          self.setOwner(null)
+        end;
+        
+      Container_add =
+        @Operation add(element:Element):Container
+          self.contents.put(element,element);
+          element.addTo(self)
+        end;
+        
+      Container_remove =
+        @Operation remove(element:Element):Container
+          element.removeFromOwner();
+          contents.remove(element);
+          self
+        end;
+        
+      Element_addTo =
+        @Operation addTo(container)
+          container
+        end;
+          
+      Element_isKindOf =
+        @Operation isKindOf(c:Classifier):Boolean
+          if self = null
+          then true
+          else self.of().inheritsFrom(c)
+          end
+        end;
+        
+      Element_init =
+        @Operation init():Element
+          self
+        end;
+ 
+      Element_of =
+        @Operation of():Classifier
+          self.of()
+        end;
+         
+      Integer_to =
+        @Operation to(n:Integer):Seq(Integer)
+          if self > n
+          then Seq{}
+          elseif self = n
+          then Seq{self}
+          else Seq{self | (self + 1).to(n)}
+          end
+        end;
+        
+      NameSpace_add = 
+        @Operation add(element)
+          if element.isKindOf(NamedElement)
+          then 
+             Kernel_objSetSaveAsLookup(element,true);
+             self.contents.put(element.name,element)
+          else super(element)
+          end
+        end;
+        
+      NameSpace_define =
+        @Operation define(element,nameSpace,isForward)
+          nameSpace.add(element);
+          element.init()
+        end;
+        
+      NameSpace_getElement =
+        @Operation getElement(name:String):Contained
+          name := if not name.isKindOf(Symbol) then Kernel_mkSymbol(name) else name end;
+          if self.hasElement(name)
+          then self.contents.get(name)
+          else self.error("no element " + self.name + "::" + name + " in " + contents.toString())
+          end
+        end;
+
+      NameSpace_hasElement =
+        @Operation hasElement(name:String):Boolean
+          contents.hasKey(if not name.isKindOf(Symbol) then Kernel_mkSymbol(name) else name end)
+        end;
+        
+      SeqOfElement_collect =
+        @Operation collect(filter):Seq(Element)
+          if self = Seq{}
+          then self
+          else Seq{filter(self->head) | self->tail.collect(filter)}
+          end
+        end; 
+
+      SeqOfElement_drop =
+        @Operation drop(n:Integer):Seq(Element)
+          if n = 0 or self = Seq{}
+          then self
+          else self->tail->drop(n-1)
+          end
+        end;
+
+      SeqOfElement_excluding =
+        @Operation excluding(element)
+          if self = Seq{}
+          then Seq{}
+          else if self->head = element
+               then self->tail
+               else Seq{self->head | self->tail->excluding(element)}
+               end
+          end
+        end;
+        
+      SeqOfElement_reject =
+        @Operation reject(pred):Seq(Element)
+          if self = Seq{}
+          then self
+          else if pred(self->head)
+               then self->tail->reject(pred)
+               else Seq{self->head | self->tail->reject(pred)}
+               end
+          end
+        end;
+
+      SeqOfElement_size =
+        @Operation size():Integer
+          if self = Seq{}
+          then 0
+          else self->drop(1)->size + 1
+          end
+        end;
+
+      SetOfElement_collect =
+        @Operation collect(filter):Set(Element)
+          Kernel_asSet(Kernel_asSeq(self)->collect(filter))
+        end;
+
+      SetOfElement_excluding =
+        @Operation excluding(element):Set(Element)
+          Kernel_asSet(Kernel_asSeq(self)->excluding(element))
+        end;
+
+      SetOfElement_exists =
+        @Operation exists(pred):Boolean
+          if self->size = 0
+          then false
+          else let element = self->sel
+               in if pred(element)
+                  then true
+                  else self->excluding(element)->exists(pred)
+                  end
+               end
+          end
+        end;
+        
+      SetOfElement_including =
+        @Operation including(element):Set(Element)
+          Kernel_asSet(Seq{element | Kernel_asSeq(self)})
+        end;
+        
+      SetOfElement_reject =
+        @Operation reject(pred):Set(Element)
+          Kernel_asSet(Kernel_asSeq(self)->reject(pred))
+        end;
+
+      SetOfElement_sel =
+       @Operation sel():Element
+         if self->size = 0
+         then self.error("Cannot select an element from an empty set.")
+         else Kernel_asSeq(self)->head
+         end
+       end;
+       
+      SetOfElement_select =
+       @Operation select(predicate):Set(Element)
+         if self->size = 0
+         then self
+         else 
+           let element = self->sel
+           in if predicate(element)
+              then self->excluding(element).select(predicate)->including(element)
+              else self->excluding(element).select(predicate)
+              end
+           end
+         end
+       end;
+       
+     SetOfElement_size =
+       @Operation size():Integer
+         Kernel_asSeq(self)->size
+       end;
+       
+     Table_get =
+       @Operation get(key:Element):Element
+         Kernel_tableGet(self,key)
+       end;
+  
+     Table_hasKey = 
+       @Operation hasKey(key:Element):Boolean
+         Kernel_tableHasKey(self,key)
+       end; 
+  
+     Table_put =
+       @Operation put(key:Element,value:Element)
+         Kernel_tablePut(self,key,value)
+       end;
+       
+     Table_remove =
+       @Operation remove(key:Element)
+         Kernel_tableRemove(self,key)
+       end
+  
+  in 
+     // The following names are predefined in order to allow forward
+     // references to class names when creating collection types.
+     
+     Kernel_addAtt(Attribute,"name",Kernel_mkSymbol("Attribute"));
+     Kernel_addAtt(Class,"name",Kernel_mkSymbol("Class"));
+     Kernel_addAtt(Classifier,"name",Kernel_mkSymbol("Classifier"));
+     Kernel_addAtt(Constructor,"name",Kernel_mkSymbol("Constructor"));
+     Kernel_addAtt(Constraint,"name",Kernel_mkSymbol("Constraint"));
+     Kernel_addAtt(Element,"name",Kernel_mkSymbol("Element"));
+     Kernel_addAtt(NameSpace,"name",Kernel_mkSymbol("NameSpace"));
+     Kernel_addAtt(Op,"name",Kernel_mkSymbol("Operation"));
+     Kernel_addAtt(Package,"name",Kernel_mkSymbol("Package"));
+     Kernel_addAtt(Parameter,"name",Kernel_mkSymbol("Parameter"));
+     Kernel_addAtt(SetDataType,"name",Kernel_mkSymbol("Set"));
+     Kernel_addAtt(SeqDataType,"name",Kernel_mkSymbol("Seq")); 
+     Kernel_addAtt(String,"name",Kernel_mkSymbol("String"));
+     
+     mkClass(Attribute,
+             Set{StructuralFeature,DocumentedElement},
+             false,
+             Set{mkAtt("init",Op,Attribute,false),
+                 mkAtt("isComposite",Boolean,Attribute,false),
+                 mkAtt("mult",Element,Attribute,false)
+             },
+             "Attribute",
+             Set{},
+             Set{},
+             null,
+             XCore); 
+     
+     mkClass(BehaviouralFeature,
+             Set{TypedElement,DocumentedElement},
+             true,
+             Set{},
+             "BehaviouralFeature",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Bind,
+             Set{NamedElement},
+             false,
+             Set{mkAtt("value",Element,Bind,true)},
+             "Bind",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkDataType(Boolean,Set{Element},"Boolean",Set{},Set{},false,XCore);
+     
+     mkClass(Buffer,
+             Set{Element},
+             false,
+             Set{},
+             "Buffer",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Class,
+             Set{Classifier},
+             false,
+             Set{mkAtt("attributes",mkSetType(Attribute),Class,true),
+                 mkAtt("isAbstract",Boolean,Class,false),
+                 mkAtt("constructors",mkSeqType(Constructor),Class,true)},
+             "Class",
+             Set{},
+             Set{},
+             null,
+             XCore); 
+     
+     mkClass(Classifier,
+             Set{NameSpace},
+             false,
+             Set{mkAtt("parents",mkSetType(Classifier),Classifier,false),
+                 mkAtt("operations",mkSetType(Op),Classifier,true),
+                 mkAtt("constraints",mkSetType(Constraint),Classifier,true),
+                 mkAtt("default",Element,Classifier,false)},
+             "Classifier",
+             Set{Classifier_add,
+                 Classifier_addOperation,
+                 Classifier_default,
+                 Classifier_getOperation,
+                 Classifier_hasOperation,
+                 Classifier_inheritsFrom,
+                 Classifier_removeOperation},
+             Set{},
+             null,
+             XCore);
+            
+     mkClass(CodeBox,
+             Set{Element},
+             false,
+             Set{},
+             "CodeBox",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(CollDataType,
+             Set{DataType},
+             false,
+             Set{mkAtt("elementType",Classifier,SetDataType,false)},
+             "Collection",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     Kernel_setOf(CollType,CollDataType);
+     Kernel_addAtt(CollType,"name",Kernel_mkSymbol("Collection(Element)"));
+     Kernel_addAtt(CollType,"parents",Set{Element});
+     Kernel_addAtt(CollType,"elementType",Element);
+     Kernel_addAtt(CollType,"operations",Set{});
+     Kernel_addAtt(CollType,"constraints",Set{});
+     Kernel_addAtt(CollType,"default",Set{});
+     Kernel_addAtt(CollType,"documentation",null);
+     Kernel_addAtt(CollType,"owner",XCore);
+     Kernel_addAtt(CollType,"contents",Kernel_mkTable(100));
+     Kernel_addAtt(CollType,"bindings",Set{});  
+     Kernel_addAtt(CollType,"grammar",null);  
+     Kernel_addAtt(CollType,"imports",Seq{});
+     
+     mkClass(CompiledOperation,
+             Set{Op},
+             false,
+             Set{mkAtt("arity",Integer,CompiledOperation,false),
+                 mkAtt("codeBox",Element,CompiledOperation,false),
+                 mkAtt("dynamics",mkSeqType(Element),CompiledOperation,false),
+                 mkAtt("globals",Element,CompiledOperation,false),
+                 mkAtt("isVarArgs",Boolean,CompiledOperation,false),
+                 mkAtt("properties",mkSeqType(Element),CompiledOperation,false),
+                 mkAtt("target",Element,CompiledOperation,false),
+                 mkAtt("sig",mkSeqType(Element),CompiledOperation,false),
+                 mkAtt("supers",mkSeqType(Element),CompiledOperation,false),
+                 mkAtt("traced",Element,CompiledOperation,false)},
+             "CompiledOperation",
+             Set{},
+             Set{},
+             null,
+             XCore);
+              
+     mkClass(Constraint,
+             Set{NamedElement},
+             false,
+             Set{mkAtt("body",Op,Constraint,false),
+                 mkAtt("success",Op,Constraint,false),
+                 mkAtt("fail",Op,Constraint,false)
+                },
+             "Constraint",
+             Set{},
+             Set{},
+             null,
+             XCore);
+     
+     mkClass(Constructor,
+             Set{DocumentedElement,Contained},
+             false,
+             Set{mkAtt("names",mkSeqType(String),Constructor,false),
+                 mkAtt("source",String,Constructor,false),
+                 mkAtt("body",Element,Constructor,false)},
+             "Constructor",
+             Set{},
+             Set{},
+             null,
+             XCore);
+     
+     mkClass(Contained,
+             Set{Object},
+             true,
+             Set{mkAtt("owner",Element,Contained,false)},
+             "Contained",
+             Set{Contained_setOwner,Contained_removeFromOwner},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Container,
+             Set{Object},
+             true,
+             Set{},
+             "Container",
+             Set{},
+             Set{},
+             null,
+             XCore);
+     
+     mkClass(DataType,
+             Set{Classifier},
+             true,
+             Set{},
+             "DataType",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Daemon,
+             Set{Object},
+             false,
+             Set{mkAtt("id",Element,Daemon,false),
+                 mkAtt("type",Integer,Daemon,false),
+                 mkAtt("slot",Symbol,Daemon,false),
+                 mkAtt("action",Op,Daemon,false),
+                 mkAtt("persistent",Boolean,Daemon,false),
+                 mkAtt("traced",Boolean,Daemon,false),
+                 mkAtt("target",Element,Daemon,false)},
+             "Daemon",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Doc,
+             Set{Contained},
+             false,
+             Set{mkAtt("doc",String,Doc,false)},
+             "Doc",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(DocumentedElement,
+             Set{Object},
+             false,
+             Set{mkAtt("documentation",Doc,DocumentedElement,false)},
+             "DocumentedElement",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Element,
+             Set{},
+             true,
+             Set{},
+             "Element",
+             Set{Element_addTo,Element_isKindOf,Element_init,Element_of},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Exception,
+             Set{Object},
+             false,
+             Set{mkAtt("lineCount",Integer,Exception,false),
+                 mkAtt("charCount",Integer,Exception,false),
+                 mkAtt("resourceName",String,Exception,false),
+                 mkAtt("backtrace",mkSeqType(Element),Exception,false),
+                 mkAtt("message",String,Exception,false)},
+             "Exception",
+             Set{},
+             Set{},
+             null,
+             XCore);  
+             
+     mkDataType(Float,Set{Element},"Float",Set{},Set{},Kernel_mkFloat(0,0),XCore);
+             
+     mkClass(ForeignObject,
+             Set{Object},
+             false,
+             Set{},
+             "ForeignObject",
+             Set{},
+             Set{},
+             null,
+             XCore);  
+             
+     mkClass(ForwardRef,
+             Set{Element},
+             false,
+             Set{},
+             "ForwardRef",
+             Set{},
+             Set{},
+             null,
+             XCore);  
+             
+     mkClass(ForeignOperation,
+             Set{Op},
+             false,
+             Set{},
+             "ForeignOperation",
+             Set{},
+             Set{},
+             null,
+             XCore);  
+             
+     mkClass(IndexedContainer,
+             Set{Container},
+             false,
+             Set{mkAtt("contents",Table,IndexedContainer,true)},
+             "IndexedContainer",
+             Set{Container_add,Container_remove},
+             Set{},
+             null,
+             XCore);
+             
+     mkDataType(Integer,Set{Element},"Integer",Set{Integer_to},Set{},0,XCore);
+     
+     mkClass(MachineException,
+             Set{Exception},
+             false,
+             Set{mkAtt("id",Integer,MachineException,false)},
+             "MachineException",
+             Set{},
+             Set{},
+             null,
+             XCore);
+      
+     mkClass(NamedElement,
+             Set{Contained},
+             true,
+             Set{mkAtt("name",String,NamedElement,false)},
+             "NamedElement",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(NameSpace,
+             Set{IndexedContainer,NamedElement,DocumentedElement},
+             false,
+             Set{mkAtt("bindings",mkSetType(Bind),NameSpace,true),
+                 mkAtt("imports",mkSeqType(NameSpace),NameSpace,false)},
+             "NameSpace",
+             Set{NameSpace_add,NameSpace_define,NameSpace_getElement,NameSpace_hasElement},
+             Set{},
+             null,
+             XCore);
+             
+     mkDataType(Null,Set{Element},"Null",Set{},Set{},null,XCore);
+             
+     mkClass(Object,Set{Element},false,Set{},"Object",Set{},Set{},null,XCore);
+     
+     mkClass(Op,
+             Set{BehaviouralFeature},
+             false,
+             Set{},
+             "Operation",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Package,
+             Set{Class,Resource},
+             false,
+             Set{mkAtt("metaPackage",Package,Package,false),
+                 mkAtt("classes",mkSetType(Class),Package,false),
+                 mkAtt("packages",mkSetType(Package),Package,false)},
+             "Package",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Parameter,
+             Set{TypedElement},
+             false,
+             Set{},
+             "Parameter",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Performable,
+             Set{Object},
+             true,
+             Set{},
+             "Performable",  
+             Set{},
+             Set{},
+             null,
+             XCore);
+      
+     mkClass(Resource,
+             Set{Object},
+             true,
+             Set{mkAtt("resourceName",String,Resource,false)},
+             "Resource",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     Kernel_setOf(SetType,SetDataType);
+     Kernel_addAtt(SetType,"name",Kernel_mkSymbol("Set(Element)"));
+     Kernel_addAtt(SetType,"parents",Set{CollType});
+     Kernel_addAtt(SetType,"elementType",Element);
+     Kernel_addAtt(SetType,"operations",Set{
+       SetOfElement_collect,
+       SetOfElement_excluding,
+       SetOfElement_exists,
+       SetOfElement_including,
+       SetOfElement_reject,
+       SetOfElement_sel,
+       SetOfElement_select,
+       SetOfElement_size});
+     Kernel_addAtt(SetType,"constraints",Set{});
+     Kernel_addAtt(SetType,"default",Set{});
+     Kernel_addAtt(SetType,"documentation",null);
+     Kernel_addAtt(SetType,"owner",XCore);
+     Kernel_addAtt(SetType,"contents",Kernel_mkTable(100));
+     Kernel_addAtt(SetType,"bindings",Set{});  
+     Kernel_addAtt(SetType,"grammar",null);  
+     Kernel_addAtt(SetType,"imports",Seq{});  
+      
+     mkClass(SetDataType,
+             Set{CollDataType},
+             false,
+             Set{},
+             "Set",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(SeqDataType,
+             Set{CollDataType},
+             false,
+             Set{},
+             "Seq",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     Kernel_setOf(SeqType,SeqDataType);
+     Kernel_addAtt(SeqType,"name",Kernel_mkSymbol("Seq(Element)"));
+     Kernel_addAtt(SeqType,"parents",Set{CollType});
+     Kernel_addAtt(SeqType,"elementType",Element);
+     Kernel_addAtt(SeqType,"operations",Set{
+       SeqOfElement_collect,
+       SeqOfElement_drop,
+       SeqOfElement_excluding,
+       SeqOfElement_reject,
+       SeqOfElement_size});
+     Kernel_addAtt(SeqType,"constraints",Set{});
+     Kernel_addAtt(SeqType,"default",Seq{});
+     Kernel_addAtt(SeqType,"documentation",null);
+     Kernel_addAtt(SeqType,"owner",XCore);    
+     Kernel_addAtt(SeqType,"contents",Kernel_mkTable(100));  
+     Kernel_addAtt(SeqType,"bindings",Set{});  
+     Kernel_addAtt(SeqType,"grammar",null);  
+     Kernel_addAtt(SeqType,"imports",Seq{});  
+     
+     mkDataType(String,Set{Element},"String",Set{},Set{},"",XCore);
+                          
+     mkClass(StructuralFeature,
+             Set{TypedElement},
+             true,
+             Set{},
+             "StructuralFeature",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkDataType(Symbol,Set{String},"Symbol",Set{},Set{},"",XCore);
+    
+     mkClass(Table,
+             Set{Element},
+             true,
+             Set{},
+             "Table",
+             Set{
+               Table_hasKey,
+               Table_get,
+               Table_put,
+               Table_remove},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(Thread,
+             Set{Element},
+             true,
+             Set{},
+             "Thread",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+     mkClass(TypedElement,
+             Set{NamedElement},
+             true,
+             Set{mkAtt("type",Classifier,TypedElement,false)},
+             "TypedElement",
+             Set{},
+             Set{},
+             null,
+             XCore);
+             
+      mkClass(Vector,
+             Set{Element},
+             true,
+             Set{},
+             "Vector",
+             Set{},
+             Set{},
+             null,
+             XCore);
+
+     // Set up the namespaces.
+
+     Kernel_setOf(XCore,Package);
+     Kernel_addAtt(XCore,"name",Kernel_mkSymbol("XCore"));
+     Kernel_addAtt(XCore,"associations",Set{});
+     Kernel_addAtt(XCore,"parents",Set{Object});
+     Kernel_addAtt(XCore,"attributes",Set{});
+     Kernel_addAtt(XCore,"operations",Set{});
+     Kernel_addAtt(XCore,"constructors",Seq{});
+     Kernel_addAtt(XCore,"constraints",Set{});
+     Kernel_addAtt(XCore,"default",null);
+     Kernel_addAtt(XCore,"owner",Root);
+     Kernel_addAtt(XCore,"documentation",null);
+     Kernel_addAtt(XCore,"resourceName","");
+     Kernel_addAtt(XCore,"imports",Seq{});
+     Kernel_addAtt(XCore,"bindings",Set{});
+     Kernel_addAtt(XCore,"metaPackage",XCore);
+     Kernel_addAtt(XCore,"classes",Set{});
+     Kernel_addAtt(XCore,"packages",Set{});
+     Kernel_addAtt(XCore,"isAbstract",false);
+     Kernel_addAtt(XCore,"contents",
+       let table = Kernel_XCore_Table;
+           contents = 
+            Seq{
+             Attribute,
+             BehaviouralFeature, 
+             Bind,
+             Boolean,
+             Buffer,
+             Class,
+             Classifier,
+             CodeBox,
+             CollDataType,
+             CollType,
+             CompiledOperation,
+             Constraint,
+             Constructor,
+             Contained,
+             Container,
+             DataType,
+             Daemon,
+             Doc,
+             DocumentedElement,
+             Element,
+             Exception,
+             Float,
+             ForeignObject,
+             ForeignOperation,
+             ForwardRef,
+             IndexedContainer, 
+             Integer,
+             MachineException,
+             NamedElement,
+             NameSpace,
+             Null,
+             Object, 
+             Op,
+             Package,
+             Parameter,
+             Performable,
+             Resource,
+             SeqDataType,
+             SetDataType,
+             SeqType,
+             SetType,
+             String,
+             StructuralFeature, 
+             Symbol,
+             Table, 
+             Thread, 
+             TypedElement,
+             Vector}
+        in @While not contents->isEmpty do
+             let c = contents->head
+             in Kernel_tablePut(table,c.name,c);
+                Kernel_objSetSaveAsLookup(c,true);
+                @For o in c.operations do
+                  o.owner := c
+                end;
+                if c.isKindOf(Class)
+                then 
+                  XCore.classes := XCore.classes->including(c);
+                  @For a in c.attributes do
+                    Kernel_objSetSaveAsLookup(a,true);
+                    Kernel_tablePut(c.contents,a.name,a)
+                  end;
+                  @For o in c.operations do
+                    Kernel_tablePut(c.contents,o.name,o)
+                  end
+                end;
+                contents := contents->tail
+             end
+           end;
+           table
+        end);
+        
+     Kernel_setOf(Root,NameSpace);
+     Kernel_addAtt(Root,"name",Kernel_mkSymbol("Root"));
+     Kernel_addAtt(Root,"owner",Root);
+     Kernel_addAtt(Root,"imports",Seq{});
+     Kernel_addAtt(Root,"contents",Kernel_Root_Table);
+     Kernel_addAtt(Root,"bindings",Set{});
+     Kernel_addAtt(Root,"documentation",null);
+     
+     Kernel_tablePut(Root.contents,XCore.name,XCore);
+     Kernel_tablePut(Root.contents,Root.name,Root);
+     
+     Kernel_objSetSaveAsLookup(Root,true);
+     Kernel_objSetSaveAsLookup(XCore,true);
+     
+     // The following operation registers essential classes with the
+     // XMF VM. These are required because they correspond to machine
+     // data types. 
+             
+     Kernel_setTypes(Boolean,
+                     Bind,
+                     Buffer,
+                     CodeBox,
+                     CompiledOperation,
+                     Element,
+                     ForeignObject,
+                     ForeignOperation,
+                     ForwardRef,
+                     MachineException, 
+                     Class,
+                     Package,
+                     DataType,
+                     Daemon,
+                     Integer,
+                     Float,
+                     String,
+                     SeqType,
+                     SetType,
+                     SeqDataType,
+                     SetDataType,
+                     Symbol,
+                     Table,
+                     Thread,
+                     Null,
+                     Vector);
+
+     Kernel_tablePut(XCore.contents,Kernel_mkSymbol("CollectionOfElement"),CollType);
+     Kernel_tablePut(XCore.contents,Kernel_mkSymbol("SetOfElement"),SetType);
+     Kernel_tablePut(XCore.contents,Kernel_mkSymbol("SeqOfElement"),SeqType)
+     
+  end
+end;

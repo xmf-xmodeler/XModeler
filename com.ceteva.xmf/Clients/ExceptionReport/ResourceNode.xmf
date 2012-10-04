@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import Forms;
+import Menus;
+import Exceptions;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class ResourceNode extends TreeNode
+  
+    @Attribute resourceName : String  end  // A path to the resource.
+    @Attribute line         : Integer end  // The line in the resource or -1 if not available.
+    @Attribute char         : Integer end  // The char in the line or -1 if not available.
+    
+    @Constructor(resourceName,line,char)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      null
+    end
+    
+    @Operation doubleSelected()
+    
+      // The resource name may be relative to xmf.homeDir() or may be absolute.
+      
+      let path1 = resourceName;
+          path2 = xmf.homeDir() + "/" + resourceName
+      in if path1.fileExists()
+         then Clients::XmfFileTree::XmfFile(null,path1).viewText()
+         else 
+           if path2.fileExists()
+           then Clients::XmfFileTree::XmfFile(null,path2).viewText()
+           else self.error("Cannot find " + resourceName + " in xmf.home() or as absolute path.")
+           end
+         end
+      end
+      
+    end 
+    
+    @Operation setReportText()
+      if line >= 0 and char >= 0
+      then self.text := resourceName + " line " + line + " char " + char
+      else self.text := resourceName
+      end
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Resource.gif"
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        node.pprint(out,indent+2)
+      end
+    end
+
+  end

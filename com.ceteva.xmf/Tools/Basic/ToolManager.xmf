@@ -1,0 +1,341 @@
+parserImport XOCL;
+parserImport Walkers;
+
+import Tools;
+import Basic;
+
+context Basic
+
+  @Class ToolManager
+  
+    @Doc
+      A tool manager maintains associations between classes
+      and a collection of XTool descriptors. Each tool
+      descriptor manages a collection of tools.
+    end
+  
+    @Attribute descriptors : Table = Table(10) (?,!) end
+    @Attribute tools : Seq(Tool) = Seq{} (+,-,?) end
+    @Attribute toolBrowser : XToolsBrowser = XToolsBrowser("XTools") (?) end
+    @Attribute delinkedTools : SeqOfElement end
+    @Attribute saving : Boolean (?,!) end
+    @Attribute menuActionTable : Table = Table(10) (?,!) end
+    
+    @Operation allTools()
+      tools
+      //descriptors.values()->collect(d | d.allContentsOf(Tool))->flatten
+    end
+
+    @Operation allToolsRecursive()
+      // Returns the flattened tool tree...
+      let allTools = Set{}
+      in
+        @For tool in tools do
+          allTools := allTools->union(tool.allTools())
+        end;
+        allTools
+      end
+    end
+    
+    @Operation addTool(tool)
+      if not self.tools->includes(tool)
+      then self.addToTools(tool)
+      end;
+      tool.owner := self
+    end
+    
+    @Operation addToolDescriptor(classifier,td)
+      // Adds a tool descriptor indexed by the supplied class...
+      let nameSpace = self.getNameSpace(classifier)
+      in
+        if nameSpace.hasElement(td.name())
+        then self.removeToolDescriptor(classifier,td)
+        end;
+        nameSpace.add(td)
+      end
+    end
+    
+    @Operation checkLegacyUpgrade(tools,xmfVersion)
+      @For tool in tools do
+        tool.checkLegacyUpgrade(xmfVersion)
+      end
+    end
+    
+    @Operation excludedNameSpaces(element)
+      let excludedNameSpaces = Root.allContentsOf(NameSpace)->including(Root);
+          includedNameSpaces = Set{XTools::Objects} +
+            if element.isReallyKindOf(Container)
+            then element.allContentsOf(NameSpace)
+            else Set{}
+            end
+      in
+        if element.isReallyKindOf(NameSpace)
+        then includedNameSpaces := includedNameSpaces->including(element)
+        end;
+        excludedNameSpaces := excludedNameSpaces - includedNameSpaces
+      end
+    end
+    
+    @Operation getNameSpace(c:Class):NameSpace
+      
+      // Return the name space indexed by the class c...
+      
+      if descriptors.hasKey(c)
+      then descriptors.get(c)
+      else
+        let nameSpace = NameSpace(c.name())
+        in descriptors.put(c,nameSpace);
+           nameSpace
+        end
+      end
+    end
+
+    @Operation definitionManager()
+      toolBrowser.definitionManager()
+    end
+
+    @Operation loadXTO()
+
+      // Loads a XTO (XTools object) file and correspondingly repopulate the tool
+      // manager which all the relevant tool descriptors and tool instances relating
+      // to a given element.
+
+      let file = xmf.openFile(xmf.projDir(),"*.xto");
+          objectManager = self.objectManager() then
+          element = self.loadXTO(file) then
+          name = objectManager.newName(element.of().name().toString().lowerCaseInitialLetter())
+      in
+        if element <> null
+        then objectManager.add(name,element)
+        end
+      end
+    end
+    
+    @Operation loadXTO(file):Element
+      if file.fileExists()
+      then 
+        @WithOpenFile(fin <- file)
+          let xin = ElementInputChannel(GZipInputChannel(fin))
+          in 
+             try
+               let 
+                 savedTools = xin.read() then
+                 element = savedTools.element();
+                 diagramManager = xmf.diagramManager()
+               in
+                 @For tool in savedTools.tools 
+                 do
+                   self.addTool(tool);
+                   let diagram = 
+                     if tool.isReallyKindOf(DiagramTools::Structure::ToolStub)
+                     then tool.diagram()
+                     else
+                       let diagram = tool.createToolDiagram(true)
+                       in
+                         tool.postLoad();
+                         diagram
+                       end
+                     end
+                   in
+                     xmf.diagramManager().addDiagram(tool.tooledElement(),diagram);
+                     diagram.refreshName()
+                   end
+                 end;
+                 self.checkLegacyUpgrade(tools,savedTools.xmfVersion());
+                 element
+               end
+             catch(x)
+               x.edit();
+               xmf.warning("Error loading XTO");
+               null
+             end
+          end
+        end
+      else null
+      end
+    end
+
+    @Operation loadXTD()
+
+      // Loads a XTD (XTools definition) file and correspondingly repopulate the
+      // tool manager which all the relevant tool descriptors and tool instances
+      // relating to a given element.
+
+      let file = xmf.openFile(xmf.projDir(),"*.xtd")
+      in self.loadXTD(file)
+      end
+    end
+    
+    @Operation loadXTD(file)
+      if file.fileExists()
+      then 
+        @WithOpenFile(fin <- file)
+          let xin = ElementInputChannel(fin)
+          in @Busy("Loading XTools Definition: " + file.toString())
+               try
+                 let rootElementType = xin.read()
+                 in
+                   self.definitionManager().loadDefinition(rootElementType)
+                 end
+               catch(x)
+                 x.edit();
+                 xmf.warning("Error loading XTD")
+               end
+             end
+          end
+        end
+      end
+    end
+    
+    @Operation objectManager()
+      toolBrowser.objectManager()
+    end
+    
+    @Operation removeTool(tool)
+      self.deleteFromTools(tool);
+      tool.owner := null
+    end
+
+    @Operation removeToolDescriptor(classifier,td)
+      // Removes a tool descriptor as indexed by the supplied class...
+      let nameSpace = self.getNameSpace(classifier)
+      in
+        nameSpace.remove(td);
+        if nameSpace.contents()->isEmpty
+        then descriptors.remove(classifier)
+        end
+      end
+    end
+
+    @Operation saveXTO(element)
+    
+      // Saves an object with all the tools associated with it and any other objects within
+      // its data structure...
+      
+      if not saving
+      then
+        self.setSaving(true);
+        let excludedNameSpaces = self.excludedNameSpaces(element)->asSeq;
+            allTooledElements = self.tooledElements()->asSeq then
+            nonRefTooledElements = Kernel_getNonReferencedElements(allTooledElements,excludedNameSpaces);
+            T = Seq{}
+        in
+          let tooledElementsForSaving = 
+            @FindBound x in element
+              when nonRefTooledElements->includes(x)
+              stop walk when x <> element andthen
+                             x.isReallyKindOf(NamedElement) andthen
+                             excludedNameSpaces->includes(x.owner())
+              limit null
+            end
+          in
+            @For e in tooledElementsForSaving do
+              T := T + self.toolsFor(e)
+            end;
+            let savedTools = SavedTools(element,T,xmf.version)
+            in
+              savedTools.save()
+            end
+          end
+        end;
+        self.setSaving(false)
+      //else xmf.warning("A second save is being illegally attempted whilst a save is being carried out. The second save has been blocked.")
+      end
+      
+    end
+    
+    @Operation saveXTO(element,file)
+    
+      // Saves an object with all the tools associated with it and any other objects within
+      // its data structure into a specific file...
+
+      if not saving
+      then
+        self.setSaving(true);
+        let excludedNameSpaces = self.excludedNameSpaces(element)->asSeq;
+            allTooledElements = self.tooledElements()->asSeq then
+            nonRefTooledElements = Kernel_getNonReferencedElements(allTooledElements,excludedNameSpaces);
+            T = Seq{}
+        in
+          let tooledElementsForSaving = 
+            @FindBound x in element
+              when nonRefTooledElements->includes(x)
+              stop walk when x <> element andthen
+                             x.isReallyKindOf(NamedElement) andthen
+                             excludedNameSpaces->includes(x.owner())
+              limit null
+            end
+          in
+            @For e in tooledElementsForSaving do
+              T := T + self.toolsFor(e)
+            end;
+            let savedTools = SavedTools(element,T,xmf.version)
+            in
+              savedTools.save(file)
+            end
+          end
+        end;
+        self.setSaving(false)
+      else xmf.warning("Save is being attempted whilst another save is being carried out.")
+      end
+    end
+             
+    @Operation toolDescriptor(c:Class,n:String):ToolDescriptor
+      if descriptors.hasKey(c)
+      then
+        let nameSpace = descriptors.get(c)
+        in if nameSpace.hasElement(n)
+           then nameSpace.getElement(n)
+           else self.error(formats("Cannot find a tool descriptor for ~S named ~S.",Seq{c.name(),n}))
+           end
+        end
+      else self.error(formats("Class ~S has not tool descriptors.",Seq{c.name()}))
+      end
+    end
+    
+    @Operation toolDescriptors(c:Class):Set(ToolDescriptor)
+    
+      // Return the set of tool descriptors defined for this class...
+      
+      if descriptors.hasKey(c)
+      then
+        let nameSpace = descriptors.get(c)
+        in nameSpace.contents()
+        end
+      else Set{}
+      end
+    end
+    
+    @Operation toolsFor(element,recursive:Boolean)
+      //tools->select(t | t.tooledElement() = element)
+      let selected = Seq{};
+          searchTools = if recursive
+                        then self.allToolsRecursive()
+                        else tools
+                        end
+      in
+        @For t in searchTools do
+          if t.tooledElement() = element
+          then
+            selected := selected->prepend(t)
+          end
+        end;
+        selected
+      end
+    end
+    
+    @Operation toolsFor(element)
+      self.toolsFor(element,false)
+    end
+    
+    @Operation tooledElements()
+      let E = Set{}
+      in
+        @For t in tools do
+          E := E->including(t.tooledElement())
+        end;
+        E
+      end
+    end
+    
+  end

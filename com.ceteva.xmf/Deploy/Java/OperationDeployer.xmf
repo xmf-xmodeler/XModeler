@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+
+  @Class OperationDeployer
+  
+    @Operation deploy(operation:Operation,class:Class,out:OutputChannel)
+      format(out,"  public ~S ~S(",Seq{self.javaTypeName(operation.type()),operation.name()});
+      @For name, type in operation.paramNames(), operation.paramTypes()
+      do
+        format(out,"~S ~S",Seq{self.javaTypeName(type),name});
+        if not isLast
+        then
+          format(out,",")
+        end
+      end;
+      format(out,") {~%");
+      format(out,"    return null;~%");
+      format(out,"  }~%")
+    end
+  
+    @Operation javaTypeName(type:Element):String
+      @Case type of
+        [Integer] do
+          "int"
+        end
+        [Boolean] do
+          "boolean"
+        end
+        [String] do
+          "String"
+        end
+        Set[ ] do
+          "Vector"
+        end
+        Seq[ ] do
+          "Vector"
+        end
+      else
+        type.name()
+      end
+    end
+  
+  end

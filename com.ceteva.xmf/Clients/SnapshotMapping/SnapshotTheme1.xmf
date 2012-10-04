@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+@Theme SnapshotTheme1 appliesTo Clients::SnapshotMapping::SnapshotXSnapshotDiagram
+
+  @IconizeNode "Clock.gif" when Constraint end
+  
+  @ColorObjectNode "namebox" using DiagramsThemeAPI::blue when Object end
+  
+  @ColorObjectNode "slotbox" using DiagramsThemeAPI::green when Object end
+  
+  /* @Operation(element,diagramElement)
+  
+    // sets the name box color
+  
+    if element.isKindOf(Object)
+    then
+      SnapshotThemeAPI::setNameBoxColor(diagramElement,DiagramsThemeAPI::red)
+    end
+  end
+    
+  @Operation(element,diagramElement)
+  
+    // sets the slot box color
+  
+    if element.isKindOf(Constraint)
+    then
+      SnapshotThemeAPI::setNameBoxColor(diagramElement,DiagramsThemeAPI::blue)
+    end
+  end */
+
+end;

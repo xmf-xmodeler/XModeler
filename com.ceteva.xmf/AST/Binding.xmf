@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Binding in AST(aBinding,arg,seen)
+  ASTNode(aBinding)
+end;

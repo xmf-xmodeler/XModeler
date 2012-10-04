@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package SnapshotDiagrams
+  
+    @Doc
+       This package exten-ds Clients::Diagrams with features that model
+       snapshot diagrams.
+     end
+     
+  end

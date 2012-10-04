@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class IterExp extends OCL::OCL
+  
+    @Doc
+      An iter-exp selects values from a collection and performs a task.
+      Tasks include mappings a collection to another collection by applying
+      a function to each element or filtering a collection by applying a
+      predicate to each element in turn.
+      Iteration expressions have a general form:
+        C->i(x | e)
+      where C is a collection, i is the name of the iteration expression,
+      x is a variable bound to elements of C and e is an expression. The variable
+      x is scoped over e. XMF knows about the following iteration names:
+        collect transforms a collection; each element is transformed to a new
+          element produced by the corresponding evaluation of the body e. The resulting
+          collection is of the same type as C.
+        select filters a collection; the body of the iter-exp is a boolean
+          values expression that controls whether or not the value is added to the 
+          resulting collection. The resulting collection is of the same type as C.
+        reject is the opposite of select.
+        forAll returns true when the boolean valued expression e is true for all
+          if the items in the collection. Otherwise returns false.
+        exists returns true when the boolean valued expreession e is true for at
+          least one of the items in the collection. Otherwise returns false.
+        
+     Constructor: IterExp(C,i,x,e)
+       Returns a collection expression where C and e are expressions, i are x are strings.
+    end
+  
+    @Attribute collection : OCL::OCL end
+    @Attribute name : String end
+    @Attribute iterOp : String end
+    @Attribute body : OCL::OCL end
+    
+    @Constructor(collection,iterOp,name,body) ! end
+
+    @Operation pprint(out,indent)
+      let ppCollection = collection.pprint(indent);
+          ppBody = body.pprint(indent)
+      in format(out,"~S->~S(~S |~%~V~S)",Seq{ppCollection,iterOp,name,indent + 2,ppBody})
+      end
+    end
+    
+  end

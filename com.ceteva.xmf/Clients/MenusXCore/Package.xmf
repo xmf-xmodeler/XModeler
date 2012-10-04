@@ -1,0 +1,119 @@
+parserImport XOCL;
+//parserImport Clients::ModelClipboard;
+
+import XCore;
+import Clients;
+import Menus;
+import IO;
+
+context Package
+  @Operation getAvailableMetaPackages():Seq(Element)
+    let nameSpaces = Seq{Root};
+        metaPackages = Seq{}
+    in  @While not nameSpaces->isEmpty do
+          let nameSpace = nameSpaces->head in
+            nameSpaces := nameSpaces->tail;
+            @For element inTableValues nameSpace.contents do
+              if element.isKindOf(XCore::NameSpace) and element <> null and element <> nameSpace then
+                nameSpaces := Seq{element | nameSpaces}
+              end;
+              if element.isKindOf(Package) and element <> null then
+                if element.isMetaPackage() then
+                   metaPackages := metaPackages->prepend(element)
+                end
+              end
+            end
+          end
+        end;
+        metaPackages
+    end
+  end
+
+context Package
+  @Operation loadDiagram()
+    let file = xmf.saveFile(xmf.projDir(),"*.dgm")
+    in if file.fileExists() then
+         let fin = ElementInputChannel(GZipInputChannel(FileInputChannel(file))) then
+             mapping = fin.read();
+             client = xmf.findClient(ClassMapping::MappingClient)
+         in  fin.close();
+             mapping.checkDaemons();
+             client.renew(mapping)
+         end
+       end
+    end
+  end
+
+context Package
+  @Operation newClass()
+    let 
+      name = self.newName("Class") then
+      class = Class(name)
+    in  
+      self.add(class);
+      class.init()
+    end
+  end
+
+context Package
+  @Operation newEnum()
+    let 
+      name = self.newName("Enum") then
+      enum = Enum(name,Seq{})
+    in  
+      self.add(enum);
+      enum.init()
+    end
+  end
+
+context Package
+  @Operation newInstance()
+    let name = self.newName("Package") in
+      self(name)
+    end
+  end
+
+context Package
+  @Operation newPackage()
+    let 
+      name = self.newName("Package") then
+      package = Package(name)
+    in
+      self.add(package);
+      package.init()
+    end
+  end
+
+context Package
+  @Operation setMetaPackage_redirect()
+    let availableMetaPackages = self.getAvailableMetaPackages().sortNamedElements_CaseIndependent();
+        stringOp = 
+          @Operation(package)
+            package.path()
+          end then
+        mp = xmf.select("Select MetaPackage",
+                        "Select a package to set as the meta-package for "+self.path(),
+                        availableMetaPackages,
+                        null,
+                        stringOp)
+    in
+      if mp <> null
+      then
+        self.metaPackage := mp
+      end
+    end
+  end
+
+context Package
+  @Operation toProject()
+    if owner = Root
+    then 
+      let project = Projects::Project(self,"",null)
+      in
+        xmf.projectManager("MyProjects").add(project);
+        xmf.projectManager("MyProjects").browse()
+      end
+    else xmf.warning("Only top level packages (owned by Root) can be promoted to projects.")
+    end
+  end
+

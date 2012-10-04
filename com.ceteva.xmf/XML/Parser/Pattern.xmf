@@ -1,0 +1,109 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Pattern isabstract extends Syntax
+  
+    @Doc
+      A pattern is an XML element parser. The pattern recognises a supplied
+      element and synthesises an XMF value. A pattern may bind names to
+      values extracted from the element. When a pattern successfully matches
+      an element it produces a value.
+    end
+    
+    @AbstractOp binds():Seq(String)
+      // Returns the sequence of names bound in the receiver in the order
+      // that they occur. NB names should only be bound once in a clause.
+    end
+    
+    @Operation BNF():Pattern
+      // Returns a copy of the receiver in which bindings nested inside
+      // elements have been lifted to the outside of the element.
+      self
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      // Throws an error if any clauses are called but not defined.
+      null
+    end
+    
+    @Operation first(grammar):Set(String)
+      // The first set of tag names for the receiver.
+      Set{}
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      // Used to produce a flat sequence of patterns prior to computing
+      // first and follow sets.
+      Seq{self}
+    end
+    
+    @Operation follow(grammar):Set(String)
+      // The follow set of tag names for the receiver.
+      Set{}
+    end
+    
+    @Operation CNF(handler:Operation)
+      // Produce a clause in conjunctive normal form.
+      // Disjunctions are lifted out to new clauses.
+      handler(self,Seq{})
+    end
+    
+    @Operation NNF(handler:Operation)
+      // Hand to the operation a new pattern and a sequence of clauses
+      // after lifting all occurrences of nested patterns in elements
+      // to new clauses.
+      handler(self,Seq{})
+    end
+     
+    @Operation nullable(grammar)
+      // Returns true when the receiver can succeed without consuming
+      // any input. Note that a non-terminal (i.e. a call) will just
+      // look the property up via the grammar.
+      true
+    end
+    
+    @Operation ONF():Pattern
+      // Returns a copy of the receiver in which optional patterns
+      // are replaced with disjuncts.
+      self
+    end
+    
+    @AbstractOp parseElement(tag,atts,inputChannel)
+      // Used to parse the new input token <tag atts> ...
+    end
+    
+    @Operation pprint():String
+      let sout = IO::StringOutputChannel()
+      in self.pprint(sout,0);
+         sout.getString()
+      end
+    end
+    
+    @Operation setFollow(follow:Set(String),grammar)
+      self
+    end
+    
+    @Operation SNF(handler:Operation)
+      // Hand to the operation the a new pattern and a sequence of clauses
+      // after lifting all occurrences of * to be a reference to a new
+      // clause using the following transformation:
+      // X ::= A B* C becomes
+      // X ::= A N C
+      // N ::= B N | Empty
+      handler(self,Seq{})
+    end
+    
+    @Operation terminals():Set(String)
+      // Returns the set of terminals in the receiver. The
+      // Terminals are the set of tags that the receiver can accept.
+      Set{}
+    end
+    
+  end

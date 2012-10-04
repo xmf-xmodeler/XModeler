@@ -1,0 +1,172 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class SingletonTextField extends FormTextField, ContextFormElement,
+         RightClickableWithElement
+  
+    @Attribute type : Classifier = NamedElement (?,!) end
+  
+    @Constructor(x,y,width,height,text,isEditable,element) end
+  
+    @Constructor(id,x,y,width,height,text,isEditable,element) end
+    
+    @Operation changeLabel(text)
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.changeHandler") then
+          con = registryPoint.find(element.of()) then
+          handler = con.getValue(0)
+        in
+          handler(element,text)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation changeLabelGuard(element,newText):Boolean
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.labels.changeGuard") then
+          con = registryPoint.find(element.of()) then
+          guardOp = con.getValue(0)
+        in
+          guardOp(element,newText)
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation coerceValue(text:String)
+    
+      // Used to translate a text field change into a value
+      // for a slot based on the type of the attribute...
+
+      @Case type of
+        [String] do
+          text
+        end
+        [Integer] do
+          text.asInt()
+        end
+        [Boolean] do
+          text.asBool()
+        end
+        [Float] do
+          text.asFloat()
+        end
+        else text
+      end
+    end
+
+    @Operation delete()
+      self.cancelRegistryNotification();
+      self.commandInterpreter().removeModelBrowserNodeCommand(self);
+      self.removeFromOwner()
+    end
+
+    @Operation dispose()
+      self.clearRightClickMenu();
+      super()
+    end
+
+    @Operation doubleSelected()
+      element.doubleClick()
+    end
+
+    @Operation getEditableText()
+      self.commandInterpreter().setEditableTextCommand(self,element.nameString())
+    end
+
+    @Operation getFieldUpdateOp()
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.slotUpdate") then
+          contributions = registryPoint.find(contex.of());
+          op = null
+        in
+          if not contributions->isEmpty then
+            @For contribution in contributions do
+              let conSlotName = contribution.getValue(0)
+              in
+                if conSlotName.toString() = slotName.toString()
+                then
+                  op := contribution.getValue(1)
+                end
+              end
+            end
+          end;
+          op
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation new(parent)
+      self.commandInterpreter().newTextFieldCommand(parent,self);
+      self.commandInterpreter().setText(self,self.text);
+      self.enableDrag();
+      self.enableDrop();
+      if element.isReallyKindOf(XCore::Object) then
+        self.setRightClickMenu()
+      end;
+      self
+    end
+
+    @Operation setTextIn(text:String)
+      let oldText = self.text
+      in
+        try
+          let updateOp = self.getFieldUpdateOp();
+              value = self.coerceValue(text)
+          in
+            if updateOp = null
+            then
+                if type.inheritsFrom(String) or
+                   type.inheritsFrom(Integer) or
+                   type.inheritsFrom(Float)
+                then
+                  if contex.legalSlotChangeCheck(slotName.asSymbol(),value)
+                  then
+                    contex.set(slotName,value)
+                  else self.setText(oldText) //self.setText(contex.get(slotName).toString())
+                  end
+                else
+                  if self.changeLabelGuard(element,text)
+                  then
+                    self.changeLabel(Symbol(text))
+                  else self.setText(oldText) //self.setText(contex.get(slotName).toString())
+                  end
+                end
+            else
+              updateOp.invokes(contex,Seq{text})
+            end
+          end
+        catch(exception)
+          if exception.isKindOf(Exceptions::NoSlot)
+          then
+            if xmf.confirm(
+              "The slot \"" + slotName +"\" no longer exists. It is likely that " +
+              "the properties relating to the object's type has been changed and the " +
+              "property editor needs refreshing.\n\nWould you like to refresh?")
+            then
+              owner.clearAndRefresh()
+            end
+          else
+            xmf.warning( "Slot \"" + slotName + "\" expects a value of type "
+              + type.name().toString() + ".\n" + exception.message );
+            self.setText(contex.get(slotName).toString())
+          end
+        end
+      end
+    end
+
+  end

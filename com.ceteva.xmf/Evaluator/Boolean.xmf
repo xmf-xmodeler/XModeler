@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Boolean in Eval(aBoolean,arg,seen)
+  aBoolean
+end;

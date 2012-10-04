@@ -1,0 +1,41 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler CollExp in Eval(aCollExp,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     args = aCollExp.args;
+     evalArgs =
+       @Operation(args,collection,argValues)
+         if args->isEmpty
+         then 
+           let value = collection.send(aCollExp.collOp,argValues)
+           in result(aCollExp,value,cont)
+           end
+         else
+           next(args->head,
+             @Operation(nextArg,resultArg,call,return)
+               self.eval(args->head,env,target,imports,nextArg,resultArg,call,return,
+                 @Operation(value)
+                   evalArgs(args->tail,collection,argValues + Seq{value})
+                 end)
+             end)
+         end
+       end
+  in next(aCollExp.collection,
+       @Operation(nextOp,resultOp,call,return)
+         self.eval(aCollExp.collection,env,target,imports,nextOp,resultOp,call,return,
+           @Operation(collection)
+             evalArgs(args,collection,Seq{})
+           end)
+       end)
+  end
+end;

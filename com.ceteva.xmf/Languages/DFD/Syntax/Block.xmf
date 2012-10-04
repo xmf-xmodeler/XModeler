@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class Block extends ProcessBody
+
+    // A clock action sequences sub-actions:
+    // @Block
+    //   <ACTION>
+    //   <ACTION>
+    //   ...
+    //   <ACTION>
+    // end
+
+    @Attribute body : Seq(ProcessBody) end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Block ::= body = Exp*
+      {
+        [| Languages::DFD::Syntax::Block(<body>) |]
+      }.
+    
+    end
+
+    @Constructor(body) end
+
+    @Operation eval(env)
+      body->tail->iterate(exp result = body->head.eval(env) | exp.eval(env))
+    end
+      
+    @Operation code(indent:Integer):String
+      "@Block" + body->iterate(action code = "" |
+        code + "\n" + " ".repeat(indent + 2) + action.code(indent + 2)) + "\n" +
+          " ".repeat(indent) + "end"
+    end
+  end

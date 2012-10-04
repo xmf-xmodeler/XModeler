@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Associations;
+import XOCL;
+import OCL;
+
+context Associations
+
+  @Class AssociationDef extends Sugar
+  
+    @Doc
+      An association definition that creates an association when
+      it is performed.
+    end
+    
+    @Attribute name : String end
+    @Attribute end1 : EndDef end
+    @Attribute end2 : EndDef end
+    
+    @Constructor(name,end1,end2) end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      @Doc
+        Types in association en-ds are set to be operations that reference
+        the types. Initialization of the ends will call the operation to de-reference
+        the type. We increment the name space references to get the right offsets
+        at run time.
+      end
+      self.desugar().compile(env.incNameSpaceRefs(),frame,isLast,saveSource)
+    end
+    
+    @Operation desugar():Performable
+      [| Associations::Association(<StrExp(name)>).setEnd1(<end1>).setEnd2(<end2>) |]
+    end
+    
+  end 

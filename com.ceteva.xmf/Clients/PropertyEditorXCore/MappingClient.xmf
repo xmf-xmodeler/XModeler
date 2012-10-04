@@ -1,0 +1,255 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class MappingClient extends Client
+  
+    @Attribute formClient : FormClient end
+    @Attribute mappings : Seq(ObjectXForm) (+) end
+    @Attribute history : Seq(Element) = Seq{} (?) end
+  
+    @Constructor(name,formClient) 
+      self.setCommandInterpreter(formClient.commandInterpreter);
+      self.setEventHandler(formClient.eventHandler)
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        ObjectXForm do
+          self.mappings := mappings + Seq{element};
+          element.setOwner(self)
+        end
+        XCore::Object do
+          self.addObject(element)
+        end
+      else
+        format(stdout,"PropertyEditorXCore::add: unknown element " + element.toString() + "~%")
+      end
+    end
+    
+    @Operation addAndShowElement(element)
+      let unlockedMaps = self.getUnlockedMaps() then
+          mapping = self.addObject(element,false)
+      in
+        if not unlockedMaps->isEmpty
+        then
+          let oldMap = unlockedMaps->at(0) in
+            self.replaceForm(oldMap,mapping)
+          end
+        else
+          mapping.form.new();
+          mapping.addMappings()
+        end;
+        commandInterpreter.setVisible(mapping.form)
+      end
+    end
+
+    @Operation addAndShowElement(element,form)
+      let isLocked = form.isLocked;
+          newMap = self.addObject(element,false);
+          oldMap = @Find(map,mappings) when map.form = form end
+      in
+        self.replaceForm(oldMap,newMap);
+        let newForm = newMap.form
+        in
+          commandInterpreter.setVisible(newForm);
+          newForm.lockForm(isLocked);
+          newForm.updateTools()
+        end
+      end
+    end
+
+    @Operation addObject(element)
+      self.addObject(element,true)
+    end
+    
+    @Operation addObject(element,newForm:Boolean)
+
+      // This should be refactored - it simply ensures that any attribute being edited has its mult set properly...
+      if element.isReallyKindOf(XCore::Attribute)
+      then element.mult()
+      end;
+      
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.propertyEditors.propertyEditors") then
+          con = registryPoint.find(element.of())
+        in
+          if con <> null then
+            let formType = con.getValue(0) then
+                mappingType = con.getValue(1) then
+                form = formType(element) then
+                mapping = mappingType(element,form,self)
+            in
+              if newForm
+              then
+                form.new();
+                mapping.addMappings()
+              end;
+              mapping.addClosingDaemon();
+              self.mappings := mappings + Seq{mapping};
+              self.addToHistory(element);
+              mapping
+            end
+          else
+            format(stdout,"PropertyEditorXCore::add: unknown element " + element.toString() + "~%")
+          end
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+    
+    @Operation addToHistory(element)
+      if not history->includes(element)
+      then
+        @While history.size() >= xmf.preference("FormHistoryLimit") do
+          self.history := history.excluding(history.last())
+        end;
+        self.history := history->prepend(element)
+      end
+    end
+
+    @Operation clearHistory(remainingElement)
+      self.history := Seq{remainingElement}
+    end
+
+    @Operation getUnlockedMaps()
+      let unlockedMaps = Seq{} in
+        @For map in self.mappings do
+          if not map.form.isLocked
+          then
+            unlockedMaps := unlockedMaps->including(map)
+          end
+        end;
+        unlockedMaps
+      end
+    end
+
+    @Operation load(fileName)
+      let input = ElementInputChannel(FileInputChannel(fileName)) then
+          mapping = input.read()
+      in input.close();
+         mapping.element.owner.add(mapping.element);
+         self.add(mapping);
+         mapping.form.renew()
+      end
+    end
+    
+    @Operation preSave()
+      @For mapping in mappings do
+        mapping.setOwner(null)
+      end
+    end
+    
+    @Operation postSave()
+      @For mapping in mappings do
+        mapping.setOwner(self)
+      end
+    end
+
+    @Operation refreshHistory()
+      let newHistory = Seq{}
+      in
+        @For element in history do
+          if not (element.isReallyKindOf(Contained) andthen element.owner = null)
+          then
+            newHistory := newHistory + Seq{element}
+          end
+        end;
+        self.history := newHistory
+      end
+    end
+
+    @Operation remove(mapping:ObjectXForm)
+      self.mappings := mappings.excluding(mapping);
+      mapping.dispose()
+    end
+
+    @Operation renew()
+      @For map in mappings do
+        map.renew()
+      end
+    end
+    
+    @Operation replaceForm(oldMap,newMap)
+      let oldForm = oldMap.form;
+          newForm = newMap.form then
+          id = oldForm.id();
+          hasFocus = oldForm.hasFocus
+      in
+        if hasFocus
+        then oldMap.element.selectModelBrowserNode(false)
+        end;
+        formClient.updateForm(oldForm,newForm,true);
+        newMap.addMappings();
+        self.remove(oldMap);
+        if hasFocus
+        then newMap.element.selectModelBrowserNode(true);
+             newForm.hasFocus := true
+        end;
+        xmf.clientManager().idManager().reallocateId(newForm,id)
+      end
+    end
+    
+    @Operation save(mapping,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName));
+          elementOwner = mapping.element.owner
+      in try
+      
+           // The mapping and the element must be de-linked from their owners
+           // in order to define the save boundary.
+           
+           mapping.setOwner(null);
+           mapping.element.owner.remove(mapping.element);
+           mapping.element.setOwner(elementOwner);
+           out.write(mapping,Seq{Root,XCore,Clients,PropertyEditorXCore});
+           out.close();
+           format(stdout,"Saved element and form in ~S~%",Seq{fileName});
+           mapping.setOwner(self);
+           elementOwner.add(mapping.element)
+         catch(exception)
+           format(stdout,"~S~%",Seq{exception});
+           mapping.setOwner(self);
+           elementOwner.add(mapping.element)
+         end
+      end
+    end
+         
+    @Operation showPropertyEditor(element)
+      @Find(map,mappings)
+        when map.element = element
+        do
+          if not map.form.isOpen then
+            self.remove(map);
+            self.addAndShowElement(element)
+          else
+            commandInterpreter.setVisible(map.form)
+          end
+        else
+          self.addAndShowElement(element)
+      end
+    end
+    
+    @Operation synchronise()
+      
+      // Produces an XML document of the forms client's state
+      // this is communicated and the remote client is expected
+      // it to use as a basis for synchronising its state
+
+      @Command(self) startDocument() end;
+      @For mapping in mappings
+      do
+        mapping.form.synchronise()
+      end;
+      @Command(self) endDocument() end
+    
+    end
+    
+  end

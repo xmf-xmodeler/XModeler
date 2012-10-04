@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Text extends Pattern
+  
+    @Doc
+      Succeeds when the next input element is text. The input element
+      is returned.
+    end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Text() |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      if elements->isEmpty
+      then grammar.fail(indent,"TEXT: out of elements.",Seq{},fail)
+      else 
+        let element = elements->head
+        in if element.isKindOf(XML::Text)
+           then succ(env,element.text,elements->tail,fail,refTable)
+           else grammar.fail(indent,"TEXT: out of elements.",Seq{},fail)
+           end
+        end
+      end
+    end
+    
+  end

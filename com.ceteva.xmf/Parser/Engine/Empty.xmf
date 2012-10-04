@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Empty extends Recognizer
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Empty ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+  end

@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+context ! Root::XDiagMaps
+
+  @Class Label 
+
+    @Attribute attribute : Attribute (?,!) end
+
+    @Constructor(attribute) ! end
+    
+    @Operation writeType(out)
+      if attribute.type.inheritsFrom(XOCL::Exp)
+      then format(out,"      @Label ~S(middle,5,5,multiline) \"~S\" end~%",Seq{attribute.name(),attribute.name()})
+      else format(out,"      @Label ~S(middle,5,5) \"~S\" end~%",Seq{attribute.name(),attribute.name()})
+      end
+    end
+
+  end

@@ -1,0 +1,495 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import SnapshotDiagrams;
+import SnapshotMapping;
+
+context SnapshotMapping
+
+  @Class ObjectXNode extends ElementXNode, RightClickableProxy
+  
+    @Attribute object      : Object end
+    @Attribute node        : ObjectNode (?) end
+    @Attribute slotMaps    : Seq(SlotXText) (+,-) end
+    @Attribute attributes  : Set(Attribute) (+,-) end
+    @Attribute allClasses  : Set(Class) end
+    
+    @Constructor(object,node,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{Object,node.of()})
+    end
+
+    @Operation add(element)
+      @TypeCase(element)
+        SlotXText do
+          self.addSlotMap(element)
+        end
+        else self.error("ObjectXNode::add: unknown type of element " + element.toString())
+      end
+    end
+    
+    @Operation addSlot(slotName,value)
+      if not self.object.hasSlot(slotName)
+      then
+        self.object.addStructuralFeature(slotName,value)
+      end;
+      let attribute = self.object.of().getAttribute(slotName)
+      in
+        if not self.nodeTextType(attribute.type)
+        then
+          if attribute.type.inheritsFrom(SetOfElement) or attribute.type.inheritsFrom(SeqOfElement)
+          then
+            self.addSetContentDaemon(slotName)
+          else
+            self.addSlotChangeDaemon(slotName)
+          end;
+          let attribute = object.of().getAttribute(slotName)
+          in
+            @SlotValueChanged multi once ObjectXNode::attributeNameChange(attribute,"name") end;
+            @SlotValueChanged multi once ObjectXNode::attributeTypeChange(attribute,"type") end;
+            self.attributes := self.attributes->including(attribute)
+          end
+        end
+      end;
+      self.elementChanged()
+    end
+
+    @Operation applyMapping()
+      self.object.applyMapping_client()
+    end
+
+    @Operation attributeAdded(element,slot,attribute)
+      self.addSlot(attribute.name(),attribute.getInitialValue());
+      let type = attribute.type
+      in
+        if self.nodeTextType(type)
+        then
+          self.createSlotText(attribute);
+          node.expand()
+        end
+      end
+    end
+    
+    @Operation attributeNameChange(element,slot,newName,oldName)
+      if object.hasSlot(oldName)
+      then
+        let 
+          value = object.get(oldName);
+          daemons = object.daemons()
+        in
+          object.renameSlot(oldName,newName)
+        end
+      end;
+      @For daemon in object.daemons()
+      do
+        let id = daemon.get("id")
+        in
+          if id.hasPrefix(oldName)
+          then
+            daemon.set("id",id.subst(newName,oldName,true))
+          end
+        end
+      end;
+      @For map in owner.slotMaps
+      do
+        if map.object = self.object and map.slot.toString() = oldName.toString() then
+          map.slot := newName;
+          map.edge.name.setName(newName)
+        end
+      end;
+      @For map in owner.setValueMaps
+      do
+        if map.object = self.object and map.slot.toString() = oldName.toString() then
+          map.slot := newName;
+          map.edge.name.setName(newName)
+        end
+      end
+    end
+    
+    @Operation attributeTypeChange(element,slot,newType,oldType)
+      self.owner.removeEdgeForSlot(object,element.name());
+      self.removeSlot(element);
+      self.addSlot(element.name(),element.getInitialValue())
+    end
+    
+    @Operation attributeRemoved(removedAttribute)
+      @For map in slotMaps
+      when
+        map.attribute = removedAttribute
+        do
+          map.text.delete();
+          map.removeDaemons();
+          self.remove(map)
+      end
+    end
+    
+    @Operation attributeRemoved(element,slot,attribute)
+      self.attributeRemoved(attribute);
+      self.owner.attributeRemoved(self,attribute);
+      self.removeSlot(attribute)
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = object.of();
+          clientType = rightClickable.of();
+          proxyTarget = RightClickableProxy::proxyTarget
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  ObjectXNode::proxyElementTarget);
+        globalMenu.add(MenuAction("Delete from Diagram Only",proxyTarget,Seq{},ElementXNode::deleteNodeFromDiagram));
+        globalMenu.add(MenuAction("Order Sequence",proxyTarget,Seq{},ObjectXNode::orderSequence));
+        globalMenu.add(MenuAction("Expand",proxyTarget,Seq{},ObjectXNode::drill));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+    
+    @Operation drill()
+      let drillTo = self.drillTo()
+      in
+        if not drillTo.isEmpty()
+        then
+          let
+            snapshot = self.owner.snapshot then
+            stringOp = 
+                @Operation(object)
+                  if snapshot.nameFor(object) <> null
+                  then
+                    snapshot.nameFor(object) + " : " + object.of().nameString()
+                  else
+                    object.toString()
+                  end
+                end then
+            add = xmf.selects("Drill into object",
+          			  			"Choose the objects to drill into",
+          			  			drillTo,
+          			  			null,
+          			  			stringOp)
+          in
+            if add <> 0-1
+            then
+              @For o in add
+              do
+                snapshot.add(o);  
+                self.owner.objectAdded(o)
+              end;
+              self.owner.generateEdges()
+            end
+          end
+        else
+          xmf.warning("There are no further objects reachable from this object")
+        end
+      end
+    end
+    
+    @Operation drillTo()
+      let
+        slots = object.getStructuralFeatureNames();
+        slotValues = Set{}
+      in
+        @For s in slots
+        do
+          let 
+            attribute = object.of().getAttribute(s);
+            value = object.get(s)
+          in
+            if attribute.type.inheritsFrom(SetOfElement) or attribute.type.inheritsFrom(SeqOfElement)
+            then 
+              @For v in value
+              do
+                if self.validObject(v)
+                then slotValues := slotValues->including(v)
+                end
+              end
+            else
+              if self.validObject(value)
+              then slotValues := slotValues->including(value)
+              end
+            end
+          end
+        end;
+        slotValues
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).object
+    end
+
+    @Operation createSlotText()
+      let atts = object.of().allAttributes()->asSeq->reverse
+      in
+        @For a in atts do
+          if a.type.inheritsFrom(String) or 
+             a.type.inheritsFrom(Integer) or 
+             a.type.inheritsFrom(Boolean) or
+             a.type.inheritsFrom(Float)
+          then
+            self.createSlotText(a)
+          end
+        end
+      end
+    end
+    
+    @Operation createSlotText(attribute)
+      let 
+        value = object.get(attribute.name) then
+        text = node.newSlot(attribute.name,value,attribute.type.inheritsFrom(String)) then
+        map = SlotXText(object,attribute.name,object.get(attribute.name),text)
+      in
+        self.slotMaps := self.slotMaps->prepend(map);
+        map.setOwner(self);
+        text
+      end
+    end
+    
+    @Operation element()
+      object
+    end
+    
+    @Operation hotLoaded() 
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{Object,node.of()},false)
+    end
+    
+    @Operation nodeTextType(type)
+      type.inheritsFrom(String) or 
+      type.inheritsFrom(Integer) or 
+      type.inheritsFrom(Boolean) or
+      type.inheritsFrom(Float)
+    end
+    
+    @Operation nonInstantiableClasses()
+      Set{// the following cannot be created by raw instantiation
+          // or cannot supported by snapshot diagrams...
+            BasicArray,Bind,Buffer,Classifier,CodeBox,Collection,
+            CompiledOperation,Constructor,Daemon,Doc,Exception,
+            ForeignOperation,InitialisedAttribute,InterpretedOperation,
+            MachineException,Operation,Parameter,Seq,Set,Snapshot,SnapshotSet,
+            Table,Vector }
+    end
+    
+    @Operation checkDaemons()
+      super();
+      self.checkNodeDaemons();
+      self.checkSlotDaemons();
+      self.checkAttributeDaemons()
+    end
+    
+    @Operation checkAttributeDaemons()
+      
+      // monitor the attributes of the object's class and all the object's class parents
+      
+      let 
+        class = object.of() then
+        classes = class.allParents()->including(class)
+      in
+        @For class in classes
+        do
+          @SlotValueChanged multi once + ObjectXNode::attributeAdded(class,"attributes") end;
+          @SlotValueChanged multi once - ObjectXNode::attributeRemoved(class,"attributes") end;
+          @SlotValueChanged multi once + ObjectXNode::parentAdded(class,"parents") end;
+          @SlotValueChanged multi once - ObjectXNode::parentRemoved(class,"parents") end
+        end;
+        self.allClasses := classes
+      end;
+      
+      @SlotValueChanged multi once   ObjectXNode::classNameChanged(object.of(),"name") end;
+      
+      @For slot in object.getStructuralFeatureNames() 
+      do
+        let attribute = object.of().getAttribute(slot)
+        in
+          if not self.nodeTextType(attribute.type)
+          then
+            let attribute = object.of().getAttribute(slot)
+            in
+              @SlotValueChanged multi once ObjectXNode::attributeTypeChange(attribute,"type") end;
+              @SlotValueChanged multi once ObjectXNode::attributeNameChange(attribute,"name") end;
+              self.attributes := self.attributes->including(attribute)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation checkNodeDaemons()
+      @SlotValueChanged multi once ObjectXNode::changeObjectName(node.nameBox.name,"text") end
+    end
+    
+    @Operation checkSlotDaemons()
+      let slots = object.getStructuralFeatureNames() in
+        @For slot in slots do
+          let attribute = object.of().getAttribute(slot)
+          in
+            if attribute <> null 
+            then
+              if not self.nodeTextType(attribute.type)
+              then
+                if attribute.type.inheritsFrom(SetOfElement) or attribute.type.inheritsFrom(SeqOfElement)
+                then 
+                  self.addSetContentDaemon(slot)
+                else
+                  self.addSlotChangeDaemon(slot)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation classNameChanged(newName)
+      self.node.setType(newName)
+    end
+    
+    @Operation classNameChanged(object,slot,newValue,oldValue)
+      if newValue <> oldValue
+      then
+        self.classNameChanged(newValue)
+      end;
+      self.elementChanged()
+    end
+    
+    @Operation addSetContentDaemon(slot)
+      let 
+        setAddId = slot + "setElementAdded";
+        setRemId = slot + "setElementRemoved"
+      in
+        @SlotValueChanged once + ObjectXNode::setElementAdded(object,slot) end.set("id",setAddId);
+        @SlotValueChanged once - ObjectXNode::setElementRemoved(object,slot) end.set("id",setRemId)
+      end
+    end
+    
+    @Operation addSlotChangeDaemon(slot)
+      let
+        id = slot + "slotValueChanged"
+      in
+        @SlotValueChanged once ObjectXNode::slotValueChanged(object,slot) end.set("id",id)
+      end
+    end
+    
+    @Operation changeObjectName(element,slot,newName,oldName)
+      if newName <> oldName
+      then
+        self.owner.snapshot.nameChanged(object,newName,oldName);
+        self.elementChanged()
+      end
+    end
+
+    @Operation invokeOp()
+      self.object.invokeOp()
+    end
+
+    @Operation remove(element)
+      @TypeCase(element)
+        SlotXText do
+          self.deleteFromSlotMaps(element)
+        end
+        else self.error("ObjectXNode::add: unknown type of element " + element.toString())
+      end
+    end
+    
+    @Operation removeSlot(attribute)
+      self.attributes := self.attributes->excluding(attribute);
+      attribute.removeDaemonsWithTarget(self,true);
+      attribute.type.removeDaemonsWithTarget(self,true);
+      let
+        id = attribute.name() + "slotValueChanged";
+        setAddId = attribute.name() + "setElementAdded";
+        setRemId = attribute.name() + "setElementRemoved"
+      in
+        self.object.destroyDaemon(object.daemonWithIdAndTarget(id,self));
+        self.object.destroyDaemon(object.daemonWithIdAndTarget(setAddId,self));
+        self.object.destroyDaemon(object.daemonWithIdAndTarget(setRemId,self))
+      end;
+      if self.object.hasSlot(attribute.name())
+      then
+        self.object.removeStructuralFeature(attribute.name())
+      end
+    end
+   
+    @Operation setElementAdded(object,slot,addedValue)
+      self.owner.setElementAdded(object,slot,addedValue);
+      self.elementChanged()
+    end
+    
+    @Operation setElementRemoved(object,slot,removedValue)
+      self.owner.setElementRemoved(object,slot,removedValue);
+      self.elementChanged()
+    end
+    
+    @Operation slotValueChanged(object,slot,newValue,oldValue)
+      self.owner.slotValueChanged(object,slot,newValue);
+      self.elementChanged()
+    end 
+    
+    @Operation object()
+      self.object
+    end
+    
+    @Operation orderSequence()
+      self.object.orderSequence()
+    end
+    
+    @Operation parentAdded(element,slot,parent)
+      self.node.delete()
+    end
+    
+    @Operation parentRemoved(element,slot,parent)
+      self.node.delete()
+    end
+
+    @Operation removeDaemons()
+      super();
+      
+      // remove daemons from the object
+      
+      object.removeDaemonsWithTarget(self,true);
+      object.of().removeDaemonsWithTarget(self,true);
+      
+      // remove daemons from the class
+      
+      // -- remove daemons from attributes
+      
+      @For attribute in self.attributes
+      do
+        attribute.removeDaemonsWithTarget(self,true);
+        attribute.type.removeDaemonsWithTarget(self,true)
+      end;
+      
+      // -- remove deamons from the attribute slot of each classes
+      
+      @For class in allClasses
+      do
+        class.removeDaemonsWithTarget(self,true)
+      end;
+      
+      // remove daemons from the node
+      
+      node.removeDaemonsWithTarget(self,true);
+      node.nameBox.name.removeDaemonsWithTarget(self,true);
+      @For map in slotMaps
+      do
+        map.removeDaemons()
+      end
+    end
+
+    @Operation subMaps()
+      slotMaps
+    end
+    
+    @Operation validObject(object)
+      object <> null andthen 
+      object.of().isKindOf(XCore::Class) andthen 
+      (not self.nonInstantiableClasses()->includes(object.of())) andthen
+      (not self.owner.objectMaps->exists(m | m.object = object))
+    end
+
+  end

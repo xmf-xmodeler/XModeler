@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootEclipseBridge()
+    try 
+      @Fork(Browser)
+        let
+          eclipseClient = Clients::EclipseBridge::EclipseBridgeClient("com.ceteva.eclipseBridge")
+        in 
+          xmf.clientManager().add(eclipseClient)
+        end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

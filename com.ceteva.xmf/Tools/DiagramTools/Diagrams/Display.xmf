@@ -1,0 +1,160 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Display
+  
+    @Doc 
+      Each display element on a diagram has a type.
+      Each element defines how it should be formatted in
+      its container. The layout values are ALIGN, LEFT
+      CENTRE and RIGHT.
+    end
+    
+    @Attribute type          : Element (?,!)        end
+    @Attribute padLeft       : Integer (?,!)        end
+    @Attribute padRight      : Integer (?,!)        end
+    @Attribute padTop        : Integer (?,!)        end
+    @Attribute padBottom     : Integer (?,!)        end
+    @Attribute minWidth      : Integer (!)          end
+    @Attribute minHeight     : Integer (!)          end
+    @Attribute maxWidth      : Integer = 9999 (!)   end
+    @Attribute maxHeight     : Integer = 9999 (!)   end
+    @Attribute deleteHandler : Operation (!,?)      end
+    
+    @Operation delete()
+      if deleteHandler <> null
+      then deleteHandler(self)
+      end;
+      super()
+    end
+    
+    @Operation delete(layout:Boolean)
+    
+      // Delete the element and then re-format the
+      // root container if layout is true.
+      
+      self.delete();
+      if layout then self.root().layout() end
+    end
+    
+    @Operation initDiagrams(tool)
+      null
+    end
+    
+    @Operation layoutHeight():Integer
+      // Returns the height taken up by the receiver.
+      (self.minHeight() + padTop + padBottom).max(minHeight).min(maxHeight)
+    end
+    
+    @Operation layoutResize(width:Integer,height:Integer)
+      self.resize(width,height)
+    end
+    
+    @Operation layoutWidth():Integer
+      // Returns the width taken up by the receiver.
+      (self.minWidth() + padLeft + padRight).max(minWidth).min(maxWidth)
+    end
+    
+    @Operation maxLayoutHeight():Integer
+      // The maximum size we are allowed to reduce to.
+      maxHeight
+    end
+    
+    @Operation maxLayoutWidth():Integer
+      // The maximum size we are allowed to reduce to.
+      maxWidth
+    end
+    
+    @Operation minHeight()
+      super().max(minHeight)
+    end
+    
+    @Operation minLayoutHeight():Integer
+      // The minimum size we are allowed to reduce to.
+      minHeight
+    end
+    
+    @Operation minLayoutWidth():Integer
+      // The minimum size we are allowed to reduce to.
+      minWidth
+    end
+    
+    @Operation minWidth()
+      super().max(minWidth)
+    end
+    
+    @Operation needsBaseAbutt()
+      false
+    end
+    
+    @Operation needsLeftAbutt()
+      false
+    end
+    
+    @Operation needsRightAbutt()
+      false
+    end
+    
+    @Operation needsTopAbutt()
+      false
+    end
+    
+    @Operation padHeight():Integer
+      // Returns the padding used for height.
+      self.padTop() + self.padBottom()
+    end
+    
+    @Operation padWidth():Integer
+      // Returns the padding used for the width.
+      self.padLeft() + self.padRight()
+    end
+    
+    @Operation ref(path:Seq(String)):Seq(Display)
+      // The default reference is to the display element.
+      Seq{self}
+    end
+
+    @Operation renewGlobalMenu(tool,parentPath)
+      let path = parentPath + Seq{type.name.toString()}
+      in
+        type.setGlobalMenu(self,tool,path,false);
+        if self.isKindOf(Diagrams::Container)
+        then
+          @For content in self.contents() do
+            if not content.isKindOf(Diagram)
+            then
+              content.renewGlobalMenu(tool,path)
+            end
+          end
+        end
+      end
+    end
+
+    @Operation resize(width:Integer,height:Integer)
+      // Do not resize past the min and max limits.
+      super(width.max(minWidth).min(maxWidth),height.max(minHeight).min(maxHeight))
+    end
+    
+    @Operation root()
+      // returns the root node containing the display
+      // element.
+      if self.owner().isReallyKindOf(Clients::Diagrams::Node)
+      then self.owner()
+      else
+        if self.owner().isReallyKindOf(Tools::DiagramTools::Diagrams::Display)
+        then self.owner().root()
+        else self.error("Cannot find the root node for " + self.toString())
+        end
+      end
+    end
+    
+    @Operation setTextFocus()
+      null
+    end
+    
+  end

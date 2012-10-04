@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Evaluator;
+import OCL;
+
+@Handler Self in Eval(aSelf,arg,seen)
+  result(aSelf,target,cont)
+end;

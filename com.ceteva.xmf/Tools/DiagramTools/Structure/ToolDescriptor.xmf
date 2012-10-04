@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Basic;
+import DiagramTools;
+import Structure;
+
+context Structure
+
+  @Class ToolDescriptor extends Basic::ToolDescriptor
+  
+    @Attribute diagramContribution : Clients::DiagramsMapping::DiagramContribution (?,!) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      ToolDescriptor ::= sig = ToolSig  t = ToolDescriptorType E = Exp* {
+        ToolDescriptor::expand(sig,t,E)
+      }.
+      
+      ToolSig ::= n = ToolSigName ns = ('::' ToolSigName)* { Seq{n | ns} }.
+      
+      ToolSigName ::= Name | Str.
+      
+      ToolDescriptorType ::= 'type' '=' Exp | { [| Tools::DiagramTools::Structure::Tool |] }.
+      
+    end
+    
+    @Operation expand(sig,type,E)
+      let class = sig->butLast;
+          name = sig->last then
+          body = 
+           [| let td = Tools::DiagramTools::Structure::ToolDescriptor(<OCL::StrExp(name)>).toolClass := <type>
+              in <E->iterate(e x = [| td |] |
+                   [| <x>.add(<e>) |])>;
+                 td
+              end |];
+          path = 
+            if sig->size = 1 
+            then null 
+            else [| xmf.toolManager().getNameSpace(<OCL::Path::toPath(class)>) |]
+            end
+      in if sig->size = 1
+         then body
+         else OCL::ContextDef(path,body)
+         end
+      end
+    end
+
+    @Operation postLoad()
+      super();
+      xmf.diagramManager().addContribution(diagramContribution)
+    end
+
+  end
+  

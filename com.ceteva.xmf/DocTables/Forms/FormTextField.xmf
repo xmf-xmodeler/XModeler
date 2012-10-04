@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class FormTextField extends Entry
+
+    @Attribute label 	 : String (?,!) end
+    @Attribute size  	 : Integer (?,!) end
+    @Attribute value 	 : String = "" (?,!) end
+    @Attribute hideInput : Boolean = false end
+
+    @Constructor(label,size) ! end
+    
+    @Constructor(label,size,value) ! end
+    
+    @Operation bind(vEnv,fEnv)
+      vEnv.bind(label,fEnv.lookup(label))
+    end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

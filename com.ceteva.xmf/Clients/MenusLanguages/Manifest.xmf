@@ -1,0 +1,9 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest MenusLanguages
+  @File XMap end
+  @File Associations end
+end;

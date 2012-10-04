@@ -1,0 +1,23 @@
+parserImport Manifests;
+
+@Manifest Instrs
+  @File Instrs end
+  @File Instr end
+  @File Allocate end
+  @File BindLocVar end
+  @File BindPermVar end
+  @File Call end
+  @File Const end
+  @File LocVar end
+  @File Obj end
+  @File Pair end
+  @File PermVar end
+  @File RefLocVar end
+  @File RefPermVar end
+  @File Return end
+  @File UnifyConst end
+  @File UnifyLocVar end
+  @File UnifyPair end
+  @File UnifyPermVar end
+  @File UnifyObj end
+end;

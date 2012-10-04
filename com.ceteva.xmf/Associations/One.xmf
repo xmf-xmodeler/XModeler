@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class One extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity 1 requires that the attribute
+      is associated with exactly one instance of the appropriate 
+      class or null.
+    end
+    
+    @Constructor() end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      XCore::SingleMult(false)
+    end
+
+    @Operation typeExp(type)
+      type
+    end
+    
+    @Operation multString():String
+      ""
+    end
+    
+  end

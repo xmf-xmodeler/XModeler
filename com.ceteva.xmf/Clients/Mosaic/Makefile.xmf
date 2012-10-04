@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile("Clients/Mosaic/Boot",true,true);
+compileFile("Clients/Mosaic/Mosaic",true,true);
+compileFile("Clients/Mosaic/MosaicClient",true,true);
+compileFile("Clients/Mosaic/MosaicCommandInterpreter",true,true);
+compileFile("Clients/Mosaic/MosaicEventHandler",true,true);
+compileFile("Clients/Mosaic/GraphicalTool",true,true);
+compileFile("Clients/Mosaic/Perspective",true,true);
+compileFile("Clients/Mosaic/PlaceHolder",true,true);

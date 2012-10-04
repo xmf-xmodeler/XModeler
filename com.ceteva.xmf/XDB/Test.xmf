@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import IO;
+import Evaluator;
+
+context Root
+
+  @Operation test()
+    XDB([| @For x in Seq{1,2,3} do x.println() end  |]).showForm()
+  end

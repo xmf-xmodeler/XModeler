@@ -1,0 +1,68 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import Menus;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CodeboxDisplayTextBox isabstract extends FormTextBox, ContextFormElement, RightClickable
+
+    @Operation buildGlobalMenu()
+      let 
+        globalMenu = super();
+        target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Reject Changes",target,Seq{},CodeboxDisplayTextBox::cancelChanges));
+        globalMenu.add(MenuAction("Commit Changes",target,Seq{},CodeboxDisplayTextBox::commitChanges));
+        globalMenu
+      end
+    end
+    
+    @Operation cancelChanges()
+      self.changesMade(false);
+      self.resetText()
+    end
+    
+    @Operation commitChanges()
+      self.changesMade(false);
+      self.setTextIn(self.getText())
+    end
+
+    @Operation codeboxEditorType()
+      CodeboxEditor
+    end
+    
+    @Operation new(parent)
+      super(parent);
+      self.setMenuKey(Set{self});
+      self.setRightClickMenu()
+    end
+    
+    @Operation newCodeboxEditor()
+      let formsClient = xmf.findClient(Clients::Forms::FormClient)
+      in
+        if formsClient <> null
+        then
+          let type = self.of() then
+              clone = type(0,0,0,0,text,isEditable)
+                        .setContex(contex)
+                        .setSlotName(slotName);
+              editorType = self.codeboxEditorType()
+          in
+            clone.wordRules := self.wordRules;
+            let editor = editorType(clone)
+            in
+              editor.isLocked := true;
+              formsClient.newForm(editor);
+              editor.textbox.maximise();
+              editor.updateTools()
+            end
+          end
+        end
+      end
+    end
+
+  end

@@ -1,0 +1,118 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class CutCopyHandler isabstract
+
+    // con.getValue(0) = description
+    // con.getValue(1) = condition
+    // con.getValue(2) = action
+
+    // Note, cut contributions are registered against the PARENT element type whereas
+    // copy contributions are registered simply against the ELEMENT type.
+
+    @Attribute cutEnabled : Boolean (?,!) end
+
+    @Operation acceptCut(source)
+      @Doc
+        This operation determines whether or not a 'Cut to Clipboard' action is accepted.
+      end
+
+      let parent = source.parent();
+          element = source.element();
+          widget = source.cutCopyHandler()
+      in
+        if parent <> null
+        then
+          let contributions =
+                try xmf.registry().getExtensionPoint("com.ceteva.xmf.clipboard.cut").find(parent.of())
+                catch(exception) exception.edit()
+                end;
+              accept = false
+          in
+            source.setValidContributions(Seq{});
+            @For con in contributions do
+              let acceptOp = con.getValue(1)
+              in
+                if acceptOp.invoke(null,Seq{parent,element,widget})
+                then source.addToValidContributions(con);
+                     accept := true
+                end
+              end
+            end;
+            accept
+          end
+        end
+      end
+    end
+    
+    @Operation contributionStringOp(con)
+      con.getValue(0)
+    end
+
+    @Operation copyToClipboard()
+      xmf.clipboard().copy(self.getClipboardSource())
+    end
+
+    @Operation copyToClipboard_transaction()
+      xmf.clipboard().clear();
+      xmf.clipboard().copy(self.getClipboardSource())
+    end
+
+    @Operation cutToClipboard()
+      xmf.clipboard().cut(self.getClipboardSource())
+    end
+
+    @Operation cutToClipboard_transaction()
+      xmf.clipboard().clear();
+      xmf.clipboard().cut(self.getClipboardSource())
+    end
+
+    @AbstractOp getClipboardSource():ClipboardSource
+      @Doc
+        This operation generates an appropriate ClipboardSource for the clipboard to handle the cut/copy.
+      end
+    end
+
+    @Operation handleCut(source)
+      @Doc
+        This operation determines how the 'Cut to Clipboard' action is handled.
+      end
+
+      let parent = source.parent();
+          element = source.element();
+          widget = source.cutCopyHandler();
+          validContributions = source.validContributions()
+      in
+        if parent <> null
+        then
+          if validContributions->isEmpty
+          then xmf.warning("There is no valid cut operation to be performed.")
+          else
+            let con = 
+                  if validContributions->size = 1
+                  then validContributions->at(0)
+                  else xmf.select("Select Cut Action",
+                                  "Choose the appropriate cut action",
+                                  validContributions,
+                                  null,
+                                  CutCopyHandler::contributionStringOp)
+                  end
+            in
+              if con <> null
+              then
+                let handlerOp = con.getValue(2)
+                in
+                  handlerOp.invoke(null,Seq{parent,element,widget})
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+  end

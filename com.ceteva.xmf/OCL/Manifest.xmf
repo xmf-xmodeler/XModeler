@@ -1,0 +1,71 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest OCL
+  @File OCL end
+  @File TypeExp end
+  @File NamedType end
+  @File OpType end
+  @File ParametricType end
+  @File Pattern end
+  @File KeyArg end
+  @File Addp end
+  @File Apply end
+  @File BinExp end
+  @File Binding end
+  @File BoolExp end
+  @File Collexp end
+  @File Condp end
+  @File ConsExp end
+  @File Const end
+  @File Consp end
+  @File Constp end
+  @File ContextDef end
+  @File Dot end
+  @File Drop end
+  @File DropPattern end
+  @File DropCollection end
+  @File FloatExp end
+  @File HeadUpdate end
+  @File If end
+  @File ImportIn end
+  @File Includingp end
+  @File Instantiate end
+  @File IntExp end
+  @File IterExp end
+  @File Iterate end
+  @File Keyp end
+  @File Keywordp end
+  @File ValueBinding end
+  @File Let end
+  @File Lift end
+  @File Negate end
+  @File Objectp end
+  @File Operation end
+  @File Order end
+  @File Parentheses end
+  @File ParserImport end
+  @File Path end
+  @File PathUpdate end
+  @File PatternFailed end
+  @File Self end
+  @File Send end
+  @File SetExp end
+  @File SlotUpdate end
+  @File StrExp end
+  @File Syntaxp end
+  @File TailUpdate end
+  @File Throw end
+  @File Try end
+  @File Update end
+  @File Var end
+  @File Varp end
+  @File VarUpdate end
+
+do 
+  Project(OCL,dir,self)
+end;
+   
+    

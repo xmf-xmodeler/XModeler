@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class FileInputChannel extends InputChannel
+    
+    @Doc
+       A FileInputChannel generates a sequence of characters from a file.
+       Constructor: FileInputChannel(path)
+         Creates and returns a file input channel from the given file.
+         The path should be string.
+    end
+        
+    @Attribute channel : Element end
+      
+    @Operation asString():String
+      Kernel_readString(channel)
+    end
+    
+    @Operation channel()
+      channel
+    end
+        
+    @Operation close()
+      Kernel_close(channel)
+    end
+    
+    @Operation init(args) 
+      let fileName = args->at(0)
+      in self.channel := Kernel_fileInputChannel(fileName)
+      end
+    end    
+      
+    @Operation eof():Boolean
+      Kernel_eof(channel)  
+    end 
+    
+    @Operation peek():Integer
+      Kernel_peek(channel)
+    end
+       
+    @Operation read():Integer
+       Kernel_read(channel)
+    end
+    
+    @Operation read(v:Vector):Integer
+      Kernel_readVector(channel,v)
+    end
+    
+    @Operation setChannel(channel)
+      self.channel := channel
+    end
+     
+  end

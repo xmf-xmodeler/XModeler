@@ -1,0 +1,202 @@
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class Walk extends Walker
+  
+    @Doc
+      An instance of this class can be used to walk over an element up to a given
+      limit. The result is a history of the walk expressed as a sequence with the root
+      at the head of the sequence. Each type of element encodes its component 
+      elements in an appropriate way in the tail of the sequence.
+    end
+  
+    @Attribute limit : Integer end
+    
+    @Constructor(limit) ! 
+      self.initWalker()
+    end
+    
+    @Operation allElements(walk):Seq(Element)
+    
+      // This operation takes the result produced by a walk and strips out the
+      // encoding, producing just the elements that were encountered.
+      
+      let element = walk->head;
+          elements = walk->tail
+      in
+      
+        @TypeCase(element)
+          Null do 
+            Seq{null}
+          end
+          Boolean do
+            Seq{element}
+          end
+          Integer do
+            Seq{element}
+          end
+          String do
+            Seq{element}
+          end
+          Float do
+            Seq{element}
+          end
+          Operation do
+            Seq{element}
+          end
+          Seq(Element) do
+            elements->collect(e | Walk::allElements(e))->flatten->including(element)
+          end
+          Set(Element) do
+            elements->collect(e | Walk::allElements(e))->flatten->including(element)
+          end
+          Object do
+            elements->collect(s | Walk::allElements(s->at(1)))->flatten->including(element)
+          end
+          Table do
+            elements->collect(p | Walk::allElements(p->at(0)) + Walk::allElements(p->at(1)))->flatten->including(element)
+          end
+          Vector do
+            elements->collect(e | Walk::allElements(e))->flatten->including(element)
+          end
+          else Seq{}
+        end
+        
+      end
+      
+    end
+          
+    @Operation defaultWalk(e:Element,n:Element):Element
+      Seq{}
+    end
+    
+    @Operation reachable(element,limit:Integer):Seq(Element)
+    
+      // This operation may be used to calculate the reachable elements
+      // from a root element given a limit on the walk. The history of the
+      // walk is not returned.
+      
+      self.reset();
+      self.limit := limit;
+      self.allElements(self.walk(element,0))
+    end
+    
+    @Operation reWalk(v:Element,n:Element):Element
+      Seq{}
+    end
+    
+    @Operation snapshot(name:String,package:Package,element,limit:Integer):Snapshot
+      
+      // Returns a snapshot containing the elements reachable from the
+      // supplied root element given the limit on the walk.
+      
+      let snapshot = Snapshot(name,Seq{package});
+          elements = self.reachable(element,limit)
+      in @For element in elements do
+           if element.isReallyKindOf(Object)
+           then snapshot.add("",element)
+           end
+         end;
+         snapshot
+      end
+    end
+    
+    @Operation walk(element:Element,n:Element):Element
+    
+      // Walk produces an instance of Walk. Each type specific
+      // walker produces a sequence of walk paths. If we have
+      // reached the limit then we do not calculate the paths.
+      
+      if n = limit
+      then Seq{element}
+      else Seq{element | super(element,n)}
+      end
+    end
+    
+    @Operation walkBoolean(b:Boolean,n:Element):Element 
+      Seq{}
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      Seq{}
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      Seq{}
+    end
+    
+    @Operation walkObject(o:Object,n:Element):Element 
+       self.encounter(o);
+       let names = o.getStructuralFeatureNames() 
+       in names->asSeq->collect(name |
+            self.walkSlot(o,name,n))
+       end
+     end
+    
+    @Operation walkOperation (o:Operation,arg:Element):Element
+      Seq{}
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,n:Element):Element 
+      if s->isEmpty
+      then Seq{}
+      else
+        Seq{self.walk(s->head,n+1),
+            self.walk(s->tail,n+1)}
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,n:Element):Element 
+      s->asSeq->collect(x | self.walk(x,n+1))
+    end
+  
+    @Operation walkSlot(o:Object,s:String,n:Element)
+      let value = o.get(s)
+      in Seq{s,self.walk(value,n+1)}
+      end
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      Seq{}
+    end
+    
+    @Operation walkSymbol(s:Symbol,arg:Element):Element 
+      Seq{}
+    end
+    
+    @Operation walkTable(t:Table,n:Element):Element
+      let keys = t.keys()->asSeq
+      in keys->collect(k | Seq{self.walk(k,n+1),self.walk(t.get(k),n+1)})
+      end
+    end
+    
+    @Operation walkVector(v:Vector,n:Element):Element
+     0.to(v.size()-1)->collect(i | Seq{i,self.walk(v.ref(i),n+1)})
+    end
+     
+  end
+  
+xmf.definePreference("WalkDepth",3,Integer,false);
+  
+context Element
+  // Creates a snapshot by walking an object structure
+  // The name of the snapshot is stripped of illegal characters so that
+  // it can be treated as a path name.
+  @Operation toSnapshot()
+    let w = Walk(xmf.preference("WalkDepth"))
+    in w.snapshot(self.toString().stripIllegalChars(),XCore,self,xmf.preference("WalkDepth"))
+    end
+  end
+  
+context Element
+  // Creates a snapshot by walking an object structure
+  // The version can be passed the walkdepth via the console.
+  @Operation toSnapshot(depth:Integer)
+    let w = Walk(depth)
+    in w.snapshot(self.toString().stripIllegalChars(),XCore,self,depth)
+    end
+  end
+     

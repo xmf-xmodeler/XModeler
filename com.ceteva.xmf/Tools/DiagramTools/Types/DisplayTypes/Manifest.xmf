@@ -1,0 +1,24 @@
+parserImport Manifests;
+
+@Manifest DisplayTypes
+
+  DisplayTypes = @File DisplayTypes end
+                 @File AttEnv       end
+                 @File AbstractDisplayType  end
+                 @File DisplayType  end
+                 @File NoDisplay    end
+                 @File Text         end
+                 @File Exp          end
+                 @File PaddedText   end
+                 @File Image        end
+                 @File Box          end
+                 @File PaddedBox    end
+                 @File Star         end
+                 @File Or           end
+                 @File Ellipse      end
+                 @File Line         end
+                 @File Point        end
+                 @File Shape        end
+                 @File Ref          end
+do DisplayTypes
+end;

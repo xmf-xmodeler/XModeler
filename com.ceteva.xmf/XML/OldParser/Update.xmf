@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Update extends Pattern
+  
+    @Doc
+      An update parses a pattern and then associates the current value
+      of the name to the value of the pattern in the current table of
+      references. The reference table is used to resolve id references
+      that occur in XML.
+    end
+    
+    @Attribute name : String end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(name,pattern) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Update(<StrExp(name)>,<pattern.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      pattern.parse(grammar,env,elements,
+        @Operation(env,result,elements,fail,refTable)
+          grammar.debug(indent,"Update ~S = ~S~%",Seq{name,result});
+          if env.binds(name)
+          then succ(env,result,elements,fail,refTable.put(env.lookup(name),result))
+          else self.error("The variable " + name + " is unbound.")
+          end
+        end,
+        fail,
+        indent,
+        refTable)
+    end
+    
+  end

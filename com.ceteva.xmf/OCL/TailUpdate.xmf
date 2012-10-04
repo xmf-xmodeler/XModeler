@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class TailUpdate extends OCL::OCL
+  
+    // A sequence tail update expression.
+    
+    @Attribute seq : Performable end
+    @Attribute value : Performable end
+    
+    @Constructor(seq,value) ! end
+    
+    @Operation pprint(out,indent)
+      seq.pprint(out,indent);
+      format(out,"->tail := ");
+      value.pprint(out,indent)
+    end
+    
+  end

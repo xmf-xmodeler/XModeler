@@ -1,0 +1,6 @@
+import OCL;
+
+context SlotUpdate
+  @Operation eval(element,env,imports)
+    target.eval(element,env,imports).set(name,value.eval(element,env,imports))
+  end

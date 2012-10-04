@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Text extends Clients::Diagrams::Text, Display
+  
+    @Attribute textChangedHandler : Operation (!,?) end
+  
+    @Operation init(args:Seq(Element))
+      super(args);
+      self.addDaemons();
+      self
+    end
+    
+    @Operation addDaemons()
+      @SlotValueChanged multi Text::textChanged(self,"text") end
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+    
+    @Operation new(parent,setMenu)
+      let text = super(parent,setMenu)
+      in if type.setFocus()
+         then text.editText()
+         end;
+         text
+      end
+    end
+
+    @Operation removeDaemons()
+      self.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation renew(parent)
+      self.addDaemons();
+      super(parent)
+    end
+    
+    @Operation setTextFocus()
+      if type.setFocus()
+      then self.editText()
+      end
+    end
+
+    @Operation textChanged(text,slot,new,old)
+      textChangedHandler(text,new,old)
+    end
+    
+    @Operation toString() 
+      self.type().name + "(" + text + ")"
+    end
+    
+  end

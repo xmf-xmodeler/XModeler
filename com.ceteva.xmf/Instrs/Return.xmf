@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Return extends Instr
+  
+    @Doc
+      A machine instruction that returns from the current operation call.
+      The value at the top of the stack is popped and the current stack
+      frame is discarded (returning to the most recently pushed stack
+      frame). The value is then pushed onto the top of the stack. This must be
+      the last instruction executed in the body of an operation.
+    end
+     
+    @Operation toString():String
+      "<Return>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

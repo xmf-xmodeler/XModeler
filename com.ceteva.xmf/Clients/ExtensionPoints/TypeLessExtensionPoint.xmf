@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class TypeLessExtensionPoint extends ExtensionPoint
+  
+    @Doc
+      A type indepe-ndent extension point does not require a type to
+      reference the value.  This type of extension point is typically
+      used when all contributions of a given extension are looked up.
+    end
+    
+    @Operation getAll()
+    
+      // returns all contributions
+      
+      contributions
+    end
+  
+  
+  end

@@ -1,0 +1,116 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class ObjectNode extends Node
+  
+    // since no object exists for this node, we need to record which class the
+    // user wants the object to be an instance of.  The mapping should then take
+    // care of producing an object of the appropriate class and ensuring
+    // consistency between the ObjectNode and Object
+    
+    @Attribute classOf  : Class (?) end
+    @Attribute nodeBox  : Box end
+    @Attribute nameBox  : Box end
+    @Attribute slotBox  : Box end
+    
+    @Constructor(classOf,x,y)
+      self.width := 50;
+      self.height := 40;
+      self.nodeBox := Box(0,0,self.width,self.height,0,Color(),Color());
+      self.nameBox := NameBox("object",classOf.name.toString(),0,0,self.width);
+      self.slotBox := SlotBox(0,30,self.width)
+    end
+
+    @Operation addDisplays()
+      self.add(nodeBox);
+      nodeBox.add(nameBox);
+      nodeBox.add(slotBox)
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete from Snapshot","",target,Seq{},Node::delete));
+        globalMenu
+      end
+    end
+
+    @Operation packHeight()
+      nameBox.packHeight();
+      slotBox.packHeight();
+      slotBox.move(0,nameBox.height() - 1);
+      super()
+    end
+     
+    @Operation expandHeight()
+      nameBox.expandHeight();
+      slotBox.expandHeight();
+      slotBox.move(0,nameBox.height() - 1);
+      super()
+    end
+    
+    @Operation layoutId():String
+     
+       // Returns an id that is unique for nodes in this diagram. The id is
+       // used to relocate the node when layout data is read in.
+       
+       self.name()
+    end
+    
+    @Operation name():String 
+      self.nameBox.name.text()
+    end
+    
+    @Operation newSlot(name,value,isString)
+      let text = slotBox.nextSlot(name,value,isString)
+      in 
+        slotBox.add(text);
+        text.new(slotBox);
+        slotBox.expand();
+        text
+      end
+    end
+    
+    @Operation type():String
+      self.nameBox.type.text()
+    end
+    
+    @Operation resize(width,height)
+      let 
+        width = width.max(self.minWidth());
+        height = height.max(self.minHeight())
+      in
+        super(width,height);
+        @For port in ports do
+          port.resize(width,height)
+        end;
+        nodeBox.resize(width,height);
+        nameBox.resize(width,nameBox.maxHeight());
+        slotBox.resize(width,height-slotBox.y());
+        if icon <> null then
+          icon.resize(width,height)
+        end
+      end
+    end
+    
+    @Operation setName(name:String)
+      self.nameBox.name.setText(name)
+    end
+    
+    @Operation setType(name:String)
+      self.nameBox.setType(name)
+    end
+    
+  end

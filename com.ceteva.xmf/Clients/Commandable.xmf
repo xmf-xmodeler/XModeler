@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Clients;
+
+context Clients
+
+  @Class Commandable isabstract
+  
+    @Attribute commandInterpreter : Element end
+  
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else self.error(
+        self.of().nameString() +
+        ": CommandInterpreter cannot be found as " + self.nameString() + " has no owner.")
+      end
+    end
+
+  end

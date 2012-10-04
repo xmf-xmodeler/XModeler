@@ -1,0 +1,101 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import IO;
+import Env;
+
+context AllAspects::Inspect
+
+  @Class Sheet
+  
+    @Operation inspectDialog(level)
+    
+      @Dialog
+      
+        @Dialog populate(rows,cols)
+          if rows->isEmpty
+          then self.inspectDialog(level)
+          else
+            @Commands
+              populateRow(rows->head,cols)
+              populate(rows->tail,cols)
+            end
+          end
+        end
+        
+        @Dialog populateRow(row,cols)
+          if cols->isEmpty
+          then @Skip end
+          else 
+            @Let value = @Value [ "(" + row.toString() + "," + cols->head.toString() + "): " ] Element end
+            in self.setCell(row,cols->head,value);
+               populateRow(row,cols->tail)
+            end
+          end
+        end
+      
+        @Commands
+          @Separator end
+          @Show "Inspect[" + level + "]" self end
+          @Separator end
+          @Show "" let i = StringOutputChannel() in self.pprint(i,inspectWidth); i.getString() end end
+          @Separator end
+          @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Populate") populate(rows,cols) end
+            @Option("Set Width") 
+              @Let width = @Value [ "Type in width then newline: " ] Integer end
+              in self.inspectWidth := width;
+                 self.inspectDialog(level)
+              end
+            end
+            @Option("Inspect a cell (row,col)")
+              @Let row = @Value [ "Type row expression then ; " ] Element end
+               in @Let col = @Value [ "Type col expression then ; " ] Element end
+                  in if self.hasCell(row,col)
+                     then 
+                       @Commands
+                         self.getCell(row,col).inspectDialog(level+1)
+                         self.inspectDialog(level)
+                       end
+                     else 
+                       @Commands
+                         @Show "No such location." "" end
+                         self.inspectDialog(level)
+                       end
+                     end
+                  end
+               end
+            end
+            @Option("Set a cell (row,col)")
+              @Let row = @Value [ "Type row expression then ; " ] Element end
+               in @Let col = @Value [ "Type col expression then ; " ] Element end
+                  in if self.hasCell(row,col)
+                     then 
+                       @Let value = @Value Element end
+                       in self.setCell(row,col,value);
+                          self.inspectDialog(level)
+                       end
+                     else 
+                       @Commands
+                         @Show "No such location." "" end
+                         self.inspectDialog(level)
+                       end
+                     end
+                  end
+               end
+            end
+          end
+        end
+       end
+     end
+   end

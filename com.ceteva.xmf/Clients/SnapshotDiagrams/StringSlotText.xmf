@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class StringSlotText extends SlotText
+  
+    @Constructor(name,value,x,y) ! 
+      self.name := Text(name,x+5,y,false);
+      self.equals := Text("=",x+25,y,false);
+      self.value := StringSlotValue(value,x + 50,y);
+      
+      // A group should not have any Display attributes set.
+      
+      self.x := 0;
+      self.y := 0
+    end
+  
+  end

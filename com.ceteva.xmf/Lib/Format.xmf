@@ -1,0 +1,528 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class FormatContext
+  
+    @Doc
+      A formatter uses a context to control formatting.
+      The context is created on each call to a formatter
+      and is updated during formatting. The format context
+      is supplied to format handlers so that thay can consume
+      arbitrary values and control string characters.
+      Constructor: FormatContext(control,values,index)
+        The control is a control string, the values area sequence of
+        values controlled by the control string and the index is an
+        integer index into the control string.
+    end
+    
+    @Attribute control : String       end // The control string.
+    @Attribute values  : Seq(Element) end // The values used by the control string.
+    @Attribute used    : Seq(Element) end // Used values as a stack.
+    @Attribute index   : Integer      end // The index into the control string.
+    @Attribute args    : Seq(Element) end // The args set after ~ between < and >.
+    
+    @Constructor(control,values,index) ! end
+    
+    @Operation appendControl(control)
+      self.control := self.control.subString(index,control->size);
+      self.control := control + self.control;
+      self.index := 0
+    end
+    
+    @Operation appendValues(values) 
+      self.values := values + self.values
+    end
+    
+    @Operation at()
+      // Flatten the next value at the head of the control.
+      if values->isEmpty
+      then self.error("~@ no args left.")
+      else
+        let value = values->head
+        in if value.isKindOf(Seq(Element))
+           then self.values := value + values->tail
+           else self.error("~@ expects a sequence: " + value.toString())
+           end
+        end
+      end
+    end
+    
+    @Operation backup()
+      if not used->isEmpty
+      then
+        self.values := Seq{used->head | values};
+        self.used := used->tail
+      end
+    end
+    
+    @Operation controlTo(char):String
+    
+      @Doc
+        Returns the string up to and including the supplied control
+        char. Removes the control chars from the head of the control 
+        string. Note that this does not take into account nested
+        control strings.
+      end
+         
+      let string = Seq{};
+          found = false
+      in @While not(self.complete() or found) do
+           let c = self.nextChar()
+           in if c = "~"->at(0)
+              then 
+                if not(self.complete())
+                then let c = self.nextChar()
+                     in if char = c
+                        then found := true
+                        else string := string + Seq{"~"->at(0),c}
+                        end
+                     end
+                else string := string + Seq{c}
+                end
+              else string := string + Seq{c}
+              end
+           end
+         end;
+         string->asString
+      end
+    end
+    
+    @Operation complete():Boolean
+      // Returns true when the control has been
+      // consumed in the context.
+      control->size <= index
+    end
+    
+    @Operation lift()
+      self.values := Seq{values->at(0) | values->tail}
+    end
+    
+    @Operation nextChar():Integer
+      // Returns the next char and advances the control index.
+      let char = control->at(index)
+      in self.index := index + 1;
+         char
+      end
+    end
+    
+    @Operation nextValue():Element
+    
+      // Consumes and returns the next value. The value is
+      // added to the used stack so that we can rewind the
+      // values.
+      
+      if values->isEmpty
+      then "Format: ran out of values at: " + index + " in: " + control
+      else 
+        let next = values->head
+        in self.values := values->tail;
+           self.used := Seq{next | used};
+           next
+        end
+      end
+    end
+    
+    @Operation nextValueToString():String
+      let value = self.nextValue()
+      in try
+           value.toString()
+         catch(exception)
+           Root.putElement("xxValue",value);
+           "Format error: Variable Root::xxValue has been set to the offending element."
+         end
+      end
+    end
+    
+    @Operation parseArg()
+      if not self.complete()
+      then
+        let char = self.nextChar()
+        in if char.isNumericChar()
+           then self.parseNumeric(char - "0"->at(0))
+           else 
+             if char = "?"->at(0)
+             then 
+               self.nextValue()
+             else self.parseString(Seq{char}->asString)
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation parseArgs()
+    
+      // After a ~ we may encounter < args > before the
+      // dispatch character *** don't use < as a dispatch 
+      // character ***. Within the < and > we may have literal 
+      // values or ? which means that the arg is supplied in the
+      // control values. The args set the sequence of values
+      // used by the dispatch handler.
+      
+      self.args := Seq{};
+      let c = self.peekChar()
+      in if c = "<"->at(0)
+         then 
+           self.nextChar();
+           @While self.peekChar() <> ">"->at(0) and not self.complete() do
+             self.args := self.args + Seq{self.parseArg()};
+             if self.peekChar() = ","->at(0)
+             then self.nextChar()
+             end
+           end;
+           if self.complete()
+           then self.error("Control exhausted.")
+           else 
+             self.nextChar()
+           end
+         end
+      end
+    end
+    
+    @Operation parseNumeric(value)
+      if self.complete()
+      then value
+      else 
+        let c = self.peekChar()
+        in if c.isNumericChar()
+           then self.parseNumeric((value * 10) + (self.nextChar() - "0"->at(0)))
+           else value
+           end
+        end
+      end
+    end
+    
+    @Operation parseString(value)
+      if self.complete()
+      then value
+      else 
+        let c = self.peekChar()
+        in if c = ","->at(0) or c = ">"->at(0)
+           then value
+           else self.parseString(value + Seq{self.nextChar()}->asString)
+           end
+        end
+      end
+    end
+    
+    @Operation peekChar():Integer
+      control->at(index)
+    end
+    
+  end
+
+context IO
+
+  @Class Format
+  
+    @Doc
+      This cass implements a formatter. A formatter is applied to an
+      output channel, a control string and an optional sequence of
+      argments. The formatter prints out the chars of the control
+      string with respect to the arguments. Control chars are 
+      introduced via '~' and invoke the appropriate control char handler.
+    end
+    
+    @Attribute handlers : Table end
+    
+    @Operation defineHandler(char:Integer,handler)
+      // Define a handler. The handler should take the following args:
+      // 
+      // The char.
+      // The output channel.
+      // The format context.
+      //
+      handlers.put(char,handler)
+    end
+    
+    @Operation dispatch(char,output,formatContext)
+      // Find a handler for the char and invoke it.
+      if handlers.hasKey(char)
+      then 
+        let handler = handlers.get(char)
+        in 
+          handler(char,output,formatContext);
+          self.format(output,formatContext)
+        end
+      else self.error("Format::dispatch: no handler for " + Seq{char}->asString)
+      end
+    end
+    
+    @Operation format(output,formatContext):Element
+    
+      @Doc
+        This is the formatting loop. While there are control chars:
+        if the char is '~' then jump to the handler otherwise just
+         print the char and go round again.
+      end
+      
+      if formatContext.complete()
+      then self
+      else
+        let char = formatContext.nextChar()
+        in if char = "~"->at(0)
+           then 
+             if formatContext.complete()
+             then 
+               self.error("Format::format: expecting a char after ~ in " + formatContext.control)
+             else
+               formatContext.parseArgs(); 
+               self.dispatch(formatContext.nextChar(),output,formatContext)
+             end
+           else 
+             output.write(char);
+             self.format(output,formatContext)
+           end
+        end
+      end
+    end
+    
+    @Operation init(args)
+      if handlers = null
+      then self.handlers := Table(10)
+      else self
+      end
+    end
+    
+    @Operation invoke(target:Element,args:Seq(Element)):Element
+      let outputChannel = args->at(0);
+          controlString = args->at(1);
+          values = if args->size > 2 then args->at(2) else Seq{} end
+      in self.format(outputChannel,FormatContext(controlString,values,0))
+      end
+    end
+    
+    @Operation target()
+      self
+    end
+    
+  end
+  
+context Root
+  let format = Format();
+      handleFlush =
+        @Operation(char,output,formatContext)
+          output.flush()
+        end;
+      handleChar =
+        @Operation(char,output,formatContext)
+          let c = formatContext.nextValue()
+          in output.write(c)
+          end
+        end;
+      handleNewLine =
+        @Operation(char,output,formatContext)
+          output.write("\n"->at(0));
+          output.flush()
+        end;
+      handleToString =
+        @Operation(char,output,formatContext)
+          if formatContext.args->isEmpty
+          then output.writeString(formatContext.nextValueToString())
+          else 
+            let width = formatContext.args->at(0);
+                padChar = if formatContext.args->size < 2 then " "->at(0) else formatContext.args->at(1)->at(0) end
+            in if width.isKindOf(Integer)
+               then 
+                 let string = formatContext.nextValueToString()
+                 in if string->size > width
+                    then output.writeString(string)
+                    else output.writeString(string->padTo(width,padChar))
+                    end
+                 end
+               else self.error("~S expects first argument to be an integer: " + width)
+               end
+            end
+          end
+        end;
+      handleToXMLValue =
+        @Operation(char,output,formatContext)
+          let s = formatContext.nextValueToString()
+          in if s->includes("&"->at(0))
+             then s := s.subst("&amp;","&",true)
+             end;
+             if s->includes(">"->at(0))
+             then s := s.subst("&gt;",">",true)
+             end;
+             if s->includes("<"->at(0))
+             then s := s.subst("&lt;","<",true)
+             end;
+             if s->includes("'"->at(0))
+             then s := s.subst("&apos;","'",true)
+             end;
+             if s->includes("\""->at(0))
+             then s := s.subst("&quot;","\"",true)
+             end;
+             if s->includes("\n"->at(0))
+             then s := s->subst("&#xa;","\n",true)
+             end;
+             if s->includes("\r"->at(0))
+             then s := s->subst("&#xd;","\r",true)
+             end;
+             output.writeString(s)
+          end
+        end;
+      handleNumber =
+        @Operation(char,output,formatContext)
+          if formatContext.args->isEmpty
+          then output.writeString(formatContext.nextValue().toString())
+          else 
+            let width = formatContext.args->at(0)
+            in if width.isKindOf(Integer)
+               then 
+                 let string = formatContext.nextValue().toString()
+                 in if string->size > width
+                    then output.writeString(string->truncate(width))
+                    else output.writeString(string->padFrom(width,"0"->at(0)))
+                    end
+                 end
+               else self.error("~S expects first argument to be an integer: " + width)
+               end
+            end
+          end
+        end;
+      handleSpaces =
+        @Operation(char,output,formatContext)
+          let spaces = formatContext.nextValue()
+          in if spaces.isReallyKindOf(Integer)
+             then
+               @While spaces > 0 do
+                  format(output," ");
+                  spaces := spaces - 1
+               end
+             else self.error("The V directive expects a number but received: " + spaces.toString())
+             end
+          end
+        end;
+      handleConditional =
+        @Operation(char,output,formatContext)
+          let bool = formatContext.nextValue();
+              controlTrue = formatContext.controlTo(";"->at(0))
+          in let controlFalse = formatContext.controlTo("]"->at(0))
+             in if bool.isKindOf(Boolean)
+                then 
+                  if bool
+                  then formatContext.appendControl(controlTrue)
+                  else formatContext.appendControl(controlFalse)
+                  end
+                else formatContext.error("~[ expects a boolean: " + bool.toString())
+                end
+             end
+          end
+        end;
+      handleSpread =
+        @Operation(char,output,formatContext)
+          let values = formatContext.nextValue()
+          in if values.isKindOf(SeqOfElement)
+             then formatContext.appendValues(values)
+             else formatContext.error("~$ expects a sequence of values: " + values.toString())
+             end
+          end
+        end;
+      handleLift =
+        @Operation(char,output,formatContext)
+          formatContext.lift()
+        end;
+      handleIterate =
+        @Operation(char,output,formatContext)
+          let separating = false;
+              formatString = "";
+              separatorString = "";
+              nested = 0;
+              terminatorFound = false;
+              values = formatContext.nextValue()
+          in @While (not formatContext.complete()) and (not terminatorFound) do
+               let char = formatContext.nextChar()
+               in if char = "~"->at(0)
+                  then 
+                    if formatContext.complete()
+                    then formatContext.error("no terminator found for ~{")
+                    else 
+                      let char = formatContext.nextChar()
+                      in if "}"->at(0) = char
+                         then 
+                           if nested = 0
+                           then terminatorFound := true
+                           else 
+                             formatString := formatString + "~}";
+                             nested := nested - 1
+                           end
+                         elseif "{"->at(0) = char 
+                         then 
+                           formatString := formatString + "~{";
+                           nested := nested + 1
+                         else 
+                           if ";"->at(0) = char and nested = 0
+                           then 
+                             separating := true;
+                             separatorString := formatString;
+                             formatString := ""
+                           else
+                             formatString := formatString + Seq{"~"->at(0),char}->asString
+                           end
+                         end
+                      end
+                    end
+                  else formatString := formatString + Seq{char}->asString
+                  end
+                end
+              end; 
+              if values.isKindOf(SeqOfElement)
+              then @While not values->isEmpty do
+                     let value = values->at(0)
+                     in format(output,formatString,Seq{value});
+                        values := values->tail;
+                        if separating and not values->isEmpty
+                        then format(output,separatorString)
+                        else output
+                        end
+                     end
+                   end
+              else formatContext.error("{ expects a sequence: " + values.toString())
+              end
+          end
+        end;
+      handleIgnore =
+         @Operation(char,output,formatContext)
+           output
+         end;
+      handleAt =
+         @Operation(char,output,formatContext)
+           formatContext.at()
+         end;
+      handleBackup =
+         @Operation(char,output,formatContext)
+           formatContext.backup()
+         end
+  in format.defineHandler("%"->at(0),handleNewLine);
+     format.defineHandler("F"->at(0),handleFlush);
+     format.defineHandler("S"->at(0),handleToString);
+     format.defineHandler("N"->at(0),handleNumber);
+     format.defineHandler("C"->at(0),handleChar);
+     format.defineHandler("V"->at(0),handleSpaces);
+     format.defineHandler("X"->at(0),handleToXMLValue);
+     format.defineHandler("["->at(0),handleConditional);
+     format.defineHandler("$"->at(0),handleSpread);
+     format.defineHandler("&"->at(0),handleLift);
+     format.defineHandler("{"->at(0),handleIterate);
+     format.defineHandler("]"->at(0),handleIgnore);
+     format.defineHandler("@"->at(0),handleAt);
+     format.defineHandler("^"->at(0),handleBackup);
+     @Bind format = format end 
+  end
+  
+context Root
+  @Operation formats(control:String,args:Seq(Element)):String
+    @Doc
+      Takes a control string and a sequence of arguments and returns
+      the string constructed by processing the control with respect
+      to the arguments.
+    end
+    let sout = StringOutputChannel()
+    in format(sout,control,args);
+       sout.getString()
+    end
+  end

@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Tools
+
+  @Class MenuItem isabstract
+  
+    @Attribute name : String (!) end
+    
+    @AbstractOp new(object,tool) end
+  
+  end 

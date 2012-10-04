@@ -1,0 +1,84 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+  @Class Transition extends Contained
+  
+    @Attribute event : Event end
+    @Attribute sourceName : String end
+    @Attribute targetName : String end
+    @Attribute guard : Operation end
+    //@Attribute guardexp : Performable end
+    @Attribute action : Operation end
+    
+    @Constructor(event) end
+    
+    @Constructor(event,sourceName,targetName,guard,action) end
+    
+    @Constructor(sourceName,targetName) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Transition ::= eventName = Name '(' args = EventArgs ')' '(' sourceName = Name ',' targetName = Name ')'
+        guard = Guard
+        action = Action  
+       { import OCL  
+         in [| import Languages::StateMachines 
+           in Transition(Event(<StrExp(eventName)>,<args->iterate(a e = [|
+             Seq{} |] | [| <e> + Seq{<a>} |])>),<StrExp(sourceName)>,<StrExp(targetName)>,<guard>,<action>) 
+               end |] 
+         end }.
+         
+      EventArgs ::= arg = EventArg args = (',' EventArg)* { Seq{arg | args } } | { Seq{} }.
+      
+      EventArg ::= argName = Name ':' argType = Exp { import OCL in [|EventArg(<StrExp(argName)>,<argType>)|] end}.
+           
+      Guard ::= WhenGuard | { [| @Operation(ignore) true end.setProperty("source",[|true|]) |] }.
+      
+      WhenGuard ::= 'when' ExplicitGuard.
+       
+      ExplicitGuard ::= ParametricGuard | bool = Exp { [| @Operation(value) <bool> end.setProperty("source",<bool.lift()>) |] }.
+       
+      ParametricGuard ::= '(' name = Name ')' bool = Exp { [| @Operation(<name>) <bool> end.setProperty("source",<bool.lift()>) |] }.
+       
+      Action ::= DoAction | { [| @Operation(ignore) self end.setProperty("source",[|self|]) |]}.
+      
+      DoAction ::= 'do' ExplicitAction.
+       
+      ExplicitAction ::= ParametricAction | action = Exp { [| @Operation(value) <action> end.setProperty("source",<action.lift()>) |] }.
+       
+      ParametricAction ::= '(' name = Name ')' action = Exp { [| @Operation(<name>) <action> end.setProperty("source",<action.lift()>) |] }.
+        
+    end 
+    
+    @Operation activate(element,value)
+      action.invoke(element,Seq{value})
+    end
+    
+    /* @Operation isEnabled(element,value)
+      guard.invoke(element,Seq{value})
+    end */
+    
+    @Operation isEnabled(element)
+      guard.invoke(element,Seq{})
+    end
+    
+    @Operation nameChanged(new,old)
+      if sourceName = old then self.sourceName := new end;
+      if targetName = old then self.targetName := new end
+    end
+    
+    @Operation source()
+      owner.stateNamed(sourceName)
+    end
+    
+    @Operation target()
+      owner.stateNamed(targetName)
+    end
+    
+  end

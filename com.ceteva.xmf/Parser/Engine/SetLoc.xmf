@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class SetLoc extends Recognizer
+  
+     @Attribute index : Integer (?,!) end
+     
+     @Constructor(index) ! end
+    
+  end

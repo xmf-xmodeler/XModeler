@@ -1,0 +1,9 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Clients/Enterprise/Boot",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/ApplicationFactory",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/Enterprise",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/EnterpriseClient",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/EnterpriseCommandInterpreter",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/EnterpriseEventHandler",true,true);
+compileFile(xmf.homeDir() + "/Clients/Enterprise/SessionEventHandler",true,true);

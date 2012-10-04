@@ -1,0 +1,74 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import SnapshotDiagrams;
+import SnapshotMapping;
+
+context SnapshotMapping
+
+  @Class DependencyNameXText extends ElementMap
+  
+    @Attribute name  : XCore::DependencyName end
+    @Attribute label : DependencyLabel       end
+    
+    @Constructor(name,owner) !
+      self.setHotLoad(true);
+      self.addLabel();
+      self.checkDaemons()
+    end
+    
+    @Operation addLabel()
+       // If it is an en-d label, calculate its position
+       if name.position = "end" then
+        let y = if owner.edge.source.owner.y > owner.edge.target.owner.y then 15 else 0-30 end;
+          x = if owner.edge.source.owner.x > owner.edge.target.owner.x then 15 else 0-35 end 
+        in
+           self.label := DependencyLabel(name.value,name.position,x,y,name.modifiable)
+        end
+      else
+         self.label := DependencyLabel(name.value,name.position,name.modifiable)
+      end; 
+      owner.edge.add(label);
+      label.new(owner.edge)
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once DependencyNameXText::daemons_valueChanged(name,"value") end;
+      @SlotValueChanged multi once DependencyNameXText::daemons_textChanged(label,"text") end
+    end
+    
+    @Operation hotLoaded()
+      self.checkDaemons()
+    end
+    
+    @Operation daemons_textChanged(label,slot,newText,oldText)
+      if name.value.toString() <> newText
+      then name.setValue(newText)
+      end
+    end
+    
+    @Operation daemons_valueChanged(name,slot,newValue,oldValue)
+      if label.text <> newValue.toString()
+      then label.textChanged(newValue.toString())
+      end
+    end
+    
+    @Operation removeDaemons()
+      // Called to tidy up when the mapping is no longer valid.
+      name.removeDaemonsWithTarget(self,true);
+      label.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation element()
+      name
+    end
+
+    @Operation diagramElement()
+      label
+    end
+
+  end

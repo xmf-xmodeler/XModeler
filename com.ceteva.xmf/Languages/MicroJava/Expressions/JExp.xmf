@@ -1,0 +1,78 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+ 
+   @Class JExp isabstract
+   
+     @Grammar extends OCL::OCL.grammar
+     
+       JExp ::= JAssign | Drop.
+       
+       JAssign ::= n = Name '=' e = JBool { Update(n,e) } | JBool.
+       
+       JBool ::= e = JBit (op = BoolOp e2 = JBit e = { BinExp(e,op,e2) })* { e }.
+       
+       BoolOp ::= '&&' { "&&" } | '||' { "||" } | Drop.
+       
+       JBit ::= e = JEql (op = BitOp e2 = JEql e = { BinExp(e,op,e2) })* { e }.  
+       
+       BitOp ::= '&' {"&" } | '|' { "|" }.
+       
+       JEql ::= e = JCmp (op = EqlOp e2 = JCmp e = { BinExp(e,op,e2) })* { e }.
+       
+       EqlOp ::= '==' { "==" }| '!=' { "!=" }.
+       
+       JCmp ::= e = JArith (op = CmpOp e2 = JArith e = { BinExp(e,op,e2) })* { e }.
+       
+       CmpOp ::= '>' { ">" } | '>=' { ">=" } | '<' { "<" } | '<=' { "<=" }.  
+       
+       JArith ::= e = JDot (op = ArithOp e2 = JDot e = { BinExp(e,op,e2) })* { e }.
+       
+       ArithOp ::= '+' { "+" } | '-' { "-" }.
+       
+       JNavigate ::= e = JCast ('.' n = Name e = { FieldRef(e,n) })* { e }.
+       
+       JDot ::= e = JCast ('.' n = Name (a = JArgs e = { Send(e,n,a) } | e = { FieldRef(e,n) }))* { e }.
+       
+       JArgs ::= '(' es = (JExps | { Seq{} }) ')' { es }.
+       
+       JExps ::= e = JExp es = (',' JExp)* { Seq{e | es} }.
+       
+       JCast ::= '(' p = JPath ')' a = JAtom { Cast(p,a) } | JAtom.
+       
+       JAtom ::= JBoolean | JInt | JFloat | JString | JNew | JVar | JSend | JThis | '(' JExp ')' | Drop.
+       
+       JBoolean ::= 'true' { Boolean(true) } | 'false' { Boolean(false) }.
+       
+       JInt ::= i = Int { (Expressions.getElement("Int"))(i) }.
+       
+       JFloat ::= i = Int '.' j = Int { (Expressions.getElement("Int"))((i+"."+j).asFloat()) }.
+       
+       JString ::= s = Str { JString(s) }.
+       
+       JNew ::= 'new' p = JPath as = JArgs { New(p,as) }.
+       
+       JThis ::= 'this' { This() }. 
+       
+       JPath ::= Drop | n = Name ns = ('.' Name)* { Seq{n | ns} }.
+       
+       JVar ::= name = Name { Var(name) }.
+       
+       JSend ::= name = AName args = JArgs { Send(null,name,args) }.
+       
+     end
+     
+     @AbstractOp pprint(out) end
+     
+     @Operation pprint(out,indent)
+       self.pprint(out)
+     end
+     
+   end
+   
+   

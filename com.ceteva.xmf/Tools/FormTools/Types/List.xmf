@@ -1,0 +1,65 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import FormEvents;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class List extends FormElement
+
+  @Attribute values : Seq(String) (!,?,+,-) end
+  
+  @Grammar extends FormElement.grammar
+  
+    List ::= name = EName patts = PosAtts natts = NamedAtts defs = Exp * {
+    
+      [| let comboBoxType = <defs->iterate(t e = [| Tools::FormTools::Types::List(<name>) |] | [| <e>.add(<t>) |])>
+         in comboBoxType.setMinWidth(<OCL::IntExp(FormElement::lookup(natts,"minWidth",0))>);
+            comboBoxType.setMaxWidth(<OCL::IntExp(FormElement::lookup(natts,"maxWidth",9999))>);
+            comboBoxType.setMinHeight(<OCL::IntExp(FormElement::lookup(natts,"minHeight",0))>);
+            comboBoxType.setMaxHeight(<OCL::IntExp(FormElement::lookup(natts,"maxHeight",9999))>);
+            comboBoxType.setPadLeft(<OCL::IntExp(FormElement::lookup(natts,"padLeft",0))>);
+            comboBoxType.setPadRight(<OCL::IntExp(FormElement::lookup(natts,"padRight",0))>);
+            comboBoxType.setPadTop(<OCL::IntExp(FormElement::lookup(natts,"padTop",0))>);
+            comboBoxType.setPadBottom(<OCL::IntExp(FormElement::lookup(natts,"padBottom",0))>);
+            comboBoxType.setLayout(<OCL::StrExp(FormElement::filterLayout(patts))>);
+            comboBoxType
+         end
+      |]
+    }.
+    
+  end
+  
+  @Operation add(element)
+    @TypeCase(element)
+      String do
+        self.addToValues(element)
+      end
+      else super(element)
+    end
+  end
+  
+  @Operation new(parent,path,env,tool)
+  
+    // Create but do not new the list since the parent
+    // may not have been newed yet.
+    
+    let list = Forms::List()
+    in list.setType(self);
+       parent.add(list);
+       @For value in values do
+         let element = Forms::ListElement(value)
+         in element.setSelectedHandler(@Operation(element,new,old) tool.raise(ListChanged(path + Seq{name.toString()},list,new,old)) end);
+            list.addItem(element)
+         end
+       end;
+       menu.setGlobalMenu(list,list,tool,path + Seq{name.toString()},Set{self,tool});
+       list
+    end
+  end
+end

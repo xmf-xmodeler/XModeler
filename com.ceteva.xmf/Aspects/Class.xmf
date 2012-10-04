@@ -1,0 +1,50 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+import Aspects;
+
+context Aspects
+
+  @Class Class extends ComponentDef
+  
+    @Doc
+       A class component definition in an aspect allows an existing class to
+       be exten-ded with new elements such as attributes and operations. The
+       name of the class can be a full path to allow the existing class to be
+       referenced.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Class ::= path = Path parents = OptParents elements = Exp* { Class(path,parents,elements) }.
+      Path ::= root = VarExp names = ('::' Name)* { Path(root,names) }.
+      OptParents ::= 'extends' parent = Exp parents = (',' Exp)* { Seq{parent | parents } } | { Seq{} }.
+      
+    end 
+    
+    @Attribute path : Path end
+    @Attribute parents : Seq(Performable) end
+    @Attribute elements : Seq(Performable) end
+    
+    @Constructor(path,parents,elements) ! end
+    
+    @Operation desugar()
+      let class = parents->iterate(p c = path | [| <c>.addParent(<p>) |])
+      in elements->iterate(c e = [| Aspects::Semantics::Component(<class>) |] | [| <e>.add(<c>) |])
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Class ");
+      path.pprint(out,indent);
+      format(out,"~%~V",Seq{indent+2});
+      @For c in elements do
+        c.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

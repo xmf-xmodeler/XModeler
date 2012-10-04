@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import OCL;
+import XOCL;
+
+context Doc
+
+  @Grammar scanner OCL::Scanner
+    
+    Doc ::= p = pState { 
+      
+      p.scan()->head.setSize(0);
+      p.scan()->head.add("e"->at(0));
+      p.scan()->head.add("n"->at(0));
+      p.scan()->head.add("d"->at(0));
+      p.scan()->tail := Seq{p.scanner_().tokenIndex("end")};
+      Doc(p.scanner_().textTo(p.input(),"end",true)) 
+      
+   }.
+      
+  end
+    
+   

@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class Label extends Clients::Forms::FormLabel, FormElement
+  
+    @Operation actualHeight():Integer
+      self.getTextDimension(text)->at(1)
+    end
+    
+    @Operation actualWidth():Integer
+      self.getTextDimension(text)->at(0)
+    end
+  
+  end

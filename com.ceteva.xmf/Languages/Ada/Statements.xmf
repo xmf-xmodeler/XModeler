@@ -1,0 +1,187 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+  @Package Statements 
+    @Class Statement isabstract extends AdaObject
+      @Attribute labels : Seq(Label) end
+    end
+    @Class ExceptionHandler extends AdaObject
+      @Attribute exceptChoices : Seq(ExceptChoice) end
+      @Attribute statements : Seq(Statement) end
+      @Operation code(indent:Element):Element
+        "when " + exceptChoices->collect(e |
+          e.code(indent + 2))->separateWith(" | ") + " => \n" + " ".repeat(indent + 2) + statements->collect(s |
+          s.code(indent + 2))->separateWith(";\n" + " ".repeat(indent + 2)) + ";"
+      end
+    end
+    @Class Label
+      @Attribute name : String end
+    end
+    @Class If extends Statement
+      @Attribute elseClause : Seq(Statement) end
+      @Attribute clauses : Seq(CondClause) end
+      @Operation code(indent:Element):Element
+        "if " + clauses->head.code(indent) + ";\n" + " ".repeat(indent) + if clauses->tail->isEmpty
+        then ""
+        else "elsif " + clauses->tail->collect(c |
+               c.code(indent))->separateWith(";\n" + " ".repeat(indent + 1) + "elsif ") + ";\n" + " ".repeat(indent)
+        end + if elseClause->isEmpty
+        then ""
+        else "else\n" + " ".repeat(indent + 2) + elseClause->collect(c |
+               c.code(indent + 2))->separateWith(";\n" + " ".repeat(indent + 2)) + ";\n" + " ".repeat(indent)
+        end + "end if"
+      end
+    end
+    @Class CondClause extends AdaObject
+      @Attribute cond : Expressions::Expression end
+      @Attribute statements : Seq(Statement) end
+      @Operation code(indent:Element):Element
+        cond.code(indent) + " then\n" + " ".repeat(indent + 2) + statements->collect(s |
+          s.code(indent + 2))->separateWith(";\n" + " ".repeat(indent + 2))
+      end
+    end
+    @Class Exit extends Statement
+      @Attribute condition : Set(Expressions::Expression) end
+      @Attribute name : Set(Names::Name) end
+    end
+    @Class Assignment extends Statement
+      @Attribute expression : Expressions::Expression end
+      @Attribute name : Names::Name end
+      @Operation code(indent:Element):Element
+        name.code(0) + " := " + expression.code(0)
+      end
+    end
+    @Class Null extends Statement
+      @Operation code(indent:Element):Element
+        "null"
+      end
+    end
+    @Class Goto extends Statement
+      @Attribute name : Names::Name end
+    end
+    @Class ProcedureCall extends Statement
+      @Attribute name : Names::Name end
+      @Operation code(indent:Element):Element
+        name->code(indent)
+      end
+    end
+    @Class Delay extends Statement
+      @Attribute isUntil : Boolean end
+      @Attribute expression : Expressions::Expression end
+    end
+    @Class Abort extends Statement
+      @Attribute names : Seq(Names::Name) end
+    end
+    @Class Raise extends Statement
+      @Attribute name : Set(Names::Name) end
+      @Operation code(indent:Element):Element
+        "raise" + if name->isEmpty
+        then ""
+        else " " + name->sel.code(indent)
+        end
+      end
+    end
+    @Class Block extends Statement
+      @Attribute exceptionHandlers : Seq(ExceptionHandler) end
+      @Attribute statements : Seq(Statement) end
+      @Attribute declParts : Element end
+      @Attribute label : Set(Label) end
+      //@Attribute declParts : Seq(Bodies::DeclPart) end
+      @Operation code(indent:Element):Element
+        if label->isEmpty
+        then ""
+        else label.code(indent + 1) + ": "
+        end + if declParts->isEmpty
+        then ""
+        else "declare\n" + " ".repeat(indent + 2) + declParts->collect(d |
+               d.code(indent + 1))->asSeq->separateWith(";\n" + " ".repeat(indent + 1)) + ";\n" + " ".repeat(indent + 1) + ""
+        end + "begin\n" + " ".repeat(indent + 2) + statements->collect(s |
+          s.code(indent + 2))->asSeq->separateWith(";\n" + " ".repeat(indent + 2)) + ";\n" + " ".repeat(indent + 1) + if exceptionHandlers->isEmpty
+        then ""
+        else "exception\n" + " ".repeat(indent + 2) + exceptionHandlers->collect(e |
+               e.code(indent + 2))->separateWith("\n") + "\n" + " ".repeat(indent + 1)
+        end + "end"
+      end
+    end
+    @Class ExceptionHandlerName extends ExceptionHandler
+      @Attribute name : String end
+    end
+    @Class ExceptChoice isabstract extends Object
+    end
+    @Class ExceptChoiceName extends ExceptChoice
+      @Attribute name : Names::Name end
+      @Operation code(indent:Element):Element
+        name.code(indent)
+      end
+    end
+    @Class ExceptChoiceOthers extends ExceptChoice
+    end
+    @Class Case extends Statement
+      @Attribute pragmas : Seq(Units::Pragma) end
+      @Attribute cond : Expressions::Expression end
+      @Attribute caseAlts : Seq(CaseAlt) end
+      @Operation code(indent:Element):Element
+        "case " + cond->code(indent + 1) + " is " + pragmas->collect(p |
+          p.code(indent + 1))->asSeq->separateWith(" ") + "\n" + " ".repeat(indent + 1) + caseAlts->collect(a |
+          a.code(indent + 1))->separateWith(";\n" + " "->repeat(indent + 1)) + ";\n" + " ".repeat(indent) + "end case"
+      end
+    end
+    @Class CaseAlt extends Statement
+      @Attribute choices : Seq(Expressions::Choice) end
+      @Attribute body : Seq(Statement) end
+      @Operation code(indent:Element):Element
+        "when " + choices->collect(c |
+          c.code(indent + 1))->separateWith(", ") + " => " + "\n" + " "->repeat(indent + 2) + body->collect(b |
+          b.code(indent + 1))->separateWith(";\n" + " "->repeat(indent + 2))
+      end
+    end
+    @Class Loop isabstract extends Statement
+      @Attribute designator : Set(Designator) end
+      @Attribute body : Seq(Statement) end
+      @Attribute label : Set(Label) end
+    end
+    @Class Designator
+      @Attribute name : String end
+    end
+    @Class SimpleLoop extends Loop
+    end
+    @Class WhileLoop extends Loop
+      @Attribute cond : Expressions::Expression end
+      @Operation code(indent:Element):Element
+        "while " + cond.code(indent) + " loop\n" + " ".repeat(indent + 1) + body->collect(b |
+          b.code(indent + 1))->asSeq->separateWith(";\n" + " ".repeat(indent + 1)) + ";\n" + " ".repeat(indent) + "end loop"
+      end
+    end
+    @Class ForLoop extends Loop
+      @Attribute id : String end
+      @Attribute isReversed : Boolean end
+      @Attribute discreteRange : Types::Ranges::DiscreteRange end
+      @Operation code(indent:Element):Element
+        "for " + id + " in " + if isReversed
+        then "reversed "
+        else ""
+        end + discreteRange.code(0) + " loop" + "\n" + " ".repeat(indent + 1) + body->collect(b |
+          b.code(indent + 1))->asSeq->separateWith(";\n" + " ".repeat(indent + 1)) + ";\n" + " ".repeat(indent) + "end loop"
+      end
+    end
+    @Class Return extends Statement
+      @Attribute expr : Set(Expressions::Expression) end
+      @Operation code(indent:Element):Element
+        if expr->isEmpty
+        then "return"
+        else "return " + expr->sel.code(indent)
+        end
+      end
+    end
+    @Class Code extends Statement
+      @Attribute qualified : Expressions::Qualified end
+    end
+    @Class ReQueue extends Statement
+      @Attribute withAbort : Boolean end
+      @Attribute name : Names::Name end
+    end
+  end

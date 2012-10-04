@@ -1,0 +1,16 @@
+parserImport XOCL;
+parserImport XBNF::Scanning::Structure;
+
+import IO;
+import XBNF::Scanning::Structure;
+import Parser::Machine;
+
+context OCL
+
+  @Scanner ExtendedScanner extends OCL::Scanner
+  
+    Token("do")
+    
+    (" " | "\n" | "\t" | "\r")* { ignore }
+    
+  end

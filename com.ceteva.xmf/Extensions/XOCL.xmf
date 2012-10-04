@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Root
+
+  @Package XOCL
+  
+    @Doc
+      The XOCL package contains definitions that exten-d the basic
+      features of the OCL package. Many of the classes in this
+      package are abstract syntax structure types that are instantiated
+      by parsers. The syntax structures define how to perform themselves,
+      for example by turning themselves into machine instructions.
+    end
+     
+  end

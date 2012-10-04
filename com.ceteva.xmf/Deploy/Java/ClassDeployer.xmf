@@ -1,0 +1,134 @@
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+
+  @Class ClassDeployer
+  
+    @Attribute attributeDeployer	: AttributeDeployer end
+    // @Attribute constructorDeployer	: ConstructorDeployer end
+    @Attribute operationDeployer	: OperationDeployer end
+  
+    /* @Constructor(attributeDeployer,constructorDeployer,operationDeployer)
+    end */
+    
+    @Constructor(attributeDeployer,operationDeployer)
+    end
+    
+    @Operation deploy(class:Class,deployDir:String,package:Package,pname:String)
+      @WithOpenFile(fout -> deployDir + "/" + class.name() + ".java")
+        format(fout,"package ~S;~%~%",Seq{pname});
+        if class.parents->select(p | package.classes->includes(p))->isEmpty
+        then format(fout,"public class ~S ",Seq{class.name})
+        else format(fout,"public class ~S extends ~S ",Seq{class.name,class.parents->sel.name})
+        end;
+        self.deployJavaImplementsHook(class,fout,package,pname);
+        format(fout,"{~%~%");
+        format(fout," // Attributes...~%~%");
+        @For attribute in self.javaAttributes(class,package) do
+          attributeDeployer.deployAttribute(attribute,fout,package)
+        end;
+        format(fout,"~%");
+        format(fout," // Accessors...~%~%");
+        @For attribute in self.javaAttributes(class,package) do
+          attributeDeployer.deployAccessor(attribute,fout,package)
+        end;
+        format(fout,"~%");
+        format(fout," // Updaters...~%~%");
+        @For attribute in self.javaAttributes(class,package) do
+          attributeDeployer.deployUpdater(attribute,fout,package)
+        end;
+        format(fout,"~%");
+        self.deployJavaHook(class,fout,package,pname);
+        format(fout," // Display...~%~%");
+        format(fout,"  public String toString() {~%");
+        format(fout,"    String s = \"~S[\";~%",Seq{class.name});
+        @For attribute in class.allAttributes() when attribute.underlyingType().isKindOf(DataType) do
+          format(fout,"    s = s + \"~S=\" + ~S();~%",Seq{attribute.name,attribute.name});
+          if not isLast then format(fout,"    s = s + \",\";~%") end
+        end;
+        format(fout,"    return s + \"]\";~%");
+        format(fout,"  }~%~%");
+        format(fout," // Operation stubs...~%~%");
+        @For operation in class.operations do
+          operationDeployer.deploy(operation,class,fout);
+          if not isLast then format(fout,"~%") end
+        end;
+        format(fout,"~%");
+        self.deployJavaSerializer(class,fout,package);
+        format(fout,"}~%")
+      end
+    end
+
+    @Operation deployJavaSerializer(class:Class,out:OutputChannel,package:Package)
+      format(out," // XML Serialization...~%~%");
+      format(out,"  public void writeXML(java.io.PrintStream out,java.util.Hashtable idTable) {~%");
+      format(out,"    if(idTable.containsKey(this))~%");
+      format(out,"      out.print(\"<Ref id='\" + idTable.get(this) + \"'/>\");~%");
+      format(out,"    else {~%");
+      format(out,"      String id = Integer.toHexString(this.hashCode()).toUpperCase();~%");
+      format(out,"      out.print(\"<Object id='\" + id + \"'\");~%");
+      @For attribute in class.allAttributes() when attribute.underlyingType().isKindOf(DataType) do
+        @Case attribute.underlyingType() of
+          [Integer] do
+            format(out,"      out.print(\" ~S='I:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+          end
+          [Boolean] do
+            format(out,"      out.print(\" ~S='B:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+          end
+          [String] do
+            format(out,"      out.print(\" ~S='S:\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+          end
+          else format(out,"      out.print(\" ~S='\" + this.~S + \"'\");~%",Seq{attribute.name,attribute.name})
+        end
+      end;
+      format(out,"      out.print(\">\");~%");
+      @For attribute in class.allAttributes()->asSeq->sortNamedElements when not attribute.underlyingType().isKindOf(DataType) do
+        format(out,"      out.print(\"<Slot name='~S'>\");~%",Seq{attribute.name()});
+        @Case attribute.type of
+          Set[ ] do
+            format(out,"      out.print(\"<Set>\");~%");
+            format(out,"      for(int i = 0; i < ~S.size(); i++) {~%",Seq{attribute.name()});
+            format(out,"         ~S o = (~S)~S.elementAt(i);~%",Seq{attribute.underlyingType().name(),attribute.underlyingType().name(),attribute.name()});
+            format(out,"         o.writeXML(out,idTable);~%");
+            format(out,"      }~%");
+            format(out,"      out.print(\"</Set>\");~%")
+          end
+          Seq[ ] do
+            format(out,"      out.print(\"<List>\");~%");
+            format(out,"      for(int i = 0; i < ~S.size(); i++) {~%",Seq{attribute.name()});
+            format(out,"         ~S o = (~S)~S.elementAt(i);~%",Seq{attribute.underlyingType().name(),attribute.underlyingType().name(),attribute.name()});
+            format(out,"         o.writeXML(out,idTable);~%");
+            format(out,"      }~%");
+            format(out,"      out.print(\"</List>\");~%")
+          end
+          else format(out,"         if(~S == null) out.print(\"<Null/>\"); else ~S.writeXML(out,idTable);~%",Seq{attribute.name(),attribute.name()})
+        end;
+        format(out,"      out.print(\"</Slot>\");~%")
+      end;
+      format(out,"      out.print(\"</Object>\");~%");
+      format(out,"    }~%");
+      format(out,"  }~%")
+    end
+
+    @Operation deployJavaHook(class:Class,out:OutputChannel,package:Package,pname:String)
+      null
+    end
+
+    @Operation deployJavaImplementsHook(class:Class,out:OutputChannel,package:Package,pname:String)
+      null
+    end
+
+    @Operation javaAttributes(class:Class,package:Package)
+      class.allAttributes()->select(a | 
+        let type = a.underlyingType()
+        in package.classes->includes(type) or
+           XCore.classes->includes(type) or
+           type.isKindOf(DataType)
+        end)->reject(a |
+          a.owner() <> class and
+          package.classes->includes(a.owner()))
+    end
+    
+  end

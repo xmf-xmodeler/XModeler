@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class EdgeRemoved extends Removed
+  
+    @Attribute edge   : Edge (?) end
+    @Attribute source : Node (?) end
+    @Attribute target : Node (?) end
+    
+    @Constructor(edge,source,target) ! end
+    
+    @Operation raisedName():String
+      edge.type().name() + "_Removed"
+    end
+    
+  end

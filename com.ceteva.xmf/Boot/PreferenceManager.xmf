@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+context Root
+
+  @Class PreferenceManager extends NameSpace
+  
+    @Doc
+      A preference manager manages a collection of named preferences.
+    end
+    
+    @Operation definePreference(name,value,type,askUser)
+      self.add(Preference(name,value,type,askUser))
+    end
+    
+    @Operation hasPreference(name):Boolean
+      self.hasElement(name)
+    end
+    
+    @Operation preference(name):Element
+      if self.hasElement(name)
+      then self.getElement(name).value()
+      else self.error("No preference defined for " + name)
+      end
+    end
+    
+    @Operation setPreference(name,value)
+      if self.hasPreference(name)
+      then self.getElement(name).setValue(value)
+      else self.error("No preference defined for " + name)
+      end
+    end
+  
+  end

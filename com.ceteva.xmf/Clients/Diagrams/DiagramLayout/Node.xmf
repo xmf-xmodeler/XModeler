@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramLayout;
+
+context DiagramLayout
+
+  @Class Node extends Position
+
+    @Attribute hidden : Boolean (?,!) end
+    @Attribute width : Integer (?,!) end
+    @Attribute height : Integer (?,!) end
+    @Attribute layoutId : String (?,!) end
+
+    @Constructor(layoutId,x,y,width,height,hidden) end
+    
+    @Operation applyLayout(diagram)
+      @Find(node,diagram.nodes())
+        when node.layoutId() = layoutId
+        do node.move(x,y);
+           node.resize(width,height);
+           if hidden
+           then node.hide()
+           else node.show()
+           end
+      end
+    end
+
+  end

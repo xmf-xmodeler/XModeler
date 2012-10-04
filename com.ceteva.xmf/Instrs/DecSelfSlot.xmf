@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class DecSelfSlot extends Instr
+  
+    @Attribute name : String end
+    @Attribute nameOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation toString():String
+      "<DecSelfSlot " + name.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.nameOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      nameOffset
+    end
+    
+  end 
+  

@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormElement isabstract extends DraggableClientElement, DroppableClientElement
+  
+    @Attribute x : Integer (?,!) end
+    @Attribute y : Integer (?,!) end
+    @Attribute width : Integer (?,!) end
+    @Attribute height : Integer (?,!) end
+    
+    @Constructor(x,y,width,height) end
+
+    @Operation delete()
+      self.commandInterpreter().delete(self);
+      self.owner.removeElement(self);
+      self.owner := null;
+      self.dispose()
+    end
+
+    @Operation disable()
+      self.commandInterpreter().disable(self)
+    end
+
+    // called when the form is called
+
+    @Operation enable()
+      self.commandInterpreter().enable(self)
+    end
+    
+    @Operation getTextDimension(text)
+      self.commandInterpreter().getTextDimension(text)
+    end
+    
+    @Operation maximise()
+      self.commandInterpreter().maximiseToCanvas(self)
+    end
+    
+    @Operation move(x,y)
+      self.x := x;
+      self.y := y;
+      self.commandInterpreter().move(self)
+    end
+    
+    @Operation new(parent)
+      
+      // By default this does nothing
+      // and should be overridden by
+      // subclasses
+    
+      self
+    end
+    
+    @AbstractOp synchronise()
+    end
+
+    @Operation setSize(width,height)
+      self.width := width;
+      self.height := height;
+      self.commandInterpreter().setSize(self)
+    end
+  end

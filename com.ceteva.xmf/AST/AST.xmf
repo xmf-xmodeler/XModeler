@@ -1,0 +1,59 @@
+parserImport XOCL;
+
+import Walkers;
+import Stacks;
+import OCL;
+
+context OCL
+
+  @Class AST metaclass Dispatcher
+  
+    @Attribute root    : ASTNode (?)     end
+    @Attribute current : ASTNode (?)     end
+    @Attribute next    : Stack = Stack() end
+    @Attribute prev    : Stack = Stack() end
+    
+    @Constructor(root) 
+      self.root    := self.dispatch(root,null);
+      self.current := self.root;
+      self.populateNext(current)
+    end
+    
+    @Operation back()
+      if not prev.isEmpty()
+      then 
+        next.push(current);
+        self.current := prev.pop()
+      end
+    end
+    
+    @Operation next()
+      if not next.isEmpty()
+      then 
+        prev.push(current);
+        self.current := next.pop()
+      end
+    end
+    
+    @Operation populateNext(node)
+      @For child inReverse node.children() do
+        self.populateNext(child);
+        next.push(child)
+      end
+    end
+    
+    @Operation setCurrentExp(exp)
+      self.setCurrentExp(exp,root)
+    end
+    
+    @Operation setCurrentExp(exp,node)
+      if node.exp() = exp
+      then self.current := node
+      else 
+        @For child in node.children() do
+          self.setCurrentExp(exp,child)
+        end
+      end
+    end
+  
+  end

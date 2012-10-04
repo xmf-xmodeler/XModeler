@@ -1,0 +1,71 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Exp extends Text
+  
+    @Bind displayAttributes = AttEnv() end
+  
+    @Grammar extends DisplayType.grammar
+    
+      Exp ::= 
+      
+        name = Name 
+        atts = Properties 
+        text = Str 
+        dsplAtts  = Atts
+        
+        defs = Exp* {
+      
+        Exp::displayAttributes := dsplAtts;
+      
+        defs->iterate(def exp = [| let text = Tools::DiagramTools::Types::DisplayTypes::Exp(<OCL::StrExp(name)>) 
+           in text.editable   := not <OCL::BoolExp(atts->includes("readonly"))>;
+              text.underline  := <OCL::BoolExp(atts->includes("underlined"))>;
+              text.italicise  := <OCL::BoolExp(atts->includes("italics"))>;
+              text.hasPort    := <OCL::BoolExp(atts->includes("hasport"))>;
+              text.layout     := <OCL::StrExp(filterLayout(atts))>;
+              text.padLeft    := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              text.padRight   := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              text.padTop     := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              text.padBottom  := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              text.text       := <OCL::StrExp(text)>;
+              text
+           end
+        |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let text = Diagrams::Exp(text,0,0,true,false,false)
+      in parent.add(text);
+         self.setGlobalMenu(text,tool,path + Seq{name.toString()});
+         text.setType(self);
+         text.setPadLeft(padLeft);
+         text.setPadRight(padRight);
+         text.setPadTop(padTop);
+         text.setPadBottom(padBottom);
+         text.setTextChangedHandler(
+           @Operation(text,new,old) 
+             tool.raise(AttributeChanged(root,path + Seq{name.toString()},text,new,old));
+             root.layout()
+           end);
+         text.setDeleteHandler(@Operation(text) tool.raise(DisplayRemoved(root,path + Seq{name.toString()},text)) end);
+         if hasPort then root.addPortAssociation(text) end;
+         text
+      end
+      
+    end
+    
+  end

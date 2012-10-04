@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Term extends Recognizer 
+  
+    @Constructor() end
+  
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Terminal")
+    end
+    
+    @Operation first(grammar)
+      Set{"Term"}
+    end
+   
+  end

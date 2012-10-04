@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Keywordp in AST(aKeywordp,arg,seen)
+  let keys = aKeywordp.keys->collect(x | self.dispatch(x,arg));
+      class = self.dispatch(aKeywordp.class,arg)
+  in ASTNode(aKeywordp,Seq{class} + keys)
+  end
+end;

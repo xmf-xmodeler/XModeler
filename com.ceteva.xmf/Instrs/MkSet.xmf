@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class MkSet extends Instr
+  
+    @Doc
+      A machine instruction that expects a collection of values
+      on the stack. The machine instruction word has a single
+      operand that is the number of elements to pop off the stack.
+      the values are formed into a set which is then pushed onto 
+      the stack.
+    end
+  
+    @Attribute size : Integer end
+    
+    @Constructor(size) end
+    
+    @Operation toString():String
+      "<MkSet " + size + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      size
+    end
+    
+  end

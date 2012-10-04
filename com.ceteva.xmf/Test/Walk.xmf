@@ -1,0 +1,131 @@
+parserImport XOCL;
+
+context Root
+  @Class Walk
+    @Attribute counter : Integer end
+    @Operation clear()
+      table.clear();
+      self.counter := 0
+    end
+    @Operation walk(element)
+    @WithoutSourcePos
+      let table = Table(100000);
+          stack = Buffer(10000,false);
+          index = 0;
+          p = Seq{null}
+      in Kernel_arraySet(stack,index,element);
+         index := index + 1;
+         @While not index = 0 do
+           index := index - 1;
+           element := Kernel_arrayRef(stack,index);
+           self.counter := counter + 1;
+           if not table.hasKey(element) and not element = self
+           then 
+             Kernel_tablePut(table,element,element);
+             @CaseInt[29] Kernel_tag(element) of 
+               XMF::ARRAY do
+                 @Count i from 0 to element->size do
+                   Kernel_arraySet(stack,index,Kernel_arrayRef(element,i));
+                   index := index + 1
+                 end
+              end
+               XMF::BOOL do
+                 null
+               end
+               XMF::BUFFER do
+                 null
+               end
+               XMF::CLIENT do
+                 null
+               end
+               XMF::CODE do
+                 null
+               end
+               XMF::CODEBOX do
+                 null
+               end
+               XMF::CONS do
+                 Kernel_arraySet(stack,index,element->head);
+                 index := index + 1;
+                 Kernel_arraySet(stack,index,element->tail);
+                 index := index + 1
+               end
+               XMF::CONT do
+                 null
+               end
+               XMF::DAEMON do
+                 null
+               end
+               XMF::FLOAT do
+                 null
+               end
+               XMF::FOREIGNFUN do
+                 null
+               end
+              XMF::FOREIGNOBJ do
+                 null
+               end
+               XMF::FUN do
+                 null
+               end
+               XMF::HASHTABLE do
+                 @Count i from 0 to element->size do
+                   Kernel_arraySet(stack,index,Kernel_arrayRef(element,i));
+                   index := index + 1
+                 end
+               end
+               XMF::INPUT_CHANNEL do
+                 null
+               end
+               XMF::INT do
+                 null
+               end
+               XMF::NEGINT do
+                 null
+               end
+               XMF::NIL do
+                 null
+               end
+               XMF::OBJ do 
+                 @For slot in Kernel_objSlots(element) do
+                   Kernel_arraySet(stack,index,Kernel_arrayRef(slot,1));
+                   index := index + 1
+                 end
+               end
+               XMF::OUTPUT_CHANNEL do
+                 null
+                end
+               XMF::SET do
+                 @For e in element do
+                   Kernel_arraySet(stack,index,e);
+                   index := index + 1
+                 end
+               end
+               XMF::STRING do
+                 null
+               end
+               XMF::SYMBOL do
+                 null
+               end
+               XMF::THREAD do
+                 null
+               end
+               else null
+             end
+          end
+        end
+      end end
+    end
+  end
+  
+context Root
+@Operation test()
+  let t = Table(100); p = Seq{null}
+  in @WithoutSourcePos
+       p->head := Kernel_usedHeap();
+       t.hasKey(100);
+       p->tail := Kernel_usedHeap();
+       p
+     end
+  end
+end

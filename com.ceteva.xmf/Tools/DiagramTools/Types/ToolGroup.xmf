@@ -1,0 +1,106 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import DiagramTools;
+import Types;
+
+context Types
+
+  @Class ToolGroup
+  
+    @Attribute name    : String          (!,?)   end
+    @Attribute buttons : Seq(ToolButton) (+,-,?) end
+    
+    @Constructor(name) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      ToolGroup ::= name = Name defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::DiagramTools::Types::ToolGroup(<OCL::StrExp(name)>) |] |
+          [| <exp>.add(<def>) |])
+          
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        ToolButton do
+          self.addToButtons(element)
+        end
+      end
+    end
+    
+    @Operation merge(inherited)
+      @For inheritedButton in inherited.buttons() do
+        @Find(localButton,buttons)
+          when localButton.name() = inheritedButton.name()
+          else self.add(inheritedButton)
+        end
+      end
+    end
+    
+    @Operation new(diagram,tool:Tool)
+      
+      // Called when the tool is first created. Adds a new group with the
+      // given name and then adds the buttons.
+      
+      diagram.defineToolGroup(name);
+      @For button in buttons do
+        button.new(self,diagram,tool)
+      end
+    end
+
+    @Operation reorder(button)
+      let options = self.buttons->excluding(button) + Seq{"end"};
+          stringOp = 
+            @Operation(e)
+              if e = "end"
+              then "- End of Sequence -"
+              else e.name()
+              end
+            end;
+          message = "Select the tool button that you want to insert '"
+                    + button.name() + "' before" then
+          beforeButton = xmf.select("Move Tool Button",
+                                   message,
+                                   options,
+                                   null,
+                                   stringOp)
+      in
+        if beforeButton <> null
+        then
+          self.buttons := buttons->excluding(button);
+          if beforeButton = "end"
+          then
+            self.buttons := buttons + Seq{button}
+          else
+            let newPos = buttons.indexOf(beforeButton)
+            in  self.buttons := buttons.insertAt(button,newPos)
+            end
+          end;
+          // return moved button for further processing if necessary...
+          button
+        else null
+        end
+      end
+    end
+
+    @Operation reorder()
+      let stringOp = @Operation(e) e.name() end then
+          button = xmf.select("Reorder Tool Buttons",
+                            "Choose a tool button to move",
+                            self.buttons,
+                            null,
+                            stringOp)
+      in
+        if button <> null
+        then
+          self.reorder(button)
+        end
+      end
+    end
+
+  end

@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+
+  @Class PackageDeployer
+  
+    @Attribute classDeployer:ClassDeployer end
+  
+    @Constructor(classDeployer)
+    end
+  
+    @Operation deploy(package:Package)
+    
+      // Choose the directory and name of the
+      // directory to deploy into.
+      
+      let dir = xmf.selectDirectory(xmf.projDir())
+      in if dir.fileExists()
+         then
+           let name = xmf.getString("Package Name","Name of Java package (P.Q.R creates a folder named R)",package.name())
+           in if name <> null
+              then 
+                self.deployJava(package,dir,name);
+                xmf.message("Java Deployed as package " + name + " in " + dir);
+                true
+              else false
+              end
+           end
+         else false
+         end
+      end
+    end
+  
+    @Operation deployJava(package:Package,root:String)
+      self.deployJava(package,root,package.name())
+    end
+
+    @Operation deployJava(package:Package,root:String,pname:String)
+  
+      // pname may be . separated. The last name is the name of the file to
+      // create in the root directory.
+    
+      let dirName = pname.splitBy(".",0,0)->last then
+          deployDir = root + "/" + dirName
+      in 
+        if if deployDir.fileExists()
+           then xmf.question("Overwrite " + deployDir)
+           else true
+           end
+        then
+          if deployDir.mkDir()
+          then 
+            self.deployJavaClasses(package,deployDir,pname);
+            self.deployJavaPackages(package,deployDir,pname);
+            true
+          else 
+            xmf.warning("Cannot create directory " + deployDir);
+            false
+          end
+        else false
+        end
+      end
+    end
+     
+    @Operation deployJavaClasses(package:Package,deployDir:String,pname:String)
+      @For class in package.classes do
+        self.classDeployer.deploy(class,deployDir,package,pname)
+      end
+    end
+    
+    @Operation deployJavaPackages(package:Package,deployDir,pname)
+      @For package in package.packages
+      do
+        let 
+          pname = pname + "." + package.name();
+          deployDir = deployDir
+        in
+          self.deployJava(package,deployDir,pname)
+        end
+      end
+    end
+  
+  end

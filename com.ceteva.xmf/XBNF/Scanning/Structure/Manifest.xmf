@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+@Manifest Structure
+  p = @File Structure end
+  @File Rule end
+  @File Scanner end
+  @File Scan end
+  @File Read end
+  @File NextToken end
+  @File ScannerInputChannel end
+do p
+end;

@@ -1,0 +1,57 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler XOCL::Class in Eval(aClass,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     metaClass = aClass.metaClass;
+     parents = aClass.parents;
+     defs = aClass.defs;
+     evalParents =
+       @Operation(parents,class)
+         if parents->isEmpty
+         then evalDefs(defs,class)
+         else
+           next(parents->head,
+             @Operation(next,result,call,return)
+               self.eval(parents->head,env,target,imports,next,result,call,return,
+                 @Operation(parent)
+                   class.addParent(parent);
+                   evalParents(parents->tail,class)
+                 end)
+             end)
+         end
+       end;
+     evalDefs =
+       @Operation(defs,class)
+         if defs->isEmpty
+         then 
+           result(aClass,class,cont)
+         else
+           next(defs->head,
+             @Operation(next,result,call,return)
+               self.eval(defs->head,env,target,imports,next,result,call,return,
+                 @Operation(def)
+                   class.add(def);
+                   evalDefs(defs->tail,class)
+                 end)
+             end)
+         end
+       end
+  in next(metaClass,
+       @Operation(next,result,call,return)
+         self.eval(metaClass,env,target,imports,next,result,call,return,
+           @Operation(class)
+             evalParents(parents,class(aClass.name.toString()))
+           end)
+       end)
+  end
+end;

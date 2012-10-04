@@ -1,0 +1,257 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// This file describes a test of the Frames metamodel
+// at the level of the Abstract Syntax (AS).
+context Frames
+
+	//
+	// Test harness
+	//
+	@Class TestHarness
+		
+		//
+		// Example usage:
+		//   XMF> x:=Frames::TestHarness::MakeFrame_1();
+		//   <NameSpace Root>
+		//   XMF> x.asString();
+		//   ... frame printed as a string ...
+		//
+		
+		@Operation MakeFrame_1():Frames::Frame
+			let title = "Humpty Dumpty"
+			in
+				let items = Seq{ TestHarness::MakeLine_1(), 
+								 TestHarness::MakeBreakSection(),
+								 TestHarness::MakeLine_4() }
+				in
+					items->iterate(i f=TestHarness::MakeFrame(title) | f.add(i))
+				end
+			end
+		end
+		
+		@Operation MakeFrame_2():Frame
+			let title = "Copy Demo"
+			in
+				let items = Seq{ TestHarness::MakeLine_5(),
+								 TestHarness::MakeCopySection(),
+								 TestHarness::MakeLine_6() }
+				in
+					items->iterate(i f=TestHarness::MakeFrame(title) | f.add(i))
+				end
+			end
+		end
+		
+		@Operation MakeFrame_3():Frame
+			let title = "Copy And Insert Demo (After)"
+			in
+				let items = Seq{ TestHarness::MakeLine_7(),
+								 TestHarness::MakeCopyInsertAfterSection(),
+								 TestHarness::MakeLine_10() }
+				in
+					items->iterate(i f=TestHarness::MakeFrame(title) | f.add(i))
+				end
+			end
+		end
+		
+		@Operation MakeFrame_4():Frame
+			let title = "Copy And Insert Demo (Before)"
+			in
+				let items = Seq{ TestHarness::MakeLine_7(),
+								 TestHarness::MakeCopyInsertBeforeSection(),
+								 TestHarness::MakeLine_10() }
+				in
+					items->iterate(i f=TestHarness::MakeFrame(title) | f.add(i))
+				end
+			end
+		end
+		
+		@Operation MakeFrame_5():Frame
+			let title = "Iterate Demo"
+			in
+				let items = Seq{ TestHarness::MakeLine_11(),
+								 TestHarness::MakeIterateSection(),
+								 TestHarness::MakeLine_12() }
+				in
+					items->iterate(i f=TestHarness::MakeFrame(title) | f.add(i))
+				end
+			end
+		end
+		
+		@Operation MakeLine_1():Frames::StringExpression
+			let s = "This is the Humpty Dumpty archetype"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_2():Frames::StringExpression
+			let s = "Humpty Dumpty sat on a wall"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_3():Frames::StringExpression
+			let s = "Humpty Dumpty had a great fall"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_4():Frames::StringExpression
+			let s = "Poor Humpty died!"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_5():Frames::StringExpression
+			let s = "This frame copies a subordinate frame"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_6():Frames::StringExpression
+			let s = "There was a cracking wake ..."
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_7():Frames::StringExpression
+			let s = "This frame adapts a copied frame"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_8():Frames::StringExpression
+			let s = "All the King's horses and all the King's men"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_9():Frames::StringExpression
+			let s = "Couldn't put Humpty together again"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+		
+		@Operation MakeLine_10():Frames::StringExpression
+			let s = "And that's the truth!"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+				
+		@Operation MakeLine_11():Frames::StringExpression
+			let s = "Humpty's head was spinning ..."
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+				
+		@Operation MakeLine_12():Frames::StringExpression
+			let s = "Humpty felt scrambled!"
+			in let l = TestHarness::MakeLine(s)
+				in l
+				end
+			end
+		end
+				
+		@Operation MakeBreakSection():Frames::Break
+			let lines = Seq{ TestHarness::MakeLine_2(), TestHarness::MakeLine_3() }
+			in lines->iterate(l b=TestHarness::MakeBreak("Egg") | b.add(l))
+			end
+		end
+
+		@Operation MakeCopySection():Frames::Copy
+			let f = TestHarness::MakeFrame_1()
+			in let c = TestHarness::MakeCopy(Set{f})
+				in c
+				end
+			end
+		end
+		
+		@Operation MakeCopyInsertAfterSection():Frames::CopyAndInsert
+			let f = TestHarness::MakeFrame_1()
+			in let lines = Seq{ TestHarness::MakeLine_8(), TestHarness::MakeLine_9() }
+				in lines->iterate(l c=TestHarness::MakeCopyAndInsertAfter(Set{f},f.getBreak("Egg")) | c.add(l))
+				end
+			end
+		end
+		
+		@Operation MakeCopyInsertBeforeSection():Frames::CopyAndInsert
+			let f = TestHarness::MakeFrame_1()
+			in let lines = Seq{ TestHarness::MakeLine_8(), TestHarness::MakeLine_9() }
+				in lines->iterate(l c=TestHarness::MakeCopyAndInsertBefore(Set{f},f.getBreak("Egg")) | c.add(l))
+				end
+			end
+		end
+		
+		@Operation MakeIterateSection():Frames::IterateExpression
+			let lines = Seq{ TestHarness::MakeLine("round and round"),
+							 TestHarness::MakeLine("up and down") }
+			in lines->iterate(l iter=Frames::IterateExpression(1.to(5)) | iter.add(l))
+			end
+		end
+		
+		//
+		// utility operations
+		//
+		@Operation MakeFrame(s:String):Frames::Frame
+			let f = Frames::Frame(s)
+			in f
+			end
+		end
+		
+		@Operation MakeCopy(f:Set(Frames::Frame)):Frames::Copy
+			let c = Frames::Copy(f)
+			in c
+			end
+		end
+		
+		@Operation MakeCopyAndInsertAfter(f:Set(Frames::Frame),b:Set(Frames::Break))
+			let c = Frames::InsertAfter(f,b)
+			in c
+			end
+		end
+		
+		@Operation MakeCopyAndInsertBefore(f:Set(Frames::Frame),b:Set(Frames::Break))
+			let c = Frames::InsertBefore(f,b)
+			in c
+			end
+		end
+		
+		
+		@Operation MakeLine(s:String):Frames::StringExpression
+			let se = Frames::StringExpression(s)
+			in se
+			end
+		end
+
+		@Operation MakeBreak(s:String):Frames::Break
+			let b = Frames::Break(s)
+			in b
+			end
+		end
+	end

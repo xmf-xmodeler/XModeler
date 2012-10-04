@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Diagrams
+
+  @Class Resizable isabstract 
+  
+    // A resizable thing has a handler that is used to 
+    // detect resizes...
+    
+    @Attribute resizeHandler : Operation (?,!) end
+    
+    @Operation resized(neww:Integer,newh:Integer,oldw:Integer,oldh:Integer)
+      if resizeHandler <> null
+      then resizeHandler(neww,newh,oldw,oldh)
+      end
+    end
+    
+  end

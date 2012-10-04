@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class Parsable
+  
+    /* @Operation checkParsable(value:String)
+      try
+        OCL::OCL.grammar.parseString(value,"Exp1",Seq{XOCL});
+        true
+      catch(exception)
+        let dialog = xmf.findClient(DialogBoxes::DialogBoxClient)
+        in
+          dialog.newTextAreaDialog(
+            DialogBoxes::TextAreaDialog::error,
+            exception.message,
+            exception.consumed
+          );
+          false
+        end
+      end
+    end */
+
+  end

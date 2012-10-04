@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Forms
+  Forms = @File Forms end
+  @File FormIdError end
+  @File FormElement end
+  @File Form end
+  @File LockableForm end
+  @File FormWithHistory end
+  @File LockableFormWithHistory end
+  @File FormButton end
+  @File FormCheckBox end
+  @File FormLabel end
+  @File FormTextField end
+  @File FormTextBox end
+  @File FormComboBox end
+  @File FormActiveComboBox end
+  @File ListElement end
+  @File FormList end
+  @File TreeNode end
+  @File FormTree end
+  @File FormTable end
+  @File FormCommandInterpreter end
+  @File FormEventHandler end
+  @File FormClient end
+do Project(Forms,dir,self)
+end;

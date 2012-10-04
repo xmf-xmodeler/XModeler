@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class ObjectToken extends Token
+  
+    @Attribute object  : Object          (?)     end
+    @Attribute updates : Set(SlotUpdate) (?,+,-) end
+    
+    @Constructor(object) ! end
+    
+    @Operation add(e:Element):ObjectToken
+      if e.isKindOf(SlotUpdate)
+      then self.addToUpdates(e)
+      else self
+      end
+    end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(ObjectToken)
+      then other.object = object
+      else false
+      end
+    end
+    
+    @Operation getSlotUpdate(slot:Symbol):SlotUpdate
+      @Find(update,updates)
+        when update.slot() = slot
+        else self.addToUpdates(SlotUpdate(slot,0))
+      end
+    end
+    
+    @Operation timestamp(o:Object,slot:Symbol):Integer
+      if o = object and object.hasSlot(slot)
+      then self.getSlotUpdate(slot).time()
+      else 0
+      end
+    end
+    
+    @Operation updateTimestamp(slot:Symbol,time:Integer)
+      let slotUpdate = self.getSlotUpdate(slot)
+      in slotUpdate.setTime(time)
+      end
+    end
+    
+  end

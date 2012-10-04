@@ -1,0 +1,57 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+
+context Root
+
+  @Package MyProjects
+  
+    @Class Note metaclass BrowsedClass isabstract
+      
+      @Attribute text : String (?,!) end
+      
+      @Interface
+        @Menu Edit editNote end
+      end
+        
+      @Constructor() ! end
+      
+      @Operation editNote()
+        MyProjects::Editors::NoteEditor(self)
+      end
+        
+    end
+    
+    @Enum Multiplicity("*","1") end
+  
+    @Enum Type(String,Int,Bool,Float) end
+  
+    @Operation duplicates(S,name) 
+      S->select(o1 |
+        S->exists(o2 |
+          o1 <> o2 and
+          o1.get(name) = o2.get(name)))
+    end
+  
+    @Operation UniqueConstraint(constraintName:Strng,containerName:String,slotName:String)
+      let checkDups =
+        @Operation(classifier)
+          duplicates(self.get(containerName),slotName)->isEmpty
+        end;
+          failDups =
+        @Operation(classifier)
+          "there are duplicate " + slotName + " values: " +
+          duplicates(self.get(containerName),slotName)
+            ->asSet
+            ->collect(o | o.get(slotName))
+            ->asSeq
+            ->separateWith(" and ")
+        end
+      in  Constraint(Symbol(constraintName),checkDups,failDups)
+      end
+    end
+  
+    
+    
+  end

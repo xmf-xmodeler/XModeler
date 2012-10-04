@@ -1,0 +1,14 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ContextDef in PPrint(aContextDef,out,seen)
+  format(out,"context ");
+  if aContextDef.isForward then format(out," ! ") end;
+  self.dispatch(aContextDef.path,out);
+  self.indent(
+    @Operation()
+      self.newLine();
+      self.dispatch(aContextDef.element,out)
+    end)
+end;

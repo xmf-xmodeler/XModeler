@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class TableForm extends CollectionForm
+
+    @Attribute keyDisplay : CollectionDisplay end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+          layoutManager.add(self.selfDisplays());
+          layoutManager.addSeparator();
+          self.keyDisplay := self.newCollectionDisplay(self.getKeys(),"keys");
+          self.collectionDisplay := self.newCollectionDisplay(self.getValues(),"values");
+          layoutManager.add(Seq{keyDisplay,collectionDisplay});
+          layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation formHistoryType()
+      Clients::CollectionViewer::CollectionForm
+    end
+
+    @Operation getKeys()
+      collection.keys()
+    end
+
+    @Operation getValues()
+      let valueSeq = Seq{}
+      in
+        @For key in collection.keys() do
+          valueSeq := valueSeq + Seq{collection.get(key)}
+        end;
+        valueSeq
+      end
+    end
+
+    @Operation initForm()
+      super();
+      self.typeName := "Collection";
+      self.itemName := "<Table>";
+      self.initialize();
+      self.layoutManager := TableFormLayoutManager(self);
+      self.collection := element
+    end
+
+    @Operation newCollectionDisplay(values,labelText:String)
+      let
+        label = FormLabel(0,0,labelText);
+        list = FormList(0,0,0,0)
+      in
+        if not values->isEmpty then
+          @For e inSeq values do
+            let
+              editable = e.isKindOf(NamedElement);          
+              itemText = e.labelString() then            
+              item = CollectionListElement(itemText,e)
+            in
+              list.addItem(item)
+            end           
+          end
+        end;
+        CollectionDisplay(label,list)
+      end  
+    end
+
+  end

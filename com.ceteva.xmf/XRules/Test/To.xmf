@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport XRules;
+
+context Root::Test
+  @Rule To(n,m,Seq{}) n > m end
+  
+context Root::Test
+  @Rule To(n,m,Seq{}) n = m end
+  
+context Root::Test
+  @Rule To(n,m,Seq{n | l}) 
+    k = n + 1
+    To(k,m,l)
+  end

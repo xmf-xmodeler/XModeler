@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Or extends Pattern
+  
+    @Doc
+      Matches when the left or the right hand pattern matches.
+      Note that the stack values and bindings resulting from
+      a successful match will be those from either left or right
+      but not both.
+    end
+  
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      left.match(chars,env,stack,succ,
+        @Operation()
+          right.match(chars,env,stack,succ,fail)
+        end)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      // Cannot bind in an or pattern.
+      Set{}
+    end
+    
+  end

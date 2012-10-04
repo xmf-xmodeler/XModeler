@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Enter extends Instr
+  
+    @Doc
+      A machine instruction that closes a currently open call
+      frame and switches machine context to start to execute the
+      instructions in the new call frame in the context of the 
+      locals in that frame. When an operation is called, a new frame
+      is opened, the arguments are pushed, the operation is pushed and
+      then the frame is entered. Entering the frame switches context
+      by updating the machine registers such as CurrentFrame to point
+      to the newly constructed frame. When the operation returns
+      the frame is discarded and control passes to the previously
+      open frame.
+    end
+  
+    @Attribute arity : Integer end
+    
+    @Constructor(arity) end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation toString():String
+      "<Enter " + arity + ">"
+    end
+    
+    @Operation operands():Integer
+      arity
+    end
+    
+  end

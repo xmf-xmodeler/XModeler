@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest DropDownMenus
+  @File DropDownMenus end
+  @File DropDownMenuAction end
+  @File AbstractMenu end
+  @File DropDownMenuGroup end
+  @File DropDownMenu end
+  @File DropDownMenuItem end
+  @File DropDownMenuClient end
+  @File XMF end
+end;

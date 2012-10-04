@@ -1,0 +1,16 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler New_Attribute()
+    let class = find(event.source());
+        type = find(event.target()) then 
+        name = event.edge().ref("name");
+        attributeName = class.newName("att") then
+        attribute = XCore::Attribute(attributeName,type)
+    in register(event.edge(),attribute);
+       register(name,attribute);
+       class.add(attribute);
+       name.textChanged(attributeName)
+    end
+  end
+  

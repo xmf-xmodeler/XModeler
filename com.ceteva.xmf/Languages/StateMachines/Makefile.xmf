@@ -1,0 +1,19 @@
+import Compiler;
+
+compileFile("Languages/StateMachines/StateMachines",true,true);
+compileFile("Languages/StateMachines/StateMachine",true,true);
+compileFile("Languages/StateMachines/Boot",true,true);
+compileFile("Languages/StateMachines/Manifest",true,true);
+compileFile("Languages/StateMachines/Mapping/Makefile",true,true);
+compileFile("Languages/StateMachines/State",true,true);
+compileFile("Languages/StateMachines/EventArg",true,true);
+compileFile("Languages/StateMachines/Event",true,true);
+compileFile("Languages/StateMachines/Transition",true,true);
+compileFile("Languages/StateMachines/Send",true,true);
+compileFile("Languages/StateMachines/Message",true,true);
+compileFile("Languages/StateMachines/MessageArg",true,true);
+compileFile("Languages/StateMachines/StateMachinableObject",true,true);
+compileFile("Languages/StateMachines/StateMachinableClass",true,true);
+compileFile("Languages/StateMachines/ControllerObject",true,true);
+compileFile("Languages/StateMachines/ControllerClass",true,true);
+"Languages/StateMachines/Mapping/Makefile.o".loadBin(false);

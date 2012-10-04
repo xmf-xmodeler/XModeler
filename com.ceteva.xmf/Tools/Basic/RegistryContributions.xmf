@@ -1,0 +1,75 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Tools;
+import Events;
+import Basic;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(ToolDescriptor,Seq{"XTools/ToolDescriptor"}));
+  registry.addContribution(id,Contribution(ElementManager,Seq{"XTools/ElementManager"}));
+  registry.addContribution(id,Contribution(Tool,Seq{"XTools/Tool"}));
+  registry.addContribution(id,Contribution(ObjectManager,Seq{"XTools/ObjectManager"}));
+  registry.addContribution(id,Contribution(DefinitionManager,Seq{"XTools/DefinitionManager"}));
+  registry.addContribution(id,Contribution(XToolsBrowser,Seq{"XTools/XToolsBrowser"}));
+  self
+end;
+
+
+// *** MENUS ***
+
+@Menu "Load Object (XTO) ..." on ObjectManager
+  ObjectManager::loadXTO
+end;
+
+@Menu "Remove Object ..." on ObjectManager
+  ObjectManager::removeObject
+end;
+
+@Menu "Load Tool Definition (XTD) ..." on DefinitionManager
+  DefinitionManager::loadXTD
+end;
+
+@Menu "Save (XTO) ..." on Object
+  Object::saveXTO
+end;
+
+@Menu "Load Object (XTO) ..." on Container
+  Container::loadXTO
+end;
+
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(ObjectManager,Seq{"Tools::Basic::ObjectManager"}));
+  registry.addContribution(id,Contribution(DefinitionManager,Seq{"Tools::Basic::DefinitionManager"}));
+  registry.addContribution(id,Contribution(XToolsBrowser,Seq{"Tools::Basic::XToolsBrowser"}))
+end;
+
+
+// *** LABELS EDITABLE ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.editable"
+in
+  registry.addContribution(id,
+    Contribution(Tools::Basic::XToolsBrowser,Seq{
+      false}));
+  registry.addContribution(id,
+    Contribution(Tools::Basic::DefinitionManager,Seq{
+      false}));
+  registry.addContribution(id,
+    Contribution(Tools::Basic::ObjectManager,Seq{
+      false}));
+  self
+end;

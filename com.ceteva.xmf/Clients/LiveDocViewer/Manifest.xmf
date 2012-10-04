@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest LiveDocViewer
+  LiveDocViewer = @File LiveDocViewer end
+  @File Viewer end
+do Project(LiveDocViewer,dir,self)
+end;

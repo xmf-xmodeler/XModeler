@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context Clients
+
+  @Package OleBridge
+  
+    @Doc
+       This package defines a client for interacting with Artisan RTS
+       via an OLE bridge
+     end
+     
+  end

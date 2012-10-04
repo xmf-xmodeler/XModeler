@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class SlotLabel extends Label
+  
+    @Constructor(text) !
+      self.init(Seq{text,"end",5,16 + 5,false})
+    end
+    
+    @Constructor(text,relx,rely) !
+      self.init(Seq{text,"end",relx,rely,false})
+    end
+    
+    @Operation name()
+      text
+    end
+    
+    @Operation setName(name)
+      self.textChanged(name)
+    end
+    
+  end

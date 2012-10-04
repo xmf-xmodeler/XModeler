@@ -1,0 +1,79 @@
+parserImport XOCL;
+
+context IO
+
+  @Class InputChannel isabstract
+     
+     @Doc
+       An input channel is a character source. Use 'read/1' to get the
+       next character code from the channel and use 'eof/0' to test whether
+       the channel is exhausted.
+     end
+      
+      @AbstractOp channel():Element
+        @Doc
+           Returns a machine-level input channel where this is defined.
+        end
+      end
+        
+      @AbstractOp close():Element
+        @Doc
+          Used when the input channel is no longer required.
+        end
+      end
+        
+      @AbstractOp eof():Boolean
+        @Doc
+          Returns true when the channel has no more input.
+        end
+      end
+      
+      @AbstractOp peek():Integer
+        @Doc
+          Looks at the next input without consuming it.
+        end
+      end
+        
+      @AbstractOp read():Integer
+        @Doc
+          Returns the character code for the next input or null if no
+          input is available.
+        end
+      end
+      
+      @AbstractOp read(v:Vector):Integer
+        @Doc
+          Reads characters into the supplied vector and returns the
+          number of characters read.
+        end
+      end
+        
+      @Operation readNonWhiteSpace():Integer
+      
+        @Doc
+          Returns the next non-whitespace character on the input channel.
+        end
+        
+        try
+          let c = self.read()
+          in @While c.isWhiteSpaceChar() do
+               c := self.read()
+             end;
+             if c.isWhiteSpaceChar()
+             then (0-1)
+             else c
+             end
+          end
+        catch(exception)
+          self.readNonWhiteSpace()
+        end
+      end
+      
+      @AbstractOp setChannel(channel):Element
+        @Doc
+          Sets the underlying channel (if supported).
+        end
+      end
+        
+    end
+    

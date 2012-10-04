@@ -1,0 +1,134 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Box extends DisplayType, Formatted
+  
+    @Bind displayAttributes = AttEnv() end
+  
+    @Attribute cornerCurve : Integer                    end
+    @Attribute showTop     : Boolean = true             end
+    @Attribute showLeft    : Boolean = true             end
+    @Attribute showRight   : Boolean = true             end
+    @Attribute showBottom  : Boolean = true             end
+    @Attribute contents    : Seq(DisplayType) (+,-,?,!) end
+    @Attribute fill        : Boolean = true   (?,!)     end
+    @Attribute lineColor   : String           (?,!)     end
+    @Attribute fillColor   : String           (?,!)     end
+  
+    @Grammar extends DisplayType.grammar
+    
+      Box ::= 
+        
+        name      = Name 
+        atts      = Properties 
+        dsplAtts  = Atts
+        
+        defs = Exp* {
+        
+        Box::displayAttributes := dsplAtts;
+      
+        defs->iterate(def exp = [| let box = Tools::DiagramTools::Types::DisplayTypes::Box(<OCL::StrExp(name)>) 
+           in box.showTop       := not <OCL::BoolExp(atts->includes("hideTop"))>;
+              box.showLeft      := not <OCL::BoolExp(atts->includes("hideLeft"))>;
+              box.showRight     := not <OCL::BoolExp(atts->includes("hideRight"))>;
+              box.showBottom    := not <OCL::BoolExp(atts->includes("hideBottom"))>;
+              box.hasPort       := <OCL::BoolExp(atts->includes("hasport"))>;
+              box.padLeft       := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              box.padRight      := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              box.padTop        := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              box.padBottom     := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              box.minWidth      := <OCL::IntExp(dsplAtts.lookup("minWidth",0))>;
+              box.minHeight     := <OCL::IntExp(dsplAtts.lookup("minHeight",0))>;
+              box.maxWidth      := <OCL::IntExp(dsplAtts.lookup("maxWidth",9999))>;
+              box.maxHeight     := <OCL::IntExp(dsplAtts.lookup("maxHeight",9999))>;
+              box.cornerCurve   := <OCL::IntExp(dsplAtts.lookup("cornerCurve",0))>;
+              box.fill          := not <OCL::BoolExp(atts->includes("nofill"))>;
+              box.layout        := <OCL::StrExp(filterLayout(atts))>;
+              box.contentLayout := <OCL::StrExp(filterContentLayout(atts))>;
+              box.fillColor     := <OCL::StrExp(dsplAtts.lookup("fillColor",""))>;
+              box.lineColor     := <OCL::StrExp(dsplAtts.lookup("lineColor",""))>;
+              box
+           end
+        |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+        DisplayType do
+          element.setOwner(self);
+          self.addToContents(element)
+        end
+        else self.error("Unknown box type component: " + element.toString())
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T := super(T);
+      @For c in self.contents do
+        T := c.allDisplayTypes(T)
+      end;
+      T
+    end
+
+    @Operation contains(type):Boolean
+      contents->includes(type) orelse contents->exists(t | t.contains(type))
+    end
+    
+    @Operation deref(env)
+      let env = contents->iterate(d env = env | d.bind(env))
+      in self.contents := contents->collect(d | d.deref(env))
+      end
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let box = Diagrams::Box(0,0,0,0,cornerCurve)
+      in box.setFill(fill);
+         box.setShowTop(showTop);
+         box.setShowBottom(showBottom);
+         box.setShowLeft(showLeft);
+         box.setShowRight(showRight);
+         box.setPadLeft(padLeft);
+         box.setPadRight(padRight);
+         box.setPadTop(padTop);
+         box.setPadBottom(padBottom);
+         box.setMinWidth(minWidth);
+         box.setMinHeight(minHeight);
+         box.setMaxWidth(maxWidth);
+         box.setMaxHeight(maxHeight);
+         box.setDeleteHandler(DisplayType::mkDeleteHandler(tool,root,path,name));
+         box.lineColor := self.parseColor(lineColor);
+         box.fillColor := self.parseColor(fillColor);
+         env := contents->iterate(t env = env | env.bind(t.name().toString(),t.referencedType(env)));
+         @For type in contents do
+           type.new(root,box,path + Seq{name.toString()},tool,env)
+         end;
+         parent.add(box);
+         box.setType(self);
+         self.setGlobalMenu(box,tool,path + Seq{name.toString()});
+         if hasPort then root.addPortAssociation(box) end;
+         box
+      end
+    end
+
+    @Operation toolTypes(T)
+      contents->iterate(d T = T | d.toolTypes(T))
+    end
+    
+  end

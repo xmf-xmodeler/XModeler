@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools;
+import FormTools;
+import Types;
+import Structure;
+import Events;
+
+context FormTools
+  @Package MetaTool
+  end
+

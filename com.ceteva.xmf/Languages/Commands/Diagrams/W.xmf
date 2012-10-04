@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Diagrams;
+import Graphs;
+import Env;
+
+context Diagrams
+
+  @Class W extends Statement
+  
+    @Attribute testNode : Node end
+    @Attribute bodyNode : Node end
+    
+    @Constructor(testNode,bodyNode) end
+    
+    @Constructor() ! end
+   
+  end

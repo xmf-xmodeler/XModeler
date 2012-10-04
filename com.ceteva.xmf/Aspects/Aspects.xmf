@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Aspects
+  
+    @Doc
+      This package defines classes that support XMF aspects. An aspect is a collection
+      of definitions that are added to model elements. An aspect allows you to group
+      structure and behaviour that relate to a collection of (possibly otherwise unrelated)
+      classes. An aspect contains a collection of aspect components. Each aspect component
+      is a name space and a collection of named elements for that name space. By adding
+      an aspect component to an aspect, each component causes the named elements to be added
+      to the component name space. For example, consider defining an aspect that allows
+      certain types of XCore element to be translated to HTML. The HTML aspect will contain
+      class definitions for just the attributes and operations that need to be added to
+      the existing XCore classes.
+     end
+  
+  end

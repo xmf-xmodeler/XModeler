@@ -1,0 +1,153 @@
+parserImport XRules;
+parserImport XOCL;
+
+context Root
+  @Rules ServiceRules import Services
+  end
+  
+context ServiceRules
+  @Rule Show(Groups,Env,Service)
+  
+    // Given the collection of groups can
+    // the supplied candidate env access the
+    // service?
+    
+    Member(Group,Groups)      // Pick a group...
+    Provides(Group,Service)   // such that the group provides the service...
+    Satisfies(Env,Group)      // and the candidate attributes and values (Env)
+                              // satisfies the group's constraints.
+    Terminated(Env)           // The Env must be terminated and..
+    WellFormed(Env)           // well formed (no duplicates).
+  end
+  
+context ServiceRules
+  @Rule Provides(Group[services=S],Service)
+    Member(Service,S)
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Group[constraint=C])
+    Satisfies(Env,C)
+  end
+  
+// Satisfies is a meta-interpreter for the constraints
+// with respect to the candidate env...
+  
+context ServiceRules
+  @Rule Satisfies(Env,True[ ]) end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Equals[left=L;right=R])
+    Eval(Env,L,V)
+    Eval(Env,R,V)
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,And[left=L;right=R])
+    Satisfies(Env,L)
+    Satisfies(Env,R)
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Or[left=L])
+    Satisfies(Env,L)
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Or[right=R])
+    Satisfies(Env,R)
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Not[constraint=C])
+    Satisfies(Env,C) ! fail
+  end
+  
+context ServiceRules
+  @Rule Satisfies(Env,Not[ ]) end
+  
+context ServiceRules
+  @Rule Eval(Env,Const[value=V],V) end
+  
+context ServiceRules
+  @Rule Eval(Env,Attribute[name=N],V)
+    Assoc(Env,N,V)
+  end
+  
+// Well formed when no duplicates...
+  
+context ServiceRules
+  @Rule WellFormed(Seq{}) ! end
+  
+context ServiceRules
+  @Rule WellFormed(Seq{Seq{N|V}|Env}) 
+    NotAssoc(Env,N)
+    WellFormed(Env)
+  end
+  
+// Standard lookup...
+  
+context ServiceRules
+  @Rule Assoc(Seq{Seq{N|V}|Env},N,V) ! end
+  
+context ServiceRules
+  @Rule Assoc(Seq{Seq{N|W}|Env},N,V) ! 
+    fail
+  end
+  
+context ServiceRules
+  @Rule Assoc(Seq{X|Env},N,V) 
+    Assoc(Env,N,V)
+  end
+  
+// Negation of assoc...
+
+context ServiceRules
+  @Rule NotAssoc(Env,N) 
+    Assoc(Env,N,V) !
+    fail
+  end
+  
+context ServiceRules
+  @Rule NotAssoc(Env,N)
+  end
+  
+// List membership...
+  
+context ServiceRules
+  @Rule Member(X,Seq{X|Xs}) end
+  
+context ServiceRules
+  @Rule Member(X,Seq{Y|Xs}) 
+    Member(X,Xs)
+  end
+  
+// Negation of list membership...
+  
+context ServiceRules
+  @Rule NotEmpty(Seq{}) !
+    fail
+  end
+  
+context ServiceRules
+  @Rule NotEmpty(X) end
+  
+// List is properly terminated...
+  
+context ServiceRules
+  @Rule Terminated(Seq{}) ! end
+  
+context ServiceRules
+  @Rule Terminated(Seq{X|Env}) 
+    Terminated(Env)
+  end
+  
+// Put two lists together...
+  
+context ServiceRules
+  @Rule Append(Seq{},l,l) ! end
+  
+context ServiceRules
+  @Rule Append(Seq{h | l1},l2,Seq{h | l3})
+    Append(l1,l2,l3)
+  end

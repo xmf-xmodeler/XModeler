@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class StandardOutputChannel extends OutputChannel
+      
+     @Attribute channel : Element end
+        
+     @Constructor(channel) ! end
+     
+     @Operation channel()
+       channel
+     end
+       
+     @Operation close()
+       Kernel_close(channel)
+     end
+     
+     @Operation flush()
+       Kernel_flush(channel)
+     end
+     
+     @Operation setChannel(channel)
+       self.channel := channel
+     end
+     
+     @Operation write(value)
+       Kernel_write(channel,value)
+     end
+       
+  end

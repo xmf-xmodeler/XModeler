@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class EnumChoiceComboBox extends FormActiveComboBox, ElementViewer, ContextFormElement
+
+    @Attribute enum : Enum (?,!) end
+
+    @Constructor(x,y,width,height,element) end
+    @Constructor(id,x,y,width,height,element) end
+
+    @Operation addItems()
+      @For content inTableValues enum.contents do
+        if content.isKindOf(EnumChoice)
+        then
+          let contex = contex;
+              slotName = slotName;
+              choiceString = content.name().toString() then
+              choice = enum.getEnumElement(choiceString) then
+              action = @Operation()
+                         if contex.get(slotName) <> choice
+                         then contex.set(slotName,choice);
+                              self.setElement(choice)
+                         end
+                       end
+          in 
+            self.addItem(choiceString,action,self)
+          end
+        end
+      end;
+      self
+    end
+
+    @Operation setCurrentSelection()
+      if element <> null
+      then self.selected := element.name().toString()
+      end
+    end
+
+  end

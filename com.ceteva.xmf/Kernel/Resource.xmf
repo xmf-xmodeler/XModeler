@@ -1,0 +1,9 @@
+context Resource
+  @Operation resourceName():String
+    resourceName
+  end
+  
+context Resource
+  @Operation setResourceName(name:String)
+    self.resourceName := name
+  end

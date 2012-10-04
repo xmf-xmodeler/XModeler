@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+import FileBrowser;
+import IO;
+
+context FileBrowser
+
+  @Class DirectoryXNode extends ContainerXNode
+
+    @Constructor(element,node,owner)
+      self.setHotLoad(true);
+      self.init(Seq{element,node})
+    end
+
+    @Operation createNode(e:Element)
+      let n = ModelBrowserNode(e) in
+        self.updateNodeText(n);
+        self.node.addNode(n);
+        //n.textChangedOut();
+        //self.node.expand();
+        //if self.node.exists then
+          if self.node.expanded or self.node.nodes->size() = 1 then
+            n.new(self.node);
+            n.setSelected()
+          end;
+        //end;
+        let mapping = self.createMapping(e,n)
+        in  self.addElementMap(mapping)
+        end;
+        n
+      end
+    end
+
+    @Operation handleNodeExpansion()
+      let dirsToRefresh = Seq{}
+      in
+        @For childNode inSeq node.nodes do
+          let childElement = childNode.element
+          in
+            if childElement.isKindOf(Directory) andthen
+               childNode.nodes->isEmpty andthen
+               not childElement.getContents()->isEmpty
+            then
+              childNode.addDummyNode();
+              childNode.dummyNode.new(childNode);
+              dirsToRefresh := dirsToRefresh->prepend(childElement)
+            end
+          end
+        end;
+        
+        // refreshing is done in a separate iteration to ensure the
+        // expansion handles are added as quickly as possible
+        
+        @For dir in dirsToRefresh do
+          dir.refreshFileTree()
+        end
+      end;
+      
+      super()
+    end
+
+  end

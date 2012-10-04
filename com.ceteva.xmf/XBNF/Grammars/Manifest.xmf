@@ -1,0 +1,40 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Grammars
+  Grammars = @File Grammars end
+  @File Recognizer end
+  @File Clause end
+  @File Action end
+  @File And end
+  @File At end
+  @File Bind end
+  @File BindVar end
+  @File Call end
+  @File ConsAction end
+  @File Empty end
+  @File EOF end
+  @File Int end
+  @File ImportAt end
+  @File Char end
+  @File Line end
+  @File Name end
+  @File NilAction end
+  @File Str end
+  @File Or end
+  @File Opt end
+  @File OCLAction end
+  @File Paren end
+  @File Plus end
+  @File Star end
+  @File Terminal end
+  @File Builtin end
+  @File Return end
+  @File Grammar end
+  @File Parser end
+  @File PState end
+do
+  Project(Grammars,dir,self)
+end;
+    

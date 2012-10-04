@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+    
+  @Class Remove extends ProcessBody
+
+    // Removing a record from a data store.
+    // @Remove <OCL> from <NAME> end
+    // causes the record <OCL> to be removed from the store named <NAME>.
+
+    @Attribute storeName : String end
+    @Attribute value : Performable end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Remove ::= exp = Exp 'from' name = Name
+      {
+        [| Languages::DFD::Syntax::Remove(<name>,<exp>) |]
+      }.
+    
+    end
+    
+    @Constructor(storeName,value) end
+    
+    @Operation eval(env)
+      let store = self.lookup(storeName,env);
+          value = value.eval(self,env)
+      in store.remove(value)
+      end
+    end
+      
+    @Operation code(indent:Integer):String
+      "@Remove\n" + 
+      " ".repeat(indent + 2) + value.code(indent + 2) + "\n" +
+      " ".repeat(indent) + "from\n" +
+      " ".repeat(indent + 2) + storeName + "\n" +
+      " ".repeat(indent) + "end"
+    end
+  end

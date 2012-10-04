@@ -1,0 +1,50 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class TableTextBox
+  
+    @Bind Field   = 1 end
+    @Bind Area    = 2 end
+    @Bind Rich    = 3 end
+    
+    @Attribute rows : Seq(TableTextBoxRows) end
+    @Attribute columnName : String end
+    @Attribute columnWidth : Integer end
+    @Attribute columnOrder : Integer end
+    @Attribute style : Integer end
+    @Attribute format : Integer end
+    @Attribute isReadOnly : Boolean end
+    @Attribute tooltip : String end
+    @Attribute reportString : String end
+    
+    @Constructor(columnName,columnWidth,columnOrder,style,isReadOnly,tooltip,reportString) end
+    
+    @ToXML(Table_Text_Box)[
+      column_name = columnName,
+      column_width = columnWidth,
+      column_order = columnOrder,
+      style,
+      is_readonly = isReadOnly,
+      tooltip,
+      report_string = reportString]
+      
+      rows*
+      
+    end
+    
+    @Operation find(id)
+      @Find(row,rows)
+        when row.find(id) <> null
+        do row.find(id)
+        else null
+      end
+    end
+    
+  end
+    

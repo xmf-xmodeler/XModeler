@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class ThemableDiagram extends Diagram
+
+  end

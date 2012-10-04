@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Opt extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity 0..1 or 0..* requires that the attribute
+      is associated with 0 or one instance of the appropriate class.
+    end
+    
+    @Attribute isStar : Boolean end
+    
+    @Constructor(isStar) ! end
+    
+    @Constructor() end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      if isStar
+      then XCore::CollectionMult(false,false,0,0)
+      else XCore::CollectionMult(false,true,0,1)
+      end
+    end
+    
+    @Operation typeExp(type)
+      [| Set(<type>) |]
+    end
+
+    @Operation multString():String
+      if isStar then "0..*" else "0..1" end
+    end
+
+  end

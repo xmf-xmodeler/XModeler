@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class Const extends Instr
+  
+    @Attribute value : Element end
+    
+    @Constructor(value) ! end
+  
+  end

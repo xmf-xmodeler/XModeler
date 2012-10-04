@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler HeadUpdate in AST(aHeadUpdate,arg,seen)
+  let value = self.dispatch(aHeadUpdate.value,arg);
+      seq = self.dispatch(aHeadUpdate.seq,arg)
+  in ASTNode(aHeadUpdate,Seq{seq,value})
+  end
+end;

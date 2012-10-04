@@ -1,0 +1,364 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL 
+
+  @Class Attribute extends Def
+   
+     @Doc
+        This class represents an attribute definition. Performing an
+        attribute definition produces an attribute. An attribute definition
+        consists of a name, the attribute type expression, some modifiers 
+        and a documentation expression.
+      end
+       
+      @Attribute meta      : Performable        end
+      @Attribute type      : Performable        end
+      @Attribute init      : Performable        end
+      @Attribute modifiers : AttributeModifiers end
+      @Attribute doc       : Performable        end
+      @Attribute mult      : String = ""        end 
+      
+      @Constructor(name,mult,type,modifiers,init,doc) ! end
+      
+      @Constructor(name,mult,type,init,modifiers) end
+      
+      @Constructor(name,type,modifiers) end
+      
+      @Constructor(name,type,doc) end
+      
+      @Constructor(name,type)
+        self.modifiers := AttributeModifiers(false,false,false,false)
+      end
+      
+      @Operation accessor():Seq(Operation) 
+        if modifiers.accessor
+        then
+          if modifiers.guard
+          then
+            Seq{[|
+              @Operation <name>[ACCESSOR=true]()
+                if self.hasStructuralFeature(<StrExp(name)>)
+                then
+                  self.<name>
+                else
+                  <self.guardExp()>
+                end
+              end
+            |]}
+          else
+            Seq{[|
+              @Operation <name>[ACCESSOR=true]()
+                self.<name>
+              end
+            |]}
+          end
+        else Seq{}
+        end
+      end 
+      
+      @Operation add(element)
+        @TypeCase(element)
+          XCore::Doc do
+            format(stdout,"Use XOCL::Doc instead of XCore::Doc.~%")
+          end
+          XOCL::Doc do
+            self.doc := element
+          end
+          Seq(Element) do
+            @For e in element do
+              self.add(e)
+            end;
+            self
+          end
+          else self.error("I don't know how to add " + element.toString() + " to an attribute definition.")
+        end
+      end
+       
+      @Operation compile(env,frame,isLast,saveSource)
+        // An attribute definition is translated to code that creates and
+        // initialises a new attribute object. The type must be delayed
+        // by translating it into an operation.
+        self.desugar().compile(env.incNameSpaceRefs(),frame,isLast,saveSource)
+      end
+      
+      @Operation desugar()
+        [| let type = @Operation() <self.typeExp()> end;
+               newAtt = <self.metaExp()>.new()
+           in type.owner := newAtt;
+              newAtt.set("name",XCore::Symbol(<StrExp(name)>));
+              newAtt.set("type",type);
+              newAtt.set("documentation",<self.doc()>);
+              newAtt.set("init",<self.initExp([| newAtt |])>);
+              newAtt.set("mult",<self.multExp()>);
+              <self.setIsComposite([| newAtt |])>;
+              <self.initSlotsExp([| newAtt |])>
+           end
+        |]
+      end
+      
+      @Operation doc()
+        if doc = null
+        then [| null |]
+        else doc
+        end
+      end 
+      
+      @Operation eval(target,env,imports)
+      
+        // Evaluation should behave the same as compilation.
+        // The type of an attribute is delayed until the class
+        // is initialised.
+        
+        let class = self.metaExp().eval(target,env,imports) then
+            a = class(name,@Operation() type.eval(target,env,imports) end);
+            init = init
+        in a.setDoc(self.doc().eval(target,env,imports));
+           if init <> null
+           then a.init := @Operation() init.eval(a,env,imports) end
+           end;
+           a
+        end
+      end
+
+      @Operation extender():Seq(Operation)
+        if modifiers.extender
+        then
+          if modifiers.guard
+          then
+            if modifiers.setOwner
+            then
+              Seq{[|
+                @Operation <"addTo" + name.upperCaseInitialLetter()>[EXTENDER=true](v)
+                  if self.hasStructuralFeature(<StrExp(name)>)
+                  then
+                    if v.isReallyKindOf(XCore::Contained) then v.setOwner(self) end; 
+                    self.<name> := self.<name> ->including(v)
+                  else self
+                  end
+                end
+              |]}
+            else
+              Seq{[|
+                @Operation <"addTo" + name.upperCaseInitialLetter()>[EXTENDER=true](v)
+                  if self.hasStructuralFeature(<StrExp(name)>)
+                  then self.<name> := self.<name> ->including(v)
+                  else self
+                  end
+                end
+              |]}
+            end
+          else
+            if modifiers.setOwner
+            then
+              Seq{[|
+                @Operation <"addTo" + name.upperCaseInitialLetter()>[EXTENDER=true](v)
+                  if v.isReallyKindOf(XCore::Contained) then v.setOwner(self) end; 
+                  self.<name> := self.<name> ->including(v)
+                end
+              |]}
+            else
+              Seq{[|
+                @Operation <"addTo" + name.upperCaseInitialLetter()>[EXTENDER=true](v)
+                  self.<name> := self.<name> ->including(v)
+                end
+              |]}
+            end
+          end
+        else Seq{}
+        end 
+      end
+
+      @Operation guardExp():Performable
+
+        // Returns the expression whose evaluation is returned by the accessor
+        // if the slot value does not exist. If a guard expression has been
+        // specified in the modifiers instance, then that is used, otherwise
+        // the initial value for the attribute is used.
+
+        if modifiers.guardExp = null
+        then
+          if init = null
+          then [| null |]
+          else init
+          end
+        else
+          modifiers.guardExp
+        end
+      end
+      
+      @Operation initExp(newAtt):Performable
+      
+        // Ensure that the init operation is owned by the attribute so
+        // that any name space references are resolved correctly.
+        
+        if init = null
+        then [| null |]
+        elseif self.isStatic()
+        then [| let value = <self.initValue()> then
+                    init = @Operation[value=value]() value end
+                in init.setOwner(<newAtt>);
+                   init
+                end
+             |]
+        else [| let init = @Operation() <init> end 
+                in init.setOwner(<newAtt>); 
+                   init
+                end 
+             |]
+        end
+      end
+      
+      @Operation isStatic():Boolean
+        init.isKindOf(IntExp) or
+        init.isKindOf(BoolExp) or
+        (init.isKindOf(BinExp) andthen init.left.isKindOf(IntExp) and init.right.isKindOf(IntExp)) or
+        init.isKindOf(StrExp) or
+        (init.isKindOf(Apply) andthen (init.operator.isKindOf(Var) andthen init.operator.name = "static"))
+      end
+      
+      @Operation initSlotsExp(newAtt:Performable):Performable
+        newAtt
+      end
+      
+      @Operation initValue()
+        if init.isKindOf(Apply) andthen (init.operator.isKindOf(Var) andthen init.operator.name = "static")
+        then init.args->at(0)
+        else init
+        end
+      end
+      
+      @Operation lift()
+        Apply(Path::toPath(self.of().pathSeq()),Seq{StrExp(name),mult.lift(),type.lift(),modifiers.lift(),if init = null then [| null |] else init.lift() end,self.doc().lift()})
+      end
+      
+      @Operation metaExp():Performable
+        if meta = null
+        then [| XCore::Attribute |]
+        else meta
+        end
+      end
+
+      @Operation multExp()
+        if mult <> ""
+        then mult.lift()
+        else if type.isKindOf(Apply)
+             then let opName = type.operator.name
+                  in  if opName = "Set"
+                      then "*".lift()
+                      elseif opName = "Seq"
+                      then "$".lift()
+                      else mult.lift()
+                      end
+                  end
+             else mult.lift()
+             end
+        end
+      end
+
+      @Operation operations():Seq(Operation)
+        self.accessor() + self.updater() + self.extender() + self.reducer()
+      end
+
+      @Operation pprint(out,indent)
+        format(out,"@Attribute ~S : ",Seq{name});
+        type.pprint(out,indent);
+        modifiers.pprint(out);
+        format(out," end")
+      end
+
+      @Operation reducer():Seq(Operation)
+        if modifiers.reducer
+        then
+          if modifiers.guard
+          then
+            Seq{[|
+              @Operation <"deleteFrom" + name.upperCaseInitialLetter()>[REDUCER=true](v)
+                if self.hasStructuralFeature(<StrExp(name)>)
+                then
+                  self.<name> := self.<name> ->excluding(v)
+                else
+                  self
+                end
+              end
+            |]}
+          else
+            Seq{[|
+              @Operation <"deleteFrom" + name.upperCaseInitialLetter()>[REDUCER=true](v)
+                self.<name> := self.<name> ->excluding(v)
+              end
+            |]}
+          end
+        else Seq{}
+        end 
+      end
+      
+      @Operation setIsComposite(newAtt)
+        if modifiers.setOwner
+        then [| <newAtt>.isComposite := true |]
+        else [| null |]
+        end
+      end
+      
+      @Operation typeExp():Performable
+        if mult = "" or mult = "!"
+        then type
+        elseif mult.hasPrefix("$")
+        then [| Seq(<type>) |]
+        elseif mult = "*" or mult->asSeq->includes("."->at(0))
+        then [| Set(<type>) |]
+        else [| Seq(<type>) |]
+        end
+      end
+
+      @Operation updater():Seq(Operation)
+        if modifiers.updater
+        then
+          if modifiers.guard
+          then
+            if modifiers.setOwner
+            then
+              Seq{[|
+                @Operation <"set" + name.upperCaseInitialLetter()>[UPDATER=true](v)
+                  if self.hasStructuralFeature(<StrExp(name)>)
+                  then
+                    if v.isReallyKindOf(XCore::Contained) then v.setOwner(self) end; 
+                    self.<name> := v
+                  else self
+                  end
+                end
+              |]}
+            else
+              Seq{[|
+                @Operation <"set" + name.upperCaseInitialLetter()>[UPDATER=true](v)
+                  if self.hasStructuralFeature(<StrExp(name)>)
+                  then self.<name> := v
+                  else self
+                  end
+                end
+              |]}
+            end
+          else
+            if modifiers.setOwner
+            then
+              Seq{[|
+                @Operation <"set" + name.upperCaseInitialLetter()>[UPDATER=true](v)
+                  if v.isReallyKindOf(XCore::Contained) then v.setOwner(self) end; 
+                  self.<name> := v
+                end
+              |]}
+            else
+              Seq{[|
+                @Operation <"set" + name.upperCaseInitialLetter()>[UPDATER=true](v)
+                  self.<name> := v
+                end
+              |]}
+            end
+          end
+        else Seq{}
+        end 
+      end
+      
+    end 

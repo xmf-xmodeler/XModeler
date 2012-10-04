@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class Error extends Exception
+  
+    @Doc
+      A general error exception. Use this when other exception classes
+      are not provided for the specific exception you want to raise.
+      Constructor: Error(message)
+    end
+     
+    @Constructor(message) ! 
+      self.setBacktrace()
+    end
+    
+  end
+      
+    

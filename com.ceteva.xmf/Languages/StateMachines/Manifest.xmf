@@ -1,0 +1,21 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest StateMachines
+  StateMachines = @File StateMachines end
+  @File State end
+  @File EventArg end
+  @File Event end
+  @File Transition end
+  @File StateMachine end
+  @File Send end
+  @File StateMachinableObject end
+  @File StateMachinableClass end
+  @File MessageArg end
+  @File Message end
+  @File ControllerObject end
+  @File ControllerClass end
+do Project(Languages::StateMachines,dir,self)
+end;

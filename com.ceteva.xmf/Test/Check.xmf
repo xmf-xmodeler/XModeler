@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context Root
+ @Class Check
+   @Grammar extends OCL::OCL.grammar
+     Check ::= '(' s = Str ')' e = Exp {
+       If(Negate(e),Send(Self(),"error",Seq{StrExp(s)}),BoolExp(true))
+     }.
+   end
+ end
+ 
+context Root
+  @Operation test(x)
+    @Check("x must be less than 100") x < 100 end
+  end

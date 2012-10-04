@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftExcel;
+
+context MicrosoftExcel
+
+  @Class Excel extends OleTopLevel
+  
+    @Attribute wrkbkObj  : OleObject end
+    @Attribute workbooks : Seq(Workbook) (+,-) end
+  
+    @Constructor()
+      self.init(Seq{"Excel.Application"})
+    end
+    
+    @Operation connect()
+      super();
+      self.wrkbkObj := self.getObject("Workbooks")
+    end
+    
+    @Operation hide()
+      self.setProperty("Visible",false)
+    end
+    
+    @Operation newBook()
+      let book = Workbook(self)
+      in
+        book.setOwner(self);
+        self.commandInterpreter().callAndStore(wrkbkObj,"Add",Seq{},book);
+        self.addToWorkbooks(book);
+        book.new();
+        book
+      end
+    end
+    
+    @Operation openWorkbook(filename:String)
+      let book = Workbook(self)
+      in
+        book.setOwner(self);
+        self.commandInterpreter().callAndStore(wrkbkObj,"Open",Seq{filename},document);
+        self.addToWorkbooks(book);
+        book.new();
+        book
+      end
+    end
+    
+    @Operation show()
+      self.setProperty("Visible",true)
+    end
+  
+  end

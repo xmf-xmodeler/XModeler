@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Parentheses extends OCL::OCL
+  
+    @Attribute exp : Performable end
+    
+    @Constructor(exp) ! end
+ 
+    @Operation pprint(out,indent)
+      format(out,"(");
+      exp.pprint(out,indent);
+      format(out,")")
+    end
+    
+  end

@@ -1,0 +1,113 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Languages::Processes;
+  
+context Processes
+  @Class Process extends XCore::NameSpace, Syntax
+  
+    @Doc
+      This class allows the construction of simple processes, built up of a sequence
+      of active steps that when activated lead on to the next step in the sequence.
+    end
+    
+    @Attribute steps : Seq(ProcessStep) end
+    @Attribute currentStepIndex : Integer end
+    @Attribute actionTarget : Element = null end
+
+    @Constructor(name) self.setName(name) end
+    @Constructor(name,actionTarget) self.setName(name) end
+    @Constructor(name,actionTarget,steps) self.setName(name) end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Process ::= name = Name defs = Exp* {
+        Process(name,null,defs->select(d | d.isKindOf(ProcessStep)))
+      }.
+            
+    end
+
+    @Operation actionTarget():Element
+      if actionTarget<>null
+      then actionTarget
+      else self
+      end
+    end
+
+    @Operation activate()
+      self.currentStepIndex := 0;
+      steps->at(0).activate()
+    end
+
+    @Operation add(element)
+      if element.isKindOf(ProcessStep)
+      then
+        self.addStep(element);
+        super(element)
+      else super(element)
+      end
+    end
+
+    @Operation addStep(step:ProcessStep)
+      step.setOwner(self);
+      self.steps := steps + Seq{step};
+      self
+    end
+
+    @Operation addStepAt(step:ProcessStep,index:Integer)
+      step.setOwner(self);
+      self.steps := steps->insertAt(step,index);
+      XCore::NameSpace::add.invoke(self,Seq{step});
+      self
+    end
+
+    @Operation advance()
+      self.currentStepIndex := currentStepIndex+1;
+      if currentStepIndex < steps.size()-1 then
+        steps->at(currentStepIndex).activate() // activate then advance
+      else
+        steps->at(currentStepIndex).activate(false); // activate then finish
+        xmf.message(self.name+" process completed.")
+      end
+    end
+
+    @Operation doubleClick()
+      self.activate()
+    end
+
+    @Operation indexForStep(step:ProcessStep):Integer
+      self.steps.indexOf(step)
+    end
+
+    @Operation indexForStep_twoDigits(step:ProcessStep):Integer
+      let
+        index = self.steps.indexOf(step)+1 then
+        indexString = if index<10 then "0" else "" end + index.toString()
+      in
+        indexString
+      end
+    end    
+    
+    @Operation remove(element)
+      if element.isKindOf(ProcessStep)
+      then
+        self.removeStep(element);
+        super(element)
+      else super(element)
+      end
+    end
+
+    @Operation removeStep(step:ProcessStep)
+      //step.removeFromOwner();
+      self.steps := steps->excluding(step);
+      self
+    end
+
+    @Operation resetSteps()
+      @For step in self.steps do
+        step.complete(false)
+      end
+    end
+
+  end

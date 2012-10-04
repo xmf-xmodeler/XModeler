@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import XOCL;
+import Instrs;
+
+context CaseInt
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      CaseInt ::= '[' limit = Int ']' exp = Exp 'of' clauses = Clause* otherwise = OptOtherwise {
+        
+         CaseInt(limit,exp,clauses,otherwise)
+         
+      }.
+      
+      Clause ::= values = Values 'do' exp = Exp 'end' {
+      
+        CaseIntClause(values,exp)
+        
+      }.
+      
+      Values ::= v = Value vs = (',' Value)* {
+      
+        Seq{ v | vs }
+        
+      }.
+      
+      Value ::= Constant | Range.
+      
+      Constant ::= exp = Exp {
+      
+        CaseIntConst(exp)
+        
+      }.
+      
+      Range ::= lower = Exp 'to' upper = Exp {
+      
+        CaseIntRange(lower,upper)
+        
+      }.
+      
+      OptOtherwise ::= 'else' Exp | { null }.
+      
+    end
+    
+    

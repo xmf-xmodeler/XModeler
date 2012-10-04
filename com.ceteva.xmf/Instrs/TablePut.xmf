@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class TablePut extends Instr
+  
+    @Doc
+      Expects a table above a key and a velu on the stack. Pops these
+      values and sets the value of the key to be the value in the table.
+      Causes any daemons to fire.
+    end
+     
+    @Operation toString():String
+      "<TablePut>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

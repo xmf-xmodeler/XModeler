@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class List extends Clients::Forms::FormList, FormElement
+  
+    @Operation actualHeight():Integer
+      50
+    end
+    
+    @Operation actualWidth():Integer
+      100
+    end
+    
+  end

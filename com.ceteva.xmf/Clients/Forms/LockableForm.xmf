@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class LockableForm isabstract extends Form
+
+    @Attribute isLocked : Boolean = false end
+
+    @Operation addTools()
+      super();
+      self.commandInterpreter().setFormTool(self,"lock",isLocked);
+      self
+    end
+
+    @Operation handleClientNewForm(client:FormClient)
+      let oldForm =
+        @Find(form,client.forms)
+          when form.of() = self.of() andthen not form.isLocked
+          else null
+        end
+      in
+        if oldForm <> null
+        then
+          client.replaceForm(oldForm,self,true)
+        else
+          client.newFormDefinitely(self)
+        end
+      end
+    end
+
+    @Operation lockForm(value:Boolean)
+      self.isLocked := value
+    end
+
+  end

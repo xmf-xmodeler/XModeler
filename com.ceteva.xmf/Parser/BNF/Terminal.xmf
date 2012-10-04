@@ -1,0 +1,89 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Parser::Machine;
+import OCL;
+
+context Parser::BNF
+
+  @Class Terminal extends Recognizer
+  
+    // A terminal recognizer expects to find the terminal string as
+    // the next sequence of characters in the input.
+ 
+    @Attribute terminal : String end
+    
+    @Constructor(terminal) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," '~S' ",Seq{terminal})
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+    
+    @Operation toString():String
+      "'" + terminal + "'"
+    end
+    
+    @Operation terminals():Set(String)
+      Set{terminal}
+    end
+
+    @Operation parse(machine:Machine)
+      if machine.eof()
+      then 
+        if machine.grammar.debug then machine.debug("Fail: EOF encountered, expecting " + terminal) end;
+        machine.fail()
+      else
+        let token = machine.next()
+        in if (token->at(0) = 6 or token->at(0) = 8) and token->at(1) = terminal
+           then 
+             if machine.grammar.debug then machine.debug("Terminal " + terminal + " succeeds.") end;
+             machine.consumedChars := token->at(2)
+           elseif token->at(0) = 1
+           then self.parseChars(token,terminal->asSeq,machine)
+           else
+             if machine.grammar.debug then machine.debug("Fail: expecting terminal " + terminal + " received " + token) end;
+             machine.fail()
+           end
+        end
+      end
+    end
+    
+    @Operation parseChars(charToken,terminalChars,machine)
+      if terminalChars->isEmpty
+      then 
+        if machine.grammar.debug then machine.debug("Terminal " + terminal + " succeeds.") end
+      else
+        if charToken->at(0) = 1
+        then 
+          if charToken->at(1) = terminalChars->head
+          then 
+            if machine.grammar.debug then machine.debug("Terminal " + terminal + " consumed char: " + Seq{terminalChars->head}->asString) end;
+            self.parseChars(machine.next(),terminalChars->tail,machine)
+          else 
+            if machine.grammar.debug then machine.debug("Fail: expecting terminal " + terminal + " received " + charToken) end;
+            machine.fail()
+          end
+        else 
+          if machine.grammar.debug then machine.debug("Fail: expecting terminal " + terminal + " received " + charToken) end;
+          machine.fail()
+        end
+      end
+    end
+     
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Terminal(<StrExp(terminal)>) |]
+    end 
+     
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+     
+  end

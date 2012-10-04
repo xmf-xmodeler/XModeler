@@ -1,0 +1,43 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Basic;
+import Events;
+import Menus;
+
+context Basic
+
+  @Class ObjectManager extends Snapshot
+  
+    @Doc
+      The XTools object manager is the container for all the objects created
+      using XTools so they are all in one place. Menus are added to ObjectManager
+      to enable new elements to be added.
+    end
+
+    @Operation addInstance(class)
+      self.add(self.newName(class.name().toString().lowerCaseInitialLetter()),class())
+    end
+
+    @Operation loadXTO(file)
+      let toolManager = xmf.toolManager() then
+          element = toolManager.loadXTO(file) then
+          name = self.newName(element.of().name().toString().lowerCaseInitialLetter())
+      in
+        if element <> null
+        then 
+          self.add(name,element)
+        end
+      end
+    end
+
+    @Operation loadXTO()
+      xmf.toolManager().loadXTO()
+    end
+
+    @Operation removeObject()
+      self.removeObject("Object Manager")
+    end
+
+  end

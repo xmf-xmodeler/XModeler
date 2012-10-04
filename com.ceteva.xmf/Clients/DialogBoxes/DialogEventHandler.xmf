@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class DialogEventHandler extends EventHandler
+  
+    @Doc
+      This class defines operations to handle the following incoming
+      events from the client. 
+        [dialogReply(dialogId,replyString)]
+    end
+  
+    @Operation start()
+      @While true do
+        self.readEvent()
+      end
+    end
+
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "dialogReply"   do self.readReply(parameters) end
+      end
+    end
+    
+    @Operation readReply(parameters)
+      let dialogId = parameters.at(0)
+      in let reply = parameters.at(1)
+         in self.dialogReply(dialogId,reply)
+         end
+      end
+    end
+    
+    @Operation dialogReply(dialogId,reply)
+      self.debug("dialogReply[~S,~S]~%",Seq{dialogId,reply});
+      reply
+    end
+  
+ end
+ 

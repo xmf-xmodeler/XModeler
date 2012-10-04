@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Values;
+
+context Values
+
+  @Class Type extends Value
+  
+    @Attribute names : Seq(String) end
+    
+    @Constructor(names) ! end
+    
+    @Operation new()
+      Record(self,names->collect(n | Seq{n | null}))
+    end
+  
+  end

@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context Exceptions
+
+  @Class UpdateLocationError extends Exception
+     
+    @Attribute location : Performable end
+    @Attribute value    : Performable end
+    
+    @Constructor(location,value) !
+       self.setBacktrace();
+       self.message := "Location " + location.pprint() + " := " + value.pprint() + " is illegal."
+    end
+    
+  end
+
+context OCL
+  @Operation update(location:Performable,value:Performable):Performable
+    @TypeCase(location)
+      Var         do VarUpdate(location.name,value) end
+      Dot         do SlotUpdate(location.target,location.name,value) end
+      Path        do PathUpdate(location,value) end
+      Drop        do VarUpdate(location,value) end
+      DropPattern do VarUpdate(location,value) end
+      CollExp     do
+        @Case location.collOp of 
+          "head" do HeadUpdate(location.collection,value) end
+          "tail" do TailUpdate(location.collection,value) end
+          else throw UpdateLocationError(location,value)
+        end
+      end
+      else throw UpdateLocationError(location,value)
+    end
+  end 

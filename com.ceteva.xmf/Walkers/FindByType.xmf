@@ -1,0 +1,18 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class FindByType extends Find
+  
+    @Attribute type : Classifier end  
+    
+    @Constructor(type) ! 
+      self.predicate := @Operation(x) x <> null andthen x.isKindOf(type) end;
+      self.initWalker()
+    end
+     
+  end
+     

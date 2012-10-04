@@ -1,0 +1,83 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context DisplayTypes
+
+  @Class Star extends DisplayType
+  
+    @Doc 
+      A star is wrapped around a type to indicate that any number
+      of instances of the type may exist at this point in the display.
+      The name of a star type is used to reference the star type using
+      Refs; the name does not play a part in name space references.
+    end
+  
+    @Attribute types : Seq(DisplayType) (+,?) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Star ::= name = OptName defs = Exp* {
+      
+        defs->iterate(def exp = [| Tools::DiagramTools::Types::DisplayTypes::Star(<OCL::StrExp(name)>) |] | 
+          [| <exp>.add(<def>) |])
+        
+      }.
+      
+      OptName ::= Name | { "" }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        DisplayType do
+          element.setOwner(self);
+          self.addToTypes(element)
+        end
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T := super(T);
+      @For t in self.types do
+        T := t.allDisplayTypes(T)
+      end;
+      T
+    end
+
+    @Operation deref(env)
+      self.types := types->collect(t | t.deref(env))
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      
+      // The initial elements instantiated by a * is 0. The owner of the
+      // starred type can add new instances of the underlying type by
+      // referencing the name of the starred type.
+      
+      env := types->iterate(t env = env.bind(name,self) | env.bind(t.name().toString(),t.referencedType(env)));
+      @For type in types do
+        parent.addStarHandler(type.name().toString(),
+          @Operation(container)
+            let display = type.new(root,container,path,tool,env)
+            in container.orderContents();
+               display.new(container);
+               root.layout();
+               tool.raise(AttributeValueAdded(root,path+Seq{type.name().toString()},display));
+               display
+            end
+          end)
+       end
+    end
+    
+    @Operation underlyingTypes():Seq(DisplayType)
+      types
+    end
+    
+  end

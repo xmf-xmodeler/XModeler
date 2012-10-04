@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler EnumChoice in Lift(choice,arg,encountered)
+  Path::toPath(choice.pathSeq())
+end; 

@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+context Parser::BNF
+    
+    @Class Recognizer isabstract
+    
+      // A recognizer is a parsing/synthesizing component of a grammar clause
+      // rule. To invoke a recognizer, call 'parse' with the current machine
+      // state.
+      
+      @Operation FV():Set(String)
+        self.error("FV: I don't know how to calculate the FV.")
+      end
+      
+      @Operation nextSet(grammar)
+        // Return the set of next recognizers.
+        Set{}
+      end
+    
+      @Operation parse(machine)
+        machine
+      end
+      
+      @Operation setOwner(owner)
+        self
+      end
+      
+      @Operation terminals():Set(String)
+        Set{}
+      end
+      
+      @Operation toExp(FV:Set(String))
+        self.error("I don't know how to turn myself into an expression: " + self.toString())
+      end
+      
+      @Operation transform(FV:Set(String),grammar):Recognizer
+        self.error("I don't know how to transform myself: " + self.toString())
+      end
+      
+    end

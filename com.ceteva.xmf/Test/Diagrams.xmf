@@ -1,0 +1,591 @@
+parserImport XOCL;
+parserImport XMap;
+
+context Root
+
+@Package Diagrams
+
+  @Doc
+    This package provides an example of how multiple models can be maintained in sync
+    using the XMap features of XMF. A simple language for class models is constructed
+    and a simple language of diagrams is constructed independently. The two languages
+    are linked via synchronization mappings from XMap. An instance of the modelling
+    language is mapped to an instance of the diagrams. Once the mapping is established,
+    changes to either side of the mapping are propagated, in a domain specific way,
+    to the other side of the mapping.
+  end
+
+  @Package Models
+  
+    @Doc
+      The Models package defines a simple class-based modelling language. Packages
+      contain classes which in turn contain attributes. All elements are named. Note
+      that in this example, modelling elements do not know how they are to be rendered 
+      on a diagram and, more importantly, they do not know how they will be kept in
+      sync with other models.
+    end
+  
+    @Class Package
+      @Attribute name : String end
+      @Attribute classes : Set(Class) (+) end 
+      @Constructor(name) end
+      @Constructor(name,classes) ! end  
+    end
+    
+    @Class Class
+      @Attribute name : String end
+      @Attribute attributes : Set(Att) (+) end
+      @Constructor(name) end
+      @Constructor(name,attributes) ! end
+    end
+    
+    @Class Att
+      @Attribute name : String end
+      @Constructor(name) ! end
+    end
+    
+  end
+  
+  @Package Diagrams
+  
+    @Doc
+       The Diagrams package provides a simple model of how diagrams are drawn on a 
+       surface. This is intended to be representative of the features of a real language
+       for diagrams which would have many different catageories of display element.
+       A diagram consists of nodes and edges both of which have positional information.
+       Nodes have display elements attached which determine how the node is to be rendered.
+       A display element has an underlying model which is the element it provides a
+       display for.
+    end
+     
+    // Diagram element has an unique identifier.
+     
+    @Class DiagramContainer
+    
+       @Doc
+         A container for diagrams.
+       end
+       
+       @Attribute diagrams : Set(Diagram) (+,-) end
+       
+    end
+  
+    @Class Diagram
+      @Attribute name : String (!,?) end
+      
+      // Factor out as a graph?
+      
+      @Attribute nodes : Set(Node) (+) end
+      @Attribute edges : Set(Edge) end
+      @Constructor(name) end
+      @Constructor(name,nodes,edges) ! end
+      
+      @Operation findDisplay(id:Integer):Display
+        nodes->iterate(n d = null | 
+          let x = n.findDisplay(id) 
+          in if x = null 
+             then d 
+             else x 
+             end 
+          end)
+      end
+      
+    end 
+    
+    @Class Node
+   
+      @Attribute x : Integer end
+      @Attribute y : Integer end
+      @Attribute display : Display (!,?) end
+      @Attribute diagram : Diagram (!) end
+      
+      @Constructor(x,y) end
+      @Constructor(x,y,display) ! end
+      
+      @Operation findDisplay(id:Integer):Display
+        display.findDisplay(id)
+      end
+      
+      @Operation model():Element
+        display.model()
+      end
+      
+    end
+    
+    @Class Edge end
+    
+    @Class Display isabstract 
+    
+      @Bind idCounter = 0 end
+      
+      @Attribute model : Element (?,!) end  // The thing being displayed.
+      @Attribute id : Integer (?,!) end     // A unique id.
+      
+      @Constructor(model) 
+        self.id := self.allocateId();
+        self
+      end
+      
+      @Operation allocateId()
+        Display.putElement("idCounter",Display::idCounter + 1);
+        Display::idCounter
+      end
+      
+      @AbstractOp findDisplay(id:Integer):Display end
+      
+    end
+      
+    @Class Container extends Display
+    
+      "\\begin{Overview}
+         A container bundles together display elements. In a real system there would
+         be many different types of container with different layouts and different
+         rendering strategies. The essential features of a container are that they
+         contain display elements.
+       \\end{Overview}"
+       
+      @Attribute contents : Seq(Display) (+) end
+      
+      @Constructor(id,model,contents) end
+      @Constructor(id,contents) ! end
+      
+      @Operation findDisplay(id:Integer):Display
+        if self.id = id
+        then self
+        else 
+          contents->iterate(c d = null |
+            let x = c.findDisplay(id)
+            in if x = null
+               then d
+               else x
+               end
+            end)
+        end
+      end
+      
+    end
+    
+    @Class Text extends Display
+    
+      @Attribute text : String (!,?) end
+      
+      @Constructor(model,text) 
+        self.id := self.allocateId()
+      end
+      
+      @Constructor(id,model,text) end
+      @Constructor(id,text) ! end
+      
+      @Operation findDisplay(id:Integer):Display
+        if self.id = id
+        then self
+        else null
+        end
+      end
+      
+    end
+    
+  end
+  
+  @Package DisplayCommands
+  
+    @Class Commands
+    
+      @Attribute commands : Seq(Command) end
+      
+      @Operation addToCommands(c:Command)
+        c.toString().println();
+        self.commands := Seq{c | commands} 
+      end
+      
+    end
+    
+    @Class Command isabstract 
+    
+      @Attribute outgoing : Boolean (!,?) end
+      
+      @Operation incoming():Boolean
+        not outgoing
+      end
+    end
+    
+    @Class NewDiagram extends Command
+      @Attribute id : Element end
+      @Attribute name : String end
+      @Constructor(id,name,outgoing) end
+      @Constructor(name,outgoing) ! end 
+    end
+    
+    @Class NewNode extends Command
+      @Attribute diagram : Diagrams::Diagram end
+      @Attribute x : Integer end
+      @Attribute y : Integer end
+      @Constructor(diagram,x,y,outgoing) end
+      @Constructor(x,y,outgoing) ! end
+    end
+    
+    @Class NewText extends Command
+      @Attribute id : Integer end
+      @Attribute text : String end
+      @Constructor(id,text,outgoing) ! end
+    end
+    
+    @Class TextChanged extends Command
+      @Attribute id : Integer end
+      @Attribute text : String end
+      @Constructor(id,text,outgoing) ! end
+    end
+    
+  end
+  
+  @Package DiagramToCommandsMapping
+  
+    @Class DiagramsToCommands
+    
+      @Attribute ds : Diagrams::DiagramContainer end
+      @Attribute cs : DisplayCommands::Commands end
+      
+      @Constructor(ds,cs)
+        @SyncContainers(ds,diagrams,cs,commands)
+          @AddLeft(diagram)
+            cs.addToCommands(DisplayCommands::NewDiagram(diagram,diagram.name,true));
+            DiagramToCommands(diagram,cs)
+          end
+        end;
+        self
+      end
+      
+    end
+    
+    @Class DiagramToCommands
+    
+      @Attribute diagram : Diagrams::Diagram end
+      @Attribute cs : DisplayCommands::Commands end
+      
+      @Constructor(diagram,cs) 
+        @SyncContainers(diagram,nodes,cs,commands)
+          @AddLeft(node)
+            cs.addToCommands(DisplayCommands::NewNode(diagram,node.x,node.y,true));
+            @TypeCase(node.display)
+              Diagrams::Container do
+                ContainerToCommands(node.display,cs)
+              end
+            end
+          end
+        end;
+        self
+      end
+    end
+    
+    @Class ContainerToCommands
+    
+      @Attribute container : Diagrams::Container end
+      @Attribute cs : DisplayCommands::Commands end
+      
+      @Constructor(container,cs) 
+        @SyncContainers(container,contents,cs,commands)
+          @AddLeft(display)
+            import Diagrams
+            in @WithoutDaemons(cs)
+                 @TypeCase(display)
+                   Container do
+                     ContainerToCommands(display,cs)
+                   end
+                   Text do
+                     cs.addToCommands(DisplayCommands::NewText(display.id,display.text,true));
+                     TextToCommands(display,cs)
+                   end
+                 end
+               end
+            end
+          end
+          @AddRight(command)
+            import DisplayCommands
+            in @TypeCase(command)
+                 TextChanged do
+                   if command.incoming()
+                   then 
+                     container.findDisplay(command.id).text := command.text
+                   end
+                 end
+                 else self
+               end 
+            end
+          end
+        end;
+        self 
+      end 
+    end 
+    
+    @Class TextToCommands
+    
+      @Attribute text : Diagrams::Text end
+      @Attribute cs : DisplayCommands::Commands end
+      
+      @Constructor(text,cs) 
+        @SlotValueChanged(text,"text",newValue,oldValue)
+          cs.addToCommands(DisplayCommands::TextChanged(text.id,newValue,true))
+        end
+      end
+       
+    end
+        
+  end
+    
+  @Package ModelToDiagramMapping
+  
+    @Doc
+       The ModelToDiagramMapping package defines mappings between models and diagrams. 
+       The mappings are modelled. When mapping elements are created between a source 
+       and a target they attach synchronization daemons between them. The daemons are 
+       responsible for monitoring the two sides of the mapping and taking appropriate 
+       action if either side changes.
+    end
+  
+    @Class AttToText
+    
+      "\\begin{Overview}
+         An AttToText mapping associates an attribute and a text field. The name of
+         the attribute and the contents of the text field are synchronized.
+       \\end{Overview}"
+    
+      @Attribute att : Models::Att end
+      @Attribute text : Diagrams::Text end
+      
+      @Constructor(att,text) 
+        @Sync(att.name,text.text) end
+      end
+    
+    end
+  
+    @Class ClassToAttContainer
+    
+      "\\begin{Overview}
+         A ClassToAttContainer mapping associates a class with a container of text
+         fields. Each text field is associated with a class attribute. When an
+         instance of ClassToAttContainer is created, it attaches a synchronization
+         daemon to the class and the container such that if elements are added or
+         removed from either side then appropriate action is taken.
+       \\end{Overview}"
+    
+      @Attribute class : Models::Class end
+      @Attribute container : Diagrams::Container end
+      @Attribute parent : PackageToDiagram end
+      @Attribute attToTexts : Set(AttToText) (+) end
+      
+      @Constructor(class,container,parent)
+      
+        // Create a synchronization daemon that monitors addition and deletion
+        // from the containers.
+        
+        @SyncContainers(class,attributes,container,contents)
+        
+          // If an attribute is ever added to the class then we should add a
+          // text field to the container. NB 'outerSelf' refers to the instance
+          // of ClassToAttContainer.
+          
+          @AddLeft(att) 
+            import Diagrams
+            in if not container.contents->exists(c | c.model() = att)
+               then 
+                 let text = Text(att,att.name)
+                 in container.addToContents(text);
+                    outerSelf.addToAttToTexts(AttToText(att,text))
+                 end
+               end
+            end
+          end 
+          
+          // If we ever add a text field to the container then we should
+          // add an attribute with the appropriate name to the class.
+          
+          @AddRight(text) 
+            import Models
+            in if not class.attributes->contains(text.model())
+               then 
+                 let att = Att(text.text)
+                 in class.addToAttributes(att);
+                    outerSelf.addToAttToTexts(AttToText(att,text))
+                 end
+               end 
+            end
+          end
+           
+        end;   
+        self
+      end
+   
+    end
+  
+    @Class PackageToDiagram
+    
+      "\\begin{Overview}
+         A PackageToDiagram mapping associates a package with a diagram. It deals
+         with associating the name of the package with the name of the diagram and
+         associating each class in the package with nodes on the diagram.
+       \\end{Overview}"
+    
+      @Attribute package : Models::Package end
+      @Attribute diagram : Diagrams::Diagram end
+      @Attribute classToAttContainers : Set(ClassToAttContainer) (+) end
+    
+      @Constructor(package,diagram)
+      
+        // Synchronize the package and diagram names. 
+        
+        @Sync(package.name,diagram.name) end;
+        
+        // Synchronize the classes with the nodes.
+        
+        @SyncContainers(package,classes,diagram,nodes)
+        
+          // If a class is added to a package then we must add a node
+          // to the diagram. The node will contain a text field for the
+          // name of the class and a container of text fields for the
+          // attributes of the class. These are all mapped appropriately.
+          
+          @AddLeft(class)
+            if not nodes->exists(n | n.model() = class)
+            then 
+              let node = outerSelf.createNode(class)
+              in outerSelf.mapName(class,node);
+                 outerSelf.mapAttributes(class,node)
+              end
+            end
+          end
+        end;
+        self
+      end
+      
+      @Operation createNode(class:Models::Class)
+      
+        "\\begin{Overview}
+           Create a node for a class and add the node to the diagram.
+           A class node has a display that is a container for the
+           various boxes of class information.
+         \\end{Overview}"
+         
+        let node = Diagrams::Node(0,0);
+            nodeContainer = Diagrams::Container(class)
+        in node.setDisplay(nodeContainer);
+           diagram.addToNodes(node);
+           node
+        end
+      end
+      
+      @Operation mapName(class:Models::Class,node:Diagrams::Node)
+      
+        "\\begin{Overview}
+           Create a text field for the class name and synchronize the
+           class name and the contents of the field.
+         \\end{Overview}"
+         
+        let nameText = Diagrams::Text(class,class.name)
+        in node.display().addToContents(nameText);
+           @Sync(class.name,nameText.text) end
+        end
+      end
+      
+      @Operation mapAttributes(class:Models::Class,node:Diagrams::Node)
+      
+        "\\begin{Overview}
+           Create a container for the attributes, add the container to the
+           display component of the node and then associate the class with
+           the container using a mapping. The ClassToAttContainer mapping
+           will set up the attribute to text field mappings.
+         \\end{Overview}"
+         
+        let attContainer = Diagrams::Container(class)
+        in node.display().addToContents(attContainer);
+           self.addToClassToAttContainers(ClassToAttContainer(class,attContainer,self))
+        end 
+      end
+      
+    end 
+    
+  end
+  
+  @Operation test()
+  
+    // Set up a simple model...
+    
+    let a = Models::Att("a");
+        c = Models::Class("C");
+        p = Models::Package("P");
+        cs = DisplayCommands::Commands();
+        ds = Diagrams::DiagramContainer();
+        d = Diagrams::Diagram("P");
+        x = Models::Att("x")
+    in 
+       // Associate all diagrams with the command container.
+       // All changes to any diagram will be propagated to
+       // the container and construct the appropriate commands.
+    
+       DiagramToCommandsMapping::DiagramsToCommands(ds,cs);
+    
+       ds.addToDiagrams(d);
+    
+       c.addToAttributes(a);
+       p.addToClasses(c);
+       
+       // Impose the mapping on the model and the diagram.
+       // Note that the diagram is empty at this stage.
+       
+       ModelToDiagramMapping::PackageToDiagram(p,d);
+       
+       format(stdout,"The initial state after associating model and diagram~%");
+       p.toString().println();
+       d.toString().println();
+       
+       // Do some updates...
+       format(stdout,"~%Update the name of the package to Q, class to D and attribute to b.~%");
+       p.name := "Q";
+       c.name := "D";
+       a.name := "b";
+       
+       // Show the result...
+       p.toString().println();
+       d.toString().println();
+       
+       // A test of speed...
+       //format(stdout,"~%Update the name of the attribute 1000 times.~%");
+       //let i = 0
+       //in @While i <> 1000 do
+       //      a.name := "a" + i;
+       //      i := i + 1
+       //   end 
+       //end;
+       
+       // Display the results...
+       p.toString().println();
+       d.toString().println();
+       
+       // Add something to the model....
+       format(stdout,"~%Adding an attribute x to the class named D.~%");
+       c.addToAttributes(x);
+       
+       // Print the result....
+       p.toString().println();
+       d.toString().println();
+       
+       // Change the name of the new attribute....
+       format(stdout,"~%Change the name of x to y.~%");
+       x.name := "y";
+       
+       // Display the results...
+       p.toString().println();
+       d.toString().println();
+       
+       // Simulate a command changing the text in a box...
+       format(stdout,"~%A tool command changes the name of y to z.~%");
+       let textChanged = cs.commands->select(c | c.isKindOf(DisplayCommands::TextChanged))->select(t | t.text = "y")->sel
+       in cs.addToCommands(DisplayCommands::TextChanged(textChanged.id,"z",false));
+          p.toString().println();
+          d.toString().println()
+       end
+    end
+  end
+  
+    
+end
+  

@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class OCLAction extends Action
+  
+    @Attribute exp : XOCL::Exp    (?) end
+    @Attribute BOA : Seq(Integer) (?) end
+    
+    @Constructor(exp) ! end
+    
+    @Operation FV():Set(String)
+      exp.exp().FV()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"{ ");
+      exp.exp().pprint(out,indent+2);
+      format(out," }")
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+    
+      // Calculate the freely reference variabels in the body of the
+      // action and set these as arguments to the operation. They are
+      // supplied by calculating the locals in the parser stack frame
+      // whose positions are determined by BOA.
+      
+      let FV = self.FV() then
+          referencedLocals = locals->select(local | FV->includes(local))
+      in self.BOA := referencedLocals->collect(local | locals->indexOf(local));
+         exp.setArgs(referencedLocals);
+         next(locals)
+      end
+    end
+    
+    @Operation setOwner(grammar)
+    
+      // In order to get the scoping of names correct within 
+      // operation bodies in actions, the owner of the action
+      // operation must be the grammar.
+      
+      if exp.op.isReallyKindOf(Operation) andthen exp.op.owner = null
+      then exp.op.setOwner(grammar)
+      end
+    end
+  
+  end

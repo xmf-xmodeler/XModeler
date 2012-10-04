@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Section extends Entry
+
+    // A section is a named document part.  Sections within
+    // a document should be each uniquely named.
+
+    @Attribute name : String end		
+    @Attribute entries : Seq(Entry) (?,!,+,-) end
+
+    @Constructor(name,entries) ! end
+    
+    @Operation contents()
+      entries
+    end
+
+  end

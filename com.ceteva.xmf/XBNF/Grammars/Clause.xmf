@@ -1,0 +1,260 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Clause extends Syntax
+ 
+    @Attribute name         : String               (?) end  // The name of the clause.
+    @Attribute args         : Seq(String)          (?) end  // Any arguments the clause takes.
+    @Attribute bodies       : Seq(Seq(Recognizer)) (?) end  // Outer disjunctive, inner conjunctive.
+    @Attribute locals       : Integer              (?) end  // The number of locals required by the clause in total.
+      
+    @Constructor(name,args,bodies) ! end
+    
+    @Constructor(name,args,bodies,locals) end
+    
+    @Operation addPPT(grammar,terminal,body)
+      if grammar.PPT(self).hasKey(terminal)
+      then 
+        let bodies = grammar.PPT(self).get(terminal)
+        in if not bodies->exists(b | b = body)
+           then grammar.PPT(self).put(terminal,grammar.PPT(self).get(terminal)->including(body))
+           end
+        end
+      else grammar.PPT(self).put(terminal,Seq{body})
+      end
+    end
+    
+    @Operation cachePPT(grammar,terminalsSize)
+      grammar.setPPTCache(self,Vector(terminalsSize));
+      @Count i from 0 to terminalsSize do
+        grammar.PPTCache(self).put(i,Seq{})
+      end;
+      @For terminal inTableKeys grammar.PPT(self) do
+        grammar.PPTCache(self).put(grammar.terminalIndex(terminal),grammar.PPT(self).get(terminal))
+      end
+    end
+    
+    @Operation calculatePPT(grammar)
+      @For body in bodies do
+        @For terminal in self.firsts(grammar,body) do
+          self.addPPT(grammar,terminal,body)
+        end
+      end;
+      @For body in bodies do
+        if body->forAll(p | p.nullable(grammar))
+        then 
+          @For terminal in grammar.follow(self) do
+            // Experimental ... only add the body into the table if the table
+            // is empty. This allows firsts to take preference and will not
+            // generate an ambiguous grammar for (say) empty actions.
+            if not grammar.PPT(self).hasKey(terminal) orelse grammar.PPT(self).get(terminal)->isEmpty
+            then self.addPPT(grammar,terminal,body)
+            end
+          end;
+          self.addPPT(grammar,"EOF",body)
+        end
+      end
+    end
+    
+    @Operation CNF(grammar)
+    
+      // Translate the clause into Clause Normal Form.
+      // This involves lifting all disjunction out of the
+      // clause bodies, into new bodies or into new clauses.
+      // Star-ed elements (essentially disjunction) are
+      // lifted out into new recursive clauses.
+      // The clause consists of a collection of dusjunctive
+      // bodies. Each body is a conjunctive sequence of recognizers.
+      
+      self.CNFbody(grammar,self.liftDisjuncts(bodies),
+        @Operation(bodies,newClauses)
+          newClauses->including(Clause(name,args,bodies,locals))
+        end)
+    end
+    
+    @Operation CNFbody(grammar,body,handler)
+      if body->isEmpty
+      then handler(Seq{},Seq{})
+      else self.CNFparser(grammar,body->head,args,
+        @Operation(parser1,BV,newClauses1)
+          self.locals := locals.max(args->size + BV->size);
+          self.CNFbody(grammar,body->tail,
+            @Operation(parser2,newClauses2)
+              handler(parser2->including(parser1),newClauses1 + newClauses2)
+            end)
+        end)
+      end
+    end
+    
+    @Operation CNFparser(grammar,parser,BV,handler)
+      if parser->isEmpty
+      then handler(Seq{},BV,Seq{})
+      else parser->head.CNF(grammar,BV,
+        @Operation(parser1,BV,newClauses1)
+          self.CNFparser(grammar,parser->tail,BV,
+            @Operation(parser2,BV,newClauses2)
+              handler(parser1 + parser2,BV,newClauses1 + newClauses2)
+            end)
+        end)
+      end
+    end
+    
+    @Operation firsts(grammar,parsers)
+      if parsers->isEmpty
+      then Set{}
+      else 
+        if parsers->head.nullable(grammar)
+        then self.firsts(grammar,parsers->tail) + parsers->head.first(grammar)
+        else parsers->head.first(grammar)
+        end
+      end
+    end
+    
+    @Operation liftDisjuncts(bodies)
+    
+      // The bodies are disjunctive sequences of conjunctive sequences of
+      // recognizers. Lift out dijunctions to the top level. This is an
+      // efficiency measure since CNF will lift nexted disjuncts out to new 
+      // clauses. It is better if we can absorb as many disjunctions locally
+      // as possible.
+      
+      bodies->iterate(body B = Seq{} |
+        B + self.liftDisjuncts1(body->iterate(b p = Empty() | if p.isKindOf(Empty) then b else And(p,b) end)))
+    end
+    
+    @Operation liftDisjuncts1(p)
+    
+      // Pattern match on a body entry to lift the disjunctions.
+      
+      @Case p of
+        And(a,Or(b,c)) do
+          self.liftDisjuncts1(And(a,b)) + 
+          self.liftDisjuncts1(And(a,c))
+        end
+        And(Or(a,b),c) do
+          self.liftDisjuncts1(And(a,c)) +
+          self.liftDisjuncts1(And(b,c))
+        end
+        Or(a,b) do
+          self.liftDisjuncts1(a) +
+          self.liftDisjuncts1(b)
+        end
+        Paren(a) do
+          self.liftDisjuncts1(a)
+        end
+        else Seq{Seq{p}}
+      end
+    end
+    
+    @Operation parseError(grammar,type:Integer,token:String)
+      let expected = first->asSeq->separateWith(",")
+      in self.error("Parse error: Calling " + name + " received " + token + ":" + grammar.name(type) + " expected one of " + expected)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      @For R in bodies do
+        if args->isEmpty
+        then format(out,"~S ::= ",Seq{name})
+        else format(out,"~S (~{,~;~S~}) ::= ",Seq{name,args})
+        end;
+        @For r in R do
+          r.pprint(out,indent+2);
+          if not isLast then format(out," ") end
+        end;
+        if not isLast 
+        then format(out,".~%~V",Seq{indent}) 
+        else format(out,".") end
+      end
+    end
+    
+    @Operation pprintPPT(grammar,out)
+      format(out,"Clause ~S(~{,~;~S~})~%",Seq{name,args});
+      @For terminal inTableKeys grammar.PPT(self) do
+        format(out,"  ~S = ",Seq{terminal});
+        @For entry in grammar.PPT(self).get(terminal) do
+          format(out,"[");
+          @For p in entry do
+            p.pprint(out,0);
+            if not isLast then format(out," ") end
+          end;
+          format(out,"]");
+          if not isLast then format(out,",") end
+        end;
+        if not isLast then format(out,"~%") end
+      end
+    end
+    
+    @Operation predict(type:Integer,grammar)
+      let name = grammar.name(type)
+      in if grammar.PPT(self).hasKey(name)
+         then grammar.PPT(self).get(name)
+         else Seq{}
+         end
+      end
+    end
+    
+    @Operation printWarnings(grammar,count):Integer
+      
+      // Print a warning if the prediction table indicates that the
+      // non-terminals defined by this clause is not LL(1). Receives
+      // the number of warnings and returns the updated count of
+      // warnings.
+      
+      @For terminal inTableKeys grammar.PPT(self) do
+        let bodies = grammar.PPT(self).get(terminal)
+        in if bodies->size > 1
+           then
+             count := count + 1;
+             format(stdout,"  (~S) Non-terminal ~S is ambiguous for terminal '~S':~%",Seq{count,name,terminal});
+             @For body in bodies do
+               format(stdout,"      ");
+               @For r in body do
+                 format(stdout,"~S",Seq{r.pprint()});
+                 if not isLast 
+                 then format(stdout," ")
+                 else format(stdout,"~%")
+                 end
+               end
+             end
+           end
+        end
+      end;
+      count
+    end
+    
+    @Operation setLocals()
+    
+      // Set the locals in each of the actions...
+      
+      @For body in bodies do
+        body->iterate(parser p = Empty() | 
+          And(p,parser)).setLocals(args,@Operation(locals) null end)
+      end
+    end
+    
+    @Operation setOwnership(grammar)
+    
+      // Set the owner in each of the actions...
+      
+      @For body in bodies do
+        @For recognizer in body do
+          if recognizer.isKindOf(OCLAction)
+          then recognizer.setOwner(grammar)
+          end
+        end
+      end
+    end
+    
+    @Operation terminals():Set(String)
+      bodies->iterate(body T = Set{} |
+        body->iterate(p T = T | T + p.terminals()))
+    end
+    
+  end

@@ -1,0 +1,74 @@
+\documentclass[a4paper]{article}
+
+\usepackage{newvbtm}
+\usepackage{times}
+\usepackage{fancyhdr}
+
+\input{Defs.tex}
+\title{XMF Reference Manual}
+\author{Ceteva Ltd}
+
+\pagestyle{fancy}
+\lhead{}
+\chead{The XMF Reference Manual}
+\rhead{\thepage}
+\cfoot{(c) 2003 Ceteva Ltd.}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+XMF is a general engine that provides technolgies underlying a range of modelling
+methods and techniques. The basic XMF engine is a virtual machine that runs
+XMF VM code. The basic VM code runs in terms of a minimal language which is
+a subset of languages such as MOF. This basic language is self aware and is used
+as a basis for language definition. XMF is provided with a fairly extensive language, XMOF,
+which is both an instance and an extension of the basic machine language. XMF is
+not limited to this language, however, other languages can be defined in terms 
+of the basic language and then loaded, making XMF very flexible. XMOF is also self aware
+and can be used as a basis for language engineering since it provides a parser,
+compiler and an interface to the XMF VM through various packages.
+
+This document is the reference manual for the Ceteva Modelling Framework XMF. It
+defines XMOF in terms of a collection of packages. This manual is not a tutorial 
+for XMF although many of the packages and classes are documented in terms of examples.
+The manual has been mechanically generated from the XMF source code through the Doc 
+package.
+
+\section{Installing and Running XMF}
+
+The XMF system is a collection of directories under a root directory XMFHOME. You
+can install XMF anywhere. The directory XMFHOME/bin contains scripts that control
+the various ways in which XMF can be executed. Each script takes a number of command
+line arguments, the first of which is always the path XMFHOME. Typically a script 
+will start one of the saved images in XMFHOME/Images. A saved image is a resumable
+snapshot of an XMF session. You can create your own images at any stage during a
+session. The scripts are:
+\begin{description}
+\item[xmf] This is used to run a very minimal XMF image. You must
+supply this script with XMFHOME and a binary file containing XMF machine instructions.
+The image is started, the machine instructions are loaded and executed.
+\item[xmfe] This is used to run an XMF command interpreter. The evaluator image
+contains packages to parse and interpret commands. You must supply this
+script with XMFHOME. Optionally, you can supply this script with a binary file
+which is loaded and run.
+\item[xmfc] This is used to run the XMF compiler from the command line or to
+start an interactive session with the XMF compiler. You must supply this
+script with XMFHOME. Optionally you may supply this script with an XMF
+source file. The file should have an '.xmf' extension, although you need
+not supply the extension as part of the a command line argument. If you supply
+a file then it is compiled and the compiler terminates. If you do not supply a file
+then an XMF command interpreter is started and you can interactively compile files
+using the Compiler package.
+\item[xmft] This script starts an XMF image and runs all the tests in
+XMFHOME/Test. The tests should be fairly self explanatory. You must supply this
+script with XMFHOME.
+\item[make] This is used to reconstruct the XMF images in XMFHOME/Images.
+\end{description}
+
+\input{body.tex}
+
+\end{document}

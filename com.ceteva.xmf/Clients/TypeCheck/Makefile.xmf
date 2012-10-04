@@ -1,0 +1,8 @@
+import Compiler;
+
+compileFile("Clients/TypeCheck/Boot",true,true);
+compileFile("Clients/TypeCheck/Manifest",true,true);
+compileFile("Clients/TypeCheck/TypeCheck",true,true);
+compileFile("Clients/TypeCheck/ReportNode",true,true);
+compileFile("Clients/TypeCheck/ReportTree",true,true);
+compileFile("Clients/TypeCheck/Report",true,true); 

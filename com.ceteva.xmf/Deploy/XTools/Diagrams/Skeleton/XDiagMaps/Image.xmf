@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Image extends Root::XDiagMaps::Display
+
+    @Attribute height : Root::XCore::Integer (?,!) end
+    @Attribute width : Root::XCore::Integer (?,!) end
+    @Attribute path : Root::XCore::String (?,!) end
+
+    @Constructor(path,height,width) ! end
+    
+    @Operation writeType(out,indent)
+      format(out,"~V@Image image(CENTRE) \"~S\" minWidth=~S minHeight=~S width=~S height=~S end~%",Seq{indent,path,width,height,width,height})
+    end
+
+  end

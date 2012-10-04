@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- edited with XMLSPY v5 rel. 2 U (http://www.xmlspy.com) by XMLSPY 5 Professional Ed. Release 2, Installed Multi for 4 users (CSC) -->
+<xs:schema targetNamespace="http://tempuri.org/GenericGuiSchema.xsd" xmlns="http://tempuri.org/GenericGuiSchema.xsd" xmlns:mstns="http://tempuri.org/GenericGuiSchema.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" id="GenericGuiSchema">
+	<xs:element name="GUI">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="FORM" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TABLE" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="TABLE_COLUMN">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="TABLE_COLUMN_CELL" minOccurs="0" maxOccurs="unbounded">
+														<xs:complexType>
+															<xs:attribute name="Id" type="xs:ID" />
+															<xs:attribute name="Value" type="xs:string" use="required" />
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="TABLE_DROPDOWN_OPTION" maxOccurs="unbounded">
+														<xs:complexType>
+															<xs:attribute name="Id" type="xs:ID" />
+															<xs:attribute name="Display_Member" type="xs:string" use="required" />
+															<xs:attribute name="Value_Member" type="xs:string" use="required" />
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="Id" type="xs:string" />
+												<xs:attribute name="Name" type="xs:string" use="required" />
+												<xs:attribute name="Width" type="xs:integer" use="required" />
+												<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+												<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+											</xs:complexType>
+											<xs:key name="key_TABLE_COLUMN">
+												<xs:selector xpath="." />
+												<xs:field xpath="@Id" />
+											</xs:key>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Name" type="xs:string" use="required" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="TEXTBOX" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="STYLE" type="STYLE" use="required" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+									<xs:attribute name="Value" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="DROPDOWN" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="DROPDOWN_OPTION" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:attribute name="Id" type="xs:ID" />
+												<xs:attribute name="Display_Member" type="xs:string" use="required" />
+												<xs:attribute name="Value_Member" type="xs:string" use="required" />
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+									<xs:attribute name="Value" type="xs:string" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="CHECKBOX" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+									<xs:attribute name="Value" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="RADIO_BUTTON" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+									<xs:attribute name="Value" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="BUTTON" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="Icon_Filepath" type="xs:string" use="required" />
+									<xs:attribute name="Icon_Alignment" type="ICON_ALIGNMENT" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="LABEL" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="Icon_Filepath" type="xs:string" use="required" />
+									<xs:attribute name="Icon_Alignment" type="ICON_ALIGNMENT" />
+									<xs:attribute name="X_Position" type="xs:integer" />
+									<xs:attribute name="Y_Position" type="xs:integer" />
+									<xs:attribute name="X_Size" type="xs:integer" />
+									<xs:attribute name="Y_Size" type="xs:integer" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="Id" type="xs:ID" />
+						<xs:attribute name="Name" type="xs:string" use="required" />
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="TREE" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TREE_NODE" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" use="required" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="ref_TREE_NODE" type="xs:string" />
+									<xs:attribute name="Icon_Filepath" type="xs:string" use="required" />
+									<xs:attribute name="Is_Expanded" type="xs:boolean" use="required" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="Id" type="xs:ID" />
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="PULLDOWN_MENU" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="PULLDOWN_MENU_ITEM" maxOccurs="unbounded" nillable="false">
+								<xs:complexType>
+									<xs:sequence></xs:sequence>
+									<xs:attribute name="Id" type="xs:ID" use="required" />
+									<xs:attribute name="Text" type="xs:string" use="required" />
+									<xs:attribute name="ref_PULLDOWN_MENU_ITEM" type="xs:IDREF" use="optional" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" use="required" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="PULLDOWN_MENU_DIVIDER" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="ref_PULLDOWN_MENU_ITEM" type="xs:IDREF" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="Id" type="xs:ID" />
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="TOOLBAR" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="TOOLBAR_ITEM" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="Icon_Filepath" type="xs:string" use="required" />
+									<xs:attribute name="Is_Readonly" type="xs:boolean" />
+									<xs:attribute name="Tooltip" type="xs:string" use="required" />
+									<xs:attribute name="Gives_Report" type="xs:boolean" use="required" />
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="TOOLBAR_DIVIDER" minOccurs="0" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:attribute name="Id" type="xs:ID" />
+									<xs:attribute name="ref_TOOLBAR_ITEM" type="xs:IDREF" use="required" />
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="Id" type="xs:ID" />
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+			<xs:attribute name="Id" type="xs:ID" />
+			<xs:attribute name="GUI_Name" type="xs:string" use="required" />
+			<xs:attribute name="Icon_Filepath" type="xs:string" use="required" />
+		</xs:complexType>
+		<xs:key name="KEY_TREE_NODE">
+			<xs:selector xpath=".//mstns:TREE_NODE" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_PULLDOWN_MENU_ITEM">
+			<xs:selector xpath=".//mstns:PULLDOWN_MENU_ITEM" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TOOLBAR_DIVIDER">
+			<xs:selector xpath=".//TOOLBAR_DIVIDER" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TOOLBAR_ITEM">
+			<xs:selector xpath=".//mstns:TOOLBAR_ITEM" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_PULLDOWN_MENU_DIVIDER">
+			<xs:selector xpath=".//mstns:PULLDOWN_MENU_DIVIDER" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TOOLBAR">
+			<xs:selector xpath=".//mstns:TOOLBAR" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_PULLDOWN_MENU">
+			<xs:selector xpath=".//mstns:PULLDOWN_MENU" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TREE">
+			<xs:selector xpath=".//mstns:TREE" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_LABEL">
+			<xs:selector xpath=".//mstns:LABEL" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_RADIO_BUTTON">
+			<xs:selector xpath=".//mstns:RADIO_BUTTON" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_BUTTON">
+			<xs:selector xpath=".//mstns:BUTTON" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_CHECKBOX">
+			<xs:selector xpath=".//mstns:CHECKBOX" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_DROPDOWN_OPTIONS">
+			<xs:selector xpath=".//DROPDOWN_OPTION" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_DROPDOWN">
+			<xs:selector xpath=".//mstns:DROPDOWN" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_FORM">
+			<xs:selector xpath=".//mstns:FORM" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TEXTBOX">
+			<xs:selector xpath=".//mstns:TEXTBOX" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_TABLE">
+			<xs:selector xpath=".//mstns:TABLE" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="KEY_GUI">
+			<xs:selector xpath="." />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:keyref name="PULLDOWN_MENU_ITEMPULLDOWN_MENU_ITEM" refer="KEY_PULLDOWN_MENU_ITEM">
+			<xs:selector xpath=".//mstns:PULLDOWN_MENU_ITEM" />
+			<xs:field xpath="@ref_PULLDOWN_MENU_ITEM" />
+		</xs:keyref>
+		<xs:keyref name="TREE_NODETREE_NODE" refer="KEY_TREE_NODE">
+			<xs:selector xpath=".//mstns:TREE_NODE" />
+			<xs:field xpath="@ref_TREE_NODE" />
+		</xs:keyref>
+		<xs:key name="key_TABLE_COLUMN_CELLS">
+			<xs:selector xpath=".//TABLE_COLUMN_CELL" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+		<xs:key name="key_TABLE_DROPDOWN_OPTION">
+			<xs:selector xpath=".//mstns:TABLE_DROPDOWN_OPTION" />
+			<xs:field xpath="@Id" />
+		</xs:key>
+	</xs:element>
+	<xs:simpleType name="STYLE">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="TEXT_FIELD" />
+			<xs:enumeration value="RICH_TEXT_AREA" />
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="ICON_ALIGNMENT">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="BOTTOM_LEFT" />
+			<xs:enumeration value="BOTTOM_CENTER" />
+			<xs:enumeration value="BOTTOM_RIGHT" />
+			<xs:enumeration value="MIDDLE_LEFT" />
+			<xs:enumeration value="MIDDLE_CENTER" />
+			<xs:enumeration value="MIDDLE_RIGHT" />
+			<xs:enumeration value="TOP_LEFT" />
+			<xs:enumeration value="TOP_CENTER" />
+			<xs:enumeration value="TOP_RIGHT" />
+		</xs:restriction>
+	</xs:simpleType>
+</xs:schema>

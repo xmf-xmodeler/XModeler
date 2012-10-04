@@ -1,0 +1,6 @@
+import OCL;
+
+context Throw
+  @Operation eval(target,env,imports)
+    throw exp.eval(target,env,imports)
+  end

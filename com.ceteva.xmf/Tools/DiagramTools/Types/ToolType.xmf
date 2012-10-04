@@ -1,0 +1,496 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import Menus;
+import Env;
+import DisplayTypes;
+
+context Types
+
+  @Class ToolType extends Basic::ToolType, DisplayType
+  
+    @Doc 
+      A tool type defines the type of a diagram tool. Each tool uses the tool
+      type to resolve named references to node types and edge types. The tool
+      type also defines the tool bar that contains groups of tool buttons.
+    end
+  
+    @Attribute toolBar      : ToolBar = ToolBar() (?)     end
+    @Attribute nodeTypes    : Seq(NodeType)       (+,-,?) end
+    @Attribute edgeTypes    : Seq(EdgeType)       (+,-,?) end
+    @Attribute intelliLinkTypes : Seq(AbstractEdgeType) (+,-,?) end
+    @Attribute backgroundColor  : String                (?,!)   end
+    
+    @Constructor(name,parents)
+      self.setName(name)
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      ToolType ::= sig = ToolSig parents = Extends defs = Exp* {
+      
+        ToolType::expand(sig,parents,defs)
+        
+      }.
+      
+      ToolSig ::= n = ToolSigName ns = ('::' ToolSigName)* { Seq{n | ns} }.
+      
+      ToolSigName ::= Name | Str.
+      
+      Extends ::= 'extends' e = Exp es = (',' Exp)* { OCL::SetExp("Seq",Seq{e|es}) } | { OCL::SetExp("Seq",Seq{}) }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        EdgeType do
+          self.addEdgeType(element)
+        end
+        Menu do
+          self.menu := element
+        end
+        NodeType do
+          self.addNodeType(element)
+        end
+        ToolBar do
+          self.toolBar := element
+        end
+        IntelliLinkType do
+          self.addToIntelliLinkTypes(element)
+        end
+        AllEdgesIntelliLinkType do
+          self.addToIntelliLinkTypes(element)
+        end
+        DisplayType do
+          self.addToDisplays(element)
+        end
+        else self.error("Unknown tool type component: " + element.toString())
+      end
+    end
+    
+    @Operation addMenuItems(tool)
+    
+      // Called when the menu items are to be added to the 
+      // diagram for the tool. Note that this should be done
+      // prior to performing new on the diagram.
+    
+      self.setGlobalMenu(tool.diagram,tool,Seq{})
+      
+    end
+    
+    @Operation addEdgeType(edgeType)
+    
+      // Events will be raised against the most specific diagram for an
+      // edge type. Therefore add the edge type to the tool type that
+      // contains the node type definition for at least one of the ends...
+      
+      @Find(toolType,self.toolTypes())
+        when toolType.handlesNewEdgeEvents(edgeType)
+        do toolType.addToEdgeTypes(edgeType)
+        else self.error("Cannot find new edge handler for " + edgeType.toString())
+      end
+    end
+    
+    @Operation addNodeType(nodeType)
+    
+      // Nodes types are visible from the parent to all contained
+      // child tool types. Adding the node type to all makes this
+      // explicit...
+      
+      @For toolType in self.toolTypes() do
+        if not toolType.nodeTypes()->includes(nodeType)
+        then toolType.addToNodeTypes(nodeType)
+        end
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For n in self.nodeTypes do
+          T := n.allDisplayTypes(T)
+        end;
+        @For e in self.edgeTypes do
+          T := e.allDisplayTypes(T)
+        end;
+        @For e in self.intelliLinkTypes do
+          T := e.allDisplayTypes(T)
+        end
+      end;
+      T
+    end
+
+    @Operation allDisplayTypes():Seq(AbstractDisplayType)
+      self.allDisplayTypes(Seq{})
+    end
+
+    @Operation allEdgeTypes()
+    
+      // Returns all the edge types available to the tool
+      // type. Nested edge types are available to parent
+      // tool types.
+      
+      nodeTypes->iterate(t E = edgeTypes | 
+        t.toolTypes(Seq{})->excluding(self)->iterate(tt E = E | E + tt.allEdgeTypes()))
+    end
+    
+    @Operation allNodeTypes()
+    
+      // Returns all the nodes types available to the tool
+      // type. Nested node types are available to parent
+      // tool types.
+      
+      nodeTypes->iterate(t N = nodeTypes | 
+        t.toolTypes(Seq{})->excluding(self)->iterate(tt N = N | N + tt.allNodeTypes()))
+    end
+    
+    @Operation deployDef():Boolean
+    
+      // Ask for a directory to deploy into. Returns true when
+      // the type is successfully deployed.
+      
+      let dir = xmf.selectDirectory(xmf.projDir())
+      in if dir.fileExists()
+         then self.deployDef(dir)
+         else false
+         end
+      end
+    end
+    
+    @Operation deployDef(dir:String):Boolean
+    
+      // Deploy the tool definition into the supplied directory.
+      // The tool is deployed as a package containing the various
+      // tool types. The package is constructed via a manifest.
+      // Each node and edge type is deployed as a separate file.
+      // Returns true when the type is successfully deployed.
+      
+      let toolTypeDir = dir + "/" + self.name().toString()
+      in if toolTypeDir.mkDir()
+         then
+           self.deployTypeDef(toolTypeDir);
+           self.deployNodeDefs(toolTypeDir);
+           self.deployEdgeDefs(toolTypeDir);
+           self.deployIntelliLinkDefs(toolTypeDir);
+           self.deployManifest(toolTypeDir);
+           true
+         else false
+         end
+      end
+    end
+    
+    @Operation deployEdgeDefs(dir:String)
+      @For edgeType in edgeTypes do
+        null //edgeType.deployDef(dir)
+      end
+    end
+
+    @Operation deployIntelliLinkDefs(dir:String)
+      @For intelliLinkType in self.intelliLinkTypes do
+        null //intelliLinkType.deployDef(dir)
+      end
+    end
+
+    @Operation deployManifest(dir:String)
+      @WithOpenFile(fout -> dir + "/Manifest.xmf")
+        format(fout,"parserImport Manifests;~%~%");
+        format(fout,"@Manifest ~S~%",Seq{name});
+        format(fout,"  ~S = @File ~S end~%",Seq{name,name});
+        @For nodeType in nodeTypes do
+          format(fout,"  @File ~S end~%",Seq{nodeType.name()})
+        end;
+        @For edgeType in edgeTypes do
+          format(fout,"  @File ~S end~%",Seq{edgeType.name()})
+        end;
+        @For intelliLinkType in self.intelliLinkTypes do
+          format(fout,"  @File ~S end~%",Seq{intelliLinkType.name()})
+        end;
+        format(fout,"end~%")
+      end
+    end
+        
+    @Operation deployNodeDefs(dir:String)
+      @For nodeType in nodeTypes do
+        nodeType.deployDef(dir,name)
+      end
+    end
+    
+    @Operation deployTypeDef(dir:String)
+      @WithOpenFile(fout -> dir + "/" + name + ".xmf")
+        format(fout,"parserImport XOCL;~%~%");
+        format(fout,"parserImport Tools::DiagramTools::Types;~%~%");
+        format(fout,"context Root~%");
+        format(fout,"  @ToolType ~S end~%",Seq{name})
+      end
+    end 
+    
+    @Operation deref()
+    
+      // Replaces all Refs with the appropriate types. The scoping
+      // rules allow types to be referenced in themselves. This
+      // allows recursive structures to be constructed.
+      
+      let nodeTypes = self.toolTypes()->iterate(t N = Seq{} | N + t.nodeTypes()) then
+          env = nodeTypes->iterate(nodeType env = NullEnv().bind(self.name().toString(),self) | env.bind(nodeType.name().toString(),nodeType))
+      in @For nodeType in nodeTypes do
+           nodeType.deref(env)
+         end;
+         @For edgeType in edgeTypes do
+           edgeType.deref(env)
+         end;
+         self
+      end
+      
+    end
+    
+    @Operation edgeType(name:String)
+      @Find(type,self.supportedEdgeTypes())
+        when type.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation expand(sig,parents,defs)
+      let name = sig->last then
+          body =
+           [| let toolType = <defs->iterate(def exp = [| Tools::DiagramTools::Types::ToolType(<OCL::StrExp(name)>,<parents>) |] |
+                              [| <exp>.add(<def>) |])>
+              in toolType.deref();
+                 toolType.mergeParents();
+                 toolType
+              end |];
+          path = 
+            if sig->size = 1 
+            then null 
+            else 
+              let sig = sig->butLast then
+                  toolType = OCL::StrExp(sig->last) then
+                  sig = sig->butLast then
+                  class = OCL::Path::toPath(sig)
+              in [| xmf.toolManager().toolDescriptor(<class>,<toolType>) |]
+              end
+            end
+      in if sig->size = 1
+         then body
+         else OCL::ContextDef(path,body)
+         end
+      end
+    end
+    
+    @Operation handlesNewEdgeEvents(edgeType)
+    
+      // Returns true when the instances of the receiver will handle 
+      // new events for the supplied edge type.
+      
+      let definesAndContains = 
+            @Operation(nodeType1,nodeType2)
+               self.nodeTypes()->includes(nodeType1) and
+               self.toolTypes()->exists(toolType | 
+                 toolType.nodeTypes()->includes(nodeType2))
+            end
+      in definesAndContains(edgeType.source(),edgeType.target()) or
+         definesAndContains(edgeType.target(),edgeType.source())
+      end
+    end
+    
+    @Operation mergeParents()
+    
+      // All inherited definitions are merged into the local definitions.
+      
+      @For parent in parents do
+        self.mergeParentNodes(parent);
+        self.mergeParentEdges(parent);
+        toolBar.merge(parent.toolBar());
+        menu.merge(parent.menu())
+      end
+    end
+    
+    @Operation mergeParentNodes(parent)
+      @For inheritedNodeType in parent.nodeTypes() do
+        @Find(localNodeType,nodeTypes)
+          when localNodeType.name().toString() = inheritedNodeType.name().toString()
+          do localNodeType.merge(inheritedNodeType)
+          else self.add(inheritedNodeType)
+        end
+      end
+    end
+    
+    @Operation mergeParentEdges(parent)
+      @For inheritedEdgeType in parent.edgeTypes() do
+        @Find(localEdgeType,edgeTypes)
+          when localEdgeType.name().toString() = inheritedEdgeType.name().toString()
+          do localEdgeType.merge(inheritedEdgeType)
+          else self.add(inheritedEdgeType)
+        end
+      end
+    end
+    
+    @Operation new(tool:Tool)
+    
+      // Called when the tool is first created. Will add the toolbar
+      // to the diagram.
+      
+      @For toolBar in self.toolBars() do
+        toolBar.new(tool.diagram(),tool)
+      end
+      
+    end
+    
+    @Operation new(root,parent,path:Seq(String),tool,env) 
+      
+      // Called when a tool type is nested within another tool type
+      // typically on a node somewhere...
+      
+      let rootTool = tool.rootTool() then
+          rootToolType = rootTool.type();
+          rootName = rootTool.diagram.name() then
+          diagram = Diagrams::Diagram(rootName+"-NestedDiagram",0,0,0,0);
+          supportedEdgeTypes = self.supportedEdgeTypes() + rootToolType.recursiveEdgeTypes()
+      in diagram.setType(self);
+         parent.add(diagram);
+         diagram.setBackgroundColor(self.parseColor(self.backgroundColor),false);
+         diagram.setMinWidth(minWidth);
+         diagram.setMinHeight(minHeight);
+         diagram.setPadLeft(padLeft);
+         diagram.setPadRight(padRight);
+         diagram.setPadTop(padTop);
+         diagram.setPadBottom(padBottom);
+         diagram.setEdgeAddedHandler(tool.diagram().edgeAddedHandler);
+         diagram.setEdgeRemovedHandler(tool.diagram().edgeRemovedHandler);
+         diagram.setNodeAddedHandler(tool.diagram().nodeAddedHandler);
+         diagram.setNodeRemovedHandler(tool.diagram().nodeRemovedHandler);
+         diagram.setClickHandler(@Operation(clicks) tool.raise(Clicks(diagram,clicks)) end);
+         
+         // Edge types are propagated to where they are going to be
+         // handled. Therefore new handlers are not necesarily defined
+         // at the right place...
+         
+         @For edgeType in supportedEdgeTypes do
+           let name = edgeType.name().toString()
+           in if not diagram.hasNewHandler(name)
+              then 
+                let handler = @Operation(source,target) tool.newEdge(name,source,target) end
+                in diagram.defineNewHandler(name,handler)
+                end
+              end
+           end
+         end;
+         diagram
+      end
+      
+    end
+    
+    @Operation newEdge(name:String,sourcePort,targetPort,tool)
+    
+      // Called when a new edge has been requested on a diagram
+      // via the mouse. Create and initialise the new edge.
+      
+      @Find(edgeType,self.supportedEdgeTypes() + tool.rootTool().type().recursiveEdgeTypes())
+        when edgeType.name().toString() = name
+        do edgeType.new(sourcePort,targetPort,tool)
+      end
+    end
+
+    @Operation newNode(name:String,x:Integer,y:Integer,tool,diagram)
+    
+      // Called when the mouse has been clicked at position
+      // (x,y) with the named node creation button selected.
+      
+      @Find(nodeType,self.allNodeTypes())
+        when nodeType.name().toString() = name
+        do nodeType.new(x,y,tool,diagram)
+      end
+      
+    end
+    
+    @Operation nodeType(name:String)
+    
+      // Find a node type given its name.
+      
+      @Find(type,self.allNodeTypes())
+        when type.name().toString() = name
+        else null
+      end
+    end
+    
+    @Operation recursiveEdgeTypes()
+      let ets = self.edgeTypes + self.intelliLinkTypes
+      in
+        ets->select(et | et.recursive())
+      end
+    end
+    
+    //@Operation recursiveNodeTypes()
+    //  self.nodeTypes->select(nt | nt.recursive())
+    //end
+    
+    @Operation remove(element)
+    
+      // Use this to remove an element. Especially since it
+      // handles deleting an edge type from the appropriate
+      // handling tool type...
+      
+      @TypeCase(element)
+        EdgeType do
+          self.removeEdgeType(element)
+        end
+        NodeType do
+          self.deleteFromNodeTypes(element)
+        end
+        IntelliLinkType do
+          self.deleteFromIntelliLinkTypes(element)
+        end
+        AllEdgesIntelliLinkType do
+          self.deleteFromIntelliLinkTypes(element)
+        end
+        else self.error("Unknown tool type component: " + element.toString())
+      end
+    end
+    
+    @Operation removeEdgeType(edgeType)
+      @Find(toolType,self.toolTypes())
+        when toolType.handlesNewEdgeEvents(edgeType)
+        do toolType.deleteFromEdgeTypes(edgeType);
+           @For ilt in self.intelliLinkTypes do
+             if ilt.isKindOf(IntelliLinkType)
+             then ilt.deleteFromEdgeTypes(edgeType)
+             end
+           end
+      end
+    end
+
+    @Operation setGlobalMenu(diagram,tool,path,sendSetCommand:Boolean)
+      self.menu.setGlobalMenu(diagram,diagram,tool,path,Set{self,tool},sendSetCommand)
+    end
+
+    @Operation setGlobalMenu(diagram,tool,path)
+      self.setGlobalMenu(diagram,tool,path,true)
+    end
+    
+    @Operation supportedEdgeTypes()
+      self.allEdgeTypes()+self.intelliLinkTypes()
+    end
+
+    @Operation toolBars():Seq(ToolBar)
+      self.toolTypes()->map("toolBar")
+    end
+    
+    @Operation toolTypes():Seq(ToolType)
+      // Produces all the tool types available to the tool.
+      // Used to add all nested node and edge types to 
+      // the top level tool...
+      self.toolTypes(Seq{})
+    end
+    
+    @Operation toolTypes(T)
+      if T->includes(self)
+      then T
+      else nodeTypes->iterate(n T = T->including(self) | n.toolTypes(T))
+      end
+    end
+  end

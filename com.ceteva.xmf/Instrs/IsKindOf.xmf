@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class IsKindOf extends Instr
+  
+    @Operation toString():String
+      "<IsKindOf>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

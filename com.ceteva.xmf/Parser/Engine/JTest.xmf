@@ -1,0 +1,208 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser;
+import BNF;
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+import Structure;
+  
+Root::J :=  
+  
+  @Grammar 
+  
+     Java ::= JCompilationUnit | Package | Feature.
+      
+      Class ::= v = Visibility isAbstract = OptAbstract 'class' name = Name parent = JParent implements = JImplements '{' features = Features '}' { Class(name,isAbstract,implements,parent,features) }.
+      
+      Package ::= 'package' name = Name '{' defs = PDefs '}' { Package(name,defs) }.
+      
+      PDefs ::= JCompilationUnit*.
+      
+      JCompilationUnit ::= i = JImport* c = (Class | Interface) { CompilationUnit(i,c) }.
+      
+      Interface ::= v = Visibility 'interface' name = Name parent = JParent implements = JImplements '{' features = IFeatures '}' { Interface(name,implements,parent,features) }.
+      
+      JImport ::= 'import' p = JImportPath ';' { Import(Path(p)) }.
+      
+      JImportPath ::= JPath | p = JPath '.' '*' { p + Seq{"*"} }.
+      
+      JParent ::= 'extends' JPath | { null }.
+      
+      JImplements ::= 'implements' p = JPath ps = (',' JPath)* { Seq{p | ps} } | { Seq{} }.
+      
+      JThrows ::= 'throws' p = JPath ps = (',' JPath)* { Seq{p | ps} } | { Seq{} }.
+      
+      Features ::= Feature*.
+      
+      IFeatures ::= IFeature*.
+      
+      Feature ::= Field | Method.
+      
+      IFeature ::= Field | MethodSig.
+      
+      Field ::= visibility = Visibility isStatic = OptStatic type = JType name = Name value = ('=' JExp | { null }) ';' { Field(Modifiers(visibility,isStatic,false),type,name,value) }.
+      
+      MethodSig ::= 
+        visibility = Visibility 
+        isStatic = OptStatic 
+        isAbstract = OptAbstract 
+        type = ReturnType 
+        name = Name 
+        params = Formals 
+        throws = JThrows
+        ';' { 
+          MethodSig(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws) 
+        }.
+      
+      Method ::= 
+        visibility = Visibility 
+        isStatic = OptStatic 
+        isAbstract = OptAbstract 
+        type = ReturnType 
+        name = Name 
+        params = Formals 
+        throws = JThrows
+          (  body = Block { 
+               Method(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws,body) 
+             } 
+               | 
+             ';' { 
+               MethodSig(Modifiers(visibility,isStatic,isAbstract),type,name,params,throws) 
+             }
+          ).
+      
+      JType ::= path = JPath ( '[' ']' { ArrayType(NamedType(path)) } | { NamedType(path) } ).
+      
+      ReturnType ::= 'void' { Void() } | JType.
+      
+      Formals ::= '(' FormalList ')'.
+      
+      FormalList ::= formal = Formal formals = (',' Formal)* { Seq{formal | formals} } | { Seq{} }.
+      
+      Formal ::= type = JType name = Name { Formal(type,name) }.
+      
+      Visibility ::= 'public' { "public" } | 'private' { "private" } | 'protected' { "protected" } | { "public" }.
+      
+      OptStatic ::= 'static' { true } | { false }.
+      
+      OptAbstract ::= 'abstract' { true } | { false }.
+  
+     Statement ::= Break | Block | Send | While | Do | If | JTry | JThrow | SideEffect | Switch | Return | Dec.
+      
+     Statements ::= Statement*.
+      
+     Break ::= 'break' ';' { Break() }.
+      
+     Send ::= e = (JNavigate '.' | { null }) n = Name a = JArgs ';' { Statements::Send(e,n,a) }.
+      
+     SideEffect ::= VarUpdate | FieldUpdate.
+      
+     VarUpdate ::= n = Name '=' e = JExp ';' { Update(n,e) }.
+      
+     FieldUpdate ::= e = JExp '.' n = Name '=' v = JExp ';' { FieldUpdate(e,n,v) }.
+      
+     Dec ::= type = JPath name = Name ('=' value = JExp ';' { Dec(type,name,value) } | ';' { Dec(type,name,null) }).
+       
+     If ::= 'if' '(' e = JExp ')' s1 = Statement ('else' s2 = Statement { If(e,s1,s2) } | { If(e,s1,null) }).
+      
+     Block ::= '{' statements = Statements '}' { Block(statements) }.
+      
+     Return ::= 'return' (';' { Return(null) } | e = JExp ';' { Return(e) }).
+      
+     While ::= 'while' '(' e = JExp ')' s = Statement { While(e,s) }.
+      
+     Do ::= 'do' '{' statements = Statements '}' 'while' '(' t = JExp ')' ';' { Do(statements,t) }.
+      
+     Switch ::= 'switch' '(' e = JExp ')' '{' cs = Case* d = DefaultCase '}' { Switch(e,cs,d) }.
+      
+     Case ::= 'case' e = JExp ':' ss = Statement* { Case(e,ss) }.
+      
+     DefaultCase ::= 'default' ':' ss = Statement* { DefaultCase(ss) } | { null }.
+      
+     JTry ::= 'try' b = Block cs = JCatch* { Try(b,cs) }.
+      
+     JThrow ::= 'throw' e = JExp ';' { Throw(e) }.
+      
+     JCatch ::= 'catch' '(' p = JPath n = Name ')' b = Block { Catch(p,n,b) }.
+     
+     JExp ::= JAssign.
+       
+       JAssign ::= n = Name '=' e = JBool { Update(n,e) } | JBool.
+       
+       JBool ::= e = JBit (op = BoolOp e2 = JBit e = { BinExp(e,op,e2) })* { e }.
+       
+       BoolOp ::= '&&' { "&&" } | '||' { "||" }.
+       
+       JBit ::= e = JEql (op = BitOp e2 = JEql e = { BinExp(e,op,e2) })* { e }.  
+       
+       BitOp ::= '&' {"&" } | '|' { "|" }.
+       
+       JEql ::= e = JCmp (op = EqlOp e2 = JCmp e = { BinExp(e,op,e2) })* { e }.
+       
+       EqlOp ::= '==' { "==" }| '!=' { "!=" }.
+       
+       JCmp ::= e = JArith (op = CmpOp e2 = JArith e = { BinExp(e,op,e2) })* { e }.
+       
+       CmpOp ::= '>' { ">" } | '>=' { ">=" } | '<' { "<" } | '<=' { "<=" }.  
+       
+       JArith ::= e = JDot (op = ArithOp e2 = JDot e = { BinExp(e,op,e2) })* { e }.
+       
+       ArithOp ::= '+' { "+" } | '-' { "-" }.
+       
+       JNavigate ::= e = JCast ('.' n = Name e = { FieldRef(e,n) })* { e }.
+       
+       JDot ::= e = JCast ('.' n = Name (a = JArgs e = { Send(e,n,a) } | e = { FieldRef(e,n) }))* { e }.
+       
+       JArgs ::= '(' es = (JExps | { Seq{} }) ')' { es }.
+       
+       JExps ::= e = JExp es = (',' JExp)* { Seq{e | es} }.
+       
+       JCast ::= '(' p = JPath ')' a = JAtom { Cast(p,a) } | JAtom.
+       
+       JAtom ::= JBoolean | JInt | JFloat | JString | JNew | JVar | JSend | JThis | '(' JExp ')'.
+       
+       JBoolean ::= 'true' { Boolean(true) } | 'false' { Boolean(false) }.
+       
+       JInt ::= i = Int { (Expressions.getElement("Int"))(i) }.
+       
+       JFloat ::= i = Int '.' j = Int { Float(XCore::Float(i,j)) }.
+       
+       JString ::= s = Str { JString(s) }.
+       
+       JNew ::= 'new' p = JPath as = JArgs { New(p,as) }.
+       
+       JThis ::= 'this' { This() }. 
+       
+       JPath ::= n = Name ns = ('.' Name)* { Seq{n | ns} }.
+       
+       JVar ::= name = Name { Var(name) }.
+       
+       JSend ::= name = Name args = JArgs { Send(null,name,args) }.
+       
+   end;
+   
+ 
+
+J.compile();
+
+context Root
+  @Operation jtest()
+    //J.debug := true;
+    let e =  Engine()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/Parser/Engine/Java.xmf")
+         try
+           e.parse(null,J,Seq{Call("Java")},Tokenizer(fin),Seq{})
+         catch(x)
+           @TypeCase(x)
+             Parser::ParseError do
+               x.pprint().edit()
+             end
+             else throw x
+           end
+         end
+       end
+    end
+  end

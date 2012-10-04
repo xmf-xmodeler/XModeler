@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class DisplayContainer
+ 
+    @Attribute displays : Seq(Display) (+,-) end
+    
+    @Operation add(display)
+      self.addToDisplays(display);
+      display.setOwner(self)
+    end
+     
+    @Operation addDisplays()
+      
+      // By default this does nothing. Redefine it
+      // in sub-classes to add the displays. It is
+      // called when the node is created and if the
+      // displays are ever refreshed.
+      
+      self
+    end
+    
+    @Operation hide() 
+    
+      // Cause the display to disappear from the diagram
+      
+      if not hidden
+      then 
+        self.hidden := true;
+        @For display in displays do
+          display.hide()
+        end;
+        @Command(self) hideCommand(self) end
+      end
+    end
+    
+    @Operation newDisplays(setMenu)
+    
+      // Issues the 'new' commands to the client.
+      
+      @For display in displays do
+        display.new(self,setMenu)
+      end
+    end
+    
+    @Operation remove(display)
+      self.deleteFromDisplays(display)
+    end
+    
+    @Operation renewDisplays(parent)
+    
+      // Called when the display is re-initialized after loading
+      // from a save archive.
+      
+      @For display in displays do
+        display.renew(parent)
+      end
+    end
+    
+    @Operation show() 
+    
+      // Cause the display to reappear on the diagram.
+      
+      if hidden
+      then 
+        self.hidden := false;
+        @For display in displays do
+          display.show()
+        end;
+        @Command(self) showCommand(self) end
+      end
+    end
+  
+  end

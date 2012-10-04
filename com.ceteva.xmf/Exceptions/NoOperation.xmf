@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class NoOperation extends Exception
+  
+    @Doc
+      This exception is raised when a message fails to find an operation.
+    end
+     
+    @Attribute object : Object end
+    @Attribute name : String end
+    @Attribute args : Seq(Element) end
+    
+    @Constructor(object,name,args) !
+       self.setBacktrace();
+       self.message := 
+         "The object " + object.toString() + 
+         " cannot handle the message " + name + "(" + args->map("toString")->separateWith(",") + ")" 
+    end
+    
+  end

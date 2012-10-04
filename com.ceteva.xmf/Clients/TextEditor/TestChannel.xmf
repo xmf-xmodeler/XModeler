@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+  @Operation test()
+    let o = TextEditorChannel("Test Channel","",true)
+    in o.show();
+       format(o,"// This is a test file.~%");
+       format(o,"// Type a name and then select done~%");
+       format(o,"// from the right click menu.");
+       o.addStateChangeMenuItem("Done");
+       o.waitFor(Seq{"Done"});
+       o.resetInput();
+       @While not o.eof() do
+         format(stdout,"~C",Seq{o.read()})
+       end;
+       o.close()
+    end
+  end

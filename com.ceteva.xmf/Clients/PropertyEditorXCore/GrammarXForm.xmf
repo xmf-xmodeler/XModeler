@@ -1,0 +1,97 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Parser::BNF;
+import Clients;
+import Forms;
+import XMap;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class GrammarXForm extends ObjectXForm
+  
+    @Attribute clauseDaemons    : Seq(Seq(Element)) end
+
+    @Operation daemons_clauseAdded(e,slot,clause)
+      self.resetClauseComboBox();
+      let comboBox = form.clauseCodeComboBoxDisplay.comboBox in
+        comboBox.setSelected(clause.name().toString())
+      end
+    end
+
+    @Operation daemons_clauseRemoved(e,slot,clause)
+      self.resetClauseComboBox();
+      let comboBox = form.clauseCodeComboBoxDisplay.comboBox;
+          codeBox = form.clauseCodeComboBoxDisplay.codeBox
+      in  if not comboBox.contents->isEmpty
+          then comboBox.selectItemAt(0)
+          else codeBox.text := "";
+               codeBox.renew()
+          end
+      end
+    end
+
+    @Operation daemons_Grammar_nameChanged(e,slot,newName,oldName)
+      self.resetClauseComboBox()
+    end
+
+    @Operation checkDaemons()
+      super();
+      self.resetClauseDaemons();
+      self
+    end
+
+    @Operation removeDaemons()
+      super();
+      self.removeClauseDaemons();
+      self
+    end
+
+    @Operation resetClauseComboBox()
+      let comboBox = form.clauseCodeComboBoxDisplay.comboBox in
+        comboBox.clear();
+        form.resetClauseCodeComboBoxDisplay();
+        comboBox.newContents();
+        self.resetClauseDaemons()
+      end
+    end
+    
+    @Operation addClauseDaemon(e,daemon:CompiledOperation)
+      let daemonSeq = Seq{e,daemon} in
+        self.clauseDaemons := clauseDaemons->prepend(daemonSeq)
+      end
+    end
+    
+    @Operation removeClauseDaemons()
+      @For daemonSeq inSeq clauseDaemons do
+        let e = daemonSeq->at(0);
+            daemon = daemonSeq->at(1)
+        in
+          e.removeDaemon(daemon,self)
+        end
+      end;
+      self.clauseDaemons := Seq{}
+    end
+
+    @Operation resetClauseDaemons()
+      self.removeClauseDaemons();
+      let
+        addedDaemon = @SlotValueChanged multi once + GrammarXForm::daemons_clauseAdded(element,"clauses") end;
+        removedDaemon = @SlotValueChanged multi once - GrammarXForm::daemons_clauseRemoved(element,"clauses") end
+      in
+        self.addClauseDaemon(element,addedDaemon);
+        self.addClauseDaemon(element,removedDaemon)
+      end;
+      @For e inSeq element.clauses->asSeq do
+        let
+          daemon = @SlotValueChanged multi once GrammarXForm::daemons_Grammar_nameChanged(e,"name") end
+        in
+          self.addClauseDaemon(e,daemon)
+        end
+      end;
+      self
+    end
+
+  end

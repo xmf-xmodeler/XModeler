@@ -1,0 +1,901 @@
+parserImport XOCL;
+import Clients;
+import Diagrams;
+import IO;
+import ModelClipboard;
+import Menus;
+
+context Diagrams
+
+  @Class Diagram extends Display, DisplayContainer, DroppableClientElement, ElementViewerInterface
+  
+    @Attribute graph        : Graph  = Graph() end           // Underlying nodes and edges.
+    @Attribute name         : String (?) end                 // Diagrams are named.
+    
+    // Note that the isOpen state is not applicable to sub diagrams.  Sub diagrams should use
+    // their top level diagram to determine their isOpen state.
+    
+    @Attribute isOpen       : Boolean = true (?) end         // Is being shown.
+    @Attribute selected     : Boolean = false (!) end        // Is being shown.
+    @Attribute newHandlers  : Table = Table(10) end          // Handlers for the creation tools.
+    @Attribute isSubDiagram : Boolean end                    // Set when this diagram is a display element.
+    @Attribute listeners    : Set(DiagramListener) (+,-) end // Listeners for diagram events
+    @Attribute backgroundColor : Color = null (?,!)      end // Background color for diagram
+    @Attribute zoom			: Integer = 100 end				 // Zoom ratio when shown as a top level diagram
+    @Attribute nestedZoom	: Integer = 100 end				 // Zoom ratio when shown as a nested diagram
+    
+    @Constructor(name)
+    end
+    
+    @Constructor(name,x,y,width,height)
+      self.isSubDiagram := true;
+      self.init(Seq{name})
+    end
+    
+    @Constructor(id,name,graph) ! end
+
+    @Operation add(element)
+      @TypeCase(element)
+        Node do self.addNode(element) end
+        Edge do self.addEdge(element) end
+        Display do super(element) end
+      end
+    end
+    
+    @Operation addEdge(edge:Edge)
+      graph.addEdge(edge)
+    end
+    
+    @Operation addNode(node:Node)
+      graph.addNode(node)
+    end    
+    
+    @Operation applyLayout(layout)
+      let layout = 
+            if layout.isKindOf(String) 
+            then self.readLayout(layout) 
+            else layout 
+            end
+      in graph.applyLayout(layout)
+      end
+    end
+    
+    @Operation cardLayout(maxStack:Integer,widthSep:Integer,dx:Integer,dy:Integer)
+      let n = 0
+      in @For node in graph.nodes->asSeq->reverse do
+           let x1 = n.div(maxStack) * widthSep;
+               x2 = (n.mod(maxStack) + 1) * dx then
+               x = x1 + x2;
+               y = (n.mod(maxStack) + 1) * dy
+           in node.move(x,y);
+              n := n + 1
+           end
+         end
+      end
+    end
+    
+    @Operation copyDiagramToClipboard()
+      @Command(self) copyDiagramToClipboard(self) end
+    end
+    
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget then
+          debugMenu = MenuItems("Debug");
+          exportMenu = MenuItems("Export");
+          layoutMenu = globalMenu.findOrAddMenuItems("Layout")
+      in
+        globalMenu.add(MenuAction("Copy Diagram",target,Seq{},Diagram::copyDiagramToClipboard));
+        layoutMenu.add(MenuAction("Standard Layout",target,Seq{},Diagram::layout));
+        layoutMenu.add(MenuAction("Circulate",target,Seq{700,700,100,100},Diagram::circulateGraph));
+        // layoutMenu.add(MenuAction("Circulate",target,Seq{700,700,100,100},Diagram::circulate));
+        layoutMenu.add(MenuAction("Save Layout",target,Seq{true},Diagram::saveLayout));
+        layoutMenu.add(MenuAction("Load Layout",target,Seq{},Diagram::loadLayout));
+        globalMenu.add(debugMenu);
+        debugMenu.add(MenuAction("Edit Diagram",target,Seq{},Diagram::editMenuOperation));
+        debugMenu.add(MenuAction("Invoke Operation on Diagram...",target,Seq{},Diagram::invokeMenuOperation));
+        debugMenu.add(MenuAction("Monitor Client Communications",target,Seq{true},Diagram::debug));
+        debugMenu.add(MenuAction("Silent Client Communications",target,Seq{false},Diagram::debug));
+        debugMenu.add(MenuAction("Monitor Daemon Firing",target,Seq{},Daemon::traceAll));
+        debugMenu.add(MenuAction("Silent Daemon Firing",target,Seq{},Daemon::untraceAll));
+        globalMenu.add(exportMenu);
+        exportMenu.add(MenuAction("SVG",target,Seq{},Diagram::exportSVGMenuOperation));
+        exportMenu.add(MenuAction("JPG",target,Seq{"jpg"},Diagram::exportImageMenuOperation));
+        exportMenu.add(MenuAction("BMP",target,Seq{"bmp"},Diagram::exportImageMenuOperation));
+        // exportMenu.add(MenuAction("GIF",target,Seq{"gif"},Diagram::exportImageMenuOperation));
+        exportMenu.add(MenuAction("ICO",target,Seq{"ico"},Diagram::exportImageMenuOperation));
+        exportMenu.add(MenuAction("PNG",target,Seq{"png"},Diagram::exportImageMenuOperation));
+        globalMenu.add(MenuAction("Show Hidden...",target,Seq{},Diagram::showMenuOperation));
+        globalMenu
+      end
+    end
+
+    @Operation circulateGraph(width,height,dx,dy)
+      // @Command(self) circulate(self) end
+      graph.circulate(width,height,dx,dy)
+    end
+    
+    // called by the external diagram client when the user
+    // closes the diagram
+
+    @Operation clone()
+      self.raiseEvent(Seq{"clone"})
+    end
+
+    @Operation close()
+      self.isOpen := false;
+      self.raiseEvent(Seq{"close"})
+    end
+    
+    @Operation containsEdge(edge)
+      graph.containsEdge(edge)
+    end
+    
+    @Operation containsNode(node)
+      graph.containsNode(node)
+    end
+    
+    @Operation debug(debug)
+      xmf.debug(debug)
+    end
+    
+    @Operation deepContains(node:Node)
+      graph.deepContains(node)
+    end
+    
+    @Operation defineEdgeToolGroups()
+    
+      // Redefine this in sub-classes to produce appropriate node tool groups.
+      
+      null
+    end
+    
+    @Operation defineNodeToolGroups()
+      
+      // Redefine this in sub-classes to produce appropriate edge tool groups.
+      
+      null
+    end
+    
+    @Operation defineToolGroup(group:String)
+      // Must occur before any tool is added.
+      @Command(self) newToolGroupCommand(self,group) end
+    end
+    
+    @Operation defineToolGroups()
+      self.defineToolGroupTypes();
+      self.defineNodeToolGroups();
+      self.defineEdgeToolGroups()
+    end
+    
+    @Operation defineToolGroupTypes()
+      
+      // Redefine this in sub-classes of diagram to produce the appropriate groups.
+      
+      //@Command(self) newToolGroupCommand(self,"New Edge") end;
+      //@Command(self) newToolGroupCommand(self,"New Node") end
+      null
+    end
+    
+    @Operation delete()
+      if self.getTopLevelDiagram().isOpen
+      then
+        if isSubDiagram
+        then
+          self.zoomOut()
+        end;
+        @Command(self) deleteCommand(self) end
+      end;
+      graph.delete();
+      self.raiseEvent(Seq{"delete"})
+    end
+    
+    @Operation delete_check()
+      if isSubDiagram
+      then xmf.warning("Nested diagrams cannot be directly deleted.")
+      elseif xmf.question("Are you sure you want to delete diagram \"" + name.toString() + "\"?")
+      then
+        self.delete()
+      end
+    end
+    
+    @Operation deselectAll()
+      graph.deselectAll()
+    end
+    
+    @Operation diagramId()
+      id
+    end
+
+    @Operation doubleClick()
+      // self.setFocus()
+      self.show()
+    end
+    
+    @Operation create()
+      self.renew();
+      //self.zoomIn();
+      self
+    end
+
+    @Operation drop(x,y)
+      @WithoutRendering(*,100)
+        let oldDisplays = self.displays;
+            oldNodes = graph.nodes;
+            oldEdges = graph.edges
+        in
+          self.drop();
+          let newDisplays = self.displays - oldDisplays;
+              newNodes = graph.nodes - oldNodes;
+              newEdges = graph.edges - oldEdges
+          in
+            @For display in newDisplays do
+              display.move(x,y);
+              x := x - 30;
+              y := y + 20
+            end;
+            @For node in newNodes do
+              node.move(x,y);
+              x := x - 30;
+              y := y + 20
+            end
+          end
+        end
+      end
+    end
+
+    @Operation edges()
+      graph.edges()
+    end
+    
+    @Operation editMenuOperation()
+      self.edit()
+    end
+    
+    @Operation element()
+      let elements = xmf.diagramManager().elementsFor(self)
+      in
+        if elements->isEmpty
+        then null
+        else elements->head
+        end
+      end
+    end
+    
+    @Operation exportImageMenuOperation(type)
+      let file = xmf.saveFile(xmf.projDir(),"*."+type) 
+      in 
+       if file <> "" then
+         @Command(self) exportImage(self,file,type) end
+       end
+      end 
+    end
+    
+    @Operation exportSVGMenuOperation()
+      let file = xmf.saveFile(xmf.projDir(),"*.svg") 
+      in 
+        if file <> "" then
+          self.exportSVG(file)
+        end
+      end 
+    end
+    
+    @Operation defineNewHandler(type,handler)
+    
+      // When a request is made to create a new edge or node the request
+      // is handled by  looking up the name of the edge or node type in
+      // the newHandlers table and dispatching...
+      
+      newHandlers.put(type,handler)
+    end
+    
+    @Operation defineNewHandler(group:String,type:String,isEdge:Boolean,iconFile:String,handler:Operation)
+      self.defineNewHandler(type,handler);
+      @Command(self) newToolCommand(self,group,type,type,isEdge,iconFile) end  
+    end
+
+    @Operation defineNewHandler(group:String,label:String,type:String,isEdge:Boolean,iconFile:String,handler:Operation)
+      self.defineNewHandler(type,handler);
+      @Command(self) newToolCommand(self,group,label,type,isEdge,iconFile) end  
+    end
+
+    @Operation dispose()
+      /* if not isSubDiagram
+      then 
+        self.owner := null
+      end; */
+      self.listeners := Set{};
+      graph.dispose();
+      self.owner := null;
+      super()
+    end
+    
+    @Operation disposeId(disposeChildren)
+      if disposeChildren
+      then
+        graph.disposeId(disposeChildren)
+      end;
+      super(disposeChildren)
+    end
+
+    @Operation enableDrop()
+      self.setDroppable()
+    end
+
+    @Operation expandHeight()
+      self
+    end
+    
+    @Operation expandWidth()
+      self
+    end
+
+    @Operation findElement(id:Element)
+      if self.id = id
+      then self
+      else graph.findElement(id)
+      end
+    end
+    
+    @Operation focusGained()
+      self.setSelected(true)
+    end
+    
+    @Operation focusLost()
+      self.setSelected(false)
+    end
+
+    @Operation getClipboardTarget():ClipboardTarget
+      ClipboardTarget(self.element(),self)
+    end
+
+    @Operation getTopLevelDiagram()
+      let element = self
+      in
+        @While not (element.isKindOf(Diagram) andthen not element.isSubDiagram)
+        do
+          element := element.owner
+        end;
+        element
+      end
+    end
+    
+    @Operation hasNewHandler(type)
+      newHandlers.hasKey(type)
+    end
+    
+    @Operation invokeMenuOperation()
+      self.invokeOp()
+    end
+
+    @Operation layout()
+      graph.layout()
+    end
+    
+    @Operation layoutData():XML::Element
+    
+      // Returns an XML element that represents the layout of elements on
+      // the diagram. The data can be re-loaded and applied to an un-formatted
+      // diagram ata later date.
+      
+      graph.layoutData()
+    end
+
+    @Operation legalNameChangeCheck(newName,oldName)
+      newName := newName.toString();
+      if newName = ""
+      then
+        xmf.warning(
+          "Cannot set name of diagram \"" + oldName.toString() +"\" to \"" + newName + "\". The empty string is "
+           + "not a valid name for a diagram.");
+        false
+      elseif
+        let diagramManager = xmf.diagramManager() then
+            elements = diagramManager.elementsFor(self) then
+            diagrams = Set{};
+            clash = false
+        in
+          @For e in elements do
+            diagrams := diagrams + diagramManager.diagramsFor(e)->asSet
+          end;
+          @For d in diagrams->excluding(self) do
+            if d.name.toString() = newName
+            then
+              clash := true
+            end
+          end;
+          clash
+        end
+      then
+        xmf.warning(
+          "Cannot set name of diagram \"" + oldName.toString() +"\" to \"" + newName + "\" as a diagram "
+           + "already exists for its element with the same name.");
+        false
+      else
+        true
+      end
+    end
+
+    @Operation loadLayout(file)
+      if file.fileExists()
+      then
+        @WithoutRendering(self)
+          @Busy("Applying Diagram Layout")
+            @WithOpenFile(fin <- file)
+              let xin = XMLInputChannel(fin,NameSpaceXMLInflater())
+              in xin.parse().applyLayout(self)
+              end
+            end
+          end
+        end
+      else 
+        xmf.message("Cannot open " + file);
+        false
+      end
+    end
+
+    @Operation loadLayout()
+    
+      // Loads in an XML file containing layout information and applies the
+      // layout to the elements in the diagram.
+      
+      let file = xmf.openFile(xmf.projDir(),"*.xml")
+      in 
+        if self.loadLayout(file)
+        then
+          xmf.message("Layout loaded and applied.")
+        end
+      end
+    end
+    
+    @Operation maxHeight()
+      height
+    end
+    
+    @Operation maxWidth()
+      width
+    end
+   
+    @Operation minHeight()
+      height
+    end
+    
+    @Operation minWidth()
+      width
+    end
+   
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newGroupCommand(parent,self) end;
+      self.refreshBackgroundColor();
+      self.defineToolGroups();
+      graph.new(self,setMenu);
+      self.addDisplays();
+      self.newDisplays(setMenu);
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      if self.dropEnabled
+      then self.commandInterpreter().enableDrop(self)
+      end;
+      self
+    end
+    
+    @Operation new()
+      let diagram = self.getTopLevelDiagram() 
+      in
+        @Command(self) newDiagramCommand(self) end;
+        self.refreshBackgroundColor();    
+        self.defineToolGroups();
+        graph.new(self);  
+        self.addDisplays();
+        self.newDisplays(true);
+        self.setRightClickMenu();
+        if self.dropEnabled
+        then self.commandInterpreter().enableDrop(self)
+        end;
+        self
+      end
+    end
+    
+    @Operation newEdge(type,sourcePort,targetPort)
+      @Undoable
+        @WithoutRendering(self,100)
+          if newHandlers.hasKey(type)
+          then newHandlers.get(type).invoke(self,Seq{sourcePort,targetPort})
+          else
+            let edge = DefaultEdge(sourcePort,targetPort,0,0)
+            in self.addEdge(edge);
+               edge.new(self)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation newNode(type,x,y)
+      @Undoable
+        @WithoutRendering(self,100)
+          if newHandlers.hasKey(type)
+          then newHandlers.get(type).invoke(self,Seq{x,y})
+          end
+        end
+      end
+    end
+      
+    @Operation nodes()
+      graph.nodes()
+    end
+    
+    @Operation oldLoadLayout(file)
+      if file.fileExists()
+      then
+        @WithoutRendering(self)
+        @WithOpenFile(fin <- file)
+          let xin = DOMInputChannel(fin) then
+              layoutDoc = xin.parse().stripWhiteSpace()
+          in 
+            self.applyLayout(layoutDoc.root);
+            true
+          end
+        end
+        end
+      else 
+        xmf.message("Cannot open " + file);
+        false
+      end
+    end
+
+    @Operation oldLoadLayout()
+    
+      // Loads in an XML file containing layout information and applies the
+      // layout to the elements in the diagram.
+      
+      let file = xmf.openFile(xmf.projDir(),"*.xml")
+      in 
+        if self.loadLayout(file)
+        then
+          xmf.message("Layout loaded and applied.")
+        end
+      end
+    end
+    
+    @Operation packHeight()
+      self
+    end
+    
+    @Operation packWidth()
+      self
+    end
+    
+    @Operation preferenceChange()
+      Text::textDimension := Table(10);
+      @WithoutRendering(self)
+        self.graph.preferenceChange()
+      end
+    end
+    
+    @Operation raiseEvent(event:SeqOfElement)
+      @For listener in listeners do
+        listener.handleDiagramEvent(self,event)
+      end;
+      self
+    end
+    
+    @Operation readLayout(file:String)
+    
+      // Reads layout information from the supplied XML file.
+      // Careful to remove any whitespace in the file after it
+      // is read. Whitespace may have been written out if the
+      // output has been formatted.
+      
+      if file.fileExists()
+      then
+        @WithOpenFile(fin <- file)
+          let xin = DOMInputChannel(fin)
+          in xin.parse().stripWhiteSpace().root()
+          end
+        end
+      else null
+      end
+    end
+
+    @Operation refreshBackgroundColor()
+      if self.backgroundColor <> null
+      then
+        @Command(self) setColor(self,self.backgroundColor) end
+      end
+    end
+
+    @Operation refreshName()
+      @Command(self) setDiagramTextCommand(self,self.toString()) end
+    end
+
+    @Operation remove(element)
+      @TypeCase(element)
+        Node do self.removeNode(element) end
+        Edge do self.removeEdge(element) end
+      end
+    end
+    
+    @Operation removeFromManager()
+      xmf.diagramManager().removeDiagram(self)
+    end
+    
+    @Operation removeNode(node)
+    
+      // Called with a node. The node may not be an element of
+      // the diagram, but may be attached to an edge on the diagram
+      // since edges can cross diagram boundaries into child
+      // diagrams. The graph will deal with deleting edges that 
+      // are incident on the node.
+      
+      if isSubDiagram
+      then self.diagram().removeNode(node)
+      end;
+      graph.removeNode(node)
+    end
+    
+    @Operation removeEdge(edge)
+      graph.removeEdge(edge)
+    end
+    
+    @Operation renew()
+      let diagram = self.getTopLevelDiagram() 
+      in 
+        if not diagram.isOpen 
+        then
+          self.isOpen := true;
+          @Busy("Drawing Diagram")
+            diagram.removeFromIdManager();
+            @Command(diagram) newDiagramCommand(diagram) end;
+            diagram.refreshBackgroundColor();    
+            @WithoutRendering(diagram)
+              diagram.defineToolGroups();
+              diagram.graph.renew(diagram);
+              diagram.setRightClickMenu();
+	          diagram.renewZoom();
+              if diagram.dropEnabled
+              then diagram.commandInterpreter().enableDrop(diagram)
+              end;
+              diagram.raiseEvent(Seq{"renew"});
+              diagram
+            end;
+	        diagram.refreshZoom()
+          end
+        end
+      end
+    end
+    
+    @Operation renew(parent)
+       // Called when the receiver is loaded from a saved diagram.
+       @Command(self) newGroupCommand(parent,self) end;
+       self.refreshBackgroundColor();
+       self.defineToolGroups();
+       graph.renew(self);
+       self.setRightClickMenu();
+       self.raiseEvent(Seq{"renew"});
+       self.renewZoom()
+    end
+    
+    @Operation renewZoom()
+      self.diagramZoomTo(self.zoom);
+      self.zoomTo(self.nestedZoom)
+    end
+    
+    @Operation refreshZoom()
+      @Command(self) refreshZoom(self) end
+    end
+    
+    @Operation resize(width,height) 
+      @Command(self) resizeCommand(self,width,height) end;
+      self.width := width;
+      self.height := height
+    end
+    
+    @Operation show()
+      self.create();
+      self.setFocus();
+      self
+    end
+    
+    @Operation saveLayout(verbose:Boolean)
+    
+      // Saves the layout data to a file so that it can be read
+      // in and applied to an un-formatted diagram at a later date.
+      
+      let data = self.layoutData();
+          file = xmf.saveFile(xmf.projDir(),"*.xml")
+      in if file <> ""
+         then
+           @Busy("Saving Diagram Layout")
+             @WithOpenFile(fout -> file)
+               data.writeXML(fout)
+             end
+           end;
+           if verbose
+           then xmf.message("Layout saved in " + file)
+           end
+         end
+      end
+    end
+    
+    @Operation selected()
+    
+      // Returns the diagram elements currently selected.
+      // This is a sequence. It may be empty.
+      
+      graph.selected()
+      
+    end
+    
+    @Operation selectedX():Integer
+    
+      // Return the x position of a currently selected item or 0.
+      
+      let S = self.selected()
+      in if S->isEmpty
+         then 0
+         else 
+           let element = S->head
+           in if element.isKindOf(Node)
+              then element.x()
+              else element.refx()
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation selectedY():Integer
+    
+      // Return the y position of a currently selected item or 0.
+      
+      let S = self.selected()
+      in if S->isEmpty
+         then 0
+         else 
+           let element = S->head
+           in if element.isKindOf(Node)
+              then element.y()
+              else element.refy()
+              end
+           end
+         end
+      end
+    end
+
+    @Operation setBackgroundColor(color : Color,refresh)
+      self.backgroundColor := color;
+      if refresh
+      then self.refreshBackgroundColor()
+      end;
+      self
+    end
+
+    @Operation setBackgroundColor(color : Color)
+      self.setBackgroundColor(color,true)
+    end
+    
+    @Operation setFocus()
+      /* if not self.isOpen 
+      then
+        self.renew()
+      end; */
+      self.zoomIn();
+      @Command(self) showDiagram(self.getTopLevelDiagram()) end
+    end
+
+    @Operation setName(element,slot,newName,oldName)
+      self.setName(newName)
+    end
+
+    @Operation setName(newName)
+      if self.legalNameChangeCheck(newName,self.name)
+      then
+        self.name := newName;
+        self.refreshName()
+      end
+    end
+    
+    @Operation setSelected(value)
+      self.selected := value;
+      self.selectModelBrowserNode(value)
+    end
+    
+    @Operation showMenuOperation()
+      let nodes = self.nodes()->select(node | node.hidden())->asSeq;
+          edges = self.edges()->select(edge | edge.hidden())->asSeq then
+          elements = xmf.selects("Hidden Diagram Elements","Select hidden elements",nodes + edges,null,null)
+      in if elements <> 0-1 then
+            @For element in elements do
+              element.show()
+            end
+         end
+      end
+    end
+    
+    @Operation startRender()
+      @Command(self) startRender(self) end
+    end
+    
+    @Operation stopRender()
+      @Command(self) stopRender(self) end
+    end
+    
+    @Operation synchronise()
+    
+      // Since there is no model of the palette, this can not be serialised
+    
+      let
+        id = Seq{"identity",id};
+        name = Seq{"name",name};
+        isOpen = Seq{"isOpen",isOpen};
+        zoom = Seq{"zoom",zoom};
+        nestedZoom = Seq{"nestedZoom",nestedZoom}; 
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden};
+        shown = Seq{"shown",shown} then 	
+        attributes = Seq{id,name,isOpen,zoom,nestedZoom,x,y,width,height,hidden,shown}
+      in
+        @Command(self) startElement("diagram",attributes) end;
+        graph.synchronise();
+        @Command(self) endElement("diagram") end
+      end
+    end
+
+    @Operation tileLayout(width:Integer,height:Integer,maxWidth:Integer)
+      let x = 10;
+          y = 10
+      in @For node in graph.nodes do
+           node.move(x,y);
+           x := x + width;
+           if x > maxWidth
+           then x := 10; y := y + height
+           end
+         end
+      end
+    end
+    
+    @Operation toString()
+      name
+    end
+
+    @Operation writeJpeg(filename)
+      @Command(self) exportImage(self,filename,"jpg") end
+    end
+    
+    @Operation zoomChanged(zoom)
+      self.zoom := zoom
+    end
+    
+    @Operation zoomIn()
+      @Command(self) zoomIn(self) end
+    end
+    
+    @Operation zoomOut()
+      @Command(self) zoomOut(self) end
+    end
+    
+    @Operation zoomToFit()
+      self.zoomTo(0-1)
+    end
+    
+    // the following operation sets the diagram zoom level for when it is displayed in nested
+    // mode
+    
+    @Operation zoomTo(percent:Integer)
+      self.nestedZoom := percent.asInt();
+      @Command(self) nestedZoomTo(self,nestedZoom) end
+    end
+    
+    // the following operation sets the diagram zoom level for when it is displayed
+    
+    @Operation diagramZoomTo(percent:Integer)
+      @Command(self) zoomTo(self,percent) end
+    end
+
+  end

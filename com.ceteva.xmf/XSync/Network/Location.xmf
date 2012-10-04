@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Location isabstract
+  
+    @AbstractOp value(token:Token):Element end
+  
+  end

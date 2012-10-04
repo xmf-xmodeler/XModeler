@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Enum
+
+  @Grammar extends O
+    
+      Enum ::= n = Name ns = Names es = Exp* 'end' {
+      
+        Enum(n,ns,es)
+        
+      }.
+      
+      Names ::= '(' n = EnumName ns = (',' EnumName)* ')' { SetExp("Seq",Seq{n | ns}) }.
+      
+      EnumName ::= n = Name { StrExp(n) } | s = Str { StrExp(s) }.
+      
+    end
+    
+    

@@ -1,0 +1,35 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import OCL;
+import XMap;
+
+context SlotValueChanged
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      SlotValueChanged ::= DefinedSVC | ReferencedSVC.
+      
+      DefinedSVC ::= id = DaemonId guarded = Guarded mod = Modifier persistent = Persistent name = DaemonName '(' object = Exp ',' slot = Exp ',' names = Names ')' body = Exp
+        { SlotValueChanged(id,guarded,mod,persistent,Seq{name},object,slot,names,body) }.
+        
+      ReferencedSVC ::= id = DaemonId guarded = Guarded mod = Modifier persistent = Persistent path = DaemonPath '(' object = Exp ',' slot = Exp ')' 
+        { SlotValueChanged(id,guarded,mod,persistent,path,object,slot) }.
+        
+      DaemonId ::= '[' Exp ']' | { null }.
+        
+      Guarded ::= 'once' { true } | { false }.
+        
+      Modifier ::= '+' { "+" } | '-' { "-" } | { "" } | Drop.
+      
+      Names ::= name = AName names = (',' AName)* { Seq{ name | names } }.
+      
+      DaemonName ::= Name | { "AnonymousDaemon" }.
+      
+      DaemonPath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+      
+      Persistent ::= '!' { true } | { false }.
+      
+    end 
+    
+    

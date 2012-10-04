@@ -1,0 +1,39 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+context Mappings
+
+  @Operation iterateToMicroJava(C,x,y,e,b,locals)
+    
+    let iterLocals = locals + Seq{x,y};
+        name = newName() then
+        var = Var(name)
+    in OCLtoMicroJava(e,locals) +
+       OCLtoMicroJava(C,locals) +
+       Seq{[| 
+         @Statement
+           while(peekStack().isNotEmpty()) { 
+             Value <name> = popStack().copy();
+             locals.set(<Int(iterLocals->indexOf(x))>,<var>.select());
+             locals.set(<Int(iterLocals->indexOf(y))>,popStack());
+             { <* OCLtoMicroJava(b,iterLocals) *> }
+             locals.set(<Int(iterLocals->indexOf(y))>,popStack());
+             pushStack(locals.ref(<Int(iterLocals->indexOf(y))>));
+             <var>.remove(locals.ref(<Int(iterLocals->indexOf(x))>));
+             pushStack(<var>); 
+           }
+         end |],
+         [| @Statement popStack(); end |]}
+    end
+    
+  end

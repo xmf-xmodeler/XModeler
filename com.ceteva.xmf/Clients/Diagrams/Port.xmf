@@ -1,0 +1,71 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Port extends ContainedDiagramElement
+  
+    @Attribute x : Integer (?) end
+    @Attribute y : Integer (?) end
+    @Attribute width : Integer (?) end
+    @Attribute height : Integer (?) end
+    
+    @Constructor(id,y,width,height) end
+    @Constructor(id,x,y,width,height) ! end
+    
+    @Operation delete()
+      @Command(self) deleteCommand(self) end;
+      self.removeFromOwner()
+    end
+    
+    @Operation move(x,y)
+      @When self.x <> x or self.y <> y do
+        @Command(self) moveCommand(self,x,y) end;
+        self.x := x;
+        self.y := y
+      end
+    end
+    
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newPortCommand(parent,self) end;
+      self
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.remove(self)
+      else self.error("Port::removeFromOwner: no owner.")
+      end
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newPortCommand(parent,self) end;
+      self
+    end
+    
+    @Operation resize(width,height)
+      @When self.width <> width or self.height <> height do
+        @Command(self) resizeCommand(self,width,height) end;
+        self.width := width;
+        self.height := height
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height} then
+        attributes = Seq{id,x,y,width,height}
+      in
+        @Command(self) startElement("port",attributes) end;
+        @Command(self) endElement("port") end
+      end
+    end
+  
+  end

@@ -1,0 +1,33 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckOperation extends TypeCheckReport
+  
+    @Attribute operation : XCore::Operation (?) end
+    @Attribute report    : TypeCheckExp (?) end
+    
+    @Constructor(operation,report) end
+    
+    @Constructor(operation) ! end
+    
+    @Operation children():Seq(TypeCheckReport)
+      Seq{report}
+    end
+
+    @Operation element()
+      self.operation
+    end
+
+    @Operation label():String
+      "Type check " + operation.name().toString()
+    end
+    
+    @Operation ok():Boolean
+      report.ok()
+    end
+    
+  end

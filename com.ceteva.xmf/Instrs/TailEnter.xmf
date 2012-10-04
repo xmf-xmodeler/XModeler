@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class TailEnter extends Instr
+  
+    @Attribute arity : Integer end
+    
+    @Constructor(arity) end
+    
+    @Operation toString():String
+      "<TailEnter " + arity + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      arity
+    end
+    
+  end
+  

@@ -1,0 +1,38 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TableColumn
+  
+    @Attribute id          : String end
+    @Attribute name        : String end
+    @Attribute width       : Integer end
+    @Attribute isReadOnly  : Boolean end
+    @Attribute givesReport : Boolean end
+    @Attribute cells       : Seq(TableColumnCell) end
+    @Attribute options     : Seq(TableDropDownOption) end
+    
+    @Constructor(id,name,width,isReadOnly,givesReport,cells,options) end
+    
+    @ToXML(TABLE_COLUMN)[Id=id,Name=name,Width=width,Is_Readonly = isReadOnly,Gives_Report = givesReport]
+      cells*
+      options*
+    end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else 
+        @Find(x,cells + options)
+          when x.find(id) <> null
+          do x.find(id)
+          else null
+        end
+      end
+    end
+    
+  end

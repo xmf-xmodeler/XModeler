@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class SlotLocation extends Location
+  
+    @Attribute slot : String end
+    
+    @Constructor(slot) ! end
+  
+    @Operation value(token:Token):Element
+      if token.isKindOf(ObjectToken)
+      then token.object().get(slot.asSymbol())
+      else self.error("Slot location expects an object token: " + token.toString())
+      end
+    end
+  
+  end

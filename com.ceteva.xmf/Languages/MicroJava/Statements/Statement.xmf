@@ -1,0 +1,68 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Languages;
+import MicroJava;
+import Expressions;
+import XOCL;
+import Parser::BNF;
+import Statements;
+
+context Statements
+
+  @Class Statement isabstract
+    
+    @Grammar extends JExp.grammar, OCL::OCL.grammar
+    
+      Statement ::= Break | Block | Send | While | Do | If | JTry | JThrow | SideEffect | Switch | Return | Dec | For | Drop.
+      
+      Statements ::= '<*' e = Exp '*>' { Drop(e) } | Statement*.
+      
+      Break ::= 'break' ';' { Break() }.
+      
+      Send ::= e = (JNavigate '.' | { null }) n = AName a = JArgs ';' { Send(e,n,a) }.
+      
+      SideEffect ::= VarUpdate | FieldUpdate.
+      
+      VarUpdate ::= n = AName '=' e = JExp ';' { Update(n,e) }.
+      
+      FieldUpdate ::= e = JExp '.' n = AName '=' v = JExp ';' { FieldUpdate(e,n,v) }.
+      
+      Dec ::= type = JPath name = AName ('=' value = JExp ';' { Dec(type,name,value) } | ';' { Dec(type,name,null) }).
+       
+      If ::= 'if' '(' e = JExp ')' s1 = Statement ('else' s2 = Statement { If(e,s1,s2) } | { If(e,s1,null) }).
+      
+      For ::= 'for' '(' d = Dec p = JExp ';' n = AName '=' e = JExp c = { Update(n,e) } ')' b = Statement { Statements::For(d,p,c,b) }.
+      
+      Block ::= '{' statements = Statements '}' { Block(statements) }.
+      
+      Return ::= 'return' (';' { Return(null) } | e = JExp ';' { Return(e) }).
+      
+      While ::= 'while' '(' e = JExp ')' s = Statement { While(e,s) }.
+      
+      Do ::= 'do' '{' statements = Statements '}' 'while' '(' t = JExp ')' ';' { Do(statements,t) }.
+      
+      Switch ::= 'switch' '(' e = JExp ')' '{' cs = Case* d = DefaultCase '}' { Switch(e,cs,d) }.
+      
+      Case ::= 'case' e = JExp ':' ss = Statement* { Case(e,ss) }.
+      
+      DefaultCase ::= 'default' ':' ss = Statement* { DefaultCase(ss) } | { null }.
+      
+      JTry ::= 'try' b = Block cs = JCatch* { Try(b,cs) }.
+      
+      JThrow ::= 'throw' e = JExp ';' { Throw(e) }.
+      
+      JCatch ::= 'catch' '(' p = Path n = Name ')' b = Block { Catch(p,n,b) }.
+      
+    end
+  
+  end
+  
+context Statements
+
+  @Grammar extends Statement
+  
+    Statements ::= Statement*.
+    
+  end

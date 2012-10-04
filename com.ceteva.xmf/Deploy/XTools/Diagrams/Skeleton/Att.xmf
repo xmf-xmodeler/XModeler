@@ -1,0 +1,163 @@
+parserImport XOCL;
+
+context Package
+
+  @Operation writeXDiagSkelAttHandlers(dir,root,name,att,manifest)
+  
+    // Write handlers for the creation and deletion events...
+    
+    self.writeXDiagSkelAttNewHandler(dir,root,name,att,manifest);
+    self.writeXDiagSkelAttRemovedHandler(dir,root,name,att,manifest);
+    self.writeXDiagSkelAttSourceChangedHandler(dir,root,name,att,manifest);
+    self.writeXDiagSkelAttTargetChangedHandler(dir,root,name,att,manifest)
+    
+  end
+
+context Package
+
+  @Operation writeXDiagSkelAttNewHandler(dir,class,name,att,manifest)
+  
+    // Write a handler that tries to find elements registered for either
+    // end of the edge. If they exist then the underlying model is
+    // updated appropriately.
+    
+    let handlerName = "New_" + att.XDiagSkelName()
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.source()) and event.tool().isRegistered(event.target())~%");
+         format(out,"    then~%");
+         format(out,"      let source = event.tool().find(event.source());~%");
+         format(out,"          target = event.tool().find(event.target())~%");
+         format(out,"      in event.tool().register(event.edge(),Seq{source,target});~%");
+         @Case att.type of
+           Seq[ ] do
+             format(out,"         source.~S := source.~S->including(target)~%",Seq{att.name(),att.name()})
+           end
+           Set[ ] do
+             format(out,"         source.~S := source.~S->including(target)~%",Seq{att.name(),att.name()})
+           end
+           else format(out,"         source.~S := target~%",Seq{att.name()})
+         end;
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelAttRemovedHandler(dir,class,name,att,manifest)
+  
+    // Write a handler that tries to find elements registered for the edge. 
+    // If they exist then the underlying model is updated appropriately.
+    
+    let handlerName = att.XDiagSkelName() + "_Removed"
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge())~%");
+         format(out,"    then~%");
+         format(out,"      let pair = event.tool.find(event.edge()) then~%");
+         format(out,"          source = pair->at(0);~%");
+         format(out,"          target = pair->at(1)~%");
+         @Case att.type of
+           Seq[ ] do
+             format(out,"      in source.~S := source.~S->excluding(target)~%",Seq{att.name(),att.name()})
+           end
+           Set[ ] do
+             format(out,"      in source.~S := source.~S->excluding(target)~%",Seq{att.name(),att.name()})
+           end
+           else format(out,"      in source.~S := ~S.default()~%",Seq{att.name(),att.type.path()})
+         end;
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelAttSourceChangedHandler(dir,class,name,att,manifest)
+  
+    let handlerName = att.XDiagSkelName() + "_Source_Changed"
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+         format(out,"    then~%");
+         format(out,"      let rec = event.tool().find(event.edge()) then~%");
+         format(out,"          source = rec->at(0);~%");
+         format(out,"          target = rec->at(1)~%");
+         format(out,"      in~%");
+         @Case att.type of
+           Seq[ ] do
+             format(out,"       source.~S := source.~S->excluding(target);~%",Seq{att.name(),att.name()});
+             format(out,"       event.tool().find(event.new()).~S := event.tool().find(event.new()).~S->including(target);~%",Seq{att.name(),att.name()})
+           end
+           Set[ ] do
+             format(out,"       source.~S := source.~S->excluding(target);~%",Seq{att.name(),att.name()});
+             format(out,"       event.tool().find(event.new()).~S := event.tool().find(event.new()).~S->including(target);~%",Seq{att.name(),att.name()})
+           end
+           else 
+             format(out,"       source.~S := ~S.default();~%",Seq{att.name(),att.type.path()});
+             format(out,"       event.tool().find(event.new()).~S := target;~%",Seq{att.name()})
+         end;
+         format(out,"         event.tool().register(event.edge(),Seq{event.tool().find(event.new()),target})~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelAttTargetChangedHandler(dir,class,name,att,manifest)
+  
+    let handlerName = att.XDiagSkelName() + "_Target_Changed";
+        update =
+          @Operation(out,object,name,new,old,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              Set[ ] do
+                format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                format(out,"       ~S.~S := ~S.~S->including(~S);~%",Seq{object,name,object,name,new})
+              end
+              else format(out,"       ~S.~S := ~S;~%",Seq{object,name,new})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+         format(out,"    then~%");
+         format(out,"      let rec = event.tool().find(event.edge()) then~%");
+         format(out,"          source = rec->at(0);~%");
+         format(out,"          target = rec->at(1)~%");
+         format(out,"      in~%");
+         update(out,"source",att.name(),"event.tool().find(event.new())","target",att.type);
+         format(out,"         event.tool().register(event.edge(),Seq{source,event.tool().find(event.new())})~%");
+         format(out,"      end~%");
+         format(out,"    end~%");
+         format(out,"  end~%")
+       end;
+       manifest.add("ElementManager/" + handlerName)
+    end
+  end

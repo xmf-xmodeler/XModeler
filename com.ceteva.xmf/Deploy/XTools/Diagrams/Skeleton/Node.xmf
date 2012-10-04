@@ -1,0 +1,186 @@
+parserImport XOCL;
+
+context Package
+
+  @Operation writeXDiagSkelNodeHandlers(dir,root,name,node,manifest)
+  
+    // Write handlers for the creation and deletion events...
+    
+    self.writeXDiagSkelNewNodeHandler(dir,root,name,node,manifest);
+    self.writeXDiagSkelNodeDisplayHandler(dir,root,name,node->at(0).name(),node->at(1),manifest);
+    self.writeXDiagSkelNodeRemovedHandler(dir,root,name,node,manifest)
+    
+  end
+
+context Package
+
+  @Operation writeXDiagSkelNewNodeHandler(dir,class,name,node,manifest)
+  
+    // Write a handler that creates a new instance of the class associated
+    // with the node type and registers it with the tool.
+   
+    let nodeClass = node->at(0);
+        display = node->at(1) then
+        handlerName = "New_" + nodeClass.name();
+        update =
+          @Operation(out,name,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       event.tool().element().~S := event.tool().element().~S->including(o);~%",Seq{name,name})
+              end
+              Set[ ] do
+                format(out,"       event.tool().element().~S := event.tool().element().~S->including(o);~%",Seq{name,name})
+              end
+              else format(out,"       event.tool().element().~S := o;~%",Seq{name})
+            end
+          end;
+          register =
+            @Operation(out,register,path,display)
+              @Case display of
+                Seq{"Ellipse",w,h,c} do
+                  null
+                end
+                Seq{"Image",f,w,h} do
+                  null
+                end
+                Seq{"Attribute",a} do
+                  format(out,"      event.tool().register(event.node().ref1(Seq{~{,~;\"~S\"~}}),o);~%",Seq{path + Seq{a.name()}})
+                end
+                Seq{"Box",f,b,l,c,D} do
+                  @For display in D do
+                    register(out,register,path + Seq{"box"},display)
+                  end
+                end
+              end
+            end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    let o = ~S()~%",Seq{nodeClass.path()});
+         format(out,"    in event.tool().register(event.node(),o);~%");
+         format(out,"       event.tool().register(o,event.node());~%");
+         let A = class.allAttributes()->select(a | nodeClass.inheritsFrom(a.underlyingType()))->asSeq
+         in if not A->isEmpty
+            then 
+              if A->size = 1
+              then update(out,A->at(0).name,A->at(0).type)
+              else 
+                let att = xmf.select("Name",formats("When ~S is instantiated which slot is updated:",Seq{nodeClass.name()}),A,null,null)
+                in if att <> null
+                   then update(out,att.name,att.type)
+                   end
+                end
+              end
+            end
+         end;
+         register(out,register,Seq{},display);
+         format(out,"       o~%");
+         format(out,"    end~%");
+         format(out,"  end~%");
+         manifest.add("ElementManager/" + handlerName)
+       end
+    end
+  end
+  
+context Package
+  @Operation writeXDiagSkelNodeDisplayHandler(dir,class,name,path,display,manifest)
+    @Case display of
+      Seq{"Ellipse",w,h,c} do
+        null
+      end
+      Seq{"Image",file,w,h} do
+        null
+      end
+      Seq{"Attribute",a} do
+        let handlerName = path + "_" + a.name() + "_Changed"
+        in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+             self.writeDiagramToolHeader(out);
+             self.writeXDiagSkelHandlerComment(out);
+             format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+             format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+             format(out,"    if event.tool().isRegistered(event.value())~%");
+             format(out,"    then~%");
+             format(out,"      let o = event.tool().find(event.value())~%");
+             @Case a.type of
+               [String] do
+                 format(out,"      in o.~S := event.new()~%",Seq{a.name()})
+               end
+               [Integer] do
+                 format(out,"      in o.~S := event.new().asInt()~%",Seq{a.name()})
+               end
+               [Boolean] do
+                 format(out,"      in o.~S := event.new().asBool()~%",Seq{a.name()})
+               end
+               else null
+             end;
+             format(out,"      end~%");
+             format(out,"    else \"NO ~S\".println()~%",Seq{a.name()});
+             format(out,"    end~%");
+             format(out,"  end~%")
+           end;
+           manifest.add("ElementManager/" + handlerName)
+        end
+      end
+      Seq{"Box",f,b,l,c,D} do
+        @For display in D do
+          self.writeXDiagSkelNodeDisplayHandler(dir,class,name,path + "_box",display,manifest)
+        end
+      end
+    end
+  end
+  
+context Package
+
+  @Operation writeXDiagSkelNodeRemovedHandler(dir,class,name,node,manifest)
+  
+    // Write a handler that looks for the element associated with the
+    // deleted node, if present then the appropriate updates take place.
+   
+    let nodeClass = node->at(0) then
+        handlerName = nodeClass.name() + "_Removed";
+        update =
+          @Operation(out,name,type)
+            @Case type of
+              Seq[ ] do
+                format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+              end
+              Set[ ] do
+                format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+              end
+              else format(out,"       event.tool().element().~S := ~S.default();~%",Seq{name,type.path()})
+            end
+          end
+    in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+         self.writeDiagramToolHeader(out);
+         self.writeXDiagSkelHandlerComment(out);
+         format(out,"context ~S::~S::Manager~%",Seq{class.path(),name});
+         format(out,"  @EventHandler ~S()~%",Seq{handlerName});
+         format(out,"    if event.tool().isRegistered(event.node())~%");
+         format(out,"    then~%");
+         format(out,"      let o = event.tool().find(event.node())~%");
+         format(out,"      in event.tool().deregister(o);~%");
+         let A = class.allAttributes()->select(a | nodeClass.inheritsFrom(a.underlyingType()))->asSeq
+         in if not A->isEmpty
+            then 
+              if A->size = 1
+              then update(out,A->at(0).name,A->at(0).type)
+              else 
+                let att = xmf.select("Name",formats("When ~S is deleted which slot is updated:",Seq{nodeClass.name()}),A,null,null)
+                in if att <> null
+                   then update(out,att.name,att.type)
+                   end
+                end
+              end
+            end
+         end;        
+         format(out,"          o~%");
+         format(out,"       end~%");
+         format(out,"    end~%");
+         format(out,"  end~%");
+         manifest.add("ElementManager/" + handlerName)
+       end
+    end
+  end
+  

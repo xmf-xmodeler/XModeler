@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Call
+    @Operation nullable(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then clause.nullable()
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+context Call
+    @Operation first(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then clause.first()
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+context Call
+    @Operation follow(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then clause.follow()
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+context Call
+    @Operation setFollow(grammar,follow)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then clause.setFollow(follow)
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end

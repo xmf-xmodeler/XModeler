@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+context Languages
+
+@Package Ada 
+  @Class Node extends AdaObject
+    @Attribute name : String end
+    @Attribute val : String end
+    @Attribute children : Seq(Node) end
+    @Operation code(indent:Element):String
+      val + children->collect(c |
+        c.code(indent))->separateWith(" ")
+    end
+  end
+  @Class AdaObject extends XOCL::Syntax
+    @Attribute nodes : Seq(Node) end
+    @Attribute line : Integer = 0-1 end
+    @Attribute char : Integer = 0-1 end
+    @Operation code():String
+      self.code(0)
+    end
+    @Operation code(indent:Element):String
+      nodes->collect(n |
+        n.code(indent))->asSeq->separateWith(" ")
+    end
+    @Operation treeIconFile():Element
+      "Ada.gif"
+    end
+    @Operation treeMenu():Element
+      Seq{Seq{"Code" | @Operation anonymous()
+        self.code(0).edit()
+      end}}
+    end
+  end
+  @Class AdaName extends AdaObject
+    @Attribute name : String end
+  end
+  
+end

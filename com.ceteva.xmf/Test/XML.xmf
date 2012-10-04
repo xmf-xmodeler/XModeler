@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import Walkers;
+import IO;
+
+format(stdout,"Any value can be transformed into XML. A file should be produced~%");
+format(stdout,"called pairs.xml. View with an XML viewer. The file should exhibit how.~%");
+format(stdout,"sharing is handled in data using id refs.~%");
+
+context Root
+  @Class Pair
+  
+    @Attribute data : Element end
+    @Attribute left : Pair end
+    @Attribute right : Pair end
+    
+    @Constructor(data,left,right) ! end
+    @Constructor(data) end
+    
+    @Operation flatten():Seq(Element)
+      let l = if left = null then Seq{} else left.flatten() end;
+          r = if right = null then Seq{} else right.flatten() end
+      in Seq{data} + l + r 
+      end
+    end
+    
+  end
+  
+context Root
+  @Operation tree(n)
+    if n = 0 
+    then Pair(n)
+    else Pair(n,tree(n-1),tree(n-1))
+    end
+  end
+  
+let fout = FileOutputChannel("Test/pairs.xml");
+    pairs = tree(10)
+in let xmlout = XMLOutputChannel(fout)
+   in pairs.left.right := pairs.right;
+      xmlout.write(pairs);
+      xmlout.close()
+   end
+end; 
+
+let fin = FileInputChannel("Test/pairs.xml")
+in let xmlin = XMLInputChannel(fin) 
+   in xmlin.read().reduce().println()
+   end
+end;

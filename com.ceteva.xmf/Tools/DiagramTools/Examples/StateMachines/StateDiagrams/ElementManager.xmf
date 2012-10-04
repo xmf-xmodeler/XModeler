@@ -1,0 +1,5 @@
+parserImport Tools::Events;
+
+context StateMachines::StateMachine::StateDiagrams
+  @ElementManager StateManager !
+  end

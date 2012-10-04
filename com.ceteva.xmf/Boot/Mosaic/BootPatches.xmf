@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+context XMF
+  @Operation bootPatches()
+    let patchDir = xmf.homeDir() + "/Patches"
+    in
+      if patchDir.fileExists()
+      then
+        let patches = Kernel_dirContents(patchDir,Seq{".*.o"})
+        in
+          @For patch in patches
+          do
+            let file = patchDir + "/" + patch
+            in
+              if not file.isDir()
+              then file.loadBin(false)
+              end
+            end
+          end
+        end
+      end
+    end
+  end

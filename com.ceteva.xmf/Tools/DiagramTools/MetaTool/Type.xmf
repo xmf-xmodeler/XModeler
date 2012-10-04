@@ -1,0 +1,72 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import Events;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+  
+  @ToolType ToolBuilder
+    NodeType
+    EdgeType
+    ToolBar
+    Source
+    Target
+    Inheritance
+    @Menu
+      @MenuAction "Show Tool"
+        let type = tool.element();
+            manager = ElementManager() then
+            newTool = Tool(type,"Example Tool",manager,null)
+        in newTool.edit();
+           newTool.showDiagram()
+        end
+      end
+      @MenuItems Edit
+        @MenuAction "Tool Type"
+          tool.element.edit()
+        end
+        @MenuAction Diagram
+          tool.diagram().edit()
+        end
+      end
+    end 
+    @ToolBar 
+      @ToolGroup ToolTypes
+        @ToolButton NodeType
+          icon = "Tools/Node.gif"
+        end 
+        @ToolButton ToolBar
+          icon = "Tools/ToolBar.gif"
+        end 
+        @ToolButton EdgeType
+          icon = "Tools/Edge.gif"
+        end
+      end
+      @ToolGroup Properties
+        @ToolButton Inheritance
+          isEdge
+          icon = "Tools/Inherit.gif"
+        end
+        @ToolButton Source
+          isEdge
+          icon = "Tools/Edge.gif"
+        end
+        @ToolButton Target
+          isEdge
+          icon = "Tools/Edge.gif"
+        end
+      end
+    end
+  end

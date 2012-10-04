@@ -1,0 +1,105 @@
+parserImport Parser::BNF;
+
+import Languages; import Ada; import Units;
+
+context AdaProgram
+
+  @Grammar extends OCL::OCL.grammar
+
+    AdaProgram ::= pragmas = Pragma* contextSpec = ContextSpec* unit = Unit* {Units::AdaProgram[compilationUnits =
+      Set{Units::CompilationUnit[unit = unit->asSet,
+                                 contextSpec = Set{Specs::ContextSpec[
+                                   useClauses = contextSpec->select(c | c.isKindOf(Units::UseClause)),
+                                   withClauses = contextSpec->select(c | c.isKindOf(Units::WithClause))]}]},
+                                 pragmas = pragmas->asSet]}.
+
+    Pragma ::= 'pragma' name = AdaName {Units::Pragma[name = name]}.
+
+    ContextSpec ::= WithClause | UseClause.
+
+    UseClause ::= 'use' name = AdaName ';' {Units::UseClause[name = name]}.
+
+    WithClause ::= 'with' name = AdaName ';' {Units::WithClause[name = name]}.
+
+    Unit ::= PkgBody | SubprogramSpec.
+
+    PkgBody ::= 'package' 'body' name = Name 'is' declPart = DeclPart* 'end' Name ';' {Bodies::PkgBody[name = name, declPart = declPart]}.
+
+    DeclPart ::= DeclPartBody | DeclPartItem.
+
+    DeclPartItem ::= declItem = DeclItem {Bodies::DeclPartItem[declItem = declItem]}.
+
+    DeclItem ::= ObjectDeclSubType.
+
+    ObjectDeclSubType ::= name = Name ':' subTypeInd = SubTypeInd ':=' initializer = Ada_Expression* ';' {Decls::ObjectDeclSubType[name = name, subTypeInd = subTypeInd, initializer = initializer->asSet]}.
+
+    SubTypeInd ::= name = AdaName {Types::TypeRef::SubTypeInd[name = name]}.
+
+    DeclPartBody ::= body = SubprogramBody {Bodies::DeclPartBody[body = body]}.
+
+    SubprogramBody ::= 
+      subprogramSpec = SubprogramSpec 'is' declPart = DeclPart* blockBody = BlockBody 
+                       {Bodies::SubprogramBody[blockBody = blockBody, subprogramSpec = subprogramSpec, declPart = declPart]} |
+      subProgramSpec = SubProgramSpec ';' {Bodies::SubprogramBody[subprogramSpec = subprogramSpec]}.
+
+    SubprogramSpec ::= ProcedureSpec | FunctionSpec. 
+
+    ProcedureSpec ::= 'procedure' name = Name parameters = ParameterList {Specs::ProcedureSpec[name = name, parameters = parameters]}.
+
+    FunctionSpec ::= 'function' name = Name parameters = ParameterList returnType = ReturnType {Specs::FunctionSpec[name = name, returnType = returnType, parameters = parameters]}.
+
+    ParameterList ::= '(' parameter = Parameter parameters = (';' Parameter)* ')' { Seq{parameter | parameters} } | { Seq{} }.
+
+    Parameter ::= name = Name ':' mode = Mode type = TypeRef {Specs::Parameter[name = name, mode = mode, type = type]}.
+
+    TypeRef ::= SubTypeInd | SubTypeMark.
+
+    SubTypeInd ::= name = AdaName {Types::TypeRef::SubTypeInd[name = name]}.
+
+    Mode ::= 'access' {"access"} | 'out' {"out"} | {"in"}.
+
+    ReturnType ::= 'return' name = AdaName {name} | {null}.
+
+    BlockBody ::= 'begin' statement = Ada_Statement* 'end' Name ';' {statement} | ';' {Seq{}}.
+
+    // Names
+
+    AdaName ::= SimpleName | SelectedComp | Attribute | IndexedComp.
+
+    SimpleName ::= name = Name {Names::SimpleName[name = name]}.
+
+    SelectedComp ::= name = SimpleName '.' scname = Name {Names::SelectedComp[name = name, scname = scname]}.
+
+    IndexedComp ::= name = SimpleName '(' value = Value values = (',' Value)* ')' {Names::IndexedComp[name = name, values = values]}.
+
+    // Attribute needs ' to be defined in the XBNF grammar
+    Attribute ::= name = Name token = Token '*' attribute = AdaName {Names::Attribute[name = name, attribute = attribute]}.
+
+    //Ada Expressions
+    Ada_Expression ::= Ada_NullLiteral | Ada_ExpressionName | Ada_AllocatorName.
+
+    Ada_AllocatorName ::= 'new' name = SimpleName {Expressions::AllocatorName[name = name]}.
+
+    Ada_ExpressionName ::= name = AdaName {Expressions::ExpressionName[name = name]}.
+
+    Ada_NullLiteral ::= 'null' {Expressions::NullLiteral()}.
+
+    Value ::= ValueCompAssoc.
+
+    ValueCompAssoc ::= choices = Choice* '=>' expr = Ada_Expression {Expressions::ValueCompAssoc[choices = choices, expr = expr]}.
+
+    Choice ::= ChoiceExp.
+
+    ChoiceExp ::= expr = Ada_Expression body = Ada_Statement* {Expressions::ChoiceExp[expr = expr,body = body]}.
+
+    //Ada Statements
+
+    Ada_Statement ::=  ProcedureCall | Return.
+
+    Return ::= 'return' expr = Ada_Expression* ';' {Statements::Return[expr = expr->asSet]}.
+
+    ProcedureCall ::= name = AdaName ';' {Statements::ProcedureCall[name = name]}.
+
+  end
+
+  AdaProgram.grammar.debug := true;

@@ -1,0 +1,10 @@
+import OCL;
+
+context Try
+  @Operation eval(target,env,imports)
+    try 
+      body.eval(target,env,imports)
+    catch(exception)
+      handler.eval(target,env.bind(name,exception),imports)
+    end
+  end

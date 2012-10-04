@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ConsExp extends OCL::OCL
+  
+    @Doc
+      A cons expression constructs a sequence from a head and tail.
+      Constructor: ConExp(head,tail)
+        The head and tail arguments are expressions. The head expression denotes
+        an arbitrary value and the tail expression denotes a sequence (possibly
+        the empty sequence).
+    end
+  
+    @Attribute head : OCL::OCL end
+    @Attribute tail : OCL::OCL end
+    
+    @Constructor(head,tail) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"Seq{");
+      head.pprint(out,indent);
+      format(out," | ");
+      tail.pprint(out,indent);
+      format(out,"}")
+    end
+    
+  end

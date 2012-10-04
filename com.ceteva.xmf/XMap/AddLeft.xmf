@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+import XMap;
+
+context XMap
+
+  @Class AddLeft extends AddAction
+  
+    @Doc
+      The AddLeft construct occurs in a SyncContainers construct and is used to
+      define a daemon that fires when an element is added to the left container
+      of the two being synchronized. If the left handl container is updated
+      with one or more values then this daemon is fired for each new element.
+      The construct has a parameter which is bound to the value which is added.
+      In the body of the daemon the value of 'self' is the object being updated
+      (i.e. the container). All other scoping rules apply.
+      
+      Constructor: AddLeft(arg,body)
+      
+    end
+       
+    //@SyncContainers(Class,constraints,myObj,sneaky)
+    //  @AddLeft(constraint)
+    //    // Every time anyone adds a constraint to Class
+    //    // squirrel it away in MyClass.
+    //    if not sneaky->includes(constraint)
+    //    then myObj.sneaky := sneaky->prepend(constraint)
+    //    end
+    //  end
+    //end
+     
+    @Grammar extends AddAction.grammar
+    
+      AddLeft ::= addAction = AddAction { AddLeft(addAction.arg,addAction.body) }.
+      
+    end
+     
+   end    

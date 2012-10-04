@@ -1,0 +1,5 @@
+parserImport XOCL;
+
+@Menu "Show Diagram" on Tools::DiagramTools::Structure::Tool
+  Tools::DiagramTools::Structure::Tool::showDiagram
+end;

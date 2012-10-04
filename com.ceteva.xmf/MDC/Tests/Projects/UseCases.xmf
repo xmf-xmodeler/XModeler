@@ -1,0 +1,134 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package Cases
+    
+      @Class Model metaclass BrowsedClass extends Contained
+      
+        @Attribute actors : Seq(Actor) (+,-,^) end
+        @Attribute useCases : UseCases = UseCases() (?) end
+        
+        @Constructor() ! end
+        
+        @Interface
+          @Child actors end
+          @Child useCases end
+          @Image "XCore/Package" end
+          @MenuRoot MyProjects::Cases::Model end
+          @Menu New::Actor newActor end
+        end
+        
+        UniqueConstraint("AllDifferentNames","actors","name")
+        
+        @Operation newUseCase()
+          useCases.newUseCase()
+        end
+        
+        @Operation newActor()
+          self.addToActors(Actor(xmf.getString("Actor","Actor Identifier","USER")))
+        end
+        
+      end
+      
+      @Class Actor metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String end
+        @Attribute uses : Seq(UseCase) (+,-) end
+        
+        @Constructor(name) ! end
+        
+        @Interface
+          @Child uses end
+          @Image "Projects/Actor" end
+          @MenuRoot MyProjects::Cases::Actor end
+          @Menu Delete delete end
+          @Menu Use use end
+          @Menu Unuse deleteUse end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromActors(self)
+          end
+        end
+        
+        @Operation deleteUse()
+          if not uses->isEmpty
+          then
+            let useCase = xmf.select("Delete Use","Select use case",uses,null,null)
+            in if useCase <> null
+               then self.deleteFromUses(useCase)
+               end
+            end
+          end
+        end
+        
+        @Operation use()
+          if owner <> null
+          then 
+            let useCases = owner.useCases().cases()
+            in if useCases->isEmpty
+               then xmf.message("No Use Cases")
+               else
+                 let useCase = xmf.select("Use Case","Choose use case",useCases->asSeq,null,null)
+                 in if useCase <> null and not uses->includes(useCase)
+                    then self.addToUses(useCase)
+                    end
+                 end
+               end
+            end
+          end
+        end
+        
+      end
+      
+      @Class UseCases metaclass BrowsedClass extends Contained
+      
+        @Attribute cases : Seq(UseCase) (?,+,-,^) end
+        
+        @Constructor() ! end
+        
+        @Interface
+          @Child cases end
+         @MenuRoot MyProjects::Cases::UseCases end
+           @Menu New::UseCase newUseCase end
+        end
+        
+        UniqueConstraint("AllDifferentNames","cases","name")
+        
+        @Operation newUseCase()
+          self.addToCases(UseCase(xmf.getString("Use Case","Name of Use Case","<NAME>")))
+        end
+        
+      end
+      
+      @Class UseCase metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String (?) end
+        @Attribute includes : Seq(UseCase) end
+        @Attribute extends : Seq(UseCase) end
+        
+        @Constructor(name) ! end
+        
+        @Interface
+          @Child includes end
+          @Child extends end
+          @MenuRoot MyProjects::Cases::UseCase end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromCases(self)
+          end
+        end
+        
+      end
+      
+    end
+      

@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+
+context TextEditor
+
+  @Class OleEditor extends ContainedClientElement
+  
+    @Attribute file        : String (?)  end
+    @Attribute application : String (?) end
+    
+    @Constructor(application,file) ! end
+    
+    @Operation oleClosed()
+      owner.removeEditor(self)
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newOleEditorCommand(self);
+      self
+    end
+    
+    @Operation renew()
+      self.removeFromIdManager();
+      self.commandInterpreter().newTextEditorCommand(self);
+      self
+    end
+    
+    @Operation saveAs(path)
+      self.commandInterpreter().saveAs(self,path);
+      self
+    end
+    
+  end

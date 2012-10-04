@@ -1,0 +1,27 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Evaluator;
+
+@Handler ConsExp in Eval(aConsExp,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aConsExp.head,
+       @Operation(next,result,call,return)
+         self.eval(aConsExp.head,env,target,imports,next,result,call,return,
+           @Operation(head)
+             next(aConsExp.tail,
+               @Operation(next,result,call,return)
+                 self.eval(aConsExp.tail,env,target,imports,next,result,call,return,
+                   @Operation(tail)
+                     result(aConsExp,Seq{head | tail},cont)
+                   end)
+               end)
+           end)
+        end)
+   end
+end;

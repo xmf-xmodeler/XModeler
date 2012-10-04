@@ -1,0 +1,12 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Deploy/Boot",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XML",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Snapshot/DeploySnapshot",true,true);
+compileFile(xmf.homeDir() + "/Deploy/XOCL/Makefile",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/Makefile",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Walkers/Generator",true,true);
+compileFile(xmf.homeDir() + "/Deploy/EMFXMI/EMFExporter",true,true);
+(xmf.homeDir() + "/Deploy/XOCL/Makefile.o").loadBin(false);
+(xmf.homeDir() + "/Deploy/Java/Makefile.o").loadBin(false);

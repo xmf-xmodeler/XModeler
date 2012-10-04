@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Ref extends FormElement
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Ref ::= n = Name { 
+      [| Tools::FormTools::Types::Ref(<OCL::StrExp(n)>) |]
+    }.
+    
+  end
+  
+  @Operation bind(env)
+    env
+  end
+  
+  @Operation new(parent,path,env,tool)
+    if env.binds(name.toString())
+    then env.lookup(name.toString()).new(parent,path,env,tool)
+    else self.error("Type " + name + " is not in scope.")
+    end
+  end
+  
+  @Operation underlyingTypes(env):Set(DisplayType)
+    env.lookup(name.toString()).underlyingTypes(env)
+  end
+  
+end

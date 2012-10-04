@@ -1,0 +1,135 @@
+parserImport XOCL;
+//parserImport Tools::Basic;
+parserImport XMap;
+
+import Tools;
+import FormTools;
+import Forms;
+import Types;
+import Clients::Menus;
+
+context Forms
+
+  @Class TreeNode extends Clients::Forms::TreeNode, NewHandler, OrHandler, NodeContainer
+  
+    @Attribute type            : TreeNode  (?,!) end
+    @Attribute deleteHandler   : Operation (!,?) end
+    @Attribute changedHandler  : Operation (!,?) end
+    @Attribute selectedHandler : Operation (!,?) end
+    @Attribute doubleHandler   : Operation (!,?) end
+    @Attribute indexHandler    : Operation (!,?) end
+    
+    @Operation addDaemon()
+      @SlotValueChanged multi TreeNode::changedEvent(self,"text") end;
+      @SlotValueChanged multi TreeNode::selectedEvent(self,"selected") end
+    end
+    
+    @Operation changedEvent(node,slot,new,old)
+      if changedHandler <> null
+      then changedHandler(node,new,old)
+      end
+    end
+    
+    @Operation delete()
+      let owner = owner
+      in super();
+         if deleteHandler <> null
+         then deleteHandler(self)
+         end
+      end
+    end
+    
+    @Operation doubleSelected()
+      if doubleHandler <> null
+      then doubleHandler(self)
+      end
+    end
+    
+    @Operation index():Integer
+      self.owner().nodes()->indexOf(self)
+    end
+    
+    @Operation moveDown()
+      // Move the node down the ordering towards the end.
+      let index = self.index()
+      in if index < self.owner().nodes()->size - 1
+         then 
+           self.setIndex(index + 1)
+         end
+      end
+    end
+    
+    @Operation moveUp()
+      // Move the node up the ordering towards 0.
+      let index = self.index()
+      in if index > 0 
+         then self.setIndex(index - 1)
+         end
+      end
+    end
+    
+    @Operation new(parent)
+      super(parent);
+      self.addDaemon()
+    end
+    
+    @Operation new(parent,env)
+    
+      // Work out where to add the new node based on the
+      // type information of the parent. This is called
+      // when a node is dynamically added to a tree.
+      
+      let types = parent.type().nodes();
+          nodes = parent.nodes();
+          i = 0;
+          added = false
+      in @While not added and not types->isEmpty do
+           let type = types->head
+           in // Skip any nodes that are also of the current
+              // type...
+              @While not nodes->isEmpty andthen type.underlyingTypes(env)->includes(nodes->head.type()) do
+                i := i + 1;
+                nodes := nodes->tail
+              end;
+              if type.underlyingTypes(env)->includes(self.type())
+              then
+                super(parent,i-1);
+                added := true
+              else 
+                types := types->tail
+              end
+           end
+         end;
+         if not added
+         then super(parent)
+         end
+      end;
+      self.addDaemon()
+    end 
+    
+    @Operation selectedEvent(node,slot,new,old)
+      if selectedHandler <> null and new <> old
+      then 
+        selectedHandler(node,new,old);
+        if new 
+        then
+          @WithoutDaemons(self)
+            self.setSelected();
+            self.selected := true
+          end
+        end
+      end
+    end
+    
+    @Operation setIndex(newIndex:Integer)
+      let oldIndex = self.owner().nodes()->indexOf(self)
+      in super(newIndex);
+         if indexHandler <> null
+         then indexHandler(self,newIndex,oldIndex)
+         end
+      end
+    end
+    
+  end
+    
+    

@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import Automata;
+import Parser::BNF;
+
+context Automata
+
+  @Class Transition extends Contained
+  
+    @Attribute sourceName : String end
+    @Attribute targetName : String end
+    @Attribute guard : Operation end
+    @Attribute action : Operation end
+    
+    @Constructor(sourceName,targetName,guard,action) end
+    
+    @Constructor(sourceName,targetName) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Transition ::= '(' sourceName = Name ',' targetName = Name ')'
+        guard = Guard
+        action = Action  
+       { import OCL 
+         in [| import Languages::Automata 
+               in Transition(<StrExp(sourceName)>,<StrExp(targetName)>,<guard>,<action>) 
+               end |] 
+         end }.
+         
+       Guard ::= 'when' ExplicitGuard | { [| @Operation(ignore) true end |] }.
+       
+       ExplicitGuard ::= ParametricGuard | bool = Exp { [| @Operation(value) <bool> end |] }.
+       
+       ParametricGuard ::= '(' name = Name ')' bool = Exp { [| @Operation(<name>) <bool> end |] }.
+       
+       Action ::= 'do' ExplicitAction | { [| @Operation(ignore) self end |] }.
+       
+       ExplicitAction ::= ParametricAction | action = Exp { [| @Operation(value) <action> end |] }.
+       
+       ParametricAction ::= '(' name = Name ')' action = Exp { [| @Operation(<name>) <action> end |] }.
+        
+    end 
+    
+    @Operation activate(element,value)
+      action.invoke(element,Seq{value})
+    end
+    
+    @Operation isEnabled(element,value)
+      guard.invoke(element,Seq{value})
+    end
+    
+    @Operation nameChanged(new,old)
+      if sourceName = old then self.sourceName := new end;
+      if targetName = old then self.targetName := new end
+    end
+    
+    @Operation source()
+      owner.stateNamed(sourceName)
+    end
+    
+    @Operation target()
+      owner.stateNamed(targetName)
+    end
+    
+  end

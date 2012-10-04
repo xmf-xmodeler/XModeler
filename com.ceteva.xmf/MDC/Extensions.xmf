@@ -1,0 +1,231 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+import Tools;
+import Basic;
+import DiagramTools::Structure;
+import MDC;
+import Types;
+
+// CREATE XTOOL DEFINITION MENU
+
+context Class
+  @Operation createXToolDiagramTypeDefinition()
+    let def = RootElementType(self) then
+        defName = def.changeName()
+    in
+      if defName <> null
+      then
+        Tools::Basic::showXToolsBrowser();
+        xmf.toolBrowser().definitionManager().addDefinition(def);
+        def.initRefNameSpace();
+        def.edit()
+      end
+    end
+  end
+
+context DefinitionManager
+  @Operation createXToolDiagramTypeDefinition()
+    let exp = xmf.getExp("Class For XTool Definition",
+                         "Enter a class (either the path of a class or an expression" +
+                         " that evaluates to a class) to define an XTool diagram type for.")
+    in
+      if exp <> null
+      then
+        let c = exp.eval(self,Env::NullEnv(),Seq{XCore,Root})
+        in
+          if c.isKindOf(Class)
+          then c.createXToolDiagramTypeDefinition()
+          else xmf.errorMessage("XTool definition cannot be created, as the expression does not evaluate to a class.")
+          end
+        end
+      end
+    end
+  end
+
+
+// LINKING & DELINKING NAMESPACE REFS
+
+context DefinitionManager
+  @Operation linkNameSpaceRefs()
+
+    // Make all the tool definition display and mapping types accessible from Root...
+
+    // First check that the types have not already been linked...
+    if not Root.hasElement("XToolsRefTypes")
+    then
+      let rtns = NameSpace("XToolsRefTypes");
+          elementTable = Table(20); // stores the current owners of ref types
+          duplicates = Seq{}
+      in
+        Root.add(rtns);
+        rtns.putElement("elementTable",elementTable);
+        @For content in self.contents() do
+          if content.isReallyKindOf(RootElementType)
+          then
+            let refNameSpace = content.refNameSpace()
+            in
+              if refNameSpace <> null
+              then
+                // move refNameSpace...
+                let slotPair = Seq{refNameSpace.name | refNameSpace.owner}
+                in elementTable.put(refNameSpace,slotPair)
+                end;
+                refNameSpace.name := content.labelString().stripInvalidNameChars().asSymbol();
+                rtns.add(refNameSpace);
+                
+                // set up display and mapping type name and owner slots...
+                @For type inTableValues refNameSpace.contents do
+                  let slotPair = Seq{type.name | type.owner}
+                  in elementTable.put(type,slotPair);
+                     Kernel_objSetSaveAsLookup(type,true)
+                  end;
+                  type.name := type.refName;
+                  type.owner := type.refOwner
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+context DefinitionManager
+  @Operation delinkNameSpaceRefs()
+  
+    // Delink all the tool definition display and mapping types from Root...
+
+    // First check that the types have not already been delinked...
+    if Root.hasElement("XToolsRefTypes")
+    then
+      let rtns = Root::XToolsRefTypes then
+          elementTable = rtns.getElement("elementTable")
+      in
+        @For element inTableKeys elementTable do
+          let slotPair = elementTable.get(element) then
+              nameValue = slotPair->head;
+              ownerValue = slotPair->tail
+          in
+            element.name := nameValue;
+            element.owner := ownerValue
+          end
+        end;
+        Root.remove(rtns)
+      end
+    end
+  end
+
+
+// UPDATING NAMESPACE REFS
+
+context DefinitionManager
+  @Operation updateNameSpaceRefs()
+    let toolDefs = self.contents()->select(c | c.isReallyKindOf(RootElementType))
+    in
+      self.updateNameSpaceRefs(toolDefs)
+    end
+  end
+
+context DefinitionManager
+  @Operation updateNameSpaceRefs(toolDefs)
+
+    // Ensure all mapping and display types are properly added to the ref namespace
+    // and remove and deleted mapping and display types from the ref namespace...
+
+    @For def in toolDefs do
+      let modified = def.updateNameSpaceRefs()
+      in
+        if modified
+        then
+          if xmf.question("The XTools definition '" + def.toString() + "' has been " +
+                          "modified and should be saved before continuing to ensure " +
+                          "the XTO being saved will load properly.\n\nDo you wish to save it now?")
+          then def.save()
+          end
+        end
+      end
+    end
+    
+  end
+
+
+// LOADING XTO'S
+
+context ToolManager
+  let loadXTO = ToolManager::loadXTO
+  in
+    @Operation loadXTO(file)
+      let definitionManager = self.definitionManager();
+          returnValue = null
+      in
+        definitionManager.linkNameSpaceRefs();
+        try
+          returnValue := loadXTO.invoke(self,Seq{file});
+          definitionManager.delinkNameSpaceRefs();
+          returnValue
+        catch(exception)
+          definitionManager.delinkNameSpaceRefs();
+          throw exception
+        end
+      end
+    end
+  end
+
+
+// SAVED TOOLS DEFINITION MANAGER HANDLERS
+
+context SavedTools
+  @Operation preSaveDefinitionManagerHandler()
+  
+    // Make all the tool definition display and mapping types accessible from Root...
+    
+    let definitionManager = xmf.toolManager().definitionManager();
+        toolDefs = Seq{}
+    in
+      @For t in toolDefs do
+        if not t.isKindOf(ToolStub)
+        then toolDefs := toolDefs->including(t.element().type())
+        end
+      end;
+      definitionManager.updateNameSpaceRefs(toolDefs->asSet);
+      definitionManager.linkNameSpaceRefs()
+    end
+  end
+
+context SavedTools
+  @Operation postSaveDefinitionManagerHandler()
+  
+    // Delink all the tool definition display and mapping types from Root...
+    
+    let definitionManager = xmf.toolManager().definitionManager()
+    in
+      definitionManager.delinkNameSpaceRefs()
+    end
+  end
+
+
+// LEGACY TOOL MIGRATION
+
+context MDC
+  @Operation MDCMigrateLegacyTools()
+    let tm = xmf.toolManager() then
+        dm = tm.definitionManager()
+    in
+      "\nMigrating legacy tools:\nResetting RootElementType owners...".println();
+      @For tool in tm.tools() do
+        if tool.isKindOf(MDCTool)
+        then let ret = tool.element.type
+             in
+               if ret.owner <> dm
+               then
+                 ret.owner := dm;
+                 ("- " + ret.toString()).println()
+               end
+             end
+        end
+      end;
+      "Migration complete.\n".println()
+    end
+  end
+

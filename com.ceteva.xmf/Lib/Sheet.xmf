@@ -1,0 +1,135 @@
+parserImport XOCL;
+
+context Root
+
+  @Class Sheet
+  
+    @Doc
+      A sheet is a heterogeneous 2-d table of elements. The elements of the
+      sheet are indexed by row and column. Each element may be of a different
+      type that is defined by the type map.
+    end
+    
+    @Attribute rows         : Seq(Element) end
+    @Attribute cols         : Seq(Element) end
+    @Attribute map          : Operation end
+    @Attribute data         : Array(Element) end
+    @Attribute inspectWidth : Integer end
+    
+    @Constructor(rows,cols) !
+      @Doc
+        The default type for each cell in the sheet is Element
+      end
+      self.init(Seq{rows,cols,@Operation(r,c) Element end})
+    end
+    
+    @Constructor(rows,cols,map)
+      @Doc
+        Map is a binary operator that maps (row,col) pairs
+        to classifiers.
+      end
+      self.data := Array(Element)(rows->size*cols->size);
+      self.inspectWidth := 10
+    end
+    
+    @Operation colIndex(col)
+      if cols->includes(col)
+      then cols->indexOf(col)
+      else self.error(col.toString() + " is not a col in sheet " + self.toString())
+      end
+    end
+    
+    @Operation getCell(row,col)
+      data.ref((self.rowIndex(row) * cols->size) + self.colIndex(col))
+    end
+    
+    @Operation hasCell(row,col):Boolean
+      self.hasRow(row) and
+      self.hasCol(col)
+    end
+    
+    @Operation hasCol(col):Boolean
+      cols->includes(col)
+    end
+    
+    @Operation hasRow(row):Boolean
+      rows->includes(row)
+    end
+    
+    @Operation initCells(values:Seq(Seq(Element))):Sheet
+      
+      @Doc
+        Initialise the sheet with the cell values. Values is a sequence of
+        rows. Each row is a sequence of values. Returns the receiver.
+      end
+      
+      try
+      
+        @For row in rows do
+          let rowIndex = self.rowIndex(row)
+          in @For col in cols do
+               let colIndex = self.colIndex(col)
+               in self.setCell(row,col,values->at(rowIndex)->at(colIndex))
+               end
+             end
+          end
+        end
+        
+        catch(exception)
+          format(stdout,"Error initialising sheet cells.~%");
+          xmf.raise(exception)
+        end;
+      
+      self
+    end
+    
+    @Operation pprint(out,width)
+      format(out," ~V~{~;| ~@~<?>S~}~%",Seq{width,cols->collect(c | Seq{width,c.toString().truncate(width)})});
+      self.pprintLine(out,width);
+      @For row in rows do
+        format(out," ~<?>S",Seq{width,row.toString().truncate(width)});
+        @For col in cols do
+          format(out,"| ~<?>S",Seq{width,self.getCell(row,col).toString()->truncate(width)})
+        end;
+        format(out,"~%");
+        self.pprintLine(out,width)
+      end
+    end
+    
+    @Operation pprintLine(out,width)
+      @Count i from 0 to ((width + 2) * (cols->size + 1)) + 1 do
+        format(out,"-")
+      end;
+      format(out,"~%")
+    end
+    
+    @Operation rowIndex(row)
+      if rows->includes(row)
+      then rows->indexOf(row)
+      else self.error(row.toString() + " is not a row in sheet " + self.toString())
+      end
+    end
+    
+    @Operation setCell(row,col,value):Row
+    
+      @Doc
+        Sets the value of the cell indexed by (row,col).
+        Returns the receiver.
+      end
+      
+      try
+        data.put((self.rowIndex(row) * cols->size) + self.colIndex(col),value);
+        self
+      catch(exception)
+        format(stdout,"Error setting cell.~%");
+        xmf.raise(exception)
+      end;
+      
+      self
+    end
+    
+    @Operation type(row,col)
+      map(row,col)
+    end
+    
+  end

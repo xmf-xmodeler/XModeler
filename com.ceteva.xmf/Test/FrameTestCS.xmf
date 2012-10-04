@@ -1,0 +1,94 @@
+//parserImport XOCL;
+parserImport Frames;
+
+import Parser::BNF;
+
+Root::FrameTest1 := 
+	// a simple frame comprising StringExpression elements and a Break
+	@Frame Example_1
+		@StringExpression This is the Humpty Dumpty archetype end
+		@Break Egg
+			@StringExpression Humpty Dumpty sat on a wall end
+			@StringExpression Humpty Dumpty had a great fall end
+		end
+		@StringExpression Poor Humpty died! end
+	end;
+
+
+Root::FrameTest2 :=
+
+	@Frame Example_2
+		@StringExpression This frame copies a subordinate frame end
+		@Copy Root::FrameTest1 end
+		@StringExpression There was a cracking wake ... end
+	end;
+
+
+Root::FrameTest3 :=
+
+	@Frame Example_3
+		@StringExpression This frame adapts a subordinate frame end
+		@InsertAfter
+			FrameTest1
+			FrameTest1.getBreak("Egg")->sel
+			@StringExpression All the Kings horses and all the Kings men end
+			@StringExpression Couldnt put Humpty together again end
+		end
+		@StringExpression It really happened! end
+	end;
+
+
+Root::FrameTest4 :=
+
+	@Frame Example_4
+		@StringExpression This frame adapts a subordinate frame end
+		@InsertBefore
+			FrameTest1
+			FrameTest1.getBreak("Egg")->sel
+			@StringExpression Humpty Dumpty built the King a wall end
+			@StringExpression But he was heading for a fall end
+		end
+		@StringExpression OK I made it up! end
+	end;
+
+
+Root::FrameTest5 :=
+
+	@Frame Example_5
+		@StringExpression This frame iterates a number of cycles end
+		@StringExpression Humptys head was spinning end
+		@IterateExpression
+			1.to(5)
+			@StringExpression round and round end
+			@StringExpression up and down end
+		end
+		@StringExpression Humpty felt scrambled end
+	end;
+
+
+Root::FrameTest6 :=
+
+	@Frame Example_6
+		@StringExpression This frame demonstrates selection end
+		@StringExpression Run Run as fast as you can end
+		@StringExpression You cant catch me end
+		//@SelectExpression if Tom then Dick else Harry end
+		@StringExpression Snap went the wiley old fox end
+	end;
+
+
+Root::TestContext :=
+	@FrameEnvironment Test_Environment
+		set "StarOfTheShow" to "The Queen of Hearts" end
+		set "Villain" to "Elmer Fudd" end
+		set "LeadingLady" to "Doris Skirt" end
+	end;
+
+
+Root::FrameTest7 :=
+	@Frame Example_7 withinEnv TestContext
+		@StringExpression This frame demonstrates use of a context of execution end
+		@StringExpression Run Run as fast as you can end
+		@StringExpression You cant catch me end
+		@StringExpression Im the gingerbread man end
+	end;

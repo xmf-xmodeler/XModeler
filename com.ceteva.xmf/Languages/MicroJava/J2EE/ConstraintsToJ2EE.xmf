@@ -1,0 +1,34 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+import J2EE;
+   
+context J2EE
+
+  @Operation constraintsToJ2EE(C) 
+  
+    constraintsToMicroJava(C) +
+    Seq{checkJ2EEConstraints()}
+    
+  end
+ 
+context Mappings
+
+  @Operation checkJ2EEConstraints() 
+    [| 
+      @Java 
+        public String checkJ2EEConstraints() { 
+          return checkConstraints().toString();
+        } 
+      end 
+    |]  
+  end

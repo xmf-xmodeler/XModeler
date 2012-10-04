@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+context Compiler
+
+  @Class CompilationError
+  
+    @Doc 
+      This class represents a compilation error. By default, compilation
+      errors occur silently and and added to a collection of errors
+      maintained by the Compiler package.
+    end
+  
+    @Attribute message : String end
+    @Attribute resource : String end
+    @Attribute exception : Exception end // Optional.
+    
+    @Constructor(message,resource) ! end
+    
+    @Constructor(message,resource,exception) end
+    
+    @Operation pprint(out)
+      format(out,"~S in ~S",Seq{message,resource});
+      if exception <> null
+      then
+        xmf.raise(exception)
+      end
+    end
+    
+  end

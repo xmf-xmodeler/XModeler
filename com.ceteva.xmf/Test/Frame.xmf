@@ -1,0 +1,99 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a frame within the context of the namespace Frames
+context Frames
+
+	@Class Frame
+	    @Constructor(name,theContextOfExecution) end 
+		@Grammar extends OCL::OCL.grammar
+			Frame ::= 
+				name=Name 
+				myContext=OptContext
+				elements=Exp* 
+				{
+				import OCL 
+			    in elements->iterate(element frame = 
+					[| import Frames in Frame(<StrExp(name)>,<myContext>) end |] | 
+					[| <frame>.add(<element>) |] )
+				end
+				}.
+			
+			// use the optionally specified FrameEnvironment for the context
+			// of execution or else create a default (null) frame environment
+			OptContext ::= 'withinEnv' Exp | 
+							{ [| Frames::FrameEnvironment("Default",Env::NullEnv()) |] }.
+		end
+		
+		// a frame must have an identifying name
+		@Attribute name : String end
+		
+		// a frame comprises a sequence of FrameExpression objects
+		@Attribute expr : Seq(FrameExpression) end
+		
+		// a frame may (or may not) execute within a specific context
+		// the context of execution provides the binding to all
+		// variables availble to the frame
+		@Attribute theContextOfExecution : FrameEnvironment end
+		
+		// add (append) a FrameExpression object to the sequence
+		@Operation add(x:FrameExpression)
+			self.expr := self.expr + Seq{x}
+		end
+		
+		// get all points of extensibility in the current frame
+		@Operation getBreaks():Set(Break)
+			self.expr->select(item | item.isBreak())
+		end
+		
+		// get the specified break if it exists
+		// it is an error for a frame to have multiple breaks of the same name
+		// we return a set of Breaks to handle the case where the specified break
+		// is not found in the frame instance
+		@Operation getBreak(breakName:String):Set(Break)
+			self.getBreaks()->select(b | b.name=breakName)
+		end
+
+		// spit out the string representation of the frame
+		@Operation asString():String
+			let lf = Seq{10}->asString
+			in
+				let s = self.asStringSequence()->iterate(item s=self.banner() | s + lf +item)
+				in s
+				end
+			end
+		end
+		
+		// return the frame in the form of a sequence of strings
+		@Operation asStringSequence():Seq(String)
+			let fe = self.expr->iterate(item elements=Seq{} | elements + item.asStringSequence())
+			in fe
+			end
+		end
+
+		// return the name of the frame instance
+		@Operation getName():String
+			self.name
+		end
+		
+		// create a banner for the frame
+		@Operation banner():String
+			let n = self.getName()->size
+			in
+				let s = self.repString("=",n) + self.getName() + self.repString("=",n)
+				in s
+				end
+			end
+		end
+		
+		// return a string of length reps of char c
+		@Operation repString(c:String, reps:Integer):String
+			let s = 1.to(reps)->iterate(i s="" | s + c)
+			in s
+			end
+		end
+	end

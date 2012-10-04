@@ -1,0 +1,7 @@
+import OCL;
+
+context ConsExp
+
+  @Operation eval(target,env,imports)
+    Seq{head.eval(target,env,imports) | tail.eval(target,env,imports)}
+  end

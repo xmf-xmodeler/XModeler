@@ -1,0 +1,28 @@
+parserImport Manifests;
+
+@Manifest Structure
+
+  DiagramEvents = 
+    @File DiagramEvents        end
+    @File DiagramEvent         end
+    @File New                  end
+    @File NewNode              end
+    @File NewEdge              end
+    @File Removed              end
+    @File Resize               end
+    @File NodeRemoved          end
+    @File EdgeRemoved          end
+    @File DisplayRemoved       end
+    @File Change               end
+    @File ChangeTo             end
+    @File SourceChanged        end
+    @File TargetChanged        end
+    @File AttributeChanged     end
+    @File EdgeAttributeChanged end
+    @File AttributeValueAdded  end
+    @File Selection            end
+    @File Clicks               end
+    @File Move                 end
+    
+do DiagramEvents
+end;

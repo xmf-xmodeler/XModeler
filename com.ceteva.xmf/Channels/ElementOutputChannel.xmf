@@ -1,0 +1,60 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class ElementOutputChannel extends OutputChannel
+  
+    @Doc
+      An element output channel encodes an element in the XMF
+      save data format and writes the load instructions to the
+      underlying output channel. When the instructions are
+      subsequently read by an element input channel the saved
+      element will be reconstructed including any sharing that
+      it contains. Be careful to call reset before using the
+      channel in order to reset the underlying save and load 
+      machinery.
+    end
+  
+    @Attribute out : OutputChannel end
+    
+    @Constructor(out) ! end
+    
+    @Operation channel()
+      out.channel()
+    end
+    
+    @Operation close()
+      out.close()
+    end
+    
+    @Operation flush()
+      out.flush();
+      self
+    end
+    
+    @Operation reset() 
+      Kernel_resetSaveLoad()
+    end
+    
+    @Operation setChannel(channel)
+      out.setChannel(channel)
+    end
+    
+    @Operation write(e:Element,nameSpaces:Seq(NameSpace))
+      @Doc
+        Encodes the supplied element as load instructions and
+        writes them to the underlying output channel. The nameSpaces
+        argument is a sequence of name spaces that are assumed to be
+        present when the instructions are performed. Values in these
+        name spaces are saved as REF instructions, i.e. when the
+        instructions are performed the XMF machine looks up references
+        to the values rather than constructing new values.
+      end
+      e.save2(out.channel(),nameSpaces);
+      out.write(255); // END
+      self.flush()
+    end
+    
+  end

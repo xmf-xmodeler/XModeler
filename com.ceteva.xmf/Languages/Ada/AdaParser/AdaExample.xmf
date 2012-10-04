@@ -1,0 +1,36 @@
+parserImport Languages::Ada::Units;
+
+import Languages;
+import Ada;
+import Units;
+
+
+Root::p :=  
+  
+@AdaProgram   
+ 
+  with Waypoint;      
+  with Tacan;  
+  use UC_SI;      
+  
+  package body Transient_Object_Model is
+  
+    The_Only_Instance : Handle := null;
+    Tcn  : Tacan.Handle := null;
+ 
+    function Create (This : access Object) return Handle is
+      begin
+        Set_Range_And_Bearing(This=>The_Instance,
+                            The_Range_And_Bearing=>Position);
+        return This;
+      end Create;
+      
+    procedure Initialise(This : access Object; Ok  : out Boolean) is
+      begin
+         Ok := True;
+         Waypoint.Set_Position(This=>Wypt, Position=>Default_Position);
+      end Initialise;
+    
+  end Transient_Object_Model;
+   
+end;

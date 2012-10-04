@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:35 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Body extends Root::HTML::HTMLElement
+
+    @Attribute vlink : Root::XCore::String (?,!) end
+    @Attribute topMargin : Root::XCore::Integer (?,!) end
+    @Attribute text : Root::XCore::String (?,!) end
+    @Attribute onUnLoad : Root::XCore::String (?,!) end
+    @Attribute onLoad : Root::XCore::String (?,!) end
+    @Attribute onFocus : Root::XCore::String (?,!) end
+    @Attribute onBlur : Root::XCore::String (?,!) end
+    @Attribute link : Root::XCore::String (?,!) end
+    @Attribute leftMargin : Root::XCore::Integer (?,!) end
+    @Attribute bgproperties : Root::XCore::String (?,!) end
+    @Attribute bgcolor : Root::XCore::String (?,!) end
+    @Attribute background : Root::XCore::String (?,!) end
+    @Attribute alink : Root::XCore::String (?,!) end
+
+    @Constructor(alink,background,bgcolor,bgproperties,leftMargin,link,onBlur,onFocus,onLoad,onUnLoad,text,topMargin,vlink,contents) ! end
+
+  end

@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Clients;
+import PropertyEditors;
+import ExtensionPoints;
+
+let 
+  registry = xmf.registry();
+  propertyEditorsId = "com.ceteva.xmf.propertyEditors.propertyEditors" then
+  propertyEditorsPoint = InheritanceExtensionPoint(propertyEditorsId)
+in
+  registry.addExtensionPoint(propertyEditorsPoint)
+end;
+
+
+

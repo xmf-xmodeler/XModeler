@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+context StateMachines
+  
+  @Class ObjectWithState
+    
+    // An object with state must be an instance of a state
+    // machine. The object maintains the name of the state
+    // and monitors state changes via a daemon. When the
+    // daemon fires, the transitions of the state machine
+    // control the actions that take place.
+    
+    @Attribute state : String (?,!) end
+  
+    @Operation init(args)
+  
+      // Init is called when the object is initially created.
+      // Use super to do the default initialisation and and then
+      // add a daemon to fire the state transitions and set the
+      // initial state of the object.
+    
+      super(args);
+      let handler = StateMachines::ObjectWithState::slotChanged then
+          daemon = Daemon(self,Daemon::ANY,"",handler,true,false,self);
+          initialState = self.of().initialState()
+      in self.addDaemon(daemon);
+         if initialState = null
+         then self.error("No initial state defined for " + self.of())
+         else self.state := initialState.name()
+         end;
+         self
+      end
+    end
+  
+    @Operation slotChanged(object,slot,new,old)
+    
+      // Installed as the handler of the object with state daemons.
+      // Changes to any user defined slots cause the transitions
+      // whose source is the current state to be selected. A
+      // transition whose guard is enabled is selected and its
+      // action is performed. The state of the object is updated.
+      // Note that only transitions with an empty name act as
+      // slot monitors.
+      
+      if slot.toString() <> "state"
+      then
+        let machine = self.of() then
+            transitions = machine.transitionsFrom(state)
+        in @Find(transition,transitions)
+             when transition.name = "" andthen
+                  transition.args()->isEmpty andthen
+                  transition.pred().perform(object,Seq{})
+             do transition.action().perform(object,Seq{});
+                self.state := transition.target()
+           end
+        end
+      end
+    end
+    
+    @Operation trace(value)
+      format(stdout,"~S~%",Seq{value})
+    end
+  
+  end

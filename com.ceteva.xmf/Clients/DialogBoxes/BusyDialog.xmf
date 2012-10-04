@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+
+context DialogBoxes
+
+  @Class BusyDialog extends ContainedClientElement
+    
+    @Attribute text    : String end
+    @Attribute minimize : Boolean end
+    
+    @Constructor(text,minimize)
+    end
+        
+    @Operation new()
+      self.commandInterpreter().newBusyDialog(self)
+    end
+   
+    @Operation finished()
+      self.commandInterpreter().noLongerBusy(self);
+      let dialogs = xmf.property("progressDialogs") in
+        xmf.setProperty("progressDialogs",dialogs->excluding(self))
+      end;
+      self.dispose()
+    end
+  
+  end

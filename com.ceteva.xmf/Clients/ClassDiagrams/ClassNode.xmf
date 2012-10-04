@@ -1,0 +1,303 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class ClassNode extends ClassifierNode
+  
+    @Attribute name           : NameBox end
+    @Attribute isAbstract     : Boolean end
+    @Attribute package        : String end  // Used in case the class is imported.
+    @Attribute typePath       : Seq(String) = XCore::Class.pathSeq() end // The meta-class path.
+    @Attribute attBox         : AttributeBox end
+    @Attribute opsBox         : OperationBox end
+    @Attribute metaslotsBox   : MetaslotBox end
+    @Attribute nodeBox        : Box end
+    @Attribute showAttributes : Boolean end
+    @Attribute showOperations : Boolean end
+    @Attribute showMetaslots  : Boolean end
+    
+    @Constructor(name,package,isAbstract,typePath,x,y,showAttributes,showOperations,showMetaslots)
+       self.name := NameBox(name,package,isAbstract,self.stereotype(),0,0,100);
+       self.attBox := AttributeBox(0,self.name.height,100);
+       self.opsBox := OperationBox(0,self.attBox.y + self.attBox.height,100);
+       self.metaslotsBox := MetaslotBox(0,self.attBox.y + self.attBox.height + self.opsBox.height,100);
+       self.attBox.setShown(showAttributes);
+       self.opsBox.setShown(showOperations);
+       self.metaslotsBox.setShown(showMetaslots);
+       self.width := 100;
+       self.height := self.name.height + self.attBox.height + self.opsBox.height + self.metaslotsBox.height;
+       self.nodeBox := Box(0,0,100,self.height,0)
+    end
+    
+    @Constructor(name,package,isAbstract,typePath,x,y,showAttributes,showOperations)
+       self.init(Seq{name,package,isAbstract,typePath,x,y,showAttributes,showOperations,false})
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        AttributeText do
+          attBox.add(element);
+          self.expand()
+        end
+        OperationGroup do
+          opsBox.add(element);
+          self.expand()
+        end
+        MetaslotText do
+          metaslotsBox.add(element);
+          self.expand()
+        end
+        else super(element)
+      end
+    end
+   
+    @Operation addDisplays()
+      self.add(nodeBox);
+      nodeBox.add(name);
+      nodeBox.add(attBox);
+      nodeBox.add(opsBox);
+      nodeBox.add(metaslotsBox)
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget;
+          hideMenu = MenuItems("Hide Contents");
+          showMenu = MenuItems("Show Contents")
+      in
+        globalMenu.add(hideMenu);
+        globalMenu.add(showMenu);
+        hideMenu.add(MenuAction("Attributes",target,Seq{false},ClassNode::showAttributesMenuCommand));
+        hideMenu.add(MenuAction("Operations",target,Seq{false},ClassNode::showOperationsMenuCommand));
+        hideMenu.add(MenuAction("Slot Values",target,Seq{false},ClassNode::showMetaslotsMenuCommand));
+        showMenu.add(MenuAction("Attributes",target,Seq{true},ClassNode::showAttributesMenuCommand));
+        showMenu.add(MenuAction("Operations",target,Seq{true},ClassNode::showOperationsMenuCommand));
+        showMenu.add(MenuAction("Slot Values",target,Seq{true},ClassNode::showMetaslotsMenuCommand));
+        globalMenu
+      end
+    end
+    
+    @Operation editName()
+      name.name.editText()
+    end
+
+     @Operation isAbstract()
+       name.name.italicise()
+     end
+     
+     @Operation layoutId():String
+     
+       // Returns an id that is unique for nodes in this diagram. The id is
+       // used to relocate the node when layout data is read in.
+       
+       self.name()
+     end
+     
+     @Operation minHeight()
+       self.maxHeight()
+     end
+     
+     @Operation minWidth()
+       100
+     end
+     
+     @Operation name()
+       name.name()
+     end
+     
+     @Operation new(parent,setMenu)
+     
+        // Edit the name when the class is
+        // first created...
+        
+        let result = super(parent,setMenu)
+        in name.editName();
+           result
+        end
+     end
+     
+     @Operation newAttribute(name,metaclass_,type)
+       let text = attBox.nextAttribute(name,metaclass_,type)
+       in text.new(attBox);
+          attBox.add(text);
+          attBox.owner.expand()
+       end
+     end
+     
+     @Operation newAttributeHandler(type)
+       @Operation newAttribute()
+         self.newAttribute("att",type)
+       end
+     end
+     
+     @Operation newOperation(name)
+       self
+     end
+     
+     @Operation nextAttribute(name,metaclass_,type)
+       attBox.nextAttribute(name,metaclass_,type)
+     end
+     
+     @Operation nextOperation(name,metaclass_,type)
+       opsBox.nextOperation(name,metaclass_)
+     end
+
+     @Operation nextMetaslot(name,value,type)
+       metaslotsBox.nextMetaslot(name,value,type)
+     end
+
+     @Operation packHeight()
+     
+       // Pack the compartments of a class box. Note that
+       // box edges are drawn inside the box and therefore
+       // this need to be taken into account when abutting
+       // boxes.
+       
+       name.packHeight();
+       attBox.packHeight();
+       opsBox.packHeight();
+       metaslotsBox.packHeight();
+       attBox.move(0,name.height() - 1);
+       opsBox.move(0,name.height() + attBox.maxHeight() - 2);
+       metaslotsBox.move(0,name.height() + attBox.maxHeight() + opsBox.maxHeight() - 2);
+       super()
+     end
+     
+     @Operation expandHeight()
+       name.expandHeight();
+       attBox.expandHeight();
+       opsBox.expandHeight();
+       metaslotsBox.expandHeight();
+       attBox.move(0,name.height() - 1);
+       opsBox.move(0,name.height() + attBox.maxHeight() - 2);
+       metaslotsBox.move(0,name.height() + attBox.maxHeight() + opsBox.maxHeight() - 2);
+       super()
+     end
+     
+     @Operation resize(width,height)
+    
+      // A class node has a single port and a box that contains
+      // all the display elements. Resize both of these, but
+      // do not descend into the contents of the box.
+     
+      let width = width.max(self.minWidth());
+          height = height.max(self.minHeight())
+      in super(width,height);
+      
+         @For port in ports do
+           port.resize(width,height)
+         end;
+      
+         // Resize the container for the class node elements.
+      
+         @For display in displays do
+           display.resize(width,height)
+         end;
+      
+         // Keep the height of the sub-boxes the same but stretch them
+         // to the new width of the node.
+         
+         name.resize(width,name.maxHeight());
+         metaslotsBox.resize(width,metaslotsBox.maxHeight());
+
+         if attBox.shown() then
+           if opsBox.shown() then
+             attBox.resize(width,attBox.maxHeight())
+           else
+             attBox.resize(width,height-attBox.y());
+             opsBox.resize(width,opsBox.maxHeight())
+           end
+         end;
+         if opsBox.shown() then
+           if attBox.shown() then
+             opsBox.resize(width,height-opsBox.y())
+           else
+             attBox.resize(width,attBox.maxHeight());
+             opsBox.resize(width,height-opsBox.y())
+           end
+         end
+         
+/*         if metaslotsBox.shown() then
+           metaslotsBox.resize(width,height-attBox.y()-opsBox.y());
+           attBox.resize(width,attBox.maxHeight());
+           opsBox.resize(width,opsBox.maxHeight())
+         elseif opsBox.shown() then
+           opsBox.resize(width,height-attBox.y()-metaslotsBox.y());
+           attBox.resize(width,attBox.maxHeight());
+           metaslotsBox.resize(width,metaslotsBox.maxHeight())
+         elseif attBox.shown() then
+           attBox.resize(width,height-opsBox.y()-metaslotsBox.y());
+           opsBox.resize(width,opsBox.maxHeight());
+           metaslotsBox.resize(width,metaslotsBox.maxHeight())
+         else
+           attBox.resize(width,attBox.maxHeight());
+           opsBox.resize(width,opsBox.maxHeight());
+           metaslotsBox.resize(width,metaslotsBox.maxHeight())
+         end
+*/
+       end
+    end
+    
+    @Operation setIsAbstract(isAbstract)
+      self.name.setAbstract(isAbstract)
+    end
+    
+    @Operation setName(name:String)
+      self.name.setName(name)
+    end 
+    
+    @Operation showAttributes(show)
+      @WithoutRendering(self.owner)
+        attBox.setShown(show);
+        self.pack()
+      end
+    end
+    
+    @Operation showAttributesMenuCommand(show)
+      self.showAttributes(show)
+    end
+    
+    @Operation showOperations(show)
+      @WithoutRendering(self.owner)
+        opsBox.setShown(show);
+        self.pack()
+      end
+    end
+
+    @Operation showOperationsMenuCommand(show)
+      self.showOperations(show)
+    end
+
+    @Operation showMetaslots(show)
+      @WithoutRendering(self.owner)
+        metaslotsBox.setShown(show);
+        self.pack()
+      end
+    end
+
+    @Operation showMetaslotsMenuCommand(show)
+      self.showMetaslots(show)
+    end
+
+    @Operation stereotype():String
+      // Returns the name of the type of the meta class given
+      // by type-path or the empty string if this is the default
+      // class XCore::Class.
+      if typePath->asSet = XCore::Class.pathSeq()->asSet
+      then ""
+      else "<<" + typePath->last + ">>"
+      end
+    end
+  
+  end
+ 

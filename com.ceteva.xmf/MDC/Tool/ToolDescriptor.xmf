@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::FormTools::Structure;
+parserImport Tools::Menus;
+
+import MDC;
+import Types;
+
+@ToolDescriptor RootElementType::Editor type = Browser
+end;

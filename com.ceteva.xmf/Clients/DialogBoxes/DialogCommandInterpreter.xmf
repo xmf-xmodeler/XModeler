@@ -1,0 +1,193 @@
+parserImport XOCL;
+
+import Clients;
+
+context DialogBoxes
+
+  @Class DialogCommandInterpreter extends CommandInterpreter
+  
+    @Doc
+       This class defines a command interpreter over dialogs. The mapping handles the 
+       following output commands by sen-ding them in the appropriate format to the 
+       client connected
+           [newColorDialog(message,dialog)]
+           [newMessageDialog(dialogId,message)]
+           [newWarningDialog(dialogId,message)]
+           [newErrorDialog(dialogId,message)]
+           [newQuestionDialog(dialogId,message)]
+           [newConfirmDialog(dialogId,message)]
+           //[newMultioptionDialog(dialogId,message,type)]
+           [newFileDialog(dialogId,type,dir,ext)]
+           [newInputDialog(dialogId,title,question,value)]
+           [newOrderingDialog(dialogId,title,command,options)]
+           [newDirectoryDialog(dialogId,dir)]
+           [newSelectionDialog(dialogId,multi,title,message,options)]
+           [newTextAreaDialog(dialogId,type,message,text)]
+           [newProgressDialog(dialogId,workToBeDone)]
+           [addWork(dialogId,work)]
+           [finishWork(dialogId)]
+           [newBusyDialog(dialogId,title)]
+           [noLongerBusy(dialodId)]
+    end
+    
+    @Operation newColorDialog(dialog)
+      @CallCommand(self)
+        newColorDialog(dialog.message,dialog.default.red,dialog.default.green,dialog.default.blue)
+      end
+    end
+    
+    @Operation newMessageDialog(dialog)
+      let dialogId = self.allocateId(dialog)
+      in @SendCommand(self)
+           newMessageDialog(dialogId,dialog.message)
+         end;
+         dialogId
+      end
+    end
+    
+    @Operation newWarningDialog(dialog)
+      let dialogId = self.allocateId(dialog)
+      in @SendCommand(self)
+           newWarningDialog(dialogId,dialog.message)
+         end;
+         dialogId
+      end
+    end
+    
+    @Operation newErrorDialog(dialog)
+      let dialogId = self.allocateId(dialog)
+      in @SendCommand(self)
+           newErrorDialog(dialogId,dialog.message)
+         end;
+         dialogId
+      end
+    end
+    
+    @Operation newFontDialog(dialog)
+      @CallCommand(self)
+        newFontDialog(dialog.default())
+      end
+    end
+    
+    @Operation newTextAreaDialog(dialog)
+      let dialogId = self.allocateId(dialog)
+      in @SendCommand(self)
+           newTextAreaDialog(dialogId,dialog.type,dialog.message,dialog.text)
+         end;
+         dialogId
+      end
+    end
+    
+    @Operation newInputDialog(dialog)
+      self.call("newInputDialog",Seq{dialog.title,dialog.question,dialog.value})
+    end
+    
+    @Operation newOrderingDialog(dialog)
+      let 
+        options = dialog.options->asSeq then
+        strings = options->map("toString")
+      in
+        self.call("newOrderingDialog",Seq{dialog.title,dialog.message,strings}).asSeq()
+      end
+    end
+    
+    @Operation newOrderingDialog2(dialog)
+      let 
+        options = dialog.options->asSeq then
+        strings = options->map("toString")
+      in
+        self.call("newOrderingDialog2",Seq{dialog.title,strings}).asSeq()
+      end
+    end    
+    
+    @Operation newQuestionDialog(dialog)
+      @CallCommand(self)
+        newQuestionDialog(dialog.message)
+      end
+    end
+    
+    @Operation newConfirmDialog(dialog)
+      @CallCommand(self)
+        newConfirmDialog(dialog.message)
+      end
+    end
+    
+    /*@Operation newMultioptionDialog(dialog)
+      let dialogId = self.allocateId(dialog);
+          options = dialog.options->asSeq then
+          strings = options->map("toString")
+      in
+        self.call("newMultioptionDialog",Seq{dialogId,dialog.message,dialog.type}.append(strings))->asSeq()
+      end
+    end*/
+    
+    @Operation newFileDialog(dialog)
+      @CallCommand(self)
+        newFileDialog(dialog.type,dialog.dir,dialog.ext,dialog.initName)  
+      end
+    end
+    
+    @Operation newDirectoryDialog(dialog)
+      @CallCommand(self)
+        newDirectoryDialog(dialog.dir)
+      end
+    end
+    
+    @Operation newMultiSelectionTreeDialog(dialog)
+      self.call("newMultiSelectionTreeDialog",Seq{dialog.title(),dialog.tree()})
+    end
+    
+    @Operation newSelectionDialog(dialog)
+      let 
+        options = dialog.options->asSeq then
+        strings = options->map("toString") then
+        result = self.call("newSelectionDialog",Seq{dialog.multi,dialog.title,dialog.message,strings})
+      in
+        if dialog.multi then
+          if result = "-1"
+          then 0-1
+          else result.asSeq() end
+        else
+          result
+        end
+      end
+    end
+    
+    @Operation newTreeDialog(dialog)
+      self.call("newTreeDialog",Seq{dialog.title(),dialog.tree()})
+    end
+       
+    @Operation newProgressDialog(dialog)
+      let dialogId = self.allocateId(dialog) in
+        @SendCommand(self)
+          newProgressDialog(dialogId,dialog.workToBeDone)
+        end
+      end
+    end
+    
+    @Operation addWork(dialog,work,text)
+      @SendCommand(self)
+        addWork(dialog.id(),work,text)
+      end
+    end
+    
+    @Operation finishWork(dialog,text)
+      @SendCommand(self)
+        finishWork(dialog.id(),text)
+      end
+    end
+    
+    @Operation newBusyDialog(dialog)
+      let dialogId = self.allocateId(dialog) in
+        @SendCommand(self)
+          newBusyDialog(dialogId,dialog.text,dialog.minimize)
+        end
+      end
+    end
+    
+    @Operation noLongerBusy(dialog)
+      @SendCommand(self)
+        noLongerBusy(dialog.id())
+      end
+    end
+  end

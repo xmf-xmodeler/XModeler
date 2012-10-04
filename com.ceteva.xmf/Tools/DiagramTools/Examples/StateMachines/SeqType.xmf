@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import StateMachines;
+
+context StateMachines
+
+  @Class SeqType extends Type
+  
+    @Attribute type : Type (?) end
+    
+    @Constructor(type) ! end
+    
+    @Operation javaTypeName():String
+      "java.util.Vector"
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Seq(");
+      type.pprint(out,indent);
+      format(out,")")
+    end
+    
+  end

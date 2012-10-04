@@ -1,0 +1,60 @@
+parserImport XOCL;
+parserImport XML::Parser;
+
+import IO;
+import XML::Parser;
+import Graphs;
+
+context Root
+   @Package XMLGraph
+   
+     // A grammar is a named element and as such can be 
+     // added to a name space such as a package.
+   
+     @Grammar Graph
+     
+       // The graph grammar parses an XML representation of a
+       // graph and synthesizes an instance of Graphs::Graph.
+       // Edges use id refs in the XML to reference the source
+       // and target nodes.
+       
+       Graph ::= <Graph> nodes = Node* edges = Edge* </Graph> {
+         Graph(nodes,edges)
+       }.
+       
+       // If an attribute is used as the id of the XML element
+       // then this is recorded using NAME := ACTION where NAME 
+       // is the name of an attribute previously bound to an id
+       // and the action synthesizes the value to be used wherever
+       // the id is referenced in the rest of the XML document.
+       
+       Node ::= <Node id data/> id := { 
+         Node(data)
+       }.
+       
+       // Whenever we encounter a reference (forward or backward)
+       // to an id in the XML document we synthesize an instance
+       // of XML::Parser::Ref initialized with the id. This will
+       // automatically be replaced with the synthesized value that
+       // is registered against the id (using := as noted above).
+       
+       Edge ::= <Edge source target data/> {
+         Edge(data,Ref(source),Ref(target))
+       }.
+     end
+     
+   end
+   
+context Root
+  @Operation graph():Graph
+    import XMLGraph
+    in let grammar = Graph.compile()
+       in @WithOpenFile(fin <- "c:/graph.xml")
+            let parser = ParserChannel(fin,grammar)
+            in parser.debug := true;
+               parser.parse("Graph")
+            end
+          end
+       end
+    end
+  end

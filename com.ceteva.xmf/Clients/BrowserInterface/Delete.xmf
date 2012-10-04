@@ -1,0 +1,85 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Delete extends Menu
+  
+    @Attribute locations : Seq(Seq(String)) end
+  
+    @Constructor(name,locations) !
+      self.path := Seq{"Delete"}
+    end
+  
+    @Grammar 
+    
+      Delete ::= name = Name locations = Location* { 
+        Delete(Seq{name},locations) 
+      }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+      Location ::= '[' n = Name ns = ('.' Name)* ']' { Seq{n|ns} } .
+      
+    end
+    
+    @Operation delete(obj,name,value)
+      @Find(a,obj.of().allAttributes())
+        when a.name().toString() = name
+        do if xmf.question("Really Delete?")
+           then
+             if a.hasSetType() or a.hasSeqType()
+             then obj.set(name,obj.get(name)->excluding(value))
+             else obj.set(name,null)
+             end
+           end
+      end
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          locations = self.locations;
+          name = name->last then
+          o = 
+            @Operation() 
+              if self.isKindOf(XCore::Contained)
+              then 
+                if owner <> null
+                then Delete::delete(owner,name,self)
+                end
+              end;
+              @For location in locations do
+                let O = Seq{self}
+                in @For name in location->butLast do
+                     O := O->iterate(o S = Seq{} |
+                       let P = o.get(name)
+                       in @TypeCase(P)
+                            Seq(Element) do
+                              S + P
+                            end
+                            Set(Element) do
+                              S + P
+                            end
+                            else S->including(P)
+                          end
+                       end
+                     )
+                   end;
+                   @For o in O do
+                     Delete::delete(o,location->last,self)
+                   end
+                end
+              end
+            end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, self.displayPath(),"",false,true}))
+      end 
+    end
+    
+  end

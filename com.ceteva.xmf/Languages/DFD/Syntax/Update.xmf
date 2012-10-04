@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+    
+  @Class Update extends ProcessBody
+
+    // Data stores contain records. An update action is used to add a
+    // record to a data store.
+    // @Update <NAME> with <OCL> end
+    // causes the data store named <NAME> to have the record <OCL> added.
+    // Note that records are represented simply as sequences of values.
+
+    @Attribute storeName : String end
+    @Attribute value : Performable end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Update ::= name = Name 'with' exp = Exp
+      {
+        [| Languages::DFD::Syntax::Update(<name>,<exp>) |]
+      }.
+    
+    end
+    
+    @Constructor(storeName,value) end
+    
+    @Operation eval(env)
+      let store = self.lookup(storeName,env);
+          value = value.eval(self,env)
+      in store.update(value)
+      end
+    end
+      
+    @Operation code(indent:Integer):String
+      "@Update " + storeName + " with\n" +
+      " ".repeat(indent + 2) + value.code(indent + 2) + "\n" +
+      " ".repeat(indent) + "end"
+    end
+  end

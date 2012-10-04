@@ -1,0 +1,15 @@
+context Class
+  @Operation dotPaths(classes:Set(Class),visited:Set(Class)):Set(Seq(Attribute))
+    if not classes->includes(self) or visited->includes(self)
+    then Set{Seq{}}
+    else 
+      self.allAttributes()->iterate(a P = Set{} |
+        if classes->includes(a.underlyingType())
+        then
+          let paths = a.underlyingType().dotPaths(classes,visited->including(self))
+          in P + paths->collect(p | Seq{a | p})
+          end
+        else P
+        end)
+    end
+  end 

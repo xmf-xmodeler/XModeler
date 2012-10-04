@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import TypeCheck;
+import Walkers;
+
+context TypeCheck
+
+  @Class ReportTree extends FormTree
+  
+    @Attribute typeCheck : TypeCheckReport end
+    
+    @Constructor(x,y,width,height,typeCheck) !
+      self.editable := false
+    end
+    
+    @Operation addContents()
+      self.addItem(ReportNode(typeCheck))
+    end
+  
+  end

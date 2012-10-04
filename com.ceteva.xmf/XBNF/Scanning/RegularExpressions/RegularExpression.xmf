@@ -1,0 +1,56 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning::RegularExpressions;
+
+context ! RegularExpressions
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class RegularExpression isabstract extends XOCL::Syntax
+
+    @Grammar 
+    
+      RegularExpression ::= Disjunction.
+      
+      Disjunction ::= left = Conjunction (
+      
+        '|' right = Disjunction { Or(left,right) }
+        
+      | { left }
+      
+      ).
+      
+      Conjunction ::= cs = Repeat+ { cs->tail->iterate(c x = cs->head | And(x,c)) }.
+      
+      Opt ::= l = Literal ('?' { Opt(l) } | { l }).
+      
+      Repeat ::= l = Opt ('*' { Star(l) } | '+' { Plus(l) } | { l }).
+      
+      Literal ::= RangeLiteral | Alternation | '(' r = RegularExpression ')' { Paren(r) }  | '.' { Dot() } | 'epsilon' { Epsilon }.
+      
+      RangeLiteral ::= a = Atom { Range::translateString(a) }.
+      
+      Range ::= lower = Atom ('-' upper = Atom { Range(lower->at(0),upper->at(0)) } | { Range(lower->at(0),lower->at(0)) }).
+      
+      Atom ::= StringLiteral | Name | IntLiteral.
+      
+      Alternation ::= '[' rs = Range* ']' { Alternation(rs) }.
+      
+      IntLiteral ::= i = Int { i.toString() }.
+      
+      StringLiteral ::= Str.
+
+    end
+    
+    @AbstractOp toTadpole()
+    end
+    
+  end

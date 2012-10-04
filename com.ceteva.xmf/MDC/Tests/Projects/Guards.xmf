@@ -1,0 +1,203 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context MyProjects
+
+  @Package Guards
+  
+    @Class Guard isabstract extends Syntax
+    
+      @Grammar 
+      
+         Guard1 ::= Guard EOF.
+      
+         Guard ::= left = Atom (op = Op right = Guard { BinGuard(left,op,right) } | { left }) | Negate.
+         
+         Atom ::= Constant | Ref | Comp | '(' g = Guard ')' { g }.
+         
+         Ref ::= o = (Var | Self) ('.' n = Name { Dot(o,n) } | { o }).
+         
+         Bool ::= 'true' { true } | 'false' { false }.
+         
+         Constant ::= 
+           s = Str { Const(s) } |
+           n = Int { Const(n) } |
+           b = Bool { Const(b) }.
+           
+         Negate ::= 'not' g = Guard { Negate(g) }.
+         
+         Op ::= 'and' { "and" } | '+' { "+" } | '-' { "-" } | '*' { "*" } | '/' { "/" } | '=' { "=" } | '>' { ">" } | '<' { "<" }.
+         
+         Var ::= n = Name { Var(n) }.
+         
+         Self ::= 'self' { Self() }.
+         
+         Comp ::= '{' es = Elements qs = Qualifiers '}' { Comp(es->asSet,qs) }.
+         
+         Elements ::= e = Guard es = (',' Guard)* { Seq{e|es} } | { Seq{} }.
+         
+         Qualifiers ::= '|' q = Qualifier qs = (',' Qualifier)* { Seq{q|qs} } | { Seq{} }.
+         
+         Qualifier ::= Binding | Predicate.
+         
+         Binding ::= n = Name '<-' g = Guard { Bind(n,g) }.
+         
+         Predicate ::= '?' g = Guard { Predicate(g) }.
+        
+      end
+      
+    end
+    
+    @Class Negate extends Guard
+    
+      @Attribute guard : Guard (?,!) end
+      
+      @Constructor(guard) ! end
+      
+      @Operation eval(target,env)
+        not guard.eval(target,env)
+      end
+      
+    end
+    
+    @Class BinGuard extends Guard
+    
+      @Attribute left : Guard (?,!) end
+      @Attribute right : Guard (?,!) end
+      @Attribute op : String (?,!) end
+      
+      @Constructor(left,op,right) ! end
+      
+      @Operation eval(target,env)
+        let v1 = left.eval(target,env);
+            v2 = right.eval(target,env)
+        in @Case op of
+             "and" do 
+               v1 and v2
+             end
+             "+" do
+               v1.asInt() + v2.asInt()
+             end
+             "-" do
+               v1.asInt() - v2.asInt()
+             end
+             "*" do
+               v1.asInt() * v2.asInt()
+             end
+             "/" do
+               v1.asInt() / v2.asInt()
+             end
+             "=" do
+               v1 = v2
+             end
+             ">" do
+               v1 > v2
+             end
+             "<" do
+               v1 < v2
+             end
+             else self.error("Unknown op " + op)
+           end
+        end
+      end
+      
+    end 
+    
+    @Class Var extends Guard
+    
+      @Attribute name : String (?,!) end
+      
+      @Constructor(name) ! end
+      
+      @Operation eval(target,env)
+        env.lookup(name)
+      end
+      
+    end
+    
+    @Class Dot extends Guard
+    
+      @Attribute guard : Guard (?,!) end
+      @Attribute name : String (?,!) end
+      
+      @Constructor(guard,name) ! end
+      
+      @Operation eval(target,env)
+        guard.eval(target,env).dot(name)
+      end
+      
+    end 
+    
+    @Class Const extends Guard
+    
+      @Attribute value : Element (?,!) end
+      
+      @Constructor(value) ! end
+      
+      @Operation eval(target,env)
+        value
+      end
+      
+    end
+    
+    @Class Self extends Guard 
+    
+      @Operation eval(target,env)
+        target
+      end
+    
+    end
+    
+    @Class Comp extends Guard
+    
+      @Attribute elements : Set(Guard) (?,!) end
+      @Attribute qualifs : Seq(Qualifier) (?,!) end
+      
+      @Constructor(elements,qualifs) ! end
+      
+      @Operation eval(target,env)
+        if qualifs->isEmpty
+        then elements->collect(e | e.eval(target,env))
+        else qualifs->head.eval(Guards::Comp(elements,qualifs->tail),target,env)
+        end
+      end
+      
+    end 
+    
+    @Class Qualifier isabstract extends Syntax
+    
+    end
+    
+    @Class Bind extends Qualifier
+    
+      @Attribute name : String (?,!) end
+      @Attribute value : Guard (?,!) end
+      
+      @Constructor(name,value) ! end
+      
+      @Operation eval(set,target,env)
+        let S = value.eval(target,env)
+        in S->collect(v | set.eval(target,env.bind(name,v)))->flatten
+        end
+      end
+      
+    end
+    
+    @Class Predicate extends Qualifier
+    
+      @Attribute guard : Guard (?,!) end
+      
+      @Constructor(guard) ! end
+      
+      @Operation eval(set,target,env)
+        if not guard.eval(target,env)
+        then Set{}
+        else set.eval(target,env)
+        end
+      end
+      
+    end
+    
+  end

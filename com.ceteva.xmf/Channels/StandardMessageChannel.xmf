@@ -1,0 +1,96 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class StandardMessageChannel extends MessageChannel, InputChannel, OutputChannel
+  
+    @Attribute messageChanell : MessageChannel end
+    @Attribute inputBuffer    : String         end
+    @Attribute outputBuffer   : String         end
+    @Attribute inputPtr       : Integer        end
+    @Attribute outputPtr      : Integer        end
+    @Attribute encode         : Operation      end
+    @Attribute decode         : Operation      end
+    
+    @Constructor(messageChannel) ! end
+    @Constructor(messageChannel,encode,decode) end
+    
+    @Operation channel()
+      self.error("Cannot get the channel of a standard message channel")
+    end
+    
+    @Operation close()
+      null
+    end
+    
+    @Operation eof():Boolean
+      false
+    end
+    
+    @Operation flush()
+      let message = encode(outputBuffer)
+      in self.outputBuffer := "";
+         self.outputPtr := 0;
+         self.writeMessage(message)
+      end
+    end
+    
+    @Operation inputBufferIsEmpty():Boolean
+      inputBuffer->size = 0 or inputBuffer->size < inputPtr
+    end
+    
+    @Operation peek():Integer
+      if self.inputBufferIsEmpty()
+      then
+        self.readMessage();
+        self.peek()
+      else inputBuffer->at(inputPtr)
+      end
+    end
+    
+    @Operation read():Integer
+      if self.imputBufferIsEmpty()
+      then 
+        self.readMessage();
+        self.read()
+      else 
+        let char = inputBuffer->at(inputPtr)
+        in self.inputPtr := inputPtr + 1;
+           char
+        end
+      end
+    end
+    
+    @Operation read(v:Vector):Integer
+      self.error("Vector read not implemented.")
+    end
+    
+    @Operation readMessage()
+      let message = super.readMessage() then
+          string = decode(message)
+      in if self.inputBufferIsEmpty()
+         then 
+           self.inputBuffer := string;
+           self.inputPtr := 0
+         else self.inputBuffer := inputBuffer + string
+         end
+      end
+    end   
+    
+    @Operation write(v:Element)
+      if v.isKindOf(Integer)
+      then self.writeChar(v)
+      else self.error("Don't know how to write a " + v)
+      end
+    end
+    
+    @Operation writeChar(c:Integer)
+      self.outputBuffer := outputBuffer + Seq{c}->asString
+    end
+    
+  end
+    
+    
+    

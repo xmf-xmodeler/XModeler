@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+@Shape RightArrow
+  minWidth = 40
+  minHeight = 30 
+  @Point(0,15) end
+  @Point(25,15) end
+  @Point(25,10) end
+  @Point(40,20) end
+  @Point(25,30) end
+  @Point(25,25) end
+  @Point(0,25) end
+end; 

@@ -1,0 +1,21 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import EntityModels;
+
+context EntityModel
+
+  @Grammar extends OCL::OCL.grammar
+  
+    EntityModel ::=
+      name = Name 
+      entities = Entity*
+        {EntityModel[name = name, entities = entities]}.
+      
+    Entity ::= 'entity' name = Name rels = Relationship*
+      {Entity[name = name, relationships = rels]}.
+      
+    Relationship ::= 'rel' name = Name '->' type = Name
+      {Relationship[name = name, type = type]}.
+    
+  end

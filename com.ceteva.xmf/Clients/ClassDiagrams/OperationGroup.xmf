@@ -1,0 +1,70 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class OperationGroup extends Group
+  
+    @Attribute name 	 : OperationText end
+    @Attribute metaclass_ : Text end
+  
+    @Constructor(name,metaclass_,x,y)
+      self.name := OperationText(name,x,y);
+      if metaclass_ <> "" then
+        self.metaclass_ := Text("<<" + metaclass_ + ">> ",x + 50,y,false)
+      else
+        self.metaclass_ := Text("",x + 50,y,false)
+      end;      
+      
+      // A group should not have any Display attributes set.
+      
+      self.x := 0;
+      self.y := 0
+    end
+    
+    @Operation addDisplays()
+      self.add(name);
+      self.add(metaclass_)
+    end
+    
+    @Operation name()
+      self.name.opName
+    end
+
+    @Operation moveDown()
+      @Count i from 1 to 16 do
+        name.move(name.x,name.y-1);
+        metaclass_.move(metaclass_.x,metaclass_.y-1)
+      end
+    end
+    
+    @Operation resized(display)
+    
+      // If the name has resized then the type
+      // may need to move along accordingly.
+      
+      if metaclass_.x() < (name.x() + name.width()) or
+         metaclass_.x() > (name.x() + name.width() + self.separator())
+      then 
+        metaclass_.move(name.x() + name.width() + self.separator(),metaclass_.y());
+        owner.resized(self)
+      end
+    end
+    
+    @Operation setName(name)
+      self.name.setName(name)
+    end
+    
+    @Operation setOperation(operation)
+      self.name.setOperation(operation)
+    end
+    
+    @Operation separator()
+      // Between the name and the type...
+      10
+    end
+  
+  end

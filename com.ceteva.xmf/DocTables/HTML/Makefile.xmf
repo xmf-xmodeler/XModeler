@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile("DocTables/HTML/Boot",true,true);
+compileFile("DocTables/HTML/HTML",true,true);
+compileFile("DocTables/HTML/Browser/Makefile",true,true);
+compileFile("DocTables/HTML/ExternalBrowser/Makefile",true,true);
+compileFile("DocTables/HTML/InternalBrowser/Makefile",true,true);
+"DocTables/HTML/Browser/Makefile.o".loadBin(false);
+"DocTables/HTML/ExternalBrowser/Makefile.o".loadBin(false);
+"DocTables/HTML/InternalBrowser/Makefile.o".loadBin(false);

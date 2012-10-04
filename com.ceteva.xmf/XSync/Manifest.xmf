@@ -1,0 +1,11 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XSync
+  XSync = @File XSync end
+  @File Syntax/Boot end
+  @File Network/Boot end
+do Project(XSync,dir,self)
+end;

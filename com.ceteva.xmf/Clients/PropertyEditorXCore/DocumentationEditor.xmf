@@ -1,0 +1,63 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class DocumentationEditor extends CodeboxEditor
+  
+    @Operation checkDaemons()
+      super();
+      let contex = textbox.contex
+      in
+        if contex.hasSlot("name") then
+          @SlotValueChanged multi once DocumentationEditor::daemons_contexNameChanged(contex,"name") end
+        end;
+        @SlotValueChanged multi once DocumentationEditor::daemons_contexDocChanged(contex,"documentation") end;
+        if contex.documentation.isReallyKindOf(Doc) then
+          @SlotValueChanged multi once DocumentationEditor::daemons_contexDocStringChanged(contex.documentation,"doc") end
+        end
+      end
+    end
+
+    @Operation daemons_contexNameChanged(e,slot,newName,oldName)
+      self.setFormName();
+      self.setName(name)
+    end
+
+    @Operation daemons_contexDocChanged(e,slot,newValue,oldValue)
+      if not oldValue.isKindOf(Null) then
+        oldValue.removeDaemonsWithTarget(self,true)
+      end;
+      if newValue.isKindOf(Null) then
+        textbox.setText("");
+        textbox.resetText()
+      else
+        textbox.setText(newValue.docString());
+        textbox.resetText();
+        @SlotValueChanged multi once DocumentationEditor::daemons_contexDocStringChanged(newValue,"doc") end
+      end
+    end
+
+    @Operation daemons_contexDocStringChanged(newValue,slot,newText,oldText)
+      textbox.setText(newText);
+      textbox.resetText()
+    end
+
+    @Operation removeDaemons()
+      super();
+      let documentation = textbox.contex.documentation
+      in
+        if documentation.isReallyKindOf(Doc)
+        then
+          documentation.removeDaemonsWithTarget(self,true)
+        end
+      end
+    end
+
+  end

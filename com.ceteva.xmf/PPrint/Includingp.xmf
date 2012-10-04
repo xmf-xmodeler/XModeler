@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Includingp in PPrint(aIncludingp,out,seen)
+  self.dispatch(aIncludingp.set,out);
+  format(out,"->including(");
+  self.dispatch(aIncludingp.element,out);
+  format(out,")")
+end;

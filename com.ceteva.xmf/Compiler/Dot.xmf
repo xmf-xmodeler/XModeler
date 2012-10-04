@@ -1,0 +1,53 @@
+import Compiler;
+import Instrs;
+import OCL;
+
+context Dot
+  @Operation FV():Element
+    target.FV()
+  end
+
+context Dot
+  @Operation maxLocals():Element
+    target.maxLocals()
+  end
+
+context Dot
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if self.isLocalDot(env) andthen self.dotLocalIndex(env) <= 255
+    then Seq{Instrs::DotLocal(target.name,self.dotLocalIndex(env),Symbol(name))}
+    elseif self.isSelfDot()
+    then 
+      if false //isLast
+      then Seq{Instrs::RetDotSelf(Symbol(name))}
+      else Seq{Instrs::DotSelf(Symbol(name))}
+      end
+    else
+      let targetCode = target.compile(env,frame,false,saveSource)
+      in targetCode + Seq{Instrs::Dot(Symbol(name))}
+      end
+    end
+  end
+  
+context Dot
+  @Operation dotLocalIndex(env):Integer
+    env.localIndex(target.name)
+  end
+  
+context Dot
+  @Operation isLocalDot(env):Boolean
+    target.isKindOf(Var) andthen
+    env.isLocal(target.name)
+  end
+  
+context Dot
+  @Operation isSelfDot():Boolean
+    target.isKindOf(Self)
+  end
+  
+context Dot
+  @Operation lift()
+    let nameExp = if name.isKindOf(OCL::Drop) then name.lift() else StrExp(name) end
+    in Apply(self.typeExp(),Seq{target.lift(),nameExp})
+    end
+  end

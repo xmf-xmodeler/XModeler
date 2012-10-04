@@ -1,0 +1,24 @@
+format(stdout,"XMF supports a catch and throw mechanism. You should see ERROR! printed~%");
+
+context Root
+  @Operation spiral(n)
+    let m = n + 1
+    in 
+      if n > 1000
+      then 
+        try
+          throw "ERROR!!" + n + " " + m
+        catch(x)
+          format(stdout,"locally caught ~S~%",Seq{x});
+          throw x
+        end
+      else spiral(n + 1)
+      end
+    end
+  end
+  
+try
+  spiral(0)
+catch(message)
+  message.println()
+end;

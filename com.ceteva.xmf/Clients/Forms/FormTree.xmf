@@ -1,0 +1,92 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormTree extends FormElement
+  
+    @Attribute editable : Boolean       (?)     end
+    @Attribute nodes    : Seq(TreeNode) (?,+,-) end
+    
+    @Constructor(x,y,width,height,editable) end
+    
+    @Operation add(node:TreeNode)
+      // Use this in preference to addItem for
+      // consistency.
+      self.addItem(node)
+    end
+    
+    @Operation addContents()
+
+      // By default this does nothing. Redefine it
+      // in sub-classes to add contents. It is
+      // called when the treeNode is created and if the
+      // contents are ever refreshed.
+
+      self
+    end 
+     
+    @Operation addItem(node:TreeNode)
+      node.setOwner(self);
+      self.nodes := nodes + Seq{node}
+    end
+    
+    @Operation deselectAll()
+      @For node in nodes do
+        node.setSelected(false);
+        node.deselectAll()
+      end
+    end
+
+    @Operation dispose()
+      self.disposeCollection(nodes);
+      super()
+    end
+
+	@Operation new(parent)
+      self.commandInterpreter().newTreeCommand(parent,self);
+      self.addContents();
+      self.newContents();
+      self
+    end   
+    
+    @Operation newContents()
+      @For node in nodes do
+        node.new(self)
+      end
+    end 
+    
+    @Operation remove(element)
+      self.deleteFromNodes(element)
+    end 
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newTreeCommand(parent,self);
+      @For node in nodes do
+        node.renew(self)
+      end
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        editable = Seq{"editable",editable} then
+        attributes = Seq{id,x,y,width,height,editable}
+      in
+        @Command(self) startElement("tree",attributes) end;
+        @For node in nodes
+        do
+          node.synchronise()
+        end;
+        @Command(self) endElement("tree") end
+      end
+    end
+
+  end

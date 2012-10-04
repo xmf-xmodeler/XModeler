@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+
+  @Class QueryProcessor
+  
+    @Attribute query : QueryExp end
+
+    @Constructor(query)
+    end
+    
+    @Operation andToSQL(element)
+      self.process(element.left) + " AND " + self.process(element.right)
+    end
+    
+    @Operation equalToSQL(element)
+      "slots.name = '" + element.left + "' AND primitives.value = '" + element.right + "'"
+    end
+    
+    @Operation ofToSQL(element)
+      "objects.of = '" + element.type.path() + "'"
+    end
+    
+    @Operation orToSQL(element)
+      self.process(element.left) + " OR " + self.process(element.right)
+    end
+        
+    @Operation process(element)
+      @TypeCase(element)
+        AndExp do
+          self.andToSQL(element)
+        end
+        EqualExp do
+          self.equalToSQL(element)
+        end
+        OfExp do
+          self.ofToSQL(element)
+        end
+        OrExp do
+          self.orToSQL(element)
+        end
+        QueryExp do
+          self.queryToSQL(element)
+        end
+      end
+    end
+    
+    @Operation queryToSQL(element)
+      "SELECT DISTINCT objects.id FROM objects,slots,vals,primitives WHERE " + 
+      self.process(element.body) + 
+      " AND slots.valueid = primitives.id AND objects.id = slots.objid;"
+    end
+    
+    @Operation run()
+      self.process(query)
+    end
+  
+  end

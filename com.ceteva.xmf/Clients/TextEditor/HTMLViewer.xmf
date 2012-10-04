@@ -1,0 +1,234 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+
+context TextEditor
+
+  @Class HTMLViewer extends ContainedClientElement
+    
+    @Attribute name  	: String (?) end
+    @Attribute tooltip	: String (?) end
+    @Attribute url   	: String (?) end
+    
+    @Constructor(url)
+      self.name := "HTML Viewer"
+    end
+    
+    @Constructor(name,url) end
+    
+    @Operation close()
+      owner.removeEditor(self);
+      self.removeDaemons()
+    end
+    
+    @Operation closeOpenEditor()
+      self.commandInterpreter().delete(self)
+    end
+    
+    @Operation loadBinary(url:String)
+      // The selected URL claims to point to a binary
+      // file. Try to load it.
+      if url.hasPrefix("http")
+      then self.loadHTTPBinary(url)
+      elseif url.fileExists()
+      then 
+        url.loadBin(false);
+        xmf.message("Loaded " + url)
+      end
+    end
+    
+    @Operation loadHTTPBinary(url:String)
+      let inch = BinaryInputChannel(URLInputChannel(url))
+      in inch.readBinary();
+         inch.close();
+         xmf.message("Loaded " + url)
+      end
+    end
+    
+    @Operation loadXTML(url:String)
+      // The selected URL claims to point to a binary
+      // file. Try to load it and browse the result...
+      if url.hasPrefix("http")
+      then self.loadHTTPXTML(url)
+      elseif url.fileExists()
+      then self.setURL(url.loadBin(false))
+      end
+    end
+    
+    @Operation loadHTTPXTML(url:String)
+      let inch = BinaryInputChannel(URLInputChannel(url)) then
+          content = inch.readBinary()
+      in inch.close();
+         self.setURL(content)
+      end
+    end
+    
+    @Operation loadXip(url:String)
+      if url.hasPrefix("http")
+      then self.loadHTTPXip(url)
+      elseif url.fileExists()
+      then 
+        @Busy("Loading Xip File at " + url)
+          Manifests::Manifest::unxipFile(url)
+        end
+      end
+    end
+    
+    @Operation loadHTTPXip(url:String)
+      
+      // We are pointing at a XIP archive containing a 
+      // manifest and associated files (including sub-
+      // manifests). Unfortunately we cannot just unxip
+      // the archive because Java will not allow random
+      // access to non-files. Therefore, create a temp
+      // file, read the data into that and then unxip it.
+      
+      let tempFile = File::tempFile("temp","xip",null);
+          inch = URLInputChannel(url)
+      in @Busy("Loading Xip File at " + url)
+           @WithOpenFile(fout -> tempFile)
+             @While not inch.eof() do
+               fout.write(inch.read())
+             end
+           end;
+           inch.close();
+           Manifests::Manifest::unxipFile(tempFile)
+         end;
+         xmf.message("Loaded Xip at " + url)
+      end
+    end
+    
+    @Operation loadXTD(url:String)
+      if url.hasPrefix("http")
+      then self.loadHTTPXTD(url)
+      elseif url.fileExists()
+      then 
+        @Busy("Loading XTD File at " + url)
+          xmf.toolManager().loadXTD(url)
+        end
+      end
+    end
+    
+    @Operation loadHTTPXTD(url:String)
+      
+      // We are pointing at an XTD archive containing a 
+      // tool definition. Unfortunately we cannot just 
+      // the archive because Java will not allow random
+      // access to non-files. Therefore, create a temp
+      // file, read the data into that and then load it.
+      
+      let tempFile = File::tempFile("temp","xtd",null);
+          inch = URLInputChannel(url)
+      in @Busy("Loading XTD File at " + url)
+           @WithOpenFile(fout -> tempFile)
+             @While not inch.eof() do
+               fout.write(inch.read())
+             end
+           end;
+           inch.close();
+           xmf.toolManager().loadXTD(tempFile)
+         end;
+         xmf.message("Loaded XTD at " + url)
+      end
+    end
+    
+    @Operation loadXTO(url:String)
+      if url.hasPrefix("http")
+      then self.loadHTTPXTO(url)
+      elseif url.fileExists()
+      then 
+        @Busy("Loading XTO File at " + url)
+          xmf.toolManager().loadXTO(url)
+        end
+      end
+    end
+    
+    @Operation loadHTTPXTO(utl:String)
+      
+      // We are pointing at an XTO archive containing a 
+      // tool definition. Unfortunately we cannot just 
+      // the archive because Java will not allow random
+      // access to non-files. Therefore, create a temp
+      // file, read the data into that and then load it.
+      
+      let tempFile = File::tempFile("temp","xto",null);
+          inch = URLInputChannel(url)
+      in @Busy("Loading XTO File at " + url)
+           @WithOpenFile(fout -> tempFile)
+             @While not inch.eof() do
+               fout.write(inch.read())
+             end
+           end;
+           inch.close();
+           xmf.toolManager().loadXTO(tempFile)
+         end;
+         xmf.message("Loaded XTO at " + url)
+      end
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newBrowser(self);
+      self.requestURL(url);
+      self
+    end
+    
+    @Operation renew()
+      self.removeFromIdManager();
+      self.commandInterpreter().newBrowser(self);
+      self.commandInterpreter().setUrl(self,url);
+      self.commandInterpreter().setName(self);
+      self.commandInterpreter().setTooltip(self,tooltip)
+    end
+    
+    @Operation removeDaemons()
+      self // override in subclasses
+    end
+    
+    // By default a HTMLViewer tells the browser to handle
+    // its own request
+    
+    @Operation requestURL(url)
+      if url.hasSuffix(".o")
+      then self.loadBinary(url)
+      elseif url.hasSuffix(".xip")
+      then self.loadXip(url)
+      elseif url.hasSuffix(".xto")
+      then self.loadXTO(url)
+      elseif url.hasSuffix(".xtd")
+      then self.loadXTD(url)
+      elseif url.hasSuffix(".xtml")
+      then self.loadXTML(url)
+      else self.setURL(url)
+      end
+    end
+    
+    @Operation setFocus()
+      self.commandInterpreter().setFocus(self)
+    end
+    
+    // the url can either be a file or http reference or can
+    // be the html data itself
+    
+    @Operation setURL(url)
+      self.commandInterpreter().setUrl(self,url)
+    end
+    
+    @Operation setText(text:String)
+      // self.setURL(text)
+      self
+    end
+    
+    @Operation setName(name)
+      self.name := name;
+      self.commandInterpreter().setName(self)
+    end
+    
+    @Operation setTooltip(tooltip)
+      self.tooltip := tooltip;
+      self.commandInterpreter().setTooltip(self,tooltip)
+    end
+    
+  end

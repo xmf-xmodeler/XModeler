@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Dialogs
+  
+    @Doc
+      The Dialogs package defines a collection of classes that model
+      user dialogs (i.e. questions, requests for information etc.)
+      in a way that is indepen-dent of the representation used to
+      display the dialog.
+    end
+   
+  end

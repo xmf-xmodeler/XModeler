@@ -1,0 +1,20 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import OCL;
+
+context Root
+
+  @Class Class
+
+    
+    
+  end
+  
+Root::Class.grammar := 
+
+  @Grammar 
+  
+      Class ::= n = Name 'extends' { Var(n) }.
+    
+    end;

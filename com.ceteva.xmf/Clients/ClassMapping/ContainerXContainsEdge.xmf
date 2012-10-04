@@ -1,0 +1,355 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import Diagrams;
+import DiagramsMapping;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class ContainerXContainsEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute container : Element end
+    @Attribute contained : Element end
+    @Attribute edge : ContainsEdge (?) end
+    
+    @Constructor(container,contained,edge) !
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()});
+      let edgeLabel = edge.label
+      in
+        self.setGlobalMenu(edgeLabel,Set{Element,edgeLabel.of()})
+      end;
+      self.addValue()
+    end
+
+    @Operation buildGlobalMenu(rightClickable)
+      if rightClickable = edge.label
+      then
+        let globalMenu = rightClickable.globalMenu(false)
+        in
+          globalMenu.add(MenuAction("Change Slot",RightClickableProxy::proxyTarget,Seq{},ContainerXContainsEdge::selectSlot));
+          globalMenu.new();
+          globalMenu
+        end
+      end
+    end
+
+    @Operation addTo(slot:string)
+
+      // If the container has a slot with the given name then the
+      // contained element is added to it. If the current value is
+      // a collection then the contained element is added to the
+      // collection otherwise the value of the slot is set to the
+      // contained element.
+      
+      if container.hasSlot(slot)
+      then
+        let attribute = container.of().getAttribute(slot)
+        in
+          if contained.isReallyKindOf(attribute.underlyingType()) or container.get(slot).isReallyKindOf(Table)
+          then
+            @TypeCase(container)
+              XCore::Class      do self.addToClass(slot)      end
+              XCore::Package    do self.addToPackage(slot)    end
+              XCore::Classifier do self.addToClassifier(slot) end
+              XCore::Container  do self.addToContainer(slot)  end
+            else self.addToObject(slot)
+            end
+            //let slotUpdateOp = self.getSlotUpdateOp(container.of(),slot)
+            //in
+            //  if slotUpdateOp <> null
+            //  then
+            //    slotUpdateOp.invoke(container,Seq{contained})
+            //  else
+            //    self.addToObject(slot)
+            //  end
+            //end
+          else
+            self.handleInvalidSlotType(slot)
+          end
+        end
+      else
+        if slot <> "slot"
+        then self.handleNonExistentSlot(slot)
+        end
+      end
+      
+    end
+    
+    @Operation addToClass(slot:String)
+      @Case slot of
+        "attributes"  do container.add(contained) end
+        else self.addToClassifier(slot)
+      end
+    end
+    
+    @Operation addToClassifier(slot:String)
+      @Case slot of
+        "operations" do container.add(contained) end
+        "constraints" do container.add(contained) end
+        "parents" do container.addParent(contained) end
+        else self.addToContainer(slot)
+      end
+    end
+
+    @Operation addToContainer(slot:String)
+      @Case slot of
+        "contents" do container.add(contained) end
+        else self.addToObject(slot)
+      end
+    end
+
+    @Operation addToObject(slot:String)
+      let currentValue = container.get(slot)
+      in if currentValue.isReallyKindOf(SeqOfElement) or
+            currentValue.isReallyKindOf(SetOfElement)
+         then
+           container.set(slot,currentValue->including(contained))
+         elseif currentValue.isReallyKindOf(Table)
+         then
+           self.handleInvalidTableSlot(slot)
+         else
+           container.set(slot,contained)
+         end
+      end
+    end
+    
+    @Operation addToPackage(slot:String)
+      @Case slot of
+        "classes" do container.add(contained) end
+        "packages" do container.add(contained) end
+        else self.addToClassifier(slot)
+      end
+    end
+    
+    @Operation addValue()
+      self.addTo(edge.label.text)
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ContainerXContainsEdge::edgeSourceChanged_containsEdgeDaemon(edge,"source") end;
+      @SlotValueChanged multi once ContainerXContainsEdge::edgeTargetChanged_containsEdgeDaemon(edge,"target") end;
+      @SlotValueChanged multi once ContainerXContainsEdge::labelChanged_containsEdgeDaemon(edge.label,"text") end
+    end
+    
+    @Operation edgeSourceChanged_containsEdgeDaemon(attribute,slot,newPort,oldPort)
+      @WithoutDaemons(contained)
+        owner.containerSourceChanged(self,newPort.owner)
+      end
+    end
+    
+    @Operation edgeTargetChanged_containsEdgeDaemon(attribute,slot,newPort,oldPort)
+      owner.containerTargetChanged(self,newPort.owner)
+    end   
+
+/*    @Operation getSlotUpdateOp(type:Classifier,slotName:String):Operation
+      try
+        let
+          registryPoint = xmf.registry().getExtensionPoint("com.ceteva.xmf.slotUpdate") then
+          contributions = registryPoint.find(type);
+          op = null
+        in
+          if not contributions->isEmpty then
+            @For contribution in contributions do
+              let conSlotName = contribution.getValue(0)
+              in
+                if conSlotName.toString() = slotName.toString()
+                then
+                  op := contribution.getValue(1)
+                end
+              end
+            end
+          end;
+          op
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end */
+
+    @Operation handleInvalidSlotType(slot)
+      xmf.warning(contained.toString() + " does not match the expected type of the '"
+                      + slot + "' slot of " + container.toString() + ".");
+      owner.remove(self);
+      edge.delete()
+    end
+
+    @Operation handleInvalidTableSlot(slot)
+      xmf.warning("Cannot add " + contained.toString() + " to the '"
+                      + slot + "' slot of " + container.toString()
+                      + " as it is a table and the key is unknown.");
+      owner.remove(self);
+      edge.delete()
+    end
+
+    @Operation handleNonExistentSlot(slot)
+      let validSlotsText = ""
+      in
+        @For att in container.of().allAttributes() do
+          validSlotsText := validSlotsText + "\n    '" + att.name() + "'"
+        end;
+        xmf.warning("Meta-slot name '" + slot + "' does not correspond to any slot in "
+                        + container.toString() + ". The name will be retained, but note "
+                        + "that there will be no underlying meaning. The valid slots for "
+                        + container.toString() + " are as follows:\n" + validSlotsText)
+      end
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()},false);
+      let edgeLabel = edge.label
+      in
+        self.setGlobalMenu(edgeLabel,Set{Element,edgeLabel.of()},false)
+      end
+    end
+
+    @Operation labelChanged_containsEdgeDaemon(attribute,slot,new,old)
+      if new <> old
+      then 
+        self.removeFrom(old);
+        self.addTo(new)
+      end
+    end 
+    
+    @Operation removeDaemons()
+    
+      // Called to tidy up when the mapping is no longer valid.
+      
+      edge.removeDaemonsWithTarget(self,true)
+      
+    end
+    
+    @Operation removeFrom(slot:String)
+    
+      // If the container has a slot with the given name then
+      // remove the contained element from it. If the slot is
+      // a collection then the contained element is removed from
+      // the collection otherwise the containing slot is set to
+      // null.
+      
+      if container.hasSlot(slot)
+      then
+        @TypeCase(container)
+          XCore::Class      do self.removeFromClass(slot)      end
+          XCore::Package    do self.removeFromPackage(slot)    end
+          XCore::Classifier do self.removeFromClassifier(slot) end
+          XCore::Container  do self.removeFromContainer(slot)  end
+          else self.removeFromObject(slot)
+        end
+      end
+      
+    end
+    
+    @Operation removeFromClass(slot:String)
+      @Case slot of
+        "attributes"  do container.remove(contained) end
+        else self.removeFromClassifier(slot)
+      end
+    end
+    
+    @Operation removeFromClassifier(slot:String)
+      @Case slot of
+        "operations" do container.remove(contained) end
+        "constraints" do container.remove(contained) end
+        "parents" do container.removeParent(contained) end
+        else self.removeFromContainer(slot)
+      end
+    end
+
+    @Operation removeFromContainer(slot:String)
+      @Case slot of
+        "contents" do container.remove(contained) end
+        else self.removeFromObject(slot)
+      end
+    end
+
+    @Operation removeFromPackage(slot:String)
+      @Case slot of
+        "classes" do container.remove(contained) end
+        "packages" do container.remove(contained) end
+        else self.removeFromClassifier(slot)
+      end
+    end
+    
+    @Operation removeFromObject(slot:String)
+      let currentValue = container.get(slot)
+      in if currentValue.isReallyKindOf(SeqOfElement) or
+            currentValue.isReallyKindOf(SetOfElement)
+         then
+           container.set(slot,currentValue->excluding(contained))
+         else
+           container.set(slot,null)
+         end
+      end
+    end
+    
+    @Operation removeValue() 
+      self.removeFrom(edge.label.text)
+    end
+    
+    @Operation selectSlot()
+      let allAttributes = container.of().allAttributes() then
+          validAttributes = allAttributes->select(a | contained.isKindOf(a.underlyingType()) or a.type.inheritsFrom(Table))
+      in
+        if validAttributes->isEmpty
+        then
+          xmf.warning(
+            "Cannot add a slot value edge between these two elements as there is no attribute in " + container.of().name() +
+            " whose type matches " + contained.name() + "." );
+          edge.delete();
+          self.owner.remove(self)
+        else
+          self.selectSlotDialog(validAttributes)
+        end
+      end
+    end
+    
+    @Operation selectSlotDialog(validAttributes:Set(Element))
+      let attributeSeq = validAttributes->asSeq.sortNamedElements_CaseIndependent();
+          stringOp = 
+            @Operation(attribute)
+              attribute.name() + " from " + attribute.owner.name()
+            end then
+          att = xmf.select("Choose Slot",
+                                "Select a slot to connect "+container.nameString()+" to "+contained.nameString(),
+                                attributeSeq,
+                                null,
+                                stringOp)
+      in
+        if att <> null
+        then
+          @WithoutDaemons(contained)
+            edge.label.textChanged(att.name().toString())
+          end
+        else
+          if edge.label.text = "slot"
+          then edge.delete();
+               self.owner.remove(self)
+          end
+        end
+      end
+    end
+
+    @Operation setContained(contained)
+      self.removeValue();
+      self.contained := contained;
+      self.addValue()
+    end
+    
+    @Operation setContainer(container)
+      self.removeValue();
+      self.container := container;
+      self.addValue()
+    end
+ 
+    @Operation element()
+      Seq{container,contained}
+    end
+ 
+  end

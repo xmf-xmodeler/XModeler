@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:31 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class TextArea extends Root::HTML::HTMLElement
+
+    @Attribute wrap : Root::XCore::String (?,!) end
+    @Attribute tabIndex : Root::XCore::Integer (?,!) end
+    @Attribute rows : Root::XCore::Integer (?,!) end
+    @Attribute readOnly : Root::XCore::Boolean (?,!) end
+    @Attribute onSelect : Root::XCore::String (?,!) end
+    @Attribute onFocus : Root::XCore::String (?,!) end
+    @Attribute onChange : Root::XCore::String (?,!) end
+    @Attribute onBlur : Root::XCore::String (?,!) end
+    @Attribute name : Root::XCore::String (?,!) end
+    @Attribute disabled : Root::XCore::Boolean (?,!) end
+    @Attribute cols : Root::XCore::Integer (?,!) end
+    @Attribute accessKey : Root::XCore::String (?,!) end
+
+    @Constructor(accessKey,cols,disabled,name,onBlur,onChange,onFocus,onSelect,readOnly,rows,tabIndex,wrap,contents) ! end
+
+  end

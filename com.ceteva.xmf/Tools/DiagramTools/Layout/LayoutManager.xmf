@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+
+import Tools;
+import DiagramTools;
+
+context Layout
+
+  @Class LayoutManager isabstract
+  
+     @AbstractOp layout(type,container,x,y,width,height)
+     
+       // Layout the contents of the container.
+       
+     end
+     
+   end
+    

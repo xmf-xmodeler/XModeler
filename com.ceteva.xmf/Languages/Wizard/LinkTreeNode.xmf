@@ -1,0 +1,20 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class LinkTreeNode
+  
+    @Attribute refTreeNode : String end
+    
+    @Constructor(refTreeNode) end
+    
+    @ToXML(lnk_Tree_Node)[
+      ref_Tree_Node = refTreeNode
+      ] 
+    end
+
+  end

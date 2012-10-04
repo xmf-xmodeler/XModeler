@@ -1,0 +1,140 @@
+AName ::= Name ! | Drop.
+
+Apply ::= operator = PathExp [ args = Args { Apply(operator,args) } ].
+
+ArithExp ::= e1 = UpdateExp [ op = ArithOp e2 = ArithExp { BinExp(e1,op,e2) } ].
+
+ArithOp ::= '+' { "+" } | '-' { "-" } | '*' { "*" } | '/' { "/" }.
+
+Args ::= '(' (')' { Seq{} } | arg = Exp args = (',' Exp)* ')' { Seq{arg | args} }).
+
+AtExp ::= '@' AtPath @ 'end' !.
+
+AtPath ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+
+Atom ::= VarExp | Self | StrExp | IntExp | IfExp | BoolExp | LetExp | CollExp | AtExp | Drop | Lift | '(' Exp ')' | Throw | Try | ImportIn.
+
+Binding ::= name = AName '=' value = LogicalExp { ValueBinding(name,value) }.
+
+Bindings ::= binding = Binding bindings = (';' Binding)* { Seq{ binding | bindings } }.
+
+BoolExp ::= 'true' { BoolExp(true) } | 'false' { BoolExp(false) }.
+
+Boolp ::= 'true' { Constp(BoolExp(true)) } | 'false' { Constp(Boolexp(false)) }.
+
+CollExp ::= SetExp | SeqExp.
+
+CompareExp ::= e1 = ArithExp [ op = CompareOp e2 = CompareExp { BinExp(e1,op,e2) } ].
+
+CompareOp ::= '=' { "=" } | '<' { "<" } | '>' { ">" } | '<>' { "<>" } | '>=' { ">=" } | '<=' { "<=" }. 
+
+CompilationUnit ::= ParserImport* imports = Import* exps = (Def | TopLevelExp)* EOF { CompilationUnit(imports,exps) }.
+
+Consp ::= Pairp | Seqp | Emptyp.
+
+Constp ::=  Intp | Strp | Boolp.
+
+Def ::= 'context' path = PathExp exp = Exp { ContextDef(path,exp) }. 
+ 
+Drop ::= '<' e = Exp '>' { Drop(e) }. 
+
+EmptyColl ::= name = Name '{' '}' { SetExp(name,Seq{}) }.
+
+Emptyp ::= Name '{' '}' { Constp(SetExp("Seq",Seq{})) }.
+
+Exp ::= OrderedExp.
+
+Import ::= 'import' exp = TopLevelExp { Import(exp) }.
+
+ImportIn ::= 'import' exp = Exp 'in' body = Exp 'end' { ImportIn(exp,body) }.
+
+ParserImport ::= 'parserImport' name = Name names = ('::' Name)* ';' { Seq{name | names} } ImportAt.
+
+IntExp ::= e = Int { IntExp(e) }. 
+
+Intp ::= i = Int { Constp(IntExp(i)) }.
+
+IfExp ::= 'if' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) }.
+
+IfTail ::= 'else' Exp 'end' | 'elseif' e1 = Exp 'then' e2 = Exp e3 = IfTail { If(e1,e2,e3) } | 'end' { BoolExp(false) }.
+
+Lift ::= '[|' e = Exp '|]' { Lift(e) }.
+
+LetExp ::= 'let' bindings = Bindings 'in' body = Exp 'end' { Let(bindings,body) }.
+
+LogicalExp ::= e1 = NotExp [ op = LogicalOp e2 = LogicalExp { BinExp(e1,op,e2) } ].
+
+LogicalOp ::= 'and' {"and"} | 'or' {"or"} | 'implies' {"implies"}.
+
+NonEmptySeq ::= name = Name '{' element = Exp (elements = (',' Exp)* '}' { SetExp(name,Seq{ element | elements }) } | '|' tail = Exp '}' { ConsExp(element,tail) }).
+    
+NonEmptyColl ::= name = Name '{' element = Exp elements = (',' Exp)* '}' { SetExp(name,Seq{ element | elements }) }.
+
+NotExp ::= CompareExp | 'not' exp = CompareExp { Negate(exp) }.
+
+Objectp ::= name = Name names = ('::' Name)* '(' slots = Patterns ')' { Objectp(name,names,slots) }.
+
+OCL ::= Exp.
+
+OrderedExp ::= e1 = LogicalExp [ ';' e2 = OrderedExp { Order(e1,e2) } ].
+
+OptionallyArgs ::= Args | { Seq{} }.
+
+Pairp ::= Name '{' head = Pattern '|' tail = Pattern '}' { Consp(head,tail) }.
+    
+PathExp ::= atom = Atom [ '::' name = AName names = ('::' AName)* { Path(atom,Seq{name | names}) } ].
+
+Pattern ::= Varp | Constp | Objectp | Consp.
+
+Patterns ::= head = Pattern tail = (',' Pattern)* { Seq{head | tail} } | { Seq{} }.
+    
+RefExp ::= exp = Apply 
+  (
+    '->' 
+     (
+        'iterate' '(' v1 = AName v2 = AName '=' init = Exp '|' body = Exp ')' exp = { Iterate(exp,v1,v2,init,body) } 
+      | 
+       iterOp = AName 
+        ( 
+          args = OptionallyArgs exp = { CollExp(exp,iterOp,args) } 
+        | 
+          '(' bound = AName '|' body = Exp ')' exp = { IterExp(exp,iterOp,bound,body) } 
+        |
+          exp = { CollExp(exp,iterOp,Seq{}) }
+        ) 
+      ) 
+     
+    | 
+      '.' field = AName 
+      (
+        args = Args exp = { Send(exp,field,args) } 
+      |   
+         exp = { Dot(exp,field) }
+      )   
+  )* {exp}. 
+  
+Seqp ::=  Name '{' head = Pattern tail = SeqpTail { Consp(head,tail) }.
+
+SeqpTail ::= ',' head = Pattern tail = SeqpTail { Consp(head,tail) } | '}' { Constp(SetExp("Seq",Seq{})) }.
+    
+StrExp ::= e = Str { StrExp(e) }. 
+
+Strp ::= s = Str { Constp(StrExp(s)) }.
+   
+Self ::= 'self' { Self() }. 
+
+SeqExp ::= EmptyColl | NonEmptySeq.
+
+SetExp ::= EmptyColl | NonEmptyColl. 
+
+Throw ::= 'throw' value = LogicalExp { Throw(value) }.
+
+TopLevelExp ::= LogicalExp ';'.
+
+Try ::= 'try' body = Exp 'catch' '(' name = Name ')' handler = Exp 'end' { Try(body,name,handler) }.
+
+UpdateExp ::= location = RefExp (':=' ! value = LogicalExp { OCL::update(location,value) } | { location }).
+
+VarExp ::= name = Name token = Token { Var(name,token.lineCount,token.charCount) }.
+
+Varp ::= name = AName type = (':' Exp | { Var("Element") }) { Varp(name,type) }.

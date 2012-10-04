@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import OCL;
+import XOCL;
+
+context Enum
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      Enum ::= n = Name ns = Names es = Exp* {
+      
+        Enum(n,ns,es)
+        
+      }.
+      
+      Names ::= '(' n = StrExp ns = (',' StrExp)* ')' { SetExp("Seq",Seq{n | ns}) }.
+      
+      StrExp ::= n = Name { StrExp(n) }.
+      
+    end
+    
+    

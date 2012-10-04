@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Terms extends Root::XRules::Term
+
+    @Attribute tail : Root::XRules::Term (?,!) end
+    @Attribute head : Root::XRules::Term (?,!) end
+
+    @Constructor(head,tail) ! end
+    
+    @Operation build(rules,vars)
+      Seq{head.build(rules,vars) | tail.build(rules,vars)}
+    end
+    
+    @Operation listVars()
+      head.listVars() + tail.listVars()
+    end
+    
+    @Operation vars(vars)
+      vars := head.vars(vars);
+      tail.vars(vars)
+    end
+
+  end

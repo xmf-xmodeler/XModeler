@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class ChangeTo extends Change
+  
+    @Attribute root      : Node        (?) end
+    @Attribute path      : Seq(String) (?) end 
+    @Attribute orName    : String      (?) end
+    @Attribute container : Display     (?) end
+    @Attribute type      : String      (?) end
+    @Attribute new       : Element     (?) end
+    @Attribute old       : Element     (?) end
+    
+    @Constructor(root,path,orName,container,type,new,old) ! end   
+    
+    @Operation raisedName():String
+      path->separateWith("_") + "_" + orName + "_ChangedTo_" + type
+    end
+  
+  end

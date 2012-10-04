@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class GrammarClauseCodeComboBox extends CodeComboBox
+
+    @Operation getCode(codedElement)
+      codedElement.code()
+    end
+    
+    @Operation getCodedElement()
+      @Find(c,contex.clauses)
+        when c.name().toString() = selection
+      end
+    end
+
+  end

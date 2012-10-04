@@ -1,0 +1,193 @@
+parserImport XOCL;
+
+context Package
+  // Use 'add' to add either an operation or a classifier 
+  // to a package.
+  @Operation add(n:NamedElement):Classifier
+    if n.isKindOf(Operation)
+    then self.addOperation(n); super(n)
+    else 
+      if n.isKindOf(Package)
+      then
+        self.addPackage(n);
+        super(n)
+      elseif n.isKindOf(Class)
+      then
+        self.addClass(n);
+        super(n)
+      else
+        super(n)
+      end
+    end
+  end
+  
+context Package 
+  // addClass is used to add classes to a package.
+  @Operation addClass(c:Class)
+    self.resolveNameClash(c.name,classes);
+    c.setOwner(self);
+    //self.contents.put(c.name,c);
+    self.classes := classes->including(c);
+    self
+  end
+  
+context Package
+  @Operation addOperation(op)
+  
+    // When an operation is added to a package the package is automatically
+    // imported into the name space. This should be moved to Classifier if
+    // we want the same to happen to classes.
+    
+    op.importNameSpace(self);
+    super(op)
+  end
+  
+context Package
+  // addPackage is used to add a sub-package to a package.
+  @Operation addPackage(p:Package)
+    self.resolveNameClash(p.name,packages);
+    p.setOwner(self);
+    //self.contents.put(p.name,p);
+    self.packages := packages->including(p);
+    self
+  end
+  
+context Package
+  @Operation allContents():Set(Classifier)
+    @Doc
+      Packages are containers with parents and therefore inherit
+      the contents of their parents.
+    end
+    parents->iterate(parent allContents = self.contents() | 
+      allContents + parent.allContents())
+  end
+  
+context Package
+  @Operation allClasses():Set(XCore::Class)
+    self.allContents()->select(c | c <> null and c.isKindOf(XCore::Class)) 
+  end
+  
+context Package
+  @Operation allPackages():Set(XCore::Package)
+    self.allContents()->select(c | c <> null and c.isKindOf(XCore::Package))
+  end
+
+context Package
+  @Operation availableContents():Set(Classifier)
+    @Doc
+      This is the union of allContents and importedContents.
+    end
+    self.allContents() + self.importedContents()
+  end
+
+context Package
+  @Operation availableContents(type:Classifier):Set(Classifier)
+    self.availableContents()->select(c | c <> null andthen c.of() = type)
+  end
+
+context Package
+  @Operation defaultParents():Set(Classifier)
+    Set{Object}
+  end 
+  
+context Package
+  @Operation dependencies():Set(Element)
+    super() +
+    classes->iterate(c D = Set{} | D + c.dependencies()) +
+    packages->iterate(p D = Set{} | D + p.dependencies())
+  end
+
+context XCore::Package
+  @Operation importedContents():Set(Classifier)
+    imports->iterate(i importedContents = Set{} | 
+      importedContents + i.contents()->select(i |
+        i <> null and i <> self and i.isKindOf(Classifier))
+      )
+  end
+
+context Package
+  // To initialise a package, initialise the contents and run super.
+  @Operation init():Classifier
+    if metaPackage = null 
+    then self.metaPackage := XCore
+    end;
+    self.initOperations();
+    self.initParents();
+    super()
+  end
+  
+context Package
+  @Operation isMetaPackage():Boolean
+    self.inheritsFrom(XCore)
+  end
+  
+context Package
+  @Operation metaPackage():Package
+    if metaPackage = null
+    then XCore
+    else metaPackage
+    end
+  end
+
+context Package
+
+  // Remove an element from a package. Needs to be redefined
+  // from the inherited NameSpace::remove because a package is 
+  // a namespace for operations, packages and classes.
+  
+  @Operation remove(n:NamedElement):Classifier
+    if n.isKindOf(Operation)
+    then 
+      self.removeOperation(n); 
+      super(n)
+    else
+      if n.isKindOf(Package)
+      then 
+        self.removePackage(n);
+        super(n)
+      else 
+        if n.isKindOf(Class)
+        then 
+          self.removeClass(n);
+          super(n)
+        else super(n)
+        end
+      end
+    end
+  end
+  
+context Package 
+  @Operation removeClass(class)
+    //class.removeFromOwner();
+    self.classes := classes->excluding(class)
+  end
+  
+context Package
+  @Operation removePackage(package)
+    //package.removeFromOwner();
+    self.packages := packages->excluding(package)
+  end
+  
+context Package
+  @Operation repopulate(namedElement:NamedElement):Boolean
+    if namedElement.isReallyKindOf(Package)
+    then 
+      super(namedElement);
+      @For newClass in namedElement.classes do
+        @Find(oldClass,classes)
+          when oldClass.name() = newClass.name()
+          do oldClass.repopulate(newClass)
+          else self.add(newClass)
+        end
+      end;
+      @For newPackage in namedElement.packages do
+        @Find(oldPackage,packages)
+          when oldPackage.name() = newPackage.name()
+          do oldPackage.repopulate(newPackage)
+          else self.add(newPackage)
+        end
+      end;
+      true
+    else false
+    end
+  end

@@ -1,0 +1,21 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class BoolNot extends Guard
+  
+    @Attribute guard  : Guard (?) end
+    
+    @Constructor(guard) end
+    
+    @Operation eval(env):Boolean
+      not guard.eval(env)
+    end
+    
+  end

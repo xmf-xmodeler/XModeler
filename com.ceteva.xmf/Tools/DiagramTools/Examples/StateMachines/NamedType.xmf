@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import StateMachines;
+
+context StateMachines
+
+  @Class NamedType extends Type
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+    @Operation javaTypeName():String
+      @Case name of
+        "Integer" do "int" end
+        "Boolean" do "boolean" end
+        "String" do "java.lang.String" end
+        else name
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,name)
+    end
+    
+  end

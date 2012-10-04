@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable 
+
+  @Class Handler extends Syntax
+  
+    @Attribute pattern : EventPattern end
+    @Attribute body    : Exp end
+    
+    @Constructor(pattern,body) ! end
+    
+    @Operation handleEvent(target,class,args)
+      
+      // In order to handle the event, the class and args must match
+      // the pattern. The resulting environment is used as the context
+      // for performing the body of the handler.
+      
+      pattern.handleEvent(target,class,args,body)
+      
+    end
+    
+  end

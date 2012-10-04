@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import XCore;
+import Clients::Menus;
+
+context Class
+  @Operation newAttributeHandler(type)
+    @Operation newAttribute()
+      let
+        name = self.newName("att") then
+        attribute = XCore::Attribute(name,type)
+      in
+        self.add(attribute);
+        attribute.init()
+      end
+    end
+  end
+  
+context Class
+  @Operation newOtherAttributeHandler()
+    @Operation newOtherAttribute()
+      let 
+        metaClasses = self.owner.metaPackage.allContents()->select(c | c.isKindOf(Class) and c <> null) then
+        attributes = metaClasses->select(a | a.allParents()->includes(Attribute))->asSeq then
+        attributeOf = xmf.select("Attribute class","Please choose a metaclass for the attribute",attributes,null,null)
+      in
+        if attributeOf <> null
+        then
+          let
+            dataType = Seq{Integer,String,Boolean,Float} then
+            type = xmf.select("Attribute type","Please choose a type for the attribute",dataType,null,null)
+          in
+            if type <> null
+            then
+              let
+                name = self.newName("att") then
+                attribute = attributeOf(name,type)
+              in
+          		self.add(attribute);
+          		attribute.init()
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+context Class
+  @Operation newConstructor()
+    let constructor = @Constructor() end
+    in
+      self.add(constructor)
+    end
+  end
+  

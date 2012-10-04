@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Switch extends Statement
+  
+    @Attribute exp         : JExp        (?) end
+    @Attribute cases       : Seq(Case)   (?) end
+    @Attribute defaultCase : DefaultCase (?) end
+    
+    @Constructor(exp,cases,defaultCase) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"switch(");
+      exp.pprint(out);
+      format(out,") {");
+      @For case in cases do
+        format(out,"~%~V",Seq{indent+2});
+        case.pprint(out,indent+2)
+      end;
+      if defaultCase <> null
+      then 
+        format(out,"~%~V",Seq{indent+2});
+        defaultCase.pprint(out,indent+2)
+      end;
+      format(out,"~%~V}",Seq{indent})
+    end
+    
+  end

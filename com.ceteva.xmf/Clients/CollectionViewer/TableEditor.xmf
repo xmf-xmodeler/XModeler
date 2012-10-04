@@ -1,0 +1,116 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class TableEditor extends CollectionForm
+
+    @Attribute tableDisplay : TableEditorTable end
+    @Attribute padding : FormLabel end
+    @Attribute addButton : FormButton end
+    @Attribute newKeyDaemon : Daemon end
+    @Attribute keyRemovedDaemon : Daemon end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+          layoutManager.add(self.selfDisplays());
+          layoutManager.addSeparator();
+          self.tableDisplay := TableEditorTable(element,0,0);
+          layoutManager.add(Seq{tableDisplay});
+          layoutManager.layoutContents();
+          
+          // add 'Add Table Item' button and padding (a reference needs to be
+          //  maintained to them in case the table expands or contracts...
+          let handler =
+            @Operation()
+              self.addTableItem()
+            end
+          in
+            self.addButton := FormButton(layoutManager.x,layoutManager.y+15,630,20,"Add Table Item",handler);
+            self.addElement(addButton)
+          end;
+          self.padding := FormLabel(layoutManager.x+40,layoutManager.y+40," ");
+          self.addElement(padding)
+          
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+    
+    @Operation addTableItem()
+      let keyExp = xmf.getExp("Enter Key","Enter an expression to evaluate for the key.");
+          key = null;
+          valueExp = null;
+          value = null
+      in
+        if keyExp <> null
+        then
+          key := keyExp.eval(self,Env::NullEnv(),Seq{XCore,Root});
+          valueExp := xmf.getExp("Enter Value","Enter an expression to evaluate for the value.");
+          if valueExp <> null
+          then
+            value := valueExp.eval(self,Env::NullEnv(),Seq{XCore,Root});
+            element.put(key,value)
+          end
+        end
+      end
+    end
+
+    @Operation checkDaemons()
+      let rowHeight = FormTable::ROW_HEIGHT
+      in
+        if newKeyDaemon = null
+        then
+          self.newKeyDaemon := 
+            element.addNewKeyDaemon(
+              @Operation(key,value)
+                tableDisplay.elementAdded(key,value);
+                padding.move(padding.x,padding.y+rowHeight);
+                addButton.move(addButton.x,addButton.y+rowHeight)
+              end
+            ,self)
+        end;
+        if keyRemovedDaemon = null
+        then
+          self.keyRemovedDaemon := 
+            element.addKeyRemovedDaemon(
+              @Operation(key,value)
+                tableDisplay.elementRemoved(key);
+                padding.move(padding.x,padding.y-rowHeight);
+                addButton.move(addButton.x,addButton.y-rowHeight)
+              end
+            ,self)
+        end
+      end
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+
+    @Operation formHistoryType()
+      Clients::CollectionViewer::CollectionForm
+    end
+
+    @Operation initForm()
+      super();
+      self.typeName := "Collection";
+      self.itemName := "<Table>";
+      self.initialize();
+      self.layoutManager := CollectionFormLayoutManager(self);
+      self.collection := element;
+      self.checkDaemons()
+    end
+
+    @Operation removeDaemons()
+      element.removeDaemon(newKeyDaemon);
+      element.removeDaemon(keyRemovedDaemon);
+      self.newKeyDaemon := null;
+      self.keyRemovedDaemon := null
+    end
+
+  end

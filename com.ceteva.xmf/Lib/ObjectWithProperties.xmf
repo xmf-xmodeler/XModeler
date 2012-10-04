@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+context Root
+
+  @Class ObjectWithProperties
+  
+    @Doc
+      An object with properties maintains a table associating
+      keys with values. This class provides the interface for
+      working with the table. It is inten-ded for use in classes
+      that need state on an instance by instance basis.
+    end
+    
+    @Attribute properties : Seq(Element) end
+    
+    @Operation hasProperty(key):Boolean
+      properties->binds(key)
+    end
+    
+    @Operation property(key)
+      properties->lookup(key)
+    end
+    
+    @Operation setProperty(key,value)
+      self.properties := properties->set(key,value)
+    end
+    
+  end

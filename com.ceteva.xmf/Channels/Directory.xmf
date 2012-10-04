@@ -1,0 +1,219 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class Directory extends File, NameSpace
+  
+    @Doc
+      A Directory is a model of a directory in the file system 
+    end
+    
+    @Bind depthLimit = 3 end
+    
+    @Attribute filters : Seq(String) end
+    @Attribute depth   : Integer end
+    
+    @Constructor(name)
+    end
+    
+    @Constructor(name,filters)
+      self.init(Seq{name,filters,0})
+    end
+    
+    @Constructor(name,filters,depth)
+      self.init(Seq{null,name,filters,0})
+    end
+
+    @Constructor(owner,name,filters,depth)
+      self.build(depth)
+    end
+    
+    @Operation build(depth)
+      if depth = 0-1 //or (not xmf.hasPreference("FileDepth"))
+      then
+        self.buildFileTree(0-1)
+      else
+        if depth < Directory::depthLimit
+        then
+          let d = depth + 1
+          in
+            self.buildFileTree(d + 1)
+          end
+        end
+      end
+    end
+
+    @Operation buildFileTree(depth)
+      let contents = self.getContents() in
+        @For content in contents do
+          let fullPath = self.fullPath() + "/" + content in
+            if self.isDir(fullPath) then
+              self.add(Directory(self,Symbol(content.toString()),filters,depth))
+            else
+              let fileType = self.getFileTypeForFileName(content.toString()) in
+                self.add(fileType(self,Symbol(content.toString())))
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation isDir(name):Boolean
+      Kernel_isDir(name)
+    end
+
+    @Operation generateFileName(extension:String)
+      let
+        i = 0 then
+        name = "File" + i + "." + extension
+      in
+        @While (self.fullPath() + "/" + name).fileExists() do
+          i := i+1;
+          name := "File" + i + "." + extension
+        end;
+        name
+      end  
+    end
+  
+    @Operation generateDirName()
+      let
+        i = 0 then
+        name = "Dir"+i
+      in
+        @While (self.fullPath() + "/" + name).fileExists() do
+          i := i+1;
+          name := "Dir"+i
+        end;
+        name
+      end
+    end
+    
+    @Operation getContents():Seq(String)
+      Kernel_dirContents(self.fullPath(),filters)
+    end
+    
+    @Operation getExtension(name:String)
+      let splitSeq = name.splitBy(".",0,0) then
+          extension = if splitSeq->size>1
+                      then splitSeq->last
+                      else ""
+                      end
+      in
+        extension
+      end
+    end
+    
+    @Operation getFileTypeForFileName(name:String)
+      File
+    end
+    
+    @Operation newFile(name:String,type:Class)
+      self.newFile(name,type,"")
+    end
+
+    @Operation newFile(name:String,type:Class,content:String)
+      let fout = FileOutputChannel(self.fullPath()+"/"+name) in
+        format(fout,"~S",Seq{content});
+        fout.close();
+        let newFile = type(self,Symbol(name.toString())) in
+          self.add(newFile);
+          newFile
+        end
+      end
+    end
+
+    @Operation newDirectory(name:String)
+      (self.fullPath() + "/" + name).mkDir();
+      let newDirectory = Directory(self,Symbol(name.toString()),filters,depth) in
+        self.add(newDirectory);
+        newDirectory
+      end
+    end
+
+/*    @Operation paste()
+      let clipboard = IO::File::clipboard
+      in
+        if clipboard <> null
+        then
+          let
+            source = clipboard.fullPath();
+            sourceFilename = clipboard.name() then
+            target = self.fullPath() + "/" + sourceFilename
+          in
+            if target.fileExists() then
+              let value = xmf.getString("Paste","The file " + sourceFilename + " already exists.\nPlease enter a new Filename","CopyOf"+sourceFilename)
+              in
+                if value <> null then
+                  target := self.fullPath() + "/" + value
+                else
+                  target = ""
+                end  
+              end
+            end;
+            if target <> "" then
+              source.copyFile(target);
+              self.refreshFileTree()
+            end
+          end
+        end
+      end
+    end
+*/
+    @Operation refreshFileTree()
+      let files = self.getContents() in
+        @For file in files do
+          if not self.contents.hasKey(Symbol(file.toString())) then
+            let
+              fullPath = self.fullPath() + "/" + file then
+              newFile = 
+                if self.isDir(fullPath) then
+                  Directory(self,Symbol(file.toString()),filters,depth)
+                else
+                  let fileType = self.getFileTypeForFileName(file.toString()) in
+                    fileType(self,Symbol(file.toString()))
+                  end
+                end
+            in
+              self.add(newFile)
+            end
+          else
+            let foundFile = self.contents.get(Symbol(file.toString())) in
+              if foundFile.isKindOf(Directory) then
+                foundFile.refreshFileTree()
+              end
+            end
+          end
+        end;
+        let fileNames = files->iterate(f S=Seq{} | S->prepend(Symbol(f.toString()))) in
+          @For contentName inTableKeys self.contents do
+            if not fileNames.contains(Symbol(contentName.toString())) then
+              self.remove(self.contents.get(Symbol(contentName.toString())))
+            end
+          end
+        end
+        
+      end
+    end
+
+    @Operation search(pattern:String):ResourcePosition
+      let positions = self.contents()->collect(c | c.search(pattern))->reject(p | p = null);
+          dirPosition = DirectoryPosition(self)
+      in if positions->isEmpty
+         then null
+         else
+           @For position in positions do
+             dirPosition.add(position)
+           end;
+           dirPosition
+         end
+      end
+    end
+    
+    @Operation tempDir(prefix:String,dir:String)
+      Kernel_tempDir(prefix,dir)
+    end
+
+  end

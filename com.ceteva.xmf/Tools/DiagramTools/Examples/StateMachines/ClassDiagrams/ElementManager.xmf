@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+context StateMachines::Package::ClassDiagrams
+  @ElementManager PackageManager !
+  end
+
+  

@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Tools;
+import Data;
+
+context Data
+
+  @Class XToolData isabstract
+  
+    // Serialization data for an XTool. Should be
+    // speicalized for different types of tool...
+    
+    @Attribute managerData : XManagerData (?) end
+    
+  end
+    
+    

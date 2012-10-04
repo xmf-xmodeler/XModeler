@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class CreationButton isabstract extends ToolButton
+  
+  end
+  

@@ -1,0 +1,301 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Structure;
+import Evaluator;
+import IO;
+import Env;
+import Stacks;
+import OCL;
+
+context Evaluator
+
+  @Class XDB extends Tool
+  
+    @Bind STEP = 1 end
+    @Bind SKIP = 2 end
+  
+    @Attribute exp : Performable end
+    @Attribute trees : Stack = Stack() end
+    @Attribute pp : PPrint = PPrint(null) end
+    @Attribute eval : Eval = Eval() end
+    @Attribute isResult : Boolean end
+    @Attribute breakPoints : Set(Performable) (+,-) end
+    @Attribute evalAction : Operation end
+    @Attribute mode : Integer = XDB::STEP end
+    @Attribute skip : Performable end
+    @Attribute calls : Call = Call("<entry point>") end
+    
+    @Constructor(exp)
+      self.init(Seq{XDBTool,"Code Manager",XDBManager,null});
+      trees.push(AST(exp));
+      self.setEvalAction();
+      XDB::nextAction.setTarget(self);
+      XDB::resultAction.setTarget(self);
+      XDB::callAction.setTarget(self);
+      XDB::returnAction.setTarget(self)
+    end
+    
+    @Operation callAction(name,exp,cont)
+      trees.push(AST(exp));
+      calls.setExp(self.exp);
+      calls.setTarget(eval.target());
+      calls.setNameSpaces(eval.imports());
+      calls.setEnv(eval.env());
+      self.calls := Call(name,calls);
+      self.exp := exp;
+      cont()
+    end
+    
+    @Operation calls()
+      @Letrec
+        calls =
+          @Operation(c)
+            if c = null
+            then Seq{}
+            else Seq{c | calls(c.previous())}
+            end
+          end
+      in calls(self.calls)
+      end
+    end
+    
+    @Operation back()
+      pp.deselect(trees.top().current().exp(),"SELECTION");
+      trees.top().back();
+      pp.select(trees.top().current.exp(),"SELECTION",
+        @Operation(out,exp,arg,cont)
+          format(out,"->");
+          cont();
+          format(out,"<-")
+        end);
+      self.displaySource()
+    end
+    
+    @Operation break()
+      if breakPoints->includes(trees.top().current().exp())
+      then
+        self.deleteFromBreakPoints(trees.top().current().exp());
+        pp.deselect(trees.top().current().exp(),"BREAK");
+        self.displaySource()
+      else
+        self.addToBreakPoints(trees.top().current().exp());
+        pp.select(trees.top().current().exp(),"BREAK",
+          @Operation(out,exp,arg,cont)
+            format(out,"!");
+            cont();
+            format(out,"!")
+          end);
+       self.displaySource()
+     end
+    end
+    
+    @Operation displayBindings()
+      let text = ""
+      in @For name in eval.env.dom() do
+           text := text + name + " = " + eval.env.lookup(name).toString() + "\n"
+         end;
+         self.form().ref1(Seq{"Context","Bindings"}).setTextIn(text)
+      end
+    end
+    
+    @Operation displayCall(call)
+      xmf.message(call.toString())
+    end
+    
+    @Operation displayImports()
+      let text = ""
+      in @For nameSpace in eval.imports() do
+           text := text + nameSpace.path();
+           if not isLast then text := text + "\n" end
+         end;
+         self.form().ref1(Seq{"Context","Imports"}).setTextIn(text)
+      end
+    end
+     
+    @Operation displaySource()
+      let sout = StringOutputChannel();
+          isResult = isResult
+      in pp.reset();
+         pp.setOut(sout);
+         pp.select(exp,"EVAL",
+           @Operation(out,exp,arg,cont)
+             if isResult
+             then format(out,"{")
+             else format(out,"[")
+             end;
+             cont();
+             if isResult
+             then format(out,"}")
+             else format(out,"]")
+             end
+           end);
+         pp.dispatch(trees.top().root().exp());
+         pp.deselect(exp,"EVAL");
+         self.form().ref1(Seq{"Display","Source"}).setTextIn(sout.getString());
+         self.displaySelf();
+         self.displayImports();
+         self.displayBindings();
+         self.displayCalls()
+      end
+    end
+    
+    @Operation displayCalls()
+      let textBox = self.form().ref1(Seq{"Context","Calls"});
+          text = "";
+          c = calls
+      in @While c <> null do
+           text := text + c.toString() + "\n";
+           c := c.previous()
+         end;
+         textBox.setTextIn(text)
+      end
+    end
+    
+    @Operation displayValue(value)
+      self.form().ref1(Seq{"Context","Value"}).setText("Value = " + value.toString())
+    end
+    
+    @Operation displaySelf()
+      self.form().ref1(Seq{"Context","Self"}).setText("Self = " + eval.target.toString())
+    end
+    
+    @Operation editBinding()
+      let env = eval.env() then
+          names = env.dom()
+      in if not names->isEmpty
+         then 
+           let name = xmf.select("Var Name","Choose a variable name",names,null)
+           in if not name = ""
+              then env.lookup(name).edit()
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation editImport()
+    
+      // Select and edit an imported name space...
+      
+      let nameSpaces = eval.imports()
+      in if not nameSpaces->isEmpty
+         then  
+           let nameSpace = xmf.select("Imports","Select an imported name space",nameSpaces,null)
+           in if nameSpace <> null
+              then nameSpace.edit()
+              end
+           end
+         end
+       end
+    end
+    
+    @Operation editSelf()
+      eval.target().edit()
+    end
+    
+    @Operation eval()
+      evalAction(XDB::nextAction,XDB::resultAction,XDB::callAction,XDB::returnAction)
+    end
+    
+    @Operation setEvalAction()
+      self.evalAction :=
+        @Operation(next,result,call,return)
+          eval.eval(
+            trees.top().root().exp(),
+            NullEnv(),
+            null,
+            Seq{XCore,Root},
+            next,
+            result,
+            call,
+            return,
+            @Operation(value)
+              self.exp := trees.top().root().exp();
+              self.isResult := true;
+              self.displaySource();
+              self.displayValue(value)
+            end)
+         end
+     end
+    
+    @Operation next()
+      pp.deselect(trees.top().current.exp(),"SELECTION");
+      trees.top().next();
+      pp.select(trees.top().current.exp(),"SELECTION",
+         @Operation(out,exp,arg,cont)
+           format(out,"->");
+           cont();
+           format(out,"<-")
+         end);
+      self.displaySource()
+    end
+    
+    @Operation nextAction(exp,cont)
+      if mode = XDB::STEP
+      then 
+        self.evalAction := cont;
+        self.isResult := false;
+        self.exp := exp;
+        self.displaySource()
+      elseif breakPoints->includes(exp)
+      then 
+        self.mode := XDB::STEP;
+        self.evalAction := cont;
+        self.isResult := false;
+        self.exp := exp;
+        self.displaySource()
+      else cont(XDB::nextAction,XDB::resultAction,XDB::callAction,XDB::returnAction)
+      end
+    end
+     
+    @Operation runOn()
+      self.mode := XDB::SKIP;
+      evalAction(XDB::nextAction,XDB::resultAction,XDB::callAction,XDB::returnAction)
+    end
+    
+    @Operation resultAction(exp,value,cont)
+      if mode = XDB::STEP
+      then 
+        self.exp := exp;
+        self.isResult := true;
+        self.displaySource();
+        self.displayValue(value);
+        self.evalAction := @Operation(a,b,c,d) cont(value) end
+      elseif skip = exp
+      then 
+        self.mode := XDB::STEP;
+        self.resultAction(exp,value,cont)
+      else cont(value)
+      end
+    end
+    
+    @Operation returnAction(cont)
+      trees.pop();
+      self.calls := calls.previous();
+      cont()
+    end
+    
+    @Operation selectCall()
+      let call = xmf.select("Select Call","Choose a call to display",self.calls(),null)
+      in if call <> null
+         then self.displayCall(call)
+         end
+      end
+   end
+    
+    @Operation skip()
+      self.mode := XDB::SKIP;
+      self.skip := exp;
+      evalAction(XDB::nextAction,XDB::resultAction,XDB::callAction,XDB::returnAction)
+    end
+    
+    @Operation showForm()
+      super();
+      self.displaySource()
+    end
+    
+    
+  
+  end

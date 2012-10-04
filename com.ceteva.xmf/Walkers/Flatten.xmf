@@ -1,0 +1,116 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+
+import Walkers;
+
+context Walkers
+
+  @Class Flatten extends Walker
+  
+    @Doc
+      An instance of this class can be used to flatten a value to produce a sequence
+      of constituent values. The predicate limits the extent of the walk.
+    end
+  
+    @Attribute predicate : Operation = @Operation(value) true end end  
+    @Attribute results   : Set(Element) (+,?) end // The values encountered.
+    
+    @Constructor(predicate) ! 
+      self.initWalker()
+    end
+    
+    @Operation defaultWalk(e:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation results()
+      results
+    end
+    
+    @Operation reWalk(v:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation walk(element:Element,limit:Element):Element
+      if limit <> 0
+      then
+        self.addToResults(element);
+        if predicate(element)
+        then super(element,limit)
+        end
+      end
+    end
+    
+    @Operation walkBoolean(b:Boolean,limit:Element):Element 
+      self.addToResults(b)
+    end
+     
+    @Operation walkInteger(i:Integer,limit:Element):Element 
+      self.addToResults(i)
+    end
+    
+    @Operation walkNull(limit:Element):Element 
+      self.addToResults(null)
+    end
+    
+    @Operation walkOperation (o:Operation,limit:Element):Element
+      self.addToResults(o)
+    end
+    
+    @Operation walkPreObject(o:Object,limit:Element)
+      null
+    end
+     
+    @Operation walkPostObject(o:Object,limit:Element)
+      o
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,limit:Element):Element 
+      self.addToResults(s);
+      if not s->isEmpty
+      then
+        self.walk(s->head,if limit = null then null else limit - 1 end);
+        self.walk(s->tail,if limit = null then null else limit - 1 end)
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,limit:Element):Element 
+      self.addToResults(s);
+      @For x in s do
+        self.walk(x,if limit = null then null else limit - 1 end)
+      end
+    end
+     
+    @Operation walkSlot(o:Object,s:String,limit:Element)
+      let value = o.get(s)
+      in self.walk(value,if limit = null then null else limit - 1 end)
+      end
+    end
+    
+    @Operation walkString(s:String,limit:Element):Element 
+      self.addToResults(s)
+    end
+    
+    @Operation walkSymbol(s:Symbol,limit:Element):Element 
+      self.addToResults(s)
+    end
+    
+    @Operation walkTable(t:Table,limit:Element):Element
+      self.addToResults(t);
+      @For key in t.keys() do
+        self.walk(key,if limit = null then null else limit - 1 end);
+        self.walk(t.get(key),if limit = null then null else limit - 1 end)
+      end;
+      t
+    end
+    
+    @Operation walkVector(v:Vector,limit:Element):Element
+      self.addToResults(v);
+      @Count i from 0 to v.size() - 1 do
+        self.walk(v.ref(i),if limit = null then null else limit - 1 end)
+      end
+    end
+     
+  end
+    

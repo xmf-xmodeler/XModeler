@@ -1,0 +1,182 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Manifests;
+import LoadTime;
+import Exceptions;
+
+context Manifests
+
+  @Class Ref extends ManifestEntry
+  
+    // A ref allows a manifest to reference another manifest entry that is
+    // defined in another file. Typically this is used so that one manifest
+    // can invoke another manifest. The reference can modify the current
+    // manifest path.
+    
+    @Attribute guard    : Exp                 end
+    @Attribute manifest : String = "Manifest" end
+  
+    @Constructor(guard,path) end
+    
+    @Constructor(guard,path,manifest) end
+    
+    @Constructor(guard,path,loadTime,manifest) ! end
+  
+    @Grammar extends ManifestAction.grammar
+    
+      Ref ::=  guard = ActionGuard loadTime = LoadTime path = MPath manifest = OptManifest {
+      
+        Ref(guard,path,manifest)
+        
+      }.
+      
+      OptManifest ::= '[' name = Name ']' { name } | { "Manifest" }.
+      
+    end
+    
+    @Operation absolutePath(dir:String):String
+      // If path starts with HOME then discard the relative directory dir....
+      let absolutePath = dir->subst(xmf.homeDir(),"HOME",true) + "/" + path 
+      in if absolutePath.fileExists()
+         then absolutePath
+         else
+           absolutePath := path->subst(xmf.homeDir(),"HOME",true);
+           if absolutePath.fileExists()
+           then absolutePath
+           else path
+           end
+         end
+      end
+    end
+    
+    @Operation build(dir:String)
+    
+      // We need to check that the referenced manifest is present
+      // and up to date. It is compiled if necessary before loading
+      // it and building it.
+      
+      self.manifest(dir).build(self.absolutePath(dir));
+      @Case loadTime of
+        [CompileTime] do
+          self.loadRef(dir,false)
+        end
+        [Both] do
+          self.loadRef(dir,false)
+        end
+        else null
+      end
+    end
+    
+    @Operation deleteBinary(dir:String)
+      let manifestFile = self.manifestBinary(dir)
+      in if manifestFile.fileExists()
+         then manifestFile.loadBin(true).deleteBinary(self.absolutePath(dir))
+         else throw FileNotFound(manifestFile)
+         end
+      end
+    end
+    
+    @Operation deref(dir)
+      self.manifest(dir).deref(self.absolutePath(dir))
+    end
+    
+    @Operation guardSatisfied():Boolean
+      guard = null orelse 
+      guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+    end
+    
+    @Operation load(dir:String,loadSource:Boolean)
+      @Case loadTime of
+        [RunTime] do
+          self.loadRef(dir,loadSource)
+        end
+        [Both] do
+          self.loadRef(dir,loadSource)
+        end
+        else null
+      end
+    end
+    
+    @Operation loadRef(dir,loadSource)
+      if self.guardSatisfied()
+      then 
+        let manifestFile = self.manifestBinary(dir)
+        in if manifestFile.fileExists()
+           then manifestFile.loadBin(true).load(self.absolutePath(dir),true,loadSource)
+           else throw FileNotFound(manifestFile)
+           end
+        end
+      end
+    end
+    
+    @Operation manifest(dir):Manifest
+      let source = self.manifestSource(dir);
+          binary = self.manifestBinary(dir)
+      in if source.fileExists() 
+         then 
+           if not binary.fileExists() or
+              (binary.fileExists() andthen binary.isOlder(source))
+           then 
+             let errors = Compiler::errors
+             in Compiler::compileFile(source,true,true);
+                if not Compiler::errors = errors
+                then self.error("Compilation errors in manifest.")
+                end
+             end
+           end;
+           binary.loadBin(true)
+         else throw FileNotFound(source)
+         end
+      end
+    end
+    
+    @Operation manifestFile(dir:String):String
+      self.absolutePath(dir) + "/" + manifest
+    end
+    
+    @Operation manifestBinary(dir:String):String
+      let binary = self.manifestFile(dir) + ".o"
+      in if binary.fileExists()
+         then binary
+         else 
+           let source = self.manifestSource(dir)
+           in if source.fileExists()
+              then 
+                let errors = Compiler::errors
+                in Compiler::compileFile(source,true,true);
+                   if not Compiler::errors = errors
+                   then self.error("Compilation errors in manifest.")
+                   else binary
+                   end
+                end
+              else self.error("Cannot find " + source)
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation manifestSource(dir:String):String
+      self.manifestFile(dir) + ".xmf"
+    end
+    
+    @Operation touch(dir:String,source:Boolean)
+      let manifestFile = self.manifestBinary(dir)
+      in if manifestFile.fileExists()
+         then manifestFile.loadBin(true).touch(self.absolutePath(dir),source)
+         else throw FileNotFound(manifestFile)
+         end
+      end
+    end
+    
+    @Operation unxip(zipFile:ZipFile,prefix:String)
+      Manifest::unxipManifest(zipFile,prefix + "/" + path)
+    end
+    
+    @Operation xip(dir:String,prefix:String,zout:ZipOutputChannel)
+      self.manifestBinary(dir).loadBin(true).xip(self.absolutePath(dir),prefix + "/" + path,zout)
+    end
+  
+  end

@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Try extends Statement
+  
+    @Attribute block    : Block      (?) end
+    @Attribute handlers : Seq(Catch) (?) end
+    
+    @Constructor(block,handlers) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"try ");
+      block.pprint(out,indent);
+      format(out,"~%~V",Seq{indent});
+      @For handler in handlers do
+        handler.pprint(out,indent);
+        if not isLast then format(out,"~%~V",Seq{indent}) end
+      end
+    end
+ 
+  end

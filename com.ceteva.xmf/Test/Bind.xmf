@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+"XMF name spaces can contain bindings. Name space reference involves".println();
+"looking up a named element. If the named element is an instance of Bind".println();
+"then the value of the Bind is returned. Otherwise the entire named value".println();
+"is returned. You should see 100 in the following example.".println();
+
+context Root
+  @Package P
+    // Define a constant in the package P.
+    @Bind x = 10 end
+    @Package Q
+      // Define a constant in the package Q.
+      @Bind y = 5 end
+      @Bind anInstanceOfC = C() end
+      @Class C
+        // Define a constant in the class C.
+        @Bind z = 2 end
+      end
+    end
+  end
+   
+let x = P::x;
+    y = P::Q::y;
+    z = P::Q::C::z
+in (x * y * z).println()
+end;
+
+let o = P::Q::anInstanceOfC
+in o.println()
+end;

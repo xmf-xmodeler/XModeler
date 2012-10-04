@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class XMLPackageInputChannel extends XMLInputChannel
+  
+    @Operation init(args)
+      self.inflater := PackageXMLInflater();
+      super(args)
+    end
+    
+    @Operation parse(owner:NameSpace)
+    
+      // The inflater leaves references to types as
+      // operation that return the appropriate values.
+      // Calling init on the inflated package will
+      // replace all these (or report errors where the
+      // referenced types are missing).
+      
+      let package = super()
+      in owner.add(package);
+         package.init()
+      end
+    end
+    
+  end

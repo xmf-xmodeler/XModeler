@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class CollectionListElement extends ListElement,RightClickableWithElement
+    
+    @Constructor(text,element) end
+
+    @Operation new(parent)
+      self.commandInterpreter().addItem(parent,self);
+      self.enableDrag();
+      //if element.isReallyKindOf(XCore::Object) then
+      //  self.setRightClickMenu()
+      //end;
+      self
+    end
+
+    @Operation dispose()
+      self.clearRightClickMenu();
+      super()
+    end
+
+    @Operation doubleSelected()
+      element.doubleClick()
+    end
+
+    @Operation getEditableText()
+      self.commandInterpreter().setEditableTextCommand(self,element.nameString())
+    end
+
+  end

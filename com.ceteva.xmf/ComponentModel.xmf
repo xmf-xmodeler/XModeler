@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Components;
+ 
+import Parser::BNF; 
+  
+Root::AModel :=
+
+@Package OldeEngland
+  @Component England 
+    @Component KingCharles 
+    end
+    @Component PeasantJames
+    end
+  end
+end;

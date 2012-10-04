@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class AbstractClassXNode isabstract
+
+    @Doc
+      This class is the abstract class for all classXnode classes, so that new
+      classXnode types are pluggable and can exhibit appropriate class-like behaviour,
+      such as adding attribute, association and inheritance edges.
+    end
+
+    @AbstractOp element():Element end // returns the mapping element
+    
+  end

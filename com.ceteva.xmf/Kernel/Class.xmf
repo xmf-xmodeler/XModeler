@@ -1,0 +1,339 @@
+parserImport XOCL; 
+
+context Class
+  @Operation add(n:Element):Classifier
+  
+    @Doc
+      Exte-nd the behaviour for 'add' inherited from
+      Classifier by taking attributes and constructors
+      into account.
+    end
+   
+    if n.isKindOf(Attribute)
+    then 
+      self.addAttribute(n); 
+      super(n)
+    elseif
+      n.isKindOf(Constructor)
+    then
+      self.addConstructor(n)
+    else 
+      super(n)
+    end
+  end
+  
+context Class
+  @Operation addAttribute(a:Attribute):Classifier
+  
+    @Doc
+       Adds an attribute to a class and sets the owner
+       of the attribute to be the class. Use Class::add
+       in preference to this since that will also add
+       the attribute to the contents table of the class.
+     end
+     
+    self.resolveNameClash(a.name,attributes);
+    a.setOwner(self);
+    self.attributes := attributes->including(a);
+    self
+  end
+  
+context Class
+  @Operation addConstructor(c:Constructor):Element
+  
+    @Doc
+      Add a constructor to a class. Use Class::add in
+      preference to this.
+    end
+
+    c.setOwner(self);
+    self.constructors := constructors + Seq{c}
+  end
+  
+context Class 
+  @Operation addOperation(o):Classifier
+  
+    @Doc
+       Obsolete.
+    end
+     
+    if o.name = "expander"
+    then self.expander := o; self
+    else super(o)
+    end
+  end
+  
+context Class 
+  @Operation allAttributes():Set(Attribute)
+  
+    @Doc
+      Get all the attributes that are defined and inherited by the
+      class. Refer to the 'attributes' attribute of a class to
+      get the locally defined attributes of a class.
+    end
+     
+    let allA = attributes;
+        allP = parents
+    in @While not allP->isEmpty do
+         let p = allP->sel
+         in allA := allA->union(p.attributes);
+            allP := allP->excluding(p)->union(p.parents)
+         end
+       end;
+       allA
+    end
+  end
+  
+context Class
+  @Operation allConstructors():Seq(Constructor)
+  
+    @Doc
+      Calculate a sequence of constructors in most specific 
+      to least specific order.
+    end
+     
+    parents->iterate(p C = constructors |
+      C + p.allConstructors())
+  end
+  
+context Class
+  @Operation defaultParents():Set(Classifier)
+  
+    @Doc
+      When a class is created its parents may not be specified
+      as part of the definition. The meta-class that is instantiated
+      can specify the default super-classes of the new class using
+      this operation. It is automatically called when the new
+      class is initialised. It is a useful way of stating that all
+      classes of a given type must inherit from a collection of
+      super-classes. The default is Object.
+    end
+     
+    Set{Object}
+  end
+
+context Class
+  // Recursively delete self and all contents
+  @Operation deleteRecursive()
+    super();
+    @For c in self.constructors do
+       c.deleteRecursive()
+    end;
+    self
+  end
+  
+context Class
+  @Operation dependencies():Set(Element)
+    attributes->iterate(a D = Set{} | D + a.dependencies()) +
+    super()
+  end 
+  
+context Class
+  @Operation getAttribute(name:String):Attribute
+  
+    @Doc
+      Get an attribute using its name. Be aware that atttibutes, like
+      all instances of NamedElement use symbols for names. The name
+      argument supplied to 'getAttribute' can be a string or a symbol.
+    end
+    
+    // No consing...
+    
+    let attribute = null;
+        A = attributes->asSeq;
+        P = parents->asSeq;
+        name = name.toString()
+    in @While not A->isEmpty and attribute = null do
+         if A->head.name.name = name
+         then attribute := A->head
+         else A := A->tail
+         end
+       end;
+       @While not P->isEmpty and attribute = null do
+         attribute := P->head.getAttribute(name);
+         P := P->tail
+       end;
+       attribute
+    end
+    
+  end
+  
+context Class
+  @Operation getConstructor(arity:Integer):Constructor
+    
+    @Doc
+      Return the most specific constructor with the given arity
+      or null if no constructor exists.
+    end
+     
+    let cnstrs = self.allConstructors()->select(c | c.names->size = arity)
+    in if cnstrs->isEmpty
+       then null
+       else cnstrs->head
+       end
+    end
+  end
+  
+context Class
+  @Operation getInstanceSlot(object,name)
+    @Doc
+      Part of the MOP. Redefine in sub-classes to implement a specific
+      slot access protocol.
+    end
+    Kernel_setDefaultGetMOP(object.of(),true);
+    Kernel_getSlotValue(object,name)
+  end
+  
+context Class 
+  @Operation hasAttribute(name:String):Boolean
+    self.attributes->exists(att | att.name.toString() = name.toString())
+  end
+  
+context Class
+  @Operation hasInstanceSlot(object,name)
+    @Doc
+      Part of the MOP. Redefine in sub-classes to implement a specific
+      slot existence protocol.
+    end
+    Kernel_hasSlot(object,name)
+  end
+  
+context Class
+  @Operation init():Element
+  
+    @Doc
+      Initialise a class by initialising the attributes and then 
+      initialising as a classifier.
+    end
+  
+    self.attributes->iterate(a ignore = null | a.init());
+    super()
+  end
+
+context Class
+  @Operation new():Object
+  
+    @Doc
+      Create a new instance of a class. Each attribute becomes a slot
+      in the new instance and the values of the slots are the default
+      values of the corresponding attributes. Once the new object has 
+      been created, it is sent an 'init/0' message. Therefore, objects
+      are initialised on a type-by-type basis. Note that there are two
+      versions of 'new': this one 'new/0' that takes no arguments and
+      uses 'init/0' to initialise the object; 'new/1' that takes
+      initialisation arguments. In general, avoid using 'new' to
+      instantiate classes and apply the class to initialisation arguments
+      instead.
+    end
+  
+    let o = Kernel_mkObj();
+        A = self.allAttributes()
+    in Kernel_setOf(o,self);
+       @While not A->isEmpty do
+         let a = A->sel
+         in if a.init <> null
+            then Kernel_addAtt(o,a.name,a.init.invoke(o,Seq{}))
+            else Kernel_addAtt(o,a.name,a.type.default())
+            end;
+            A := A->excluding(a)
+         end
+       end;
+       if self.inheritsFrom(Classifier)
+       then o.parents := o.defaultParents()
+       else o
+       end;
+       o.init()
+    end
+  end
+  
+context Class
+  @Operation remove(n:NamedElement):Classifier
+  
+    @Doc
+      Exte-nd the behaviour inherited from Classifier by
+      taking attributes into account. The argument is a named
+      element to be removed from the receiver.
+    end
+  
+    if n.isKindOf(Attribute)
+    then
+      self.removeAttribute(n);
+      super(n)
+    elseif n.isKindOf(Constructor)
+    then
+      self.removeConstructor(n);
+      super(n)
+    else
+      super(n)
+    end
+  end
+  
+context Class
+  @Operation removeAttribute(a:Attribute):Classifier
+  
+    @Doc
+      Remove an attribute supplied as an argument. Use 'remove/1'
+      in preference to this operation.
+    end
+     
+    //a.removeFromOwner();
+    self.attributes := attributes->excluding(a)
+  end
+
+context Class
+  @Operation removeConstructor(c:Constructor):Classifier
+    //c.removeFromOwner();
+    self.constructors := constructors->excluding(c)
+  end
+  
+context Class
+  @Operation repopulate(namedElement:NamedElement):Boolean
+    if namedElement.isReallyKindOf(Class)
+    then 
+      super(namedElement);
+      self.isAbstract := namedElement.isAbstract;
+      @For sourceAttribute in namedElement.attributes do
+        @Find(targetAttribute,attributes)
+          when targetAttribute.name() = sourceAttribute.name()
+          do targetAttribute.repopulate(sourceAttribute)
+          else self.add(sourceAttribute)
+        end
+      end;
+      self.constructors := namedElement.constructors;
+      true
+    else false
+    end
+  end
+
+context Class
+  @Operation setInstanceSlot(object,name,value)
+    @Doc
+      Part of the MOP. Redefine in sub-classes to implement a specific
+      slot update protocol.
+    end
+    Kernel_setDefaultSetMOP(object.of(),true);
+    Kernel_setSlotValue(object,name,value)
+  end
+
+context Class
+  @Operation VMNew()
+  
+    // Caches constructor args when the class instantiation may be completely
+    // performed at the VM level...
+    
+    if Kernel_objIsNotVMNew(self) 
+    then false
+    else
+      let init_1 = self.getOperation("init",1);
+          init_0 = self.getOperation("init",0)
+      in if init_1.owner() = Object andthen init_0.owner() = Element andthen
+            self.allConstructors()->forAll(c | c.body() = null) andthen
+            self.allAttributes()->forAll(a | a.isStatic())
+         then let C = self.allConstructors()
+              in Kernel_setConstructorArgs(self,C->collect(c | c.names->collect(n | Symbol(n))))
+              end
+         else Kernel_objSetNotVMNew(self,true)
+         end
+      end
+    end
+  end

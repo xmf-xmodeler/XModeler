@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class SourceChanged extends Change
+  
+    @Attribute edge : Edge (?) end
+    @Attribute new  : Node (?) end
+    @Attribute old  : Node (?) end
+    
+    @Constructor(edge,new,old) ! end
+    
+    @Operation raisedName():String
+      edge.type().name() + "_Source_Changed"
+    end
+    
+  end

@@ -1,0 +1,23 @@
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Case
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Case ::= values = CaseExps 'of' arms = Arm* default = Default { Case(values,arms,default) }.
+    
+    Arm ::= patterns = CasePatterns 'do' action = ArmAction 'end' { CaseArm(patterns,action) }.
+    
+    ArmAction ::= e = Exp ('where' bs = Bindings { Let(bs,e) } | {e}).
+    
+    Default ::= 'else' Exp | { null }.
+    
+    CaseExps ::= exp = Exp exps = (',' Exp)* { Seq{exp | exps} }.
+    
+    CasePatterns ::= pattern = Pattern patterns = (',' Pattern)* { Seq{pattern | patterns} }.
+    
+  end 

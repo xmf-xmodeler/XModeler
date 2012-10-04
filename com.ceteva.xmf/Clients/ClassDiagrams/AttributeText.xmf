@@ -1,0 +1,85 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AttributeText extends Group
+  
+    @Attribute name      : AttributeName end
+    @Attribute metaclass_ : String end
+    @Attribute type      : AttributeType end
+    
+    @Constructor(name,metaclass_,type,x,y) !
+    
+      // Expects to be supplied with name:String and type:String.
+      
+      self.name := AttributeName(name,x+5,y);
+      if metaclass_ <> "" then
+        self.type := AttributeType("<<" + metaclass_ + ">> " + type,x + 50,y)
+      else
+        self.type := AttributeType(type,x + 50,y)
+      end;
+      
+      // A group should not have any Display attributes set.
+      
+      self.x := 0;
+      self.y := 0
+    end
+  
+    @Operation addDisplays()
+      self.add(name);
+      self.add(type)
+    end
+    
+    @Operation editName()
+      name.editText()
+    end
+
+    @Operation moveDown()
+      let height = 16
+      in
+        name.move(name.x,name.y-height);
+        type.move(type.x,type.y-height)
+      end
+    
+      /* @Count i from 1 to 16 do
+        name.move(name.x,name.y-1);
+        type.move(type.x,type.y-1)
+      end */
+    end
+    
+    @Operation name():String
+      name.text
+    end
+    
+    @Operation resized(display)
+    
+      // If the name has resized then the type
+      // may need to move along accordingly.
+      
+      if type.x() < (name.x() + name.width()) or
+         type.x() > (name.x() + name.width() + self.separator())
+      then 
+        type.move(name.x() + name.width() + self.separator(),type.y());
+        owner.resized(self)
+      end
+    end
+    
+    @Operation setName(name)
+      self.name.setText(name)
+    end
+    
+    @Operation separator()
+      // Between the name and the type...
+      10
+    end
+    
+    @Operation type():Classifier
+      type.type()
+    end
+   
+  end

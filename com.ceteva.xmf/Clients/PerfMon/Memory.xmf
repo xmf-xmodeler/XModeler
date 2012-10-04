@@ -1,0 +1,210 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+import Graphs;
+import PerfMon;
+
+context PerfMon
+
+  @Class Memory extends Graph
+  
+    // This class is used to draw graphs showing how XMF is using its heap.
+    // Each time the VM garbage collects, a new memory structure is created
+    // recording the current allocation of VM data structures.
+  
+    @Attribute showTypes : Vector = Vector(29) end
+    
+    @Attribute memRatio : Integer = 5000 end
+  
+    @Constructor()
+    
+      // The graph canvas is 700 x 700 and the axis scales are 70 x 70.
+      // It is unlikely that any single measure will go above 70%.
+      
+      self.init(Seq{"Memory Monitor",700,700,70,70});
+      self.dx := 50;
+      @Count i from 0 to 28 do
+        showTypes.put(i,true)
+      end;
+      self.setMenuKey(Set{Element,self.of()})
+    end
+/*    
+    @Operation addMenus()
+      let show = MenuItems("Show")
+      in self.add(MenuAction("Help",target,Seq{},Memory::help));
+         self.add(MenuAction("GC",target,Seq{},gc));
+         self.add(showMenu);
+         @Count i from 0 to 28 do
+           let tagName = self.tagName(i)
+           in if tagName <> "?"
+              then showMenu.add(MenuAction(self.tagName(i),self,Seq{i},Memory::showJust))
+              end
+           end
+         end;
+         showMenu.add(MenuAction("All",target,Seq{},Memory::showAllTypes));
+         showMenu.add(MenuAction("Cumulative",target,Seq{},Memory::showCumulative))
+      end
+    end
+*/
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget;
+          showMenu = MenuItems("Show")
+      in
+        globalMenu.add(MenuAction("Help",target,Seq{},Memory::help));
+        globalMenu.add(MenuAction("GC",target,Seq{},gc));
+        globalMenu.add(showMenu);
+        @Count i from 0 to 28 do
+          let tagName = self.tagName(i)
+          in if tagName <> "?"
+             then showMenu.add(MenuAction(tagName,target,Seq{i},Memory::showJust))
+             end
+          end
+        end;
+        showMenu.add(MenuAction("All",target,Seq{},Memory::showAllTypes));
+        showMenu.add(MenuAction("Cumulative",target,Seq{},Memory::showCumulative));
+        globalMenu
+      end
+    end
+
+    @Operation close()
+      owner.remove(self);
+      PerfMon::perfMon := null
+    end
+    
+    @Operation drawCumulative()
+    
+      // Show the historic heap usage as a percentage of the total
+      // available heap.
+      
+      let records = xmf.memory()->reverse;
+          heapSize = xmf.heapSize();
+          xinc = ((xscale - 20)/24).floor() then
+          x = 0; 
+          firstRecord = records->head then
+          data = firstRecord->tail->tail then
+          y = ((self.totalMemory(data) / heapSize) * 100).floor()
+      in @For record in records->tail do
+           let data = record->tail->tail then
+               allocated = ((self.totalMemory(data) / heapSize) * 100).floor();
+               nextx = x + xinc
+           in self.addToLines(Line(x,y,nextx,allocated,Diagrams::Color(0-1,0-1,0-1)));
+              x := nextx;
+              y := allocated
+           end
+         end
+      end
+    end
+    
+    @Operation drawMemory()
+    
+      // Show the historic data structure usage as a percentage of the allocated
+      // memory.
+      
+      let colors = ColorGenerator();
+          records = xmf.memory()->reverse;
+          xinc = ((xscale - 20)/24).floor()
+      in @Count i from 0 to 28 do
+           if showTypes.ref(i) andthen not records->forAll(record | record->tail->tail.ref(i) = 0)
+           then
+             let color = colors.next();
+                 x = 0; 
+                 firstRecord = records->head then
+                 usedMem = firstRecord->tail->head;
+                 data = firstRecord->tail->tail then
+                 y = ((data.ref(i) / usedMem) * 100).floor()
+             in @For record in records->tail do
+                  let usedMem = record->tail->head;
+                      data = record->tail->tail then
+                      allocated = ((data.ref(i) / usedMem) * 100).floor();
+                      nextx = x + xinc
+                  in self.addToLines(Line(x,y,nextx,allocated,color));
+                     x := nextx;
+                     y := allocated
+                  end
+                end;
+                self.addToLabels(Label(self.tagName(i),x,y,false))
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation help()
+      xmf.message(
+        "The XMF-Mosaic PerfMon tool allows you to interactively investigate the\n" +
+        "memory usage of your application. Each time XMF performs a garbage collect,\n" +
+        "the memory usage is recorded in terms of the basic VM data types that are\n" +
+        "currently allocated. The historic data is displayed in PerfMon using the\n" +
+        "percentage of allocated memory on the y-axis and time on the x-axis.\n" +
+        "You can display the usage of all data types or select a single data type.\n" +
+        "Select Cumulative to show memory usage as a percentage of the total heap size.")
+    end
+    
+    @Operation refresh()
+      self.reset();
+      self.drawMemory();
+      self.redrawGraph()
+    end
+    
+    @Operation showAll()
+      self.drawMemory();
+      self.showGraph()
+    end
+    
+    @Operation showCumulative()
+      self.reset();
+      self.drawCumulative();
+      self.redrawGraph()
+    end
+    
+    @Operation showAllTypes()
+      @Count i from 0 to 28 do
+        showTypes.put(i,true)
+      end;
+      self.refresh()
+    end
+    
+    @Operation showJust(tag:Integer)
+      @Count i from 0 to 28 do
+        showTypes.put(i,false)
+      end;
+      showTypes.put(tag,true);
+      self.refresh()
+    end
+    
+    @Operation tagName(tag:Integer):String
+      @CaseInt[34] tag of
+        1  do "Vector"    end
+        2  do "Code"      end
+        3  do "Integer"   end
+        4  do "String"    end
+        5  do "CodeBox"   end
+        6  do "Boolean"   end
+        7  do "Object"    end
+        8  do "Operation" end
+        9  do "ForeignOp" end
+        10 do "ForeignObj"end
+        12 do "Cont"      end
+        15 do "Sequence"  end
+        17 do "Symbol"    end
+        18 do "Set"       end
+        23 do "Float"     end
+        27 do "Daemon"    end
+        28 do "Buffer"    end
+        else "?" 
+      end
+    end
+    
+    @Operation totalMemory(data)
+      let total = 0
+      in @Count i from 0 to 28 do
+           total := total + data.ref(i)
+         end;
+         total
+      end
+    end
+    
+    
+  end

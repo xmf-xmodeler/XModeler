@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Action extends Recognizer
+  
+    // An action is an arbitrary operation that
+    // can be invoked during a parse. The operation
+    // is supplied with the current state of the parse bindings
+    // and the return value is pushed onto the stack.
+    
+    @Attribute action : Element end
+    @Attribute source : String end
+    
+    @Constructor(action,source) end
+    
+    @Constructor(action) 
+      self.source := ""
+    end
+    
+    @Operation code(outputChannel)
+      format(outputChannel,"{ ~S }",Seq{source})
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+   @Operation parse(machine)
+      machine.pushStack(action.invoke(machine.grammar.owner,Seq{machine.env()}))
+    end
+    
+    @Operation setOwner(owner)
+      action.owner := owner
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Parser::BNF::PreAction(<OCL::OCL.grammar.parseString(source)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end
+    

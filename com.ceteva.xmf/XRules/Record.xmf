@@ -1,0 +1,91 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  // Class deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Record extends Root::XRules::Term
+
+    @Attribute fields : Set(Root::XRules::Field) (?,!,+,-) end
+    @Attribute path : Seq(Root::XCore::String) (?,!,+,-) end
+    @Attribute class : Class end
+    @Attribute attributes : Set(Attribute) end
+
+    @Constructor(path,fields) ! end
+    
+    @Operation attributes(rules)
+      if attributes->isEmpty
+      then 
+        self.attributes := 
+          self.class(rules).allAttributes()
+            ->reject(a | fields->exists(f | a.name().toString() = f.name()));
+        self.checkFields(rules)
+      end;
+      attributes
+    end
+    
+    @Operation build(rules,vars)
+      let class = self.class(rules) then
+          object = Kernel_newObj(class) then
+          A = self.attributes(rules);
+          v = Var("_",Element)
+      in @For field in fields do
+           Kernel_addAtt(object,field.name,field.build(rules,vars))
+         end;
+         @For a in A do
+           Kernel_addAtt(object,a.name,Kernel_copy(v))
+         end;
+         object
+      end
+    end
+    
+    @Operation class(rules)
+      if class = null
+      then 
+        try
+           self.class := path.ref(rules.imports())
+        catch(exception)
+           if class = null
+           then
+             let msg = "Cannot resolve path ref: " + path.toString() +
+                       " in processing an XRules Rules set. Ensure all referred elements" +
+                       " are imported in the Rules set. Current imports = " + rules.imports.toString()
+             in format(stdout,msg,Seq{})
+             end
+           else throw exception
+           end
+         end
+      end;
+      class
+    end
+    
+    @Operation checkFields(rules)
+      let A = self.class(rules).allAttributes() then
+          F = fields->asSeq->select(f | not A->exists(a | a.name().toString() = f.name()))
+      in if not F->isEmpty
+         then self.error(formats("~{::~;~S~} does not have the following fields: ~{,~;~S~}~%",Seq{path,F.name}))
+         end
+      end
+    end
+    
+    @Operation listVars()
+      fields->iterate(field V = Seq{} | V + field.listVars())
+    end
+    
+    @Operation vars(vars)
+      @For field in fields do
+        vars := field.vars(vars)
+      end;
+      vars
+    end
+
+  end

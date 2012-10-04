@@ -1,0 +1,106 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+
+context Evaluator
+
+  @ToolType XDBTool(HORIZONTAL) 
+    @Box Controls(VERTICAL)
+      @Label L1(CENTRE) "Controls:" end
+      @Button Next 
+        minWidth = 50
+        minHeight = 50
+        do tool.next() 
+      end
+      @Button Back 
+        minWidth = 50
+        minHeight = 50
+        do tool.back() 
+      end
+      @Button Break 
+        minWidth = 50
+        minHeight = 50
+        do tool.break() 
+      end
+      @Button Eval
+        minWidth = 50
+        minHeight = 50
+        do tool.eval() 
+      end
+      @Button Skip
+        minWidth = 50
+        minHeight = 50
+        do tool.skip() 
+      end
+      @Button RunOn(TOP)
+        minWidth = 50
+        minHeight = 50
+        do tool.runOn() 
+      end
+    end
+    @Box Display(VERTICAL)
+      @Label L1(CENTRE) "Source Code:" 
+      end
+      @TextBox Source ""
+        minWidth = 400
+        minHeight = 500
+      end
+      
+    end
+    @Box Context(VERTICAL)
+      @Label L2(CENTRE) "Context:" end
+      @TextBox Imports ""
+        minWidth = 200
+        minHeight = 75
+      end
+      @Button Imports(CENTRE) 
+        minWidth = 200
+        minHeight = 20
+        do tool.editImport() 
+      end
+      @Box Sep2
+        minHeight = 10
+      end
+      @TextBox Bindings ""
+        minWidth = 200
+        minHeight = 120
+      end
+      @Button Bindings(CENTRE) 
+        minWidth = 200
+        minHeight = 20
+        do tool.editBinding() 
+      end
+      @Box Sep3
+        minHeight = 10
+      end
+      @TextBox Supers ""
+        minWidth = 200
+        minHeight = 75
+      end
+      @Button Supers(CENTRE) 
+        minWidth = 200
+        minHeight = 20
+        do tool.editSupers() 
+      end
+      @Box Sep4
+        minHeight = 10
+      end
+      @TextBox Calls ""
+        minWidth = 200
+        minHeight = 75
+      end
+      @Button Call(BOTTOM) 
+        minWidth = 200
+        minHeight = 20
+        do tool.selectCall() 
+      end
+      @Box Sep5
+        minHeight = 10
+      end
+      @Label Self "Self = " end
+      @Box Sep5
+        minHeight = 10
+      end
+      @Label Value "Value = " end
+    end
+  end

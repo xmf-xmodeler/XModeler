@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class NoOp extends Instr
+  
+    @Doc
+      A NOOP instruction is a placeholder instruction. It has no effect when
+      performed. It is typically used to generate an instruction address via
+      a label.
+    end
+    
+    @Constructor(label) end
+  
+    @Operation toString():String
+      "<Noop>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

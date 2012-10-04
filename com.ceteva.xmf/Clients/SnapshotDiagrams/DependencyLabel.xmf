@@ -1,0 +1,26 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class DependencyLabel extends Label
+  
+    @Constructor(text,attachedTo,editable) !
+      self.init(Seq{text,attachedTo,5,16 + 5,editable})
+    end
+    
+    @Operation name()
+      text
+    end
+    
+    @Operation setName(name)
+      self.textChanged(name)
+    end
+    
+  end
+    
+    

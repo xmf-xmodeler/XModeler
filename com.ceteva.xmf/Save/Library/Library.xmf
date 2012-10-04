@@ -1,0 +1,83 @@
+let table = Stacks::Stack()
+in @Package Library metapackage Root::XCore::Package
+     @Class Borrows metaclass Root::XCore::Class  extends Root::XCore::Object
+       @Attribute book : Root::Library::Book end
+       @Attribute reader : Root::Library::Reader end
+     end
+     @Class Reader metaclass Root::XCore::Class  extends Root::XCore::Object
+       @Attribute limit : Root::XCore::Integer end
+       @Attribute name : Root::XCore::String end
+     end
+     @Class Book metaclass Root::XCore::Class  extends Root::XCore::Object
+       @Attribute id : Root::XCore::String end
+     end
+     @Class Library metaclass Root::XCore::Class  extends Root::XCore::Object
+       @Attribute books : Set(Root::Library::Book) end
+       @Attribute readers : Set(Root::Library::Reader) end
+       @Attribute borrows : Set(Root::Library::Borrows) end
+       @Operation booksBorrowedBy(name : String):Integer
+         let reader = self.getReader(name)
+         in self.borrows->select(r |
+              r.reader = reader)->size
+         end
+       end
+       @Operation borrow(name : String,id : String):XCore::Element
+         let reader = self.getReader(name);
+             book = self.getBook(id);
+             borrows = Borrows()
+         in self.borrows := self.borrows->including(borrows);
+            self.books := self.books->excluding(book);
+            borrows.book := book;
+            borrows.reader := reader
+         end
+       end
+       @Operation getBorrows(name : String,id : String):XCore::Element
+         if self.borrows->exists(b |
+           b.reader.name = name and b.book.id = id)
+         then
+           self.borrows->select(b |
+             b.reader.name = name and b.book.id = id)->sel
+         else
+           "Cannot find borrow record for reader " + reader + " and book " + id.println()
+         end
+       end
+       @Operation getBook(id : String):XCore::Element
+         if self.books->exists(b |
+           b.id = id)
+         then
+           self.books->select(b |
+             b.id = id)->sel
+         else
+           "Cannot find boo with id " + id.println()
+         end
+       end
+       @Operation newReader(name : String):XCore::Element
+         let reader = Reader()
+         in self.readers := self.readers->including(reader);
+            reader.name := name
+         end
+       end
+       @Operation newBook(id : String):XCore::Element
+         let book = Book()
+         in self.books := self.books->including(book);
+            book.id := id
+         end
+       end
+       @Operation getReader(name : String):XCore::Element
+         if self.readers->exists(r |
+           r.name = name)
+         then
+           self.readers->select(r |
+             r.name = name)->sel
+         else
+           "Cannot find reader with name " + name.println()
+         end
+       end
+       @Operation returnBook(name : String,id : String):XCore::Element
+         let borrows = self.getBorrows(name,id)
+         in self.borrows := self.borrows->excluding(borrows)
+         end
+       end
+     end
+   end
+end

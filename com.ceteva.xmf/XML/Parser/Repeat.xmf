@@ -1,0 +1,60 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Repeat extends Pattern
+  
+    @Attribute clauses : Seq(RepeatClause) end
+    
+    @Constructor(clauses) end
+    
+    @Operation bindValues()
+      Star(self.tagValues())
+    end
+    
+    @Operation filterValues()
+      let lastClause = clauses->last
+      in clauses->tail->iterate(clause p = clauses->head.filter(clauses->size = 1) |
+           And(p,clause.filter(clause = lastClause)))
+      end
+    end
+    
+    @Operation ONF()
+    
+      // Translate the repeat into a suitable disjunct and
+      // then filters on the values....
+      // Repeat{ x = X; y = Y; ... }
+      // becomes
+      // repeatValues = (x = X { Seq{"x"|x} } | y = Y { Seq{"y"|y} } | ...)*
+      // x = { repeatValues->select(p | p->head = "x")->map("tail") }
+      // y = { repeatValues->select(p | p->head = "y")->map("tail") }
+      //
+      // becomes
+      // (X TAG("X") | Y TAG("Y") | ...)*
+      // x = STRIP("X",false) 
+      // y = STRIP("Y",false)
+      // ...
+      
+      And(self.bindValues(),self.filterValues()).ONF()
+      
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Repeat{");
+      @For clause in clauses do
+        format(out,"~%~V",Seq{indent+2});
+        clause.pprint(out,indent+2);
+        if not isLast then format(out,";") end
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation tagValues()
+      clauses->tail->iterate(clause p = clauses->head.bind() |
+        Or(clause.bind(),p))
+    end
+    
+  end

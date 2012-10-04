@@ -1,0 +1,46 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Choose extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Choose ::= choices = Exp { Choose(choices) }.
+      
+    end 
+    
+    @Attribute choices : Performable end
+   
+    @Constructor(choices) end 
+    
+    @Operation desugar()  
+      [| @Operation(c) 
+           @Operation(d) 
+             let choices = <choices>->asSeq
+             in d.reset();
+                @While not choices->isEmpty do
+                  let choice = choices->head
+                  in d.option(choices->head,@Operation () @Operation(c) @Operation(d) (c(choice))(d) end end end) 
+                  end;
+                  choices := choices->tail
+                end;
+                d.choose(c,@Operation(d) c(null)(d) end)
+             end
+           end
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Choose~%~V",Seq{indent+2});
+      choices.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

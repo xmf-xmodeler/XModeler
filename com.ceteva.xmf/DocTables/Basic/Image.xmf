@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Image extends Entry
+
+    @Attribute file : String (?,!) end
+    @Attribute width : Integer (?,!) end
+    @Attribute height : Integer (?,!) end
+    @Attribute align : String (?,!) end
+  
+    @Constructor(file) ! end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

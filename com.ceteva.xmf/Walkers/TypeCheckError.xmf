@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context Walkers
+
+  @Class TypeCheckError extends Exception
+  
+    @Constructor(message) ! 
+      self.setBacktrace()
+    end
+  
+  end

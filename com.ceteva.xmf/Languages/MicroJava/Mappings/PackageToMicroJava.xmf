@@ -1,0 +1,122 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import Mappings;
+   
+/*context Mappings
+
+  @Operation packageToMicroJava(name,C,O) 
+  
+    let JC = C->asSeq->collect(c | XCoretoMicroJava(c));
+        staticInit = [| @Statement { setPackageName(<JString(name)>); } end |];
+        Main = Seq{mainClass(name,O)}
+    in @For c in JC do
+         c.def.staticInit := staticInit
+       end;
+       [| @Java package <name> { <* JC + Main *> } end |]
+    end
+    
+  end 
+*/
+context Mappings
+
+  @Operation packageToMicroJava(name,CL,P,O,CO,A) 
+  
+    let K = constraintsToMicroJava(CO);
+        M = O->asSeq->collect(o | XCoretoMicroJava(o));
+        F = A->asSeq->collect(a | XCoretoMicroJava(a));
+        JC = CL->asSeq->collect(c | XCoretoMicroJava(c))->including(classToMicroJava(name,P,O,CO->select(c | c.send("of",Seq{}) <> Associations::End),A));
+        staticInit = [| @Statement { setPackageName(<JString(name)>); } end |];
+        Main = Seq{mainClass(name,O)}
+    then
+        JP = [| @Java package <name> { <* JC + Main *> } end |]
+    in
+       @For c in JC do
+         c.def.staticInit := staticInit
+       end;
+       if P = Set{Object}
+       then [| @Java class <name> { <* F + K + M *> } end |]
+       else 
+         let parent = P->sel.name.toString()
+         in [| @Java class <name> extends <Seq{parent}> { <* F + K + M *> } end |]
+         end
+       end;
+       JP
+    end
+    
+  end
+
+context Mappings
+
+  @Operation mainClass(name,O)
+    let mainClass =
+      [| 
+        @Java 
+          class Main { <* mainClassMembers(O) *> }
+        end
+      |];
+        staticInit = [| @Statement { setPackageName(<JString(name)>); } end |]
+    in mainClass.def.staticInit := staticInit;
+       mainClass
+    end
+  end
+ 
+context Mappings
+
+  @Operation mainClassMembers(O)
+    //Seq{mainElements()} + Seq{entryPoint()} + Seq{mainMethod(O)} + staticMethods(O)
+    Seq{mainElements()} + Seq{entryPoint()} + Seq{mainMethod(O)}
+  end
+  
+context Mappings
+  @Operation mainElements() 
+    [| @Java public static Values elements = new Values(); end |]
+  end
+  
+context Mappings
+
+  @Operation entryPoint()
+    [| @Java
+         public static void main(String[] args) {
+           new Main().main(new Values(args));
+         }
+       end
+    |]
+  end
+  
+context Mappings
+  @Operation mainMethod(O)
+    @Find(op,O)
+      when op.name().toString() = "main"
+      do XCoretoMicroJava(main)
+      else [| @Java void main(Values args) {} end |]
+    end
+  end
+  
+/*context Mappings
+  @Operation staticMethods(O)
+    O->asSeq->excluding(o | o.name().toString() = "main")
+     ->collect(o | XCoretoMicroJava(o).setIsStatic(true))
+  end
+*/
+context Mappings
+
+  @Map TranslatePackage(XCore::Package) -> Structure::Package
+  
+    @Clause MapPackage
+    
+      p do PackageToMicroJava(p)
+          
+    end 
+    
+  end
+        
+          
+      

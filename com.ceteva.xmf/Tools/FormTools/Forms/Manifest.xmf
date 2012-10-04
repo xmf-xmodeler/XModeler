@@ -1,0 +1,27 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Manifest Forms
+  p = @File Forms     end
+  @File NewHandler    end
+  @File OrHandler     end
+  @File Point         end
+  @File FormElement   end
+  @File FormContainer end
+  @File Form          end
+  @File Button        end
+  @File Label         end
+  @File TextBox       end
+  @File TextField     end
+  @File CheckBox      end
+  @File ComboBox      end
+  @File ListElement   end
+  @File List          end
+  @File Box           end
+  @File NodeContainer end
+  @File Tree          end
+  @File TreeNode      end
+do p
+end;

@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import MApProjects;
+import Documents;
+
+context Section
+
+  @Interface
+  
+    @Image "FileBrowser/Section" end
+
+    @ChildSortMode none end
+    
+    @Child elements end
+    
+    @MenuRoot MApProjects::Documents::Section end
+    //@Menu Add::Forward MApProjects::Documents::Section::addForward end
+    @Menu Add::Definition MApProjects::Documents::Section::addDefinition end
+    @Menu Add::Diagram MApProjects::Documents::Section::addDiagram end
+    
+    @Delete elements end
+    
+    @Property Name name end
+    
+    @Extend Section elements->including(MApProjects::Documents::Section(name))             end
+    @Extend Text elements->including(MApProjects::Documents::Text(description))                       end
+    @Extend Break elements->including(MApProjects::Documents::Break())                     end
+    
+  end

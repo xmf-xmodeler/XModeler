@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Row extends Entry
+
+    @Attribute cols : Seq(Entry) (?,!,+,-) end
+
+    @Constructor(cols) ! end
+    
+    @Operation contents()
+      cols
+    end
+
+  end

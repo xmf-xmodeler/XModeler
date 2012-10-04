@@ -1,0 +1,361 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Env;
+import Parser::Machine;
+import Exceptions;
+ 
+context Parser::Machine
+     
+    @Class State extends BasicState
+  
+     @Doc
+       A machine state contains all information to execute a parse. The
+       parse proceeds by making machine state transitions. 
+     end
+      
+      @Attribute parses : Integer end         // Max number of chars consumed from all parses.
+      @Attribute failed : Boolean end         // Set for public consumption.
+      
+      // A machine maintains two environments of bindings. A local
+      // environment contains variable bindings whose scope is
+      // limited lexically to the scope of the current clause. A
+      // global enviroment contains variable bindings that are global
+      // to the current parse. The two environments are updated
+      // separately. Actions are supplied with the composition of the
+      // two environments. The global environment is a way of passing
+      // data between clauses (in the absence of clause arguments).
+      
+      @Operation env():Env
+        // Return the composition of the locals and globals
+        // environment. Represents all the variables currently
+        // in scope.
+        Env::Pair(globals,locals)
+      end
+       
+      @Operation bind(name:String,value:Element)
+        self.debugs(Seq{"Bind: " + name + " = ",value});
+        self.locals := locals.bind(name,value)
+      end
+      
+      @Operation binds(name:String):Boolean
+        locals.binds(name)
+      end
+      
+      @Operation bindGlobal(name:String,value:Element)
+        self.debugs(Seq{"Bind Global: " + name + " = ",value});
+        self.globals := globals.bind(name,value)
+      end 
+      
+      @Operation bindsGlobal(name:String):Boolean
+        globals.binds(name)
+      end
+        
+      @Operation call(nonterminal:String)
+        // Call the appropriate clause with respect to the current state.
+        grammar.call(nonterminal,self)
+      end
+      
+      @Operation choice()
+        // Saves the current state as a backtrack point.
+        let fail = MachineFail()
+        in fail.owner := owner;
+           fail.grammar := grammar;
+           fail.tokens := tokens;
+           fail.successes := successes;
+           fail.fail := self.fail;
+           fail.stack := stack;
+           fail.cut := cut;
+           fail.consumedChars := consumedChars;
+           fail.indent := indent;
+           fail.locals := locals;
+           fail.globals := globals;
+           fail.imports := imports;
+           fail.token := token;
+           self.fail := fail
+         end
+       end
+      
+      @Operation choice(parser : Recognizer)
+        // Save the current machine state as 'fail' and add the parser at the head
+        // of the success stack so that if we ever fail to this point we try the
+        // parser with the current machine state.
+        self.choice();
+        self.fail.successes := Seq{parser | self.fail.successes}
+       end
+       
+      @Operation cut()
+        // Restore the fail point from that saved when the currently
+        // executing clause was entered.
+        self.fail := cut->head
+      end
+       
+      @Operation debug():Boolean
+        grammar.debug
+      end
+      
+      @Operation debug(message:String):State
+        if self.debug()
+        then
+          let spaces = " ".repeat(indent) in
+            (spaces + message + "\n").print();
+            //(spaces + "bindings = " + self.env().toString() + "\n").print();
+            (spaces + "TOS = " + stack->at(0).toString() + "\n").print()
+          end;
+          self
+        else self
+        end
+      end
+      
+      @Operation debugs(s:Seq(Element))
+        if self.debug()
+        then
+          " ".repeat(indent).print();
+          @For x in s->collect(e | e.toString())
+          do x.print()
+          end;
+          "\n".print()
+        end
+      end    
+      
+      @Operation decIndent()
+        self.indent := indent - 3
+      end
+      
+      @Operation eof():Boolean
+        tokens()->isEmpty
+      end
+      
+      @Operation fail():State
+        // Backtrack to the last stored choice point.
+        if fail = null
+        then self.error("Machine state cannot backtrack.")
+        else
+          self.parses := consumedChars.max(parses); 
+          fail.fail(self)
+        end
+      end
+      
+      @Operation getClause(name:String):Clause
+        grammar.getClause(name)
+      end
+      
+      @Operation incIndent() 
+        self.indent := indent + 3
+      end
+      
+      @Operation isTerminal(string:String):Boolean
+        grammar.terminals()->includes(string)
+      end
+      
+      @Operation lookup(name:String):Element
+        locals.lookup(name)
+      end
+      
+      @Operation lookupGlobal(name:String):Element
+        globals.lookup(name)
+      end
+      
+      @Operation newStack()
+        self.pushSuccess(NewStack(stack,locals));
+        self.stack := Seq{"<No Value returned>"}
+      end
+      
+      @Operation next():Element
+        // Consume the next token.
+        let tokens = tokens()
+        in if tokens->isEmpty
+           then self.error("Machine::next: EOF")
+           else 
+             let token = tokens->head
+             in self.tokens := tokens->tail;
+                self.token := token;
+                token
+             end
+          end
+        end
+      end
+      
+      @Operation nextSet()
+        if successes->isEmpty
+        then Set{}
+        else successes->head.nextSet(grammar)
+        end
+      end
+      
+      @Operation parseError(message:String)
+        format(stdout,"~S~%",Seq{message});
+        self.printConsumedChars();
+        format(stdout,"~%~%")
+        //self.printNextSet()
+      end
+      
+      @Operation popStack():Element
+        let value = stack->at(0)
+        in self.stack := stack->drop(1);
+           value
+        end
+      end
+      
+      @Operation popSuccess():Recognizer
+        if successes->isEmpty
+        then self.error("There are no success continuations.")
+        else 
+          let success = successes->at(0)
+          in self.successes := successes->drop(1);
+             success
+          end
+        end
+      end
+      
+      @Operation printConsumedChars()
+        format(stdout,"The following input was consumed:~%~%");
+        format(stdout,"~S~%",Seq{Kernel_tokenChannelTextTo(tokenChannel,consumedChars)})
+      end
+      
+      @Operation getConsumedChars()
+        Kernel_tokenChannelTextTo(tokenChannel,consumedChars)
+      end
+      
+      @Operation pushCut()
+        self.cut := Seq{fail | cut}
+      end
+      
+      @Operation popCut()
+        self.cut := cut->tail
+      end
+      
+      @Operation pushEndAt()
+        // Push a machine instruction that will reinstate the current
+        // grammar and owner at the end of an 'at' instruction.
+        self.pushSuccess(EndAt(owner,grammar))
+      end
+      
+      @Operation pushStack(value:element)
+        self.stack := Seq{value | stack}
+      end
+      
+      @Operation pushSuccess(parser:Recognizer)
+        self.successes := Seq{parser | successes}
+      end
+      
+      @Operation pushTraceFail(name:String)
+        // If we are debugging then leave a trail on the fail stack
+        // to print a message when the current nonterminal fails.
+        if self.debug()
+        then self.fail := TraceFail(name,fail)
+        else self
+        end
+      end
+      
+      @Operation pushTraceSuccess(name:String)
+        // If we are debugging then leave a continuation on the
+        // success stack to print a message when the current nonterminal
+        // succeeds.
+        if self.debug() 
+        then self.pushSuccess(TraceSuccess(name))
+        else self
+        end
+      end
+      
+      @Operation stackTop():Element
+        stack->at(0)
+      end
+      
+      @Operation startAt(classifier)
+        // If the classifier defines a grammar then switch to
+        // the grammar and continue parsing. Otherwise signal an
+        // error.
+        self.indent := 0;
+        let grammar = classifier.grammar
+        in if grammar = null
+           then self.error("At: " + classifier.path() + " does not define a grammar.")
+           else 
+             self.grammar := grammar;
+             self.owner := classifier;
+             self.imports := grammar.imports + self.imports;
+             self.call(grammar.startingSymbol)
+           end
+        end
+      end
+      
+      @Operation typeCheck(path:Seq(String))
+        let type =
+          @Find(nameSpace,imports)
+            when nameSpace.hasElement(path->head)
+            do path->tail->iterate(name nameSpace = nameSpace.getElement(path->head) |
+                 if nameSpace.hasElement(name)
+                 then nameSpace.getElement(name)
+                 else throw NameSpaceRef(nameSpace,name)
+                 end)
+            else throw PathNotFound(path,imports)
+          end
+        in if not stack->at(0).isKindOf(type)
+           then 
+             self.debug("Type check " + stack->at(0) + ":" + type.path() + " fails (type = " + stack->at(0).of().path() + ").");
+             self.fail()
+           else self.debug("Type check " + stack->at(0) + ":" + type.path() + " succeeds.")
+           end
+        end
+      end
+      
+      @Operation reset():State
+        // Used to reset the machine state to an initial
+        // state.
+        self.successes := Seq{};
+        self.fail := InitialFail();
+        self.stack := Seq{};
+        self.cut := Seq{};
+        self.parses := 0;
+        self.consumedChars := 0;
+        self.failed := false;
+        self.indent := 0;
+        self.locals := NullEnv();
+        self.globals := NullEnv();
+        self.imports := Seq{XCore,Root};
+        self.token := null;
+        self.resetTokens()
+      end
+      
+      @Operation run():Element
+        // Call 'run' to start the machine.
+        // Returns the synthesized value or 'null' if failed.
+        self.run(grammar.startingSymbol)
+      end
+      
+      @Operation run(startingSymbol:String)
+        self.run(startingSymbol,Seq{})
+      end
+      
+      @Operation run(startingSymbol:String,imports:Seq(NameSpace)):State
+        self.reset();
+        @For nameSpace in imports do
+          self.importNameSpace(nameSpace)
+        end;
+        self.call(startingSymbol);
+        self.runToCompletion()
+      end
+      
+      @Operation runToCompletion():State
+        @While not self.terminal() do
+          let parser = self.popSuccess()
+          in parser.parse(self) 
+          end
+        end;
+        if self.failed
+        then null
+        else 
+          if stack->isEmpty
+          then null
+          else stack->at(0)
+          end
+        end
+      end 
+      
+      @Operation terminal():Boolean
+        // The machine is to be halted when it reaches a 
+        // terminal state.
+        failed or successes->isEmpty
+      end
+      
+    end

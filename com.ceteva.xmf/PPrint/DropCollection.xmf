@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler DropCollection in PPrint(aDropCollection,out,seen)
+  format(out,"<*");
+  self.dispatch(aDropCollection.exp,out);
+  format(out,"*>")
+end;

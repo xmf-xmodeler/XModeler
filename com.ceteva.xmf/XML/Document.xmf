@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import XML;
+import IO;
+
+context XML
+
+  @Class Document extends Resource
+  
+    @Doc
+      An XML document. Typically an XML document has been produced from a file
+      and the resourceName of the document should define the file. A document
+      has a root which is an XML node. A document that conforms to XMF.dtd can
+      be reduced to form an XMF data value. Documents can be printed to an 
+      output channel.
+    end
+  
+    @Attribute root : Node (!,?) end
+    
+    @Constructor(resourceName) ! end
+    @Constructor(resourceName,root) end
+    
+    @Operation reduce()
+      // Translate an XML document that conforms to XMF.dtd to an XMF
+      // object.
+      root.reduce(Table(100))
+    end
+    
+    @Operation pprint(out)
+      @Doc
+        Prints out the XML document using indentation to
+        show nesting. The output is sent to the supplied
+        output channel.
+      end
+      root.pprint(out,0)
+    end
+    
+    @Operation print()
+      // Prints the XML document to the resource.
+      if resourceName <> ""
+      then 
+       let fout = FileOutputChannel(resourceName)
+       in root.print(fout);
+          fout.close()
+       end
+      else self.error("Document::print: no resource name set in document.")
+      end
+    end
+    
+    @Operation print(out)
+      root.print(out)
+    end
+    
+    @Operation stripWhiteSpace():Document
+      @Doc
+        When reading formatted XML documents the shitespace can be left
+        as text elements. This operation returns a copy of the receiver
+        with the whitespace removed.
+      end
+      Document(resourceName,root.stripWhiteSpace())
+    end
+    
+  end

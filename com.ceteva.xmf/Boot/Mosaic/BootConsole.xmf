@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Comms;
+import TopLevel;
+import IO;
+
+context XMF
+  @Operation bootConsole()
+    try 
+        let input = Kernel_clientInputChannel("com.ceteva.console");
+            output = Kernel_clientOutputChannel("com.ceteva.console")
+        in Root::stdin.setChannel(input);
+           Root::stdout.setChannel(output);
+           Kernel_rebindStdin(input);
+           if xmf.standardOutput() = "CONSOLE"
+           then Kernel_rebindStdout(output)
+           else Kernel_rebindStdout(Kernel_fileOutputChannel(xmf.standardOutput()))
+           end;
+           XMF.add(@Operation topLevel() self.property("topLevel") end);
+           
+           @Fork(Console)
+             @While true do
+               let topLevel = Loop(StandardInputChannel(input),StandardOutputChannel(output))
+               in xmf.setProperty("topLevel",topLevel);
+                  try 
+                    topLevel.loop()
+                  catch(exception)
+                    format(stdout,"~S~%",Seq{exception})
+                  end
+               end
+             end;
+             format(stdout,"Console terminated, restarting console...~%")
+           end
+         end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

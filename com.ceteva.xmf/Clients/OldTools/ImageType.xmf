@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class ImageType extends DisplayType
+  
+    @Attribute fileName : String (!) end
+    @Attribute x        : Integer    end
+    @Attribute y        : Integer    end
+    @Attribute width    : Integer    end
+    @Attribute height   : Integer    end
+    
+    @Constructor(fileName,x,y,width,height) ! end
+    
+    @Operation new(tool,parent,x,y,w,h,name)
+      let image = Image(fileName,x,y,width,height) then
+          object = ToolObject(self,image)
+      in parent.add(object.element);
+         menuType.new(object,tool);
+         object.element.new(parent);
+         object
+      end
+    end
+    
+    @Operation layout(object,x,y,width,height)
+      object.layout(x,y,self.width,self.height)
+    end
+    
+  end

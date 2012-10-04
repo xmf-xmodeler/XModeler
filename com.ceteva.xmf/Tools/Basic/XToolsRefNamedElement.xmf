@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+
+context Basic
+
+  @Class XToolsRefNamedElement extends NamedElement
+  
+    @Attribute refName : String (?,!) end
+    @Attribute refOwner : Element (?,!) end
+    
+    @Operation initRef(refNameSpace)
+      if refNameSpace <> null
+      then
+        let newName = refNameSpace.newName()
+        in
+          self.setRefName(newName);
+          self.setRefOwner(refNameSpace);
+          refNameSpace.contents.put(newName,self)
+        end
+      end;
+      self
+    end
+
+    @Operation getRefNameSpace()
+      let refOwner = self.refOwner()
+      in
+        if refOwner.isReallyKindOf(XToolsRefNameSpace)
+        then refOwner
+        else null
+        end
+      end
+    end
+    
+  end

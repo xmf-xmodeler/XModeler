@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ContextDef extends OCL::OCL
+  
+    @Doc
+      Definitions are evaluated and (typically) added to a container. The 'context'
+      construct is a declarative way of specifying that a given definition should be
+      added to a particular container. The context construct should occur at the top
+      level in files. If the context is a name space then the context expression
+      does not cause the name space to be imported.
+      
+      Constructor: ContextDef(path,def)
+        The path is an expression that results in a name space and the def is an expression
+        denoting a named element.
+    end
+  
+    @Attribute path      : OCL::OCL end   // Reference to owner.
+    @Attribute element   : OCL::OCL end   // Definition to add to owner.
+    @Attribute isForward : Boolean  end   // Whether to initialize the new element.
+    
+    @Constructor(path,element) end
+    
+    @Constructor(path,element,isForward) end
+    
+    @Operation pprint(out,indent)
+      format(out,"context ");
+      if isForward then format(out," ! ") end;
+      path.pprint(out,indent);
+      format(out,"~%~V",Seq{indent + 2});
+      element.pprint(out,indent + 2)
+    end
+    
+  end

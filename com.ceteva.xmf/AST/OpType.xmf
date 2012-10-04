@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler OpType in AST(aOpType,arg,seen)
+  let domains = aOpType.domains->collect(x | self.dispatch(x,arg));
+      range = self.dispatch(aOpType.range,arg)
+  in ASTNode(aOpType,domains + Seq{range})
+  end
+end;

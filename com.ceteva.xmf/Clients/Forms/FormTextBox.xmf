@@ -1,0 +1,80 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import IO;
+
+context Forms
+
+  @Class FormTextBox extends FormElement, TextComponent
+  
+    @Bind red   = "red"   end
+    @Bind blue  = "blue"  end
+    @Bind green = "green" end
+    
+    @Attribute wordRules : SeqOfElement (+) end
+  
+    @Constructor(x,y,width,height,text,isEditable) end
+    
+    @Constructor(id,x,y,width,height,text,isEditable) end
+    
+    @Operation new(parent)
+      self.commandInterpreter().newTextBoxCommand(parent,self);
+      self.commandInterpreter().setText(self,self.text);
+      self.newWordRules();
+      self
+    end
+    
+    @Operation addWordRule(word,colour)
+      self.addToWordRules(Seq{word | colour});
+      self.commandInterpreter().addTextBoxRule(self,word,colour)
+    end
+    
+    @Operation changesMade(value:Boolean)
+      self.commandInterpreter().changesMade(self,value)
+    end
+    
+    @Operation doubleSelected()
+      self
+    end
+    
+    @Operation getText()
+      self.commandInterpreter().getText(self)
+    end
+
+    @Operation newWordRules()
+      @For rule in wordRules do
+        let word = rule->head;
+            colour = rule->tail
+        in
+          self.commandInterpreter().addTextBoxRule(self,word,colour)
+        end
+      end
+    end
+
+    @Operation renew()
+      self.renew(null)
+    end 
+    
+    @Operation renew(parent)
+      self.commandInterpreter().setText(self,self.text);
+      self.newWordRules();
+      self
+    end
+
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        text = Seq{"text",text};
+        editable = Seq{"editable",isEditable} then
+        attributes = Seq{id,x,y,width,height,text,editable}
+      in
+        @Command(self) startElement("textbox",attributes) end;
+        @Command(self) endElement("textbox") end
+      end
+    end
+  end

@@ -1,0 +1,178 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+
+import Tools::DiagramTools::Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+import MDC;
+import Types;
+import Displays;
+
+context ! Types
+
+  @Class Classifier_x_Node extends AbstractMappingType
+
+    @Attribute parents        : Seq(Classifier_x_Node) (?,!,+,-) end
+    @Attribute nodeType       : Root::Tools::DiagramTools::Types::NodeType (?,!) end
+    @Attribute classifier     : Classifier (?,!) end
+    @Attribute displays       : Seq(Display_x_Display) (?,!,+,-) end
+    
+    @Constructor(classifier,nodeType) end
+    
+    @Operation addAttribute(tool,treeNode)
+    
+      // Ask for the attribute to be displayed and then ask for the
+      // particular display type to be used.
+      
+      let A = classifier.allAttributes()->asSeq then
+          att = xmf.select("Attribute","Select an attribute",A,null,null)
+      in if att <> null
+         then 
+           let textType = Text(tool.newName("Text")) then 
+               displayMap = Display_x_Display(textType) then
+               map = Attribute_x_Display(att,Classifier_x_Display(att.underlyingType(),displayMap));
+               textNode = treeNode.newNode("Displays:Text") then
+               menuNode = textNode.ref1(Seq{"Menu"});
+               menu = textType.menu()
+           in self.addToDisplays(map);
+              nodeType.add(map.displayType());
+              tool.register(map,treeNode);
+              tool.register(treeNode,map);
+              tool.register(menuNode,menu);
+              tool.register(menu,menuNode);
+              tool.register(textNode,displayMap);
+              tool.register(displayMap,textNode);
+              treeNode.setTextIn(att.name() + ":" + att.type.name());
+              textNode.setTextIn("Text")
+           end
+         else treeNode.delete()
+         end
+      end
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For p in self.parents do
+          T := p.allMappingTypes(T)
+        end;
+        @For d in self.displays do
+          T := d.allMappingTypes(T)
+        end
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      displays->iterate(display N = Set{} | N + display.allNodes())
+    end
+    
+    @Operation associateDisplays(elementNodeMap)
+      @For display in displays do
+        display.associateDisplay(elementNodeMap)
+      end
+    end
+    
+    @Operation attributeChanged(tool,node,display,new,old)
+      null
+    end
+    
+    @Operation build(tool,element)
+    
+      // Called to create an instance of the node type and
+      // return an instance of Value...
+      
+      self.newNode(tool,element,nodeType.new(10,10,tool))
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      displays->iterate(display A = Seq{} | A + display.collectionAttributes())
+    end
+    
+    @Operation displayRemoved(tool,node,display)
+      null
+    end
+    
+    @Operation findOwner(displayType)
+      // Find the mapping that defines the display type.
+      self.findOwner(nodeType,displayType)
+    end
+    
+    @Operation findOwner(currentType,displayType)
+      if currentType = displayType 
+      then self
+      else 
+        @CaseObj currentType of
+          NodeType[displays] do
+            let o = null
+            in @While o = null and not displays->isEmpty do
+                 o := self.findOwner(displays->head,displayType);
+                 displays := displays->tail
+               end;
+               o
+            end
+          end
+          Box[contents] do
+            let o = null
+            in @While o = null and not contents->isEmpty do
+                 o := self.findOwner(contents->head,displayType);
+                 contents := contents->tail
+               end;
+               o
+            end
+          end
+          else null
+        end
+      end
+    end
+
+    @Operation inheritsFrom(cxd)
+      self.classifier.inheritsFrom(cxd.classifier)
+    end
+
+    @Operation newNode(tool,element,node)
+    
+      // Called when a new node has been created.
+      // Is responsible for creating a value for
+      // its parent, building a value tree for the
+      // dispayed element and populating the value
+      // tree.
+      
+      let value =
+            if classifier.isKindOf(Object)
+            then 
+              element.observeBy(tool,true);
+              Values::Object(self,element,node)
+            else Values::Atom(self,element,node)
+            end
+      in self.populate(tool,value,element);
+         value
+      end
+    end
+    
+    @Operation newValue(tool,newValue)
+      @WithoutEvents(tool)
+        let node = nodeType.new(0,0,tool)
+        in tool.newElement(self,newValue,node)
+        end
+      end
+    end
+    
+    @Operation nodeRemoved(tool,oldNode)
+      let value = tool.find(oldNode)
+      in tool.disassociate(value,oldNode)
+      end
+    end
+    
+    @Operation populate(tool,value,element)
+      @For display in displays do
+         @Find(d,value.display().displays)
+           when d.type() = display.displayType()
+           do display.build(tool,value,d);
+              display.populate(tool,value,element)
+           else format(stdout,"Warning: no display in ~S for ~S~%",Seq{value.display().displays,display.displayType()})
+         end
+       end
+    end
+
+  end

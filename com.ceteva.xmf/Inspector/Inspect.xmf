@@ -1,0 +1,15 @@
+parserImport Aspects;
+
+@Aspect Inspect
+
+  // This aspect defines functionality that allows all data values to
+  // be inspected. The class Element defines an operation 'inspect/0'
+  // that starts an interactive inspection session. The operation
+  // 'inspect/0' uses the operation 'inspectDialog/1' to  produce a
+  // dialog for the value to be inspected. The operation 'inspectDialog/1'
+  // may be defined on a type-by-type basis. The single argument of
+  // this operation is the level and can be used as the argument of
+  // 'inspectValue/1' to produce a standard dialog that displays the
+  // value.
+  
+end;

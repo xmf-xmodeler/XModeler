@@ -1,0 +1,110 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+  
+context IterExp
+  @Operation desugar()
+    if iterOp = "exists"
+    then self.desugarExists() 
+    elseif iterOp = "forAll"
+    then self.desugarForAll() 
+    elseif iterOp = "collect"
+    then self.desugarCollect()
+    elseif iterOp = "select"
+    then self.desugarSelect()
+    elseif iterOp = "reject"
+    then self.desugarReject()
+    else [| <collection>.<iterOp>(@Operation(<name>) <body> end) |]
+    end
+  end 
+  
+context IterExp
+  @Operation desugarExists()
+    [| let iterSeq = <collection>->asSeq;
+           iterNotExists = true
+       in @While iterNotExists and not iterSeq->isEmpty do
+            let <name> = iterSeq->head
+            in if <body>
+               then iterNotExists := false
+               else iterSeq := iterSeq->tail
+               end
+            end
+          end;
+          not iterNotExists
+       end
+     |]
+   end
+   
+context IterExp
+  @Operation desugarForAll()
+    [| let iterSeq = <collection>->asSeq;
+           iterForAll = true
+       in @While iterForAll and not iterSeq->isEmpty do
+            let <name> = iterSeq->head
+            in if not <body>
+               then iterForAll := false
+               else iterSeq := iterSeq->tail
+               end
+            end
+          end;
+          iterForAll
+       end
+     |]
+   end
+  
+context IterExp
+  @Operation desugarCollect() 
+    [| let iterExpCollection = <collection>
+       in iterExpCollection->iterate(<name> newColl = iterExpCollection.of().default() |
+            newColl->including(<body>))
+       end
+    |]
+  end
+  
+context IterExp
+  @Operation desugarSelect() 
+    [| let iterExpCollection = <collection>
+       in iterExpCollection->iterate(<name> newColl = iterExpCollection.of().default() |
+            if <body>
+            then newColl->including(<Var(name)>)
+            else newColl
+            end)
+       end
+    |]
+  end
+  
+context IterExp
+  @Operation desugarReject() 
+    [| let iterExpCollection = <collection>
+       in iterExpCollection->iterate(<name> newColl = iterExpCollection.of().default() |
+            if <body>
+            then newColl
+            else newColl->including(<Var(name)>)
+            end)
+       end
+    |]
+  end
+  
+context IterExp
+  @Operation compile(env,frame,isLast,saveSource)
+    self.desugar().compile(env,frame,isLast,saveSource)
+  end
+
+context IterExp
+  @Operation FV():Set(String) 
+    self.desugar().FV()
+  end
+  
+context IterExp
+  @Operation maxLocals():Integer
+    self.desugar().maxLocals() 
+  end
+  
+context IterExp
+  @Operation lift()
+    let iterOp = if iterOp.isKindOf(Performable) then iterOp.lift() else StrExp(iterOp) end;
+        nameExp = if name.isKindOf(Performable) then name.lift() else StrExp(name) end
+    in Apply(self.typeExp(),Seq{collection.lift(),iterOp,nameExp,body.lift()})
+    end
+  end 

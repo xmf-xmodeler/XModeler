@@ -1,0 +1,9 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest Deploy
+  @File Java   end
+  @File XML   end
+  @Ref XOCL end
+  @Ref Java      end
+end;

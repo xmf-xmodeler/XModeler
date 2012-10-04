@@ -1,0 +1,60 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class PreAction extends Recognizer
+  
+    // A pre action is an action that awaits transformation to
+    // an action. The missing information relates to the identifiers
+    // that are in scope when the action is invoked.
+    
+    @Attribute action : Element end
+    
+    @Constructor(action) end
+    
+    @Operation body(FV:Set(String))
+    
+      // Return the body of an operation whose argument is
+      // a machine environment binding all the parser bound
+      // variables that are currently in scope.
+      
+      FV->iterate(var exp = action | 
+            [| let <var> = env.lookup(<StrExp(var)>) 
+              in <exp> 
+              end 
+            |])
+    end
+    
+    @Operation code(out)
+       format(out,"{ ");
+       action.pprint(out,0);
+       format(out," }")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      self.error("A pre action should be transformed before parsing.")
+    end
+    
+    @Operation toExp(FV:Set(String))
+      let args = Seq{Varp("env")};
+          type = NamedType();
+          source = action.pprint()
+      in [| Root::Parser::BNF::Action(<Operation("anonymous",args,type,self.body(FV))>,<StrExp(source)>) |]
+      end
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      let actionFun = Compiler::compileToFun("",self.body(FV),Seq{"env"},grammar.dynamics,true);
+          actionSource = action.pprint()
+      in Action(actionFun,actionSource)
+      end
+    end
+    
+  end

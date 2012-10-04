@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Eql extends Instr
+  
+    @Doc
+      A machine instruction. Expects two elements at the head
+      of the stack. Pops the elements and performs a = operation.
+      The '=' operation is implemented by the machine. Objects
+      are compared by identity, sequences are compared by identity
+      (since they can be updated by side effect), sets are compared
+      by structure (recursively applying '=' to elements), symbols
+      are copared by identity, strings are compared by structure and
+      all atomic data items are compared by value.
+      The boolean result is left at the head of the stack.
+    end
+     
+    @Operation toString():String
+      "<Eql>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  

@@ -1,0 +1,157 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class MultilineText extends Display
+  
+	@Attribute text 		: String (?) end 
+	@Attribute font			: String (?) end
+    @Attribute editable 	: Boolean (?,!) end
+    @Attribute textColor   	: Color = static Color() (?,!) end
+    @Attribute italicise    : Boolean (?) end
+    @Attribute fillColor   	: Color = static Color() (?,!) end
+    
+    @Constructor(id,text,x,y,width,height,editable) ! end
+    
+    @Constructor(text,x,y,width,height,editable) end
+    
+    @Operation calculateSize()
+      let d = self.dimension() then
+          d = Seq{d->at(0) + 10,d->at(1) + 7}
+      in self.setWidth(d->at(0));
+         self.setHeight(d->at(1))
+      end
+    end
+    
+    @Operation dimension()
+      // Returns the width and height as a pair.
+      if owner <> null and self.hasCommandInterpreter()
+      then 
+        if font = ""
+        then @Command(self) getTextDimension(self) end
+        else self.dimensionWithFont()
+        end
+      else Seq{0,0}
+      end 
+    end
+    
+    @Operation dimensionWithFont()
+      if owner <> null and self.hasCommandInterpreter()
+      then @Command(self) getTextDimensionWithFont(self) end
+      else Seq{0,0}
+      end
+    end
+
+    @Operation editText()
+      @Command(self) editText(self) end
+    end
+
+    @Operation expandHeight()
+      // A text display component is already expanded.
+      self.calculateSize();
+      self.resize(width,height)
+    end
+    
+    @Operation expandWidth()
+      // A text display component is already expanded.
+      self.calculateSize();
+      self.resize(width,height)
+    end
+    
+    @Operation maxHeight()
+      self.calculateSize();
+      height
+    end
+    
+    @Operation maxWidth()
+      self.calculateSize();
+      width
+    end
+    
+    @Operation minHeight()
+      self.calculateSize();
+      height
+    end
+    
+    @Operation minWidth()
+      // Changed to allow soft newlines to be
+      // added when with is reduced below the
+      // natural width...
+      20 //self.calculateSize();
+         // width
+    end
+    
+    @Operation new(parent,setMenu) 
+      self.setOwner(parent);
+      @Command(self) newMultilineTextCommand(parent,self) end;
+      self.calculateSize();
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newMultilineTextCommand(parent,self) end;
+      self.renewHidden();
+      self.setRightClickMenu();
+      self.calculateSize();
+      owner.resized(self);
+      self
+    end
+    
+    @Operation resize(width,height)   
+      @Command(self) resizeCommand(self,width,height) end;
+      self.width := width;
+      self.height := height
+    end
+    
+    @Operation setFont(font:String)
+      self.font := font;
+      @Command(self) setFont(self,font) end
+    end
+    
+    @Operation setText(text)
+      @Command(self) setTextCommand(self,text) end;
+      if self.text <> text
+      then self.text := text
+      end; // Avoid unnecessary daemon firing
+      self.calculateSize();
+      owner.resized(self)
+    end
+    
+    @Operation textChanged(text) 
+      @Command(self) setTextCommand(self,text) end;
+      if self.text <> text
+      then self.text := text
+      end; // Avoid unnecessary daemon firing
+      self.calculateSize();
+      owner.resized(self)
+    end
+    
+    @Operation synchronise()
+      let
+        id = Seq{"identity",id};
+        x = Seq{"x",x};
+        y = Seq{"y",y};
+        width = Seq{"width",width};
+        height = Seq{"height",height};
+        hidden = Seq{"hidden",hidden};
+        shown = Seq{"shown",shown};
+        text = Seq{"text",text};
+        font = Seq{"font",font};
+        editable = Seq{"editable",editable}then
+        attributes = Seq{id,x,y,width,height,hidden,shown,text,font,editable}
+      in
+        // color ignored
+        
+        @Command(self) startElement("multilinetext",attributes) end;
+        @Command(self) endElement("multilinetext") end
+      end
+    end
+  
+  end

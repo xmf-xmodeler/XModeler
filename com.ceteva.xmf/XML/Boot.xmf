@@ -1,0 +1,16 @@
+(xmf.homeDir() + "/XML/XML.o").loadBin(true);
+(xmf.homeDir() + "/XML/Attribute.o").loadBin(true);
+(xmf.homeDir() + "/XML/NoAttribute.o").loadBin(true);
+(xmf.homeDir() + "/XML/Node.o").loadBin(true);
+(xmf.homeDir() + "/XML/Element.o").loadBin(true);
+(xmf.homeDir() + "/XML/ExpectingTag.o").loadBin(true);
+(xmf.homeDir() + "/XML/Document.o").loadBin(true);
+(xmf.homeDir() + "/XML/Text.o").loadBin(true);
+(xmf.homeDir() + "/XML/UnknownTag.o").loadBin(true);
+(xmf.homeDir() + "/XML/Parser/Boot.o").loadBin(false);
+(xmf.homeDir() + "/XML/IO/Boot.o").loadBin(false);
+(xmf.homeDir() + "/XML/Generator/Boot.o").loadBin(false); 
+(xmf.homeDir() + "/XML/PrintXML/Boot.o").loadBin(false); 
+(xmf.homeDir() + "/XML/DOMInputChannel.o").loadBin(true);
+(xmf.homeDir() + "/XML/XMI/Boot.o").loadBin(true);
+ 

@@ -1,0 +1,113 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class TokenInputChannel extends InputChannel
+    
+    @Attribute input : InputChannel end
+    
+    @Attribute buffer : Integer = (0-1) end
+      
+    @Constructor(input) ! end
+    
+    @Operation channel()
+      input.channel()
+    end
+      
+    @Operation close()
+      input.close()
+    end
+      
+    @Operation eof()
+      buffer < 0 andthen input.eof()
+    end
+    
+    @Operation peek():Integer
+      if buffer < 0
+      then input.peek()
+      else buffer 
+      end
+    end
+      
+    @Operation read()
+      if buffer < 0
+      then input.read()
+      else 
+        let c = buffer
+        in self.buffer := (0-1);
+           c
+        end
+      end
+    end
+      
+    @Operation readNumber(s:Seq(Integer)):Integer
+      let c = self.read()
+      in @While c.isNumericChar() do
+           s := s + Seq{c};
+           c := self.read()
+         end;
+         s->asString->asInt
+      end
+    end
+    
+    @Operation readString()
+      let s = Seq{};
+          terminated = false
+      in @While not terminated do
+            let c = self.read()
+            in if c = "\""->at(0) or c = 0-1
+               then terminated := true
+               elseif c = "\\"->at(0)
+               then s := Seq{self.read() | s}
+               else s := Seq{c | s}
+               end
+            end
+         end;
+         Kernel_asString(s->reverse)
+      end
+    end
+      
+    @Operation readSymbol(s:Seq(Integer)):Integer
+     let c = self.read()
+     in @While not c.isWhiteSpaceChar() and c <> 0-1 do
+          s := s + Seq{c};
+          c := self.read()
+        end;
+        Symbol(s->asString)
+      end
+    end
+      
+    @Operation readToken():Element
+      let c = self.readNonWhiteSpace();
+          token = null
+      in if c = null
+         then self.error("TokenInputChannel::readToken: cannot read token.")
+         else
+           if c.isNumericChar()
+           then token := self.readNumber(Seq{c})
+           elseif c.isUpperCaseChar() or c.isLowerCaseChar()
+           then token := self.readSymbol(Seq{c})
+           elseif c = "\""->at(0)
+           then token := self.readString()
+           elseif c = "-"->at(0)
+           then token := 0-self.readToken()
+           else self.error("TokenInputChannel::readToken: illegal char: " + c)
+           end
+         end;
+         @While c.isWhiteSpaceChar() do
+           c := self.read()
+         end;
+         if not c.isWhiteSpaceChar()
+         then self.buffer := c
+         end;
+         token
+      end
+    end   
+    
+    @Operation setChannel(channel)
+      input.setChannel(channel)
+    end    
+      
+  end

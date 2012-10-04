@@ -1,0 +1,34 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Commands extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Commands ::= commands = Exp* { Commands(commands) }.
+      
+    end 
+    
+    @Attribute commands : Seq(Performable) end
+    
+    @Constructor(commands) end 
+    
+    @Operation desugar()  
+      [| @Operation(c) <commands->reverse->iterate(com exp = [| c |] | [| <com>(<exp>) |])> end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Commands~%~V",Seq{indent+2});
+      @For c in commands do
+        c.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

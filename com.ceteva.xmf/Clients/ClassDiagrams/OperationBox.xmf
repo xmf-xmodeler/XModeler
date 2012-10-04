@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class OperationBox extends Box
+  
+    @Constructor(x,y,width)
+      self.init(Seq{x,y,width,16,0,Color(),Color()})
+    end
+    
+    @Operation classNode()
+      owner.owner
+    end
+    
+    @Operation maxHeight()
+      if not shown 
+      then 0
+      elseif displays->isEmpty
+      then 16
+      else super() + 3
+      end
+    end
+    
+    @Operation maxWidth()
+      if not shown
+      then 0
+      else super() + 3
+      end
+    end
+    
+    @Operation newOperation(name,metaclass_)
+      let text = OperationGroup(name,metaclass_,5,16 * displays->size)
+      in text.new(self);
+        self.add(text)
+      end
+    end
+    
+    @Operation nextOperation(name,metaclass_)
+      OperationGroup(name,metaclass_,5,self.displays->size * 16)
+    end
+    
+    @Operation node()
+      owner.owner
+    end
+    
+    @Operation remove(operationText)
+      super(operationText);
+      @For display in displays do
+        if display.name.y > operationText.name.y
+        then display.moveDown()
+        end
+      end;
+      self.classNode().packHeight()
+    end
+       
+  end

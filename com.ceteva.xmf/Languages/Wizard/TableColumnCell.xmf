@@ -1,0 +1,25 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TableColumnCell
+  
+    @Attribute id    : String end
+    @Attribute value : String end
+    
+    @Constructor(id,value) end
+    
+    @ToXML(TABLE_COLUMN_CELL)[Id=id,Value=value] end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

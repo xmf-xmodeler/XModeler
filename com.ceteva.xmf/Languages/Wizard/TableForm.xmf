@@ -1,0 +1,100 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TableForm extends Form
+  
+    @Attribute label : String end
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    @Attribute cols : Seq(String) end
+    @Attribute rows : Seq(String) end
+    
+    @Constructor(label,x,y,rows,cols)
+      let label = Label("LABEL",label,"","",x,y,1000,20);
+          table = Table("TABLE","Table Form",false,x,y+50,((cols->size + 1) * 200) + 30,((rows->size + 2) * 25),self.columns());
+          button = Button("TABLE_DONE","DONE","bigiconb.bmp","MIDDLE_LEFT",true,true,x,y+50+((rows->size + 3) * 25),150,100)
+      in self.id := "GetText";
+         self.name := "Get Text";
+         self.labels := Seq{label};
+         self.tables := Seq{table};
+         self.buttons := Seq{button}
+      end
+    end
+    
+    @Operation colIndex(col)
+      cols->indexOf(col)
+    end
+    
+    @Operation columns()
+      Seq{self.rowColumn() | self.valueColumns()}
+    end
+    
+    @Operation getCell(row,col)
+      let id = row.toString() + "_" + col.toString() then
+          cell = tables->head.find(id)
+      in if cell = null
+         then "No cell for " + id
+         else cell.value
+         end
+      end
+    end
+    
+    @Operation indexTable(table,row,col)
+      let id = row.toString() + "_" + col.toString() then
+          cell = table.find(id)
+      in if cell = null
+         then "No cell for " + id
+         else cell.value
+         end
+      end
+    end
+    
+    @Operation initCells(values)
+      @For row in rows do
+        let rowIndex = self.rowIndex(row)
+        in @For col in cols do
+             let colIndex = self.colIndex(col)
+             in self.setCell(row,col,values->at(rowIndex)->at(colIndex))
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation rowColumn()
+      let cells = rows->collect(row | TableColumnCell("ROW_" + row.toString(),row.toString())) 
+      in TableColumn("ROW_DEF_COL","Row Col",200,true,false,cells,Seq{})
+      end
+    end
+    
+    @Operation rowIndex(row)
+      rows->indexOf(row)
+    end
+    
+    @Operation setCell(row,col,value)
+      let id = row.toString() + "_" + col.toString() then
+          cell = tables->head.find(id)
+      in if cell = null
+         then "No cell for " + id
+         else cell.value := value
+         end
+      end
+    end
+    
+    @Operation valueColumns()
+      cols->collect(col | self.valueColumn(col))
+    end
+    
+    @Operation valueColumn(col)
+      // For now the default is 0.0. This should be replaced with
+      // user supplied default data.
+      let cells = rows->collect(row | TableColumnCell(row.toString() + "_" + col.toString(),"0.0"))
+      in TableColumn("COL_" + col.toString(),col.toString(),200,false,false,cells,Seq{})
+      end
+    end
+    
+  end       

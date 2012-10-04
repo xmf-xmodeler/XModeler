@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class ImportAt extends Recognizer
+  
+    // Defines a parser import that will allow '@' extensions
+    // to find their classifiers at parse-time. If the parser
+    // is producing code, then the import will have no effect
+    // at run-time.
+    
+    @Operation code(out)
+      format(out,"ImportAt")
+    end
+    
+    @Operation FV()
+      Set{}
+    end
+    
+    @Operation transform(FV:Set(String),grammar)
+      self
+    end
+    
+    @Operation parse(machine)
+      machine.importAt()
+    end
+    
+    @Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::ImportAt() |]
+	end
+    
+  end
+    

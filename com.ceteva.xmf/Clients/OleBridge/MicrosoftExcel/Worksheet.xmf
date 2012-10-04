@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftExcel;
+
+context MicrosoftExcel
+
+  @Class Worksheet extends OleObject
+  
+    @Attribute workbook : Element end
+  
+    @Constructor(workbook)
+    end
+    
+    @Operation new()
+      self
+    end
+    
+    @Operation setCellValue(row,column,value)
+      
+      // note range needs to be disposed on the client side
+      
+      let range = Range(self)
+      in
+        self.commandInterpreter().callAndStore(self,"Range",Seq{row,column},range);
+        range.setOwner(self);
+        range.new();
+        range.setProperty("Value",value)
+      end
+    end
+  
+  end

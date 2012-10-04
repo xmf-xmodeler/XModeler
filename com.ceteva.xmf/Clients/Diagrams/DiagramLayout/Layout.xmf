@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramLayout;
+
+context DiagramLayout
+
+  @Class Layout 
+
+    @Attribute edges : Set(Edge) (?,!,+,-) end
+    @Attribute nodes : Set(Node) (?,!,+,-) end
+
+    @Constructor(nodes,edges) end
+    
+    @Operation applyLayout(diagram)
+      @For node in nodes do
+        node.applyLayout(diagram)
+      end;
+      @For edge in edges do
+        edge.applyLayout(diagram)
+      end
+    end
+
+  end

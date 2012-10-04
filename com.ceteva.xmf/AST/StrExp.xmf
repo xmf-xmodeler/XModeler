@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler StrExp in AST(aStrExp,arg,seen)
+  ASTNode(aStrExp)
+end;

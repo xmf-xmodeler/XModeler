@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest Structure
+
+  Structure = 
+    @File Structure             end
+    @File Tool                  end
+    @File ToolStub              end
+    @File ToolDescriptor        end
+    @File RegistryContributions end
+do Structure
+end;

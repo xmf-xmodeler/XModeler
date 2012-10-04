@@ -1,0 +1,124 @@
+parserImport XOCL;
+
+import Compiler;
+import Assembler;
+import IO;
+
+context Compiler
+
+  @Class CompilationUnit
+     
+    @Doc
+      A compilation unit is produced by the parser when we load a file for
+      compiling. Se-nd the compilation unit a 'compile' message to compile
+      the contents.
+      Constructor: CompilationUnit(imports,exps)
+        The imports are those packages that are imported at run-time and 
+        are referenced by the program code. The expressions are evaluated 
+        in the environment created by the imports.
+    end
+      
+    @Attribute imports : Seq(Import) end
+    @Attribute exps : Seq(Performable) end
+    
+    @Constructor(imports,exps) end
+      
+    @Operation compileFile(fileName:String,saveSource:Boolean)
+      self.compileFile(fileName,saveSource,false)
+    end
+     
+    @Operation compileFile(fileName:String,saveSource:Boolean,verbose:Boolean)
+      let objectFile = fileName + ".o";
+          orderedExps = self.foldExps(); 
+          env = self.env(); 
+          time1 = Time() then
+          instrs = orderedExps.compile(env,0,true,saveSource) + Seq{Instrs::Return()} then
+          time2 = Time();
+          locals = orderedExps.maxLocals() then
+          codeBox = assemble(instrs,locals,"") then
+          time3 = Time();
+          nameSpaces = Root.allContentsOf(NameSpace)->asSeq->including(Root)
+      in codeBox.setResourceName(fileName + ".xmf");
+         codeBox.toMachineCodeBox().save2(objectFile,nameSpaces);
+         if verbose
+         then
+           format(stdout,"(");
+           (time2-time1).pprint(stdout);
+           format(stdout,",~S)(",Seq{instrs->size});
+           (time3-time2).pprint(stdout);
+           format(stdout,")(");
+           (Time()-time3).pprint(stdout);
+           format(stdout,")")
+         end;
+         codeBox
+      end
+    end
+    
+    @Operation compileToFun(name:String,args:Seq(String),dynamics:Seq(Element),saveSource:Boolean)
+      let exp = self.foldExps() then
+          instrs = Compiler::compileExp(exp,args,true) + Seq{Instrs::Return()};
+          maxLocals = exp.maxLocals() + args->size;
+          dynamics = 
+            if dynamics->isEmpty 
+            then Seq{Seq{2|Root.contents},Seq{2|XCore.contents}} 
+            else dynamics 
+            end
+      in let codeBox = Assembler::assemble(instrs,maxLocals,"") then
+             operation = codeBox.toMachineFun(args->size,dynamics)
+         in if saveSource and Compiler::saveSource
+            then 
+              let params = args->collect(a | OCL::Varp(a));
+                  type = OCL::NamedType() then
+                  opExp = OCL::Operation(name,params,type,exp)
+              in operation.setSource(opExp.pprint())
+              end
+            end;
+            operation.setName(name);
+            operation
+         end
+      end
+    end
+      
+    @Operation env():Env
+      // Create the initial environment for the compiler.
+      Env(Seq{})
+    end
+      
+    @Operation foldExps()
+      // Create a single expression to compile. The expression is the
+      // result of folding up the imports and the body expressions.
+      exps->iterate(exp exps = self.foldImports() | [| <exps>; <exp> |])
+    end 
+      
+    @Operation foldImports()
+      // Create a single expression from the imports.
+      imports->iterate(iclause exps = [| 0 |] | [| <exps>; <iclause> |])
+    end
+    
+    @Operation pprint():String
+      let sout = IO::StringOutputChannel()
+      in self.pprint(sout,0);
+         sout.getString()
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      @For i in imports do
+        i.pprint(out,indent);
+        if not isLast then format(out,"~%") end
+      end;
+      format(out,"~%~%");
+      @For exp in exps do
+        exp.pprint(out,indent);
+        format(out,";~%~%")
+      end
+    end
+      
+    @Operation writeInstrs(instrFile:String,codeBox)
+       let out = FileOutputChannel(instrFile)
+       in codeBox.pprint(out);
+          out.close()
+       end
+    end
+      
+  end    

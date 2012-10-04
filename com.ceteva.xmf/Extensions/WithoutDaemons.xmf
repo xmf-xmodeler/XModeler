@@ -1,0 +1,71 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class WithoutDaemons extends Performable
+  
+    @Doc
+      The without daemons expression is used to turn daemons off for the
+      evaluation of an expression in the context of an object. Often a
+      daemon will fire and the code that handles the daemon should not
+      cause recursive daemon invocation. This form can be used to safely
+      turn off daemons temporarily for the scope of the handler.
+      
+      Constructor: WithoutDaemons(object,body)
+        The object and body should be expressions. Daemons are switched 
+        off for the scope of the evaluation of the body.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      WithoutDaemons ::= '(' object = Exp ')' body = Exp { WithoutDaemons(object,body) }.
+      
+    end 
+    
+    @Attribute object : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(object,body) end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      self.desugar().compile(env,frame,isLast,saveSource)
+    end
+    
+    @Operation FV()
+      self.desugar().FV()
+    end
+    
+    @Operation desugar() 
+      [| let wdo = <object>
+         in 
+           try
+             Kernel_daemonsOff(wdo);
+             let wdr = <body>
+             in Kernel_daemonsOn(wdo);
+                wdr
+             end
+           catch(exception)
+             Kernel_daemonsOn(wdo);
+             throw exception
+           end
+         end
+      |]
+    end
+    
+    @Operation maxLocals()
+      self.desugar().maxLocals()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@WithoutDaemons (");
+      object.pprint(out,indent);
+      format(out,")~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",seq{indent})
+    end
+    
+  end

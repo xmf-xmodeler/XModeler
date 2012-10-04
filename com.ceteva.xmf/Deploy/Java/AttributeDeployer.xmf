@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+
+  @Class AttributeDeployer extends TypeConverter
+  
+    @Operation deployAttribute(attribute:Attribute,out:OutputChannel,package:Package)
+      format(out,"  private ~S ~S;~%",Seq{attribute.type.javaTypeName(package),attribute.name})
+    end
+
+    @Operation deployAccessor(attribute:Attribute,out:OutputChannel,package:Package)
+      @Case attribute.type of
+        Set(T) do
+          if T.isKindOf(DataType)
+          then format(out,"  public ~S[] ~S() { return ~S; }~%",Seq{T.javaTypeName(package),attribute.name,attribute.name})
+          else format(out,"  public java.util.Vector ~S() { return ~S; }~%",Seq{attribute.name,attribute.name})
+          end
+        end
+        Seq(T) do
+          if T.isKindOf(DataType)
+          then format(out,"  public ~S[] ~S() { return ~S; }~%",Seq{T.javaTypeName(package),attribute.name,attribute.name})
+          else format(out,"  public java.util.Vector ~S() { return ~S; }~%",Seq{attribute.name,attribute.name})
+          end
+        end
+        else format(out,"  public ~S ~S(){ return ~S; }~%",Seq{attribute.type.javaTypeName(package),attribute.name,attribute.name})
+      end
+    end
+    
+    @Operation deployUpdater(attribute:Attribute,out:OutputChannel,package:Package)
+  
+      // A basic updater operation that sets the slot.
+    
+      let uname = attribute.name.toString().upperCaseInitialLetter()
+      in @Case attribute.type of
+           Set(T) do
+           if T.isKindOf(DataType)
+           then format(out,"  public void set~S(~S value) { this.~S = value; ",Seq{uname,T.javaTypeName(package),attribute.name})
+           else format(out,"  public void set~S(java.util.Vector value) { this.~S = value; ",Seq{uname,attribute.name})
+           end
+         end
+         Seq(T) do
+           if T.isKindOf(DataType)
+           then format(out,"  public void set~S(~S value) { this.~S = value; ",Seq{uname,T.javaTypeName(package),attribute.name})
+           else format(out,"  public void set~S(java.util.Vector value) { this.~S = value; ",Seq{uname,attribute.name})
+           end
+         end
+         else format(out,"  public void set~S(~S value){ this.~S = value; ",Seq{uname,attribute.type.javaTypeName(package),attribute.name})
+         end;
+         self.deployUpdaterHook(attribute,out,package);
+         format(out,"}~%")
+      end
+    end
+
+    @Operation deployUpdaterHook(attribute:Attribute,out:OutputChannel,package:Package)
+      // Used to add event raising and the like to the basic updater
+      // definition.
+      null
+    end
+  
+  end

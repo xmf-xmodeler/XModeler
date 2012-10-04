@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Compiler;
+import Instrs;
+
+context Compiler
+
+  @Class Local extends Var
+  
+      // A local variable occurs in the stack frame of the currently executing
+      // operation.
+      
+      @Attribute offset : Integer end
+      
+      @Constructor(name,offset) ! end
+      
+      @Operation ref()
+        Seq{LocalRef(name,offset)}
+      end
+      
+    end

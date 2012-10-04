@@ -1,0 +1,302 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import Clients;
+import Diagrams;
+
+context IO
+  @Class DiagramXMLFormatter extends ObjectXMLFormatter
+    
+    @Operation write(object:Object,out:ElementOutputChannel)
+      self.writeDiagram(object,out)
+    end
+    
+    @Operation writeBox(box,out)
+      @XML(out)
+        <Box
+          id = out.id(box)
+          x = box.x
+          y = box.y
+          width = box.width
+          height = box.height
+          cornerCurve = box.cornerCurve
+          showTop = box.showTop
+          showBottom = box.showBottom
+          showLeft = box.showLeft
+          showRight = box.showRight
+          lineColorRed = box.lineColor.red
+          lineColorGreen = box.lineColor.green
+          lineColorBlue = box.lineColor.blue
+          fillColorRed = box.fillColor.red
+          fillColorGreen = box.fillColor.green
+          fillColorBlue = box.fillColor.blue
+        >
+          @For display in box.displays
+          do
+            self.writeDisplay(display,out)
+          end
+        </Box>
+      end
+    end
+    
+    @Operation writeDiagram(diagram,out)
+      @XML(out)
+        <Diagram 
+          id = out.id(diagram) 
+          name = diagram.name
+          isOpen = diagram.isOpen
+          isSubDiagram = diagram.isSubDiagram
+        >
+          self.writeGraph(diagram.graph,out)
+        </Diagram>
+      end
+    end
+    
+    @Operation writeDisplay(display,out)
+      @Case display of
+        Box[ ] do
+          self.writeBox(display,out)
+        end
+        Ellipse[ ] do
+          self.writeEllipse(display,out)
+        end
+        Group[ ] do
+          self.writeGroup(display,out)
+        end
+        Image[ ] do
+          self.writeImage(display,out)
+        end
+        Line[ ] do
+          self.writeLine(display,out)
+        end
+        Shape[ ] do
+          self.writeShape(display,out)
+        end
+        Text[ ] do
+          self.writeText(display,out)
+        end
+        else super(display,out)
+      end
+    end
+    
+    @Operation writeEdge(edge,out)
+      @XML(out)
+        <Edge
+          id = out.id(edge)
+          source = out.id(edge.source)
+          target = out.id(edge.target)
+          refx = edge.refx
+          refy = edge.refy
+          sourceHead = edge.sourceHead
+          targetHead = edge.targetHead
+          lineStyle = edge.lineStyle
+          colorRed = edge.color.red
+          colorGreen = edge.color.green
+          colorBlue = edge.color.blue 
+        >
+          @For label in edge.labels
+          do
+            self.writeLabel(label,out)
+          end;
+          @For waypoint in edge.wayPoints
+          do
+            self.writeWaypoint(waypoint,out)
+          end
+        </Edge>
+      end
+    end
+    
+    @Operation writeEllipse(ellipse,out)
+      @XML(out)
+        <Ellipse 
+          id = out.id(ellipse)
+          x = ellipse.x
+          y = ellipse.y
+          width = ellipse.width
+          height = ellipse.height
+          showOutline = ellipse.showOutline
+          lineColorRed = ellipse.lineColor.red
+          lineColorGreen = ellipse.lineColor.green
+          lineColorBlue = ellipse.lineColor.blue
+          fillColorRed = ellipse.fillColor.red
+          fillColorGreen = ellipse.fillColor.green
+          fillColorBlue = ellipse.fillColor.blue 
+        />
+      end
+    end
+    
+    @Operation writeGraph(graph,out)
+      @For node in graph.nodes
+      do
+        self.writeNode(node,out)
+      end;
+      @For edge in graph.edges
+      do
+        self.writeEdge(edge,out)
+      end
+    end
+    
+    @Operation writeGroup(group,out)
+      @XML(out)
+        <Group
+          id = out.id(group)
+          x = group.x
+          y = group.y
+          width = group.width
+          height = group.height
+        >
+          @For display in group.displays
+          do
+            self.writeDisplay(display,out)
+          end
+        </Group>
+      end
+    end
+    
+    @Operation writeImage(image,out)
+      @XML(out)
+        <Image
+          id = out.id(image)
+          filename = image.filename
+          x = image.x
+          y = image.y
+          width = image.width
+          height = image.height
+        />
+      end
+    end
+    
+    @Operation writeLabel(label,out)
+      @XML(out)
+        <Label
+          id = out.id(label)
+          text = label.text
+          attachedTo = label.attachedTo
+          relx = label.relx
+          rely = label.rely
+          editable = label.editable
+          underline = label.underline
+          truncate = label.truncate
+          colorRed = label.color.red
+          colorGreen = label.color.green
+          colorBlue = label.color.blue
+        />
+      end
+    end
+    
+    @Operation writeLine(line,out)
+      @XML(out)
+        <Line
+          id = out.id(line)
+          x1 = line.x
+          y1 = line.y
+          x2 = line.x2
+          y2 = line.y2
+          lineStyle = line.lineStyle
+          colorRed = line.color.red
+          colorGreen = line.color.green
+          colorBlue = line.color.blue
+        />
+      end
+    end
+    
+    @Operation writeNode(node,out)
+      @XML(out)
+        <Node
+          id = out.id(node)
+          x = node.x
+          y = node.y
+          width = node.width
+          height = node.height
+          iconised = node.iconised
+        >
+          @For port in node.ports
+          do 
+            self.writePort(port,out)
+          end;
+          @For display in node.displays
+          do
+            self.writeDisplay(display,out)
+          end
+        </Node>
+      end
+    end
+    
+    @Operation writePoint(point,out)
+      @XML(out)
+        <Point
+          id = out.id(point)
+          x = point.x
+          y = point.y
+        />
+      end
+    end
+    
+    @Operation writePort(port,out)
+      @XML(out)
+        <Port
+          id = out.id(port)
+          x = port.x
+          y = port.y
+          width = port.width
+          height = port.height  
+        />
+      end
+    end
+   
+    @Operation writeShape(shape,out)
+      @XML(out)
+        <Shape
+          id = out.id(shape)
+          x = shape.x
+          y = shape.y
+          width = shape.width
+          height = shape.height
+          outline = shape.outline
+          lineColorRed = shape.lineColor.red
+          lineColorGreen = shape.lineColor.green
+          lineColorBlue = shape.lineColor.blue
+          fillColorRed = shape.fillColor.red
+          fillColorGreen = shape.fillColor.green
+          fillColorBlue = shape.fillColor.blue
+        >
+          @For point in shape.points
+          do
+            self.writePoint(point,out)
+          end
+        </Shape>  
+      end
+    end
+    
+    @Operation writeText(text,out)
+      @XML(out)
+        <DiagramText
+          id = out.id(text)
+          text = text.text
+          x = text.x
+          y = text.y
+          editable = text.editable
+          underline = text.underline
+          italicise = text.italicise
+          colorRed = text.color.red
+          colorGreen = text.color.green
+          colorBlue = text.color.blue
+        />
+      end
+    end
+    
+    @Operation writeWaypoint(waypoint,out)
+      @XML(out)
+        <Waypoint
+          id = out.id(waypoint)
+          index = waypoint.index
+          x = waypoint.x
+          y = waypoint.y
+        />
+      end
+    end
+
+  
+  end
+  

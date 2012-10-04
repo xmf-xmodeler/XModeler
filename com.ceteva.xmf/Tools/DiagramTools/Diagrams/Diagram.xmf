@@ -1,0 +1,81 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Diagram extends Clients::Diagrams::Diagram, Display, Clickable
+  
+    @Doc 
+      A diagram tool diagram is a specialization of a standard diagram that
+      provides support for monitoring the diagram state and firing appropriate
+      events.
+    end
+    
+    @Attribute edgeAddedHandler   : Operation (!) end
+    @Attribute edgeRemovedHandler : Operation (!) end
+    @Attribute nodeAddedHandler   : Operation (!) end
+    @Attribute nodeRemovedHandler : Operation (!) end
+  
+    @Constructor(name)
+      self.setDaemons()
+    end
+    
+    @Operation edgeAdded(graph,slot,edge)
+      edgeAddedHandler(edge)
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+
+    @Operation edgeRemoved(graph,slot,edge)
+      edgeRemovedHandler(edge)
+    end
+
+    @Operation initDiagrams(tool)
+      self.type().toolBar().new(self,tool)
+    end
+    
+    @Operation nodeAdded(graph,slot,node)
+      nodeAddedHandler(node,self)
+    end
+    
+    @Operation nodeRemoved(graph,slot,node)
+      nodeRemovedHandler(node,self)
+    end
+    
+    @Operation removeDaemons()
+      graph.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation renew()
+      self.setDaemons();
+      super()
+    end
+
+    @Operation renew(parent)
+      self.setDaemons();
+      super(parent)
+    end
+
+    @Operation setDaemons()
+    
+      // The graph underlying the diagram is monitored to fire appropriate
+      // events when the graph is modified.
+      
+     @SlotValueChanged multi + Diagram::nodeAdded(graph,"nodes")   end;
+     @SlotValueChanged multi - Diagram::nodeRemoved(graph,"nodes") end;
+     @SlotValueChanged multi + Diagram::edgeAdded(graph,"edges")   end;
+     @SlotValueChanged multi - Diagram::edgeRemoved(graph,"edges") end
+     
+   end
+      
+    
+  end
+
+  

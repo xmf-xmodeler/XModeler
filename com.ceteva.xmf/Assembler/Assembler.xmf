@@ -1,0 +1,70 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+
+  @Package Assembler
+
+    @Doc
+      Once compiled, the resulting instructions must be assembled to produce a code box.
+      The code box can then be linearized to produce a binary stream that will re-create
+      the code box at load time in the machine.
+    end
+    
+    @Operation assemble(instrs,locals,source):Assembler::CodeBox
+      @Doc
+        Produces a code box from a sequence of instructions, the required number of locals
+        and the source code represented as a string. The source code is optional and may be
+        supplied as the empty string.
+      end
+      let codeBox = Assembler::CodeBox("anonymous")
+      in @For instr in instrs do
+           instr.assemble(codeBox)
+         end;
+         codeBox.source := source;
+         codeBox.locals := locals;
+         codeBox
+      end
+    end
+
+  end 
+  
+context XCore::CodeBox
+  @Operation disassemble(out,indent)
+    @Doc
+      Prints the assembler source code to the supplied output channel.
+    end
+    format(out,"~VCODEBOX(~S,~S)~%",Seq{indent,self.name(),self.locals()});
+    @Count i from 0 to self.codeSize() - 1 do
+      format(out,"~V",Seq{indent});
+      Instrs::disassemble(out,i,self.instrAt(i),self.operandsAt(i),self.constants())
+    end;
+    @Count i from 0 to self.constants()->size do
+      let constant = self.constants()->at(i)
+      in if constant.isReallyKindOf(CodeBox) or constant.isReallyKindOf(CompiledOperation)
+         then 
+           format(out,"~VConstant(~S)~%",Seq{indent,i});
+           constant.disassemble(out,indent+2)
+         else format(out,"~VConstant(~S) = ~S~%",Seq{indent,i,constant.toString()})
+         end
+      end
+    end
+  end   
+
+context XCore::CompiledOperation
+  @Operation disassemble():String
+    let out = StringOutputChannel()
+    in self.disassemble(out,0);
+       out.getString()
+    end
+  end 
+ 
+context XCore::CompiledOperation
+  @Operation disassemble(out,indent)
+    @Count i from 0 to self.paramNames()->size do
+      format(out,"~V[ARG~S] ~S~%",Seq{indent,i,self.paramNames()->at(i)})
+    end;
+    self.codeBox().disassemble(out,indent)
+  end
+  

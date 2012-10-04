@@ -1,0 +1,124 @@
+import OCL;
+import Instrs;
+ 
+context CollExp
+  @Operation compile(env,frame,isLast,saveSource)
+    if collOp = "head"
+    then 
+      if self.isLocalCollection(env)
+      then Seq{LocalHead(collection.name,self.localCollectionIndex(env))}
+      else collection.compile(env,frame,false,saveSource) + Seq{Head()} 
+      end
+    elseif collOp = "tail"
+    then 
+      if self.isLocalCollection(env)
+      then Seq{LocalTail(collection.name,self.localCollectionIndex(env))}
+      else collection.compile(env,frame,false,saveSource) + Seq{Tail()}
+      end 
+    elseif collOp = "size"
+    then 
+      collection.compile(env,frame,false,saveSource) + Seq{Size()}
+    elseif collOp = "drop"
+    then 
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) + 
+      Seq{Drop()}
+    elseif collOp = "isEmpty"
+    then 
+      if self.isLocalCollection(env)
+      then Seq{LocalIsEmpty(collection.name,self.localCollectionIndex(env))}
+      else collection.compile(env,frame,false,saveSource) + Seq{IsEmpty()}
+      end
+    elseif collOp = "includes"
+    then
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Includes()}
+    elseif  collOp = "excluding"
+    then
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Excluding()}
+    elseif collOp = "including"
+    then
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Including()}
+    elseif collOp = "sel"
+    then 
+      collection.compile(env,frame,false,saveSource) + 
+      Seq{Sel()}
+    elseif collOp = "union"
+    then
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Union()}
+    elseif collOp = "asSeq"
+    then 
+      if self.isLocalCollection(env)
+      then Seq{LocalAsSeq(collection.name,self.localCollectionIndex(env))}
+      else
+        collection.compile(env,frame,false,saveSource) + 
+        Seq{AsSeq()}
+      end
+    elseif collOp = "at"
+    then self.compileAt(env,frame,false,saveSource)
+    elseif collOp = "prepend"
+    then 
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Prepend()}
+    elseif collOp = "assoc"
+    then
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{Assoc()}
+    else 
+      ([| <collection>.<collOp>() |].args := args).compile(env,frame,isLast,saveSource)
+    end
+  end
+  
+context CollExp
+  @Operation compileAt(env,frame,isLast,saveSource)
+    if collection.isKindOf(StrExp) and args->at(0).isKindOf(IntExp)
+    then
+      // We have a constant and can perform evaluation at compile time...
+      let string = collection.value;
+          int = args->at(0).value
+      in IntExp(string->at(int)).compile(env,frame,isLast,saveSource)
+      end
+    else
+      // We defer execution...
+      args->at(0).compile(env,frame,false,saveSource) + 
+      collection.compile(env,frame,false,saveSource) +
+      Seq{At()}
+    end
+  end
+
+context CollExp 
+  @Operation FV():Set(String)
+    ([| <collection>.<collOp>() |].args := args).FV()
+  end
+  
+context CollExp
+  @Operation isLocalCollection(env):Boolean
+    collection.isKindOf(Var) andthen
+    env.isLocal(collection.name)
+  end
+  
+context CollExp
+  @Operation localCollectionIndex(env):Integer
+    env.localIndex(collection.name)
+  end
+
+context CollExp
+  @Operation maxLocals():Integer 
+    ([| <collection>.<collOp>() |].args := args).maxLocals()
+  end
+  
+context CollExp
+  @Operation lift()
+    let collOp = if collOp.isKindOf(Performable) then collOp.lift() else StrExp(collOp) end
+    in Apply(self.typeExp(),Seq{collection.lift(),collOp,SetExp("Seq",args->collect(arg | arg.lift()))})
+    end
+  end

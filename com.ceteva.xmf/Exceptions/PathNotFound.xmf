@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class PathNotFound extends Exception
+  
+    @Doc
+      This exception is raisd when a path cannot be de-referenced with respect to
+      the currently imported name spaces.
+      Constructor: PathNotFound(path,imports)
+    end
+     
+    @Attribute path : Element end
+    @Attribute imports : Seq(NameSpace) end
+    
+    @Constructor(path,imports) !
+       self.setBacktrace();
+       self.message := 
+         "The path " + path.toString() +
+         " cannot be de-referenced" +
+         if imports->isEmpty
+         then "."
+         else ". The currently imported name spaces are: " + imports->collect(i | i.toString())->separateWith(",")
+         end
+    end
+    
+  end

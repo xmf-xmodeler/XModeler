@@ -1,0 +1,7 @@
+import Compiler;
+
+compileFile("Languages/DFD/Boot",true,true);
+compileFile("Languages/DFD/DFD",true,true);
+compileFile("Languages/DFD/Manifest",true,true);
+compileFile("Languages/DFD/Syntax/Makefile",true,true);
+"Languages/DFD/Syntax/Makefile.o".loadBin(false);

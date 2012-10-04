@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+  @Class ZipOutputChannel extends OutputChannel
+  
+    @Doc
+      Writes output to an output channel in compressed format.
+    end
+  
+    @Attribute out : OutputChannel end
+    @Attribute zout : Element end
+    
+    @Constructor(out) ! 
+      self.zout := Kernel_zipOutputChannel(out.channel())
+    end
+    
+    @Operation channel()
+      zout
+    end
+    
+    @Operation close()
+      Kernel_close(zout)
+    end
+    
+    @Operation flush()
+      Kernel_flush(zout)
+      self
+    end
+    
+    @Operation newEntry(name:String)
+      Kernel_zipNewEntry(zout,name)
+    end
+    
+    @Operation setChannel(channel)
+      out.setChannel(channel);
+      self.zout := Kernel_zipOutputChannel(channel)
+    end
+    
+    @Operation write(value)
+      Kernel_write(zout,value)
+    end
+    
+  end

@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler TailUpdate in PPrint(aTailUpdate,out,seen)
+  self.dispatch(aTailUpdate.seq,out);
+  format(out,"->tail := ");
+  self.dispatch(aTailUpdate.value,out)
+end;

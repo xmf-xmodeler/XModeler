@@ -1,0 +1,74 @@
+parserImport XOCL;
+
+import Languages;
+import StateMachines;
+import Stacks;
+
+context StateMachines
+
+  @Class StateMachinableObject extends Object
+  
+    @Attribute startName    : String  end
+    @Attribute currentState : State   end
+    @Attribute inputQueue   : Queue   end
+    @Attribute outputQueue  : Queue   end
+    
+    @Operation consumeNextEvent()
+      self.inputQueue.pop()
+    end
+    
+    @Operation getNextEvent()
+      if not self.inputQueue.isEmpty() then
+        self.inputQueue.top()
+      else
+        null
+      end
+    end
+    
+    @Operation reset()
+      self.inputQueue := Queue();
+      self.outputQueue := Queue();
+      let machine = self.of().machine in
+        if machine <> null then
+          machine.startName := self.startName;
+          self.currentState := machine.startingState()
+        end
+      end
+    end
+    
+    @Operation sendMessage(name,args,target)
+      //("SENDING MESSAGE:"+name).println();
+      let message = Message(name,args,self,target) in
+        self.outputQueue.push(message)
+      end
+    end
+    
+    @Operation fireTransition()
+      if self.getNextEvent() <> null then
+        if self.of().machine <> null then
+          let machine = self.of().machine then
+            transitions = machine.transitionsFrom(currentState) then
+            enabledTransitions = transitions->select(t |
+              /* t.isEnabled(self) and
+              if t.event <> null
+              then self.getNextEvent().name = t.event.name
+              else true
+              end) */
+              self.getNextEvent().name = t.event.name)
+          in if not enabledTransitions->isEmpty 
+             then
+               let transition = enabledTransitions->sel 
+               in transition.activate(self,self.getNextEvent().args.value);
+                  self.currentState := transition.target();
+                  if transition.event <> null then
+                    self.consumeNextEvent()
+                  end
+               end
+             end
+          end
+        else
+          xmf.errorMessage(self.name + " does not have a state machine")
+        end
+      end
+    end
+  end

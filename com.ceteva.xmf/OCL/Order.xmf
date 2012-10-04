@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Order extends OCL::OCL
+  
+    @Attribute first : OCL::OCL end
+    @Attribute second : OCL::OCL end
+    
+    @Constructor(first,second) ! end
+    
+    @Operation pprint(out,indent)
+      first.pprint(out,indent);
+      format(out,";~%~V",Seq{indent});
+      second.pprint(out,indent)
+    end
+    
+  end

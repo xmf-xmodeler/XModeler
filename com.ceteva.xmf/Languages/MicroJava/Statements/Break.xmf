@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Break extends Statement
+  
+    @Operation pprint(out,indent)
+      format(out,"break;")
+    end
+    
+  end

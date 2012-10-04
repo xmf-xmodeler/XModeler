@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class EventPattern extends Syntax
+  
+    @Attribute path : Seq(String) end
+    @Attribute vars : Seq(Symbol) end
+    
+    @Constructor(path,vars) ! end
+    
+    @Operation env(vars,args)
+      if vars->isEmpty
+      then Seq{}
+      else
+        Seq{Seq{1 | Seq{vars->head | args->head}} | self.env(vars->tail,args->tail)}
+      end
+    end
+    
+    @Operation handleEvent(target,class,args,exp)
+      
+      // Check that the raised event class matches the path and
+      // that the number of arguments passed is correct. If so
+      // then create an Exp environment and perform the expression.
+      
+      let eventClass = path->ref(Seq{Root,XCore})
+      in if eventClass = class and vars->size = args->size
+         then exp.perform(target,self.env(vars,args),Seq{})
+         end
+      end
+      
+    end
+    
+  end

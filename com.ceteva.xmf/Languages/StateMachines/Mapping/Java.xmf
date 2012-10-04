@@ -1,0 +1,72 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+@Package Java
+     
+      @Doc
+        A model of Java program structure.
+      end
+      
+      @Class Program
+        @Attribute classes : Set(Class) end
+        @Constructor(classes) ! end
+      end
+      
+      @Class Class
+        @Attribute name : String end
+        @Attribute members : Set(Member) end
+        @Constructor(name) end
+        @Constructor(name,members) ! end
+        @Operation code()
+          "class " + self.name + "{\n" +
+          self.members->
+            select(m | m.isKindOf(Field))->
+              iterate(f s = Seq{} | s+Seq{f.code()})->separateWith("; \n") + ";" + "\n" +
+          self.members->
+            select(m | m.isKindOf(Method))->
+              iterate(f s = Seq{} | s+Seq{f.code()})->separateWith(" \n") + "}\n" 
+        end
+      end
+      
+      @Class Member isabstract
+        @Attribute name : String end
+        @Constructor(name) ! end 
+      end
+      
+      @Class Field extends Member
+        @Attribute type : String end
+        @Constructor(name,type) end
+        @Operation code() 
+          "private " + self.type + " : " + self.name
+        end
+      end
+      
+      
+      @Class Method extends Member
+        @Attribute args : Seq(Arg) end
+        @Attribute type : String end
+        @Attribute body : String end
+        @Constructor(name,args,type,body) end
+        @Operation code()
+          "public " + name + "(" + self.args->
+            iterate(a s=Seq{} | s+Seq{a.code()})->
+              separateWith(",") + ")" + "\n" +
+              self.body
+        end
+      end
+      
+      @Class Arg 
+        @Attribute name : String end
+        @Attribute type : String end
+        @Constructor(name,type) ! end
+        @Operation code()
+          self.type + " " + self.name
+        end
+      end
+      
+    end

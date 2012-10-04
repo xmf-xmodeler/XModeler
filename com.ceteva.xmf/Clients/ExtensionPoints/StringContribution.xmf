@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class StringContribution
+  
+    // A string contribution is a binding between a string and
+    // a sequence of value
+  
+    @Attribute key   	: String end
+    @Attribute values   : SeqOfElement end
+    
+    @Constructor(key,values)
+    end
+  
+    @Operation contributesTo(element)
+      key = element
+    end
+    
+    @Operation getValue(index)
+      self.values->at(index)
+    end
+    
+    @Operation key()
+      key
+    end
+  
+  end

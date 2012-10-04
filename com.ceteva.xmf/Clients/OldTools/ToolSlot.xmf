@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolSlot isabstract
+  
+    @Attribute type : ToolComponentAttribute end
+    
+    @AbstractOp layout(x,y,width,height):Integer end
+    
+    @AbstractOp containsObject(object) end
+    
+    @Operation name():String
+      type.name
+    end
+    
+    @AbstractOp value() end
+    
+  end

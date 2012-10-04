@@ -1,0 +1,202 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Walkers;
+import Clients;
+import SearchReport;
+
+context Walkers
+
+  @Class Search extends Walker
+  
+    @Doc
+      An instance of this class can be used to find all element in a given XMF
+      value that satisfy the supplied predicate. To use this, construct with a 
+      single argument predicate and supply the root of the walk to the 'walk'
+      operation. The second argument to 'walk' may be an integer to limit the depth
+      of the walk or null for no limit. A search node is produced that can be
+      viewed in Mosaic by editing it. Produces null if there are no matches. The
+      body of the search spcial form should be an action that is performed when the 
+      node in the search tree is double clicked.
+    end
+  
+    @Attribute predicate : Operation end      // A predicate for the search.
+    @Attribute map       : Operation end      // A map for the objects, produces a search node.
+    
+    @Constructor(predicate,map) ! 
+      self.initWalker()
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+      Search ::= n = Name 
+        'in' v = Exp 
+        'when' p = Exp 
+        'limit' l = (Exp | { [| null |] }) 
+        b = ('do' Exp | { [| <OCL::Var(n)>.edit() |] }) {
+          [| let walker = Walkers::Search(@Operation(<n>) <p> end,@Operation(<n>) <b> end) 
+             in walker.walk(<v>,<l>)
+             end |] 
+      }.
+    end
+  
+    @Operation defaultWalk(e:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation reWalk(v:Element,limit:Element):Element
+      null
+    end
+    
+    @Operation walk(element:Element,limit:Element):Element
+      if limit <> 0
+      then
+        if predicate(element)
+        then 
+          let label = element.toString();
+              icon = "Search/Search.gif";
+              action = @Operation(r) map(r.element) end
+          in Clients::SearchReport::SearchResult(label,element,icon,action)
+          end
+        else super(element,limit)
+        end
+      else null
+      end
+    end
+    
+    @Operation walkBoolean(b:Boolean,limit:Element):Element 
+      null
+    end
+     
+    @Operation walkInteger(i:Integer,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkNull(limit:Element):Element 
+      null
+    end
+    
+    @Operation walkOperation (o:Operation,limit:Element):Element
+      null
+    end
+    
+    @Operation walkPreObject(o:Object,limit:Element)
+      null
+    end
+     
+    @Operation walkSeq(s:SeqOfElement,limit:Element):Element 
+      if s->isProperSequence
+      then
+        let nodes = SearchNodes("","Search/Seq.gif");
+            results = s->collect(e | self.walk(e,if limit = null then null else limit - 1 end))->reject(x | x = null)
+        in if results->isEmpty
+           then null
+           else
+             @For result in results do
+               nodes.add(result)
+             end;
+             nodes
+           end
+        end
+      else
+        let head = self.walk(s->head,if limit = null then null else limit - 1 end);
+            tail = self.walk(s->tail,if limit = null then null else limit - 1 end)
+        in if head = null
+           then tail
+           elseif tail = null
+           then head
+           else 
+             let nodes = SearchNodes("","Search/Pair.gif")
+             in nodes.add(head);
+                nodes.add(tail);
+                nodes
+             end
+           end
+        end
+      end
+    end
+     
+    @Operation walkSet(s:SetOfElement,limit:Element):Element 
+      let results = s->collect(x | self.walk(x,if limit = null then null else limit - 1 end))->reject(e | e = null)
+      in if results->isEmpty
+         then null
+         else 
+           let nodes = SearchNodes("","Search/Set.gif")
+           in @For result in results do
+                nodes.add(result)
+              end;
+              nodes
+           end
+         end
+      end
+    end
+     
+    @Operation walkObject(o:Object,limit:Element):Element 
+       self.encounter(o);
+       let results = o.getStructuralFeatureNames()->collect(s | 
+             let result = self.walk(o.get(s),if limit = null then null else limit - 1 end)
+             in if result.isReallyKindOf(SearchNode)
+                then
+                  if result.text = ""
+                  then result.text := s.toString()
+                  else result.text := s.toString() + " = " + result.text
+                  end
+                else result
+                end
+             end)->reject(x | x = null)
+       in if results->isEmpty
+          then null
+          else
+            let nodes = SearchNodes(o.toString(),"Search/Object.gif")
+            in @For result in results do
+                 nodes.add(result)
+               end;
+               nodes
+            end
+          end
+       end
+     end
+    
+    @Operation walkString(s:String,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkSymbol(s:Symbol,limit:Element):Element 
+      null
+    end
+    
+    @Operation walkTable(t:Table,limit:Element):Element
+      let keyResults = t.keys()->collect(key | 
+            self.walk(key,if limit = null then null else limit - 1 end))->reject(x | x = null);
+          valueResults = t.keys()->collect(key | 
+            self.walk(t.get(key),if limit = null then null else limit - 1 end))->reject(x | x = null) then
+          results = keyResults + valueResults
+      in if results->isEmpty
+         then null
+         else
+           let nodes = SearchNodes(t.toString(),"Search/Table.gif")
+           in @For result in results do
+                nodes.add(result)
+              end;
+              nodes
+           end
+         end
+      end
+    end
+    
+    @Operation walkVector(v:Vector,limit:Element):Element
+      let results = 0.to(v.size()-1)->collect(i | self.walk(v.ref(i),if limit = null then null else limit - 1 end))->reject(x | x = null)
+      in if results->isEmpty
+         then null
+         else 
+           let nodes = SearchNodes("<Vector size = " + v.size() + ">","Search/Vector.gif")
+           in @For result in results do
+                nodes.add(result)
+              end;
+              nodes
+           end
+         end
+      end
+    end
+    
+  end
+     

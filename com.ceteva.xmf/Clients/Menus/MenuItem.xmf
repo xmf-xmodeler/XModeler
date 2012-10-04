@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuItem isabstract extends ContainedClientElement
+  
+    // An element of a menu.
+  
+  	@Attribute name     	: String (?) end
+  	@Attribute keybinding 	: String (?) end
+  	@Attribute supportsMulti : Boolean  = true (?) end  //  Dictates whether or not the menu will be available in multiple selection.
+    
+    //@Operation elementId()
+    //  if owner <> null
+    //  then owner.elementId()
+    //  else self.error("Cannot find the element id of " + self.toString())
+    //  end
+    //end
+    
+    @Operation delete()
+      self.commandInterpreter().deleteMenuItem(owner,self);
+      self.removeFromOwner();
+      self.dispose()
+    end
+    
+    @Operation disableMultiSupport()
+      self.supportsMulti := false
+    end
+
+    @AbstractOp getHandlerPoint()
+      // All menu actions that have the same handler return the same point.
+    end
+    
+    @AbstractOp new(parent) 
+      // All menu items must be created by issuing 'new' messages.
+    end
+    
+    @Operation removeFromOwner()
+      owner.remove(self)
+    end
+    
+    @AbstractOp renew(parent) 
+      // All menu items must be created by issuing 'new' messages.
+    end
+    
+  end

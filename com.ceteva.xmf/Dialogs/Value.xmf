@@ -1,0 +1,39 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Value extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Value ::= label = OptLabel type = Path { Value(label,type) }.
+      OptLabel ::= '[' Exp ']' | { [| null |] }.
+      Path ::= root = Name names = ('::' Name)* { Seq{root | names} }.
+      
+    end 
+    
+    @Attribute type : Seq(String) end
+    @Attribute label : Performable end
+    
+    @Constructor(label,type) end 
+    
+    @Operation desugar() 
+      let pathExp = SetExp("Seq",type->collect(n | StrExp(n)))
+      in [| @Operation(c) 
+              @Operation(d) 
+                d.value(<label>,<pathExp>,c) 
+              end 
+            end |]
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Value ~{::~;~S~} end",Seq{type})
+    end
+    
+  end

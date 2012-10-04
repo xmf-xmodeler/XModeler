@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+context ! Root::Activities
+
+// Class deployed by Tony Clark on Wed Feb 16 21:46:20 GMT 2005
+
+@Class Actor metaclass Root::XCore::Class  extends Root::XCore::Object
+  @Attribute name : Root::XCore::String end
+end

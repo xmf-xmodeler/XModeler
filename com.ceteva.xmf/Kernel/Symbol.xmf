@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+context Symbol
+  @Operation asSymbol():Symbol
+    @Doc 
+      Returns self.
+    end
+    self
+  end
+  
+context Symbol
+  @Operation greater(other)
+    @Doc
+      Returns true if self is alphanumerically greater
+      than other.
+    end
+    self.toString() > other.toString()
+  end
+
+context Symbol
+  @Operation init(args)
+    Kernel_mkSymbol(args->at(0))
+  end
+
+Symbol.default := Symbol("");
+
+context Symbol
+  @Operation less(other)
+    @Doc
+      Returns true if self is alphanumerically less
+      than other.
+    end
+    self.toString() < other.toString()
+  end
+  
+context Symbol
+  @Operation toString():String
+    @Doc
+      Converts a symbol to a string.
+    end
+    self.name
+  end

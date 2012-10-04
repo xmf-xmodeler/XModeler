@@ -1,0 +1,17 @@
+import OCL;
+import Exceptions;
+
+context Path
+  @Operation eval(target,env,imports)
+    let nameSpace = root.eval(target,env,imports)
+    in if nameSpace.isKindOf(NameSpace)
+       then 
+         names->iterate(name value = nameSpace |
+           if value.hasElement(name)
+           then value.getElement(name)
+           else throw NameSpaceRef(value,name)
+           end)
+       else throw TypeError(nameSpace,NameSpace)
+       end
+    end
+  end

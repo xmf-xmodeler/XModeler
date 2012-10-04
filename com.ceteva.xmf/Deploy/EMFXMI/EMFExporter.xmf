@@ -1,0 +1,189 @@
+// This file generates EMF compatiable XML documents.
+// TODO: Generate references to types in other packages
+
+parserImport XOCL;
+parserImport XML::PrintXML;
+
+import IO;
+
+context NamedElement
+
+  // A named element is associated with a path from the root
+  // owner of the named element to the named element. Named
+  // elements may be owned by themselves or 'null' in which 
+  // case they act as the root.
+  
+  @Operation pathSeq(element):Seq(String)
+    if self.owner() = self or self.owner() = null or self.owner()=element
+    then Seq{self.name.toString()}
+    else self.owner().pathSeq(element) + Seq{self.name.toString()}
+    end
+  end
+
+context Package
+
+  @Operation exportEMFXMI()
+    let file = xmf.saveFile(xmf.projDir(),"*.ecore",self.name)
+    in if file <> ""
+       then
+         if not file.fileExists() orelse xmf.question("Overwrite " + file)
+         then
+           @Busy("Generating XML")
+             @WithOpenFile(fout -> file)
+                self.exportEMFXMLRootPackage(fout,self)
+             end
+           end;
+           xmf.message("Written " + self.toString() + " to " + file)
+         else xmf.message("Deployment Cancelled")
+         end
+       else xmf.message("Deployment Cancelled")
+       end
+    end
+  end
+
+// Export a header then drop down to packages and classes.
+context Package
+  @Operation exportEMFXMLRootPackage(out:OutputChannel,root)
+    @XML(out)
+      <ecore:EPackage xmi:version="2.0"
+        xmlns:xmi="http://www.omg.org/XMI"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+        name=name.toString() 
+        nsURI="http:///org/eclipse/example/"+name.toString()
+        nsPrefix=name.toString()>
+        @For class in classes->reject(c | c.isKindOf(Package))->reject(c | c.isKindOf(Enum)) do
+          class.exportClassEMFXML(out,root)
+        end;
+        @For c in classes->select(c | c.isKindOf(Enum)) do
+          c.exportEnumEMFXML(out,root)
+        end;
+        @For package in packages do
+          package.exportPackageEMFXML(out,root)
+        end
+      </ecore:EPackage>
+     end
+  end
+
+context Package 
+  @Operation exportPackageEMFXML(out:OutputChannel,root:Package)
+    @XML(out)
+      <eSubpackages name=name>
+        @For class in classes->reject(c | c.isKindOf(Package))->reject(c | c.isKindOf(Enum)) do
+          class.exportClassEMFXML(out,root)
+        end;
+        @For c in classes->select(c | c.isKindOf(Enum)) do
+          c.exportEnumEMFXML(out,root)
+        end;
+        @For package in packages do
+          package.exportPackageEMFXML(out,root)
+        end
+      </eSubpackages>
+    end
+  end
+  
+context Enum
+  @Operation exportEnumEMFXML(out:OutputChannel,root:Package)
+    @XML(out)
+      <eClassifiers xsi:type="ecore:EEnum" name=name>
+        @For choice in self.names do
+            self.exportEnumChoiceEMFXML(out,choice)
+        end
+      </eClassifiers>
+    end
+  end
+  
+context Enum
+  @Operation exportEnumChoiceEMFXML(out:OutputChannel,choice)
+    @XML(out)
+      <eLiterals name=choice/>
+    end    
+  end
+  
+context Class
+  @Operation exportClassEMFXML(out:OutputChannel,root:Package)
+    @XML(out)
+      <eClassifiers xsi:type="ecore:EClass" name=name eSuperTypes = parents->excluding(Object)->collect(p | "#//" + p.pathSeq(root)->separateWith("/"))->asSeq->separateWith(" ")>
+        @For att in self.attributes do
+          att.exportEMFXML(out,root)
+        end
+      </eClassifiers>
+    end
+  end
+  
+context Attribute
+    @Operation exportEMFXML(out:OutputChannel,root:Package)
+      let etype = 
+        @Case type of 
+          [String] do 
+            "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+          end
+          [Integer] do 
+            "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
+          end
+          [Float] do 
+            "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EFloat"
+          end 
+          [Boolean] do 
+            "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"
+          end  
+          Class[ ] do 
+            "#//" + self.underlyingType().pathSeq(root)->separateWith("/")
+          end
+          Set[ ] do
+            "#//" + self.underlyingType().pathSeq(root)->separateWith("/")
+          end
+          Seq[ ] do
+            "#//" + self.underlyingType().pathSeq(root)->separateWith("/")
+          end  
+        end;
+        xsitype =
+          if self.underlyingType().isKindOf(DataType) or self.underlyingType().isKindOf(Enum)then
+            "ecore:EAttribute"
+          else
+            "ecore:EReference"
+          end
+      in
+        if self.type.isReallyKindOf(Set) and self.isComposite then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype containment = "true" upperBound="-1" ordered = "false">
+            </eStructuralFeatures>
+           end
+        elseif self.type.isReallyKindOf(Set) then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype upperBound="-1" ordered = "false">
+            </eStructuralFeatures>
+           end
+        elseif self.type.isReallyKindOf(Seq) and self.isComposite then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype containment = "true" upperBound="-1">
+            </eStructuralFeatures>
+           end
+        elseif self.type.isReallyKindOf(Set) then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype upperBound="-1" ordered = "false">
+            </eStructuralFeatures>
+           end
+        elseif self.type.isReallyKindOf(Seq) then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype upperBound="-1">
+            </eStructuralFeatures>
+           end
+        elseif self.type.isReallyKindOf(DataType) then
+          @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype>
+            </eStructuralFeatures>
+          end
+        elseif self.isComposite then
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype containment="true" >
+            </eStructuralFeatures>
+           end
+        else
+           @XML(out)
+            <eStructuralFeatures xsi:type=xsitype name=name eType=etype>
+            </eStructuralFeatures>
+           end
+         end
+      end
+    end

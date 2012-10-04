@@ -1,0 +1,119 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Alpha extends Node
+  
+    @Attribute class : Classifier     (?) end
+    @Attribute slots : Set(String)    (?) end
+    @Attribute next  : Set(Node)      (?,+,-) end
+    @Attribute preds : Set(Predicate) (?,+,-) end
+    
+    @Constructor(class,slots) ! end
+    
+    @Operation add(e:Element):Node
+      @TypeCase(e)
+        Node do
+          e.setOwner(self.owner());
+          self.addToNext(e)
+        end
+        ObjectToken do
+          self.addObjectToken(e)
+        end
+        Predicate do
+          self.addToPreds(e)
+        end
+      end
+    end
+     
+    @Operation addObjectToken(token:ObjectToken):Node
+      self.checkDaemons(token.object());
+      if token.object().isKindOf(class)
+      then 
+        if preds->forAll(pred | pred.satisfied(token))
+        then
+          if token.debug()
+          then
+            format(stdout,"[ ALPHA(+) ~S:~S is of type ~S. ]~%",Seq{token.object(),token.object().of().path(),class.path()})
+          end;
+          @For n in next do
+            n.add(token,self)
+          end
+        else
+          if token.debug()
+          then
+            format(stdout,"[ ALPHA(+) ~S is of type ~S but fails predicates. ]~%",Seq{token.object(),class.path()})
+          end
+        end
+      else 
+        if token.debug()
+        then 
+          format(stdout,"[ ALPHA(+) ~S:~S is not of type ~S. ]~%",Seq{token.object(),token.object().of().path(),class.path()})
+        end
+      end
+    end
+    
+    @Operation checkDaemons(object:Object)
+      @Find(d,object.daemons())
+        when
+          if d.isKindOf(Daemon)
+          then d.network() = self.owner()
+          else false
+          end
+        do @For slot in slots do d.add(slot.asSymbol()) end
+        else object.addDaemon(Daemon(self.owner(),slots->map("asSymbol")))
+      end
+    end
+    
+    @Operation clear()
+      @For node in next do
+        node.clear()
+      end
+    end
+    
+    @Operation remove(e:Element):Node
+      @TypeCase(e)
+        Node do
+          e.setOwner(null);
+          self.deleteFromNext(e)
+        end
+        ObjectToken do
+          self.removeObjectToken(e)
+        end
+        Predicate do
+          self.deleteFromPreds(e)
+        end
+      end
+    end
+    
+    @Operation removeObjectToken(token:ObjectToken):Node
+      if token.object().isKindOf(class)
+      then 
+        if preds->forAll(pred | pred.satisfied(token))
+        then
+          if token.debug()
+          then
+            format(stdout,"[ ALPHA(-) ~S is of type ~S. ]~%",Seq{token.object(),class.path()})
+          end;
+          @For n in next do
+            n.remove(token,self)
+          end
+        else 
+          if token.debug()
+          then
+            format(stdout,"[ APLHA(-) ~S is of type ~S but fails predicates. ]~%",Seq{token.object(),class.path()})
+          end
+        end
+      else 
+        if token.debug()
+        then
+          format(stdout,"[ ALPHA(-) ~S is not of type ~S. ]~%",Seq{token.object(),class.path()})
+        end
+      end
+    end
+    
+  end
+    

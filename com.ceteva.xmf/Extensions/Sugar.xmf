@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Sugar isabstract extends Performable
+  
+    @Doc
+      A sugared expression is one that is new syntax masquerading as old
+      syntax. A sugared expression defines an operation 'desugar/0' that
+      translates the receiver into an expression at a higher level of detail.
+      It is not necessary to define how a sugared expression is compiled or
+      interpreted since these mechanisms simply call desugar and then try
+      again.
+    end
+     
+     @Operation compile(env,frame,isLast,saveSource)
+       self.desugar().compile(env,frame,isLast,saveSource)
+     end
+     
+     @AbstractOp desugar():Performable end
+     
+     @Operation eval(target,env,imports)
+       self.desugar().eval(target,env,imports)
+     end
+     
+     @Operation FV():Set(String)
+       self.desugar().FV()
+     end
+     
+     @Operation lift():Performable
+       self.desugar().lift()
+     end
+     
+     @Operation maxLocals():Integer
+       self.desugar().maxLocals()
+     end
+     
+     @Operation typeExp():Performable
+       Path(Var("XOCL"),Seq{self.of().name})
+     end
+     
+   end

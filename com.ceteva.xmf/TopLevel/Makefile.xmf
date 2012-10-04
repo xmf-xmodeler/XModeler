@@ -1,0 +1,7 @@
+import Compiler;
+
+compileFile("TopLevel/Boot",true,true);
+compileFile("TopLevel/Command",true,true);
+compileFile("TopLevel/Manifest",true,true);
+compileFile("TopLevel/TopLevel",true,true);
+compileFile("TopLevel/Loop",true,true);

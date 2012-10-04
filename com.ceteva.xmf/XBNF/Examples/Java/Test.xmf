@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import IO;
+import Exceptions;
+
+context Root
+
+  @Operation test()
+    try J.parseFile(xmf.homeDir() + "/XBNF/Examples/Java/Data.xmf","Java",Seq{})
+    catch(x)
+      @TypeCase(x)
+        ParseError do
+          x.pprint().edit()
+        end
+        else throw x
+      end
+    end
+  end

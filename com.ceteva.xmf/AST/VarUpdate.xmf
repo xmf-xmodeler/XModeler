@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler VarUpdate in AST(aVarUpdate,arg,seen)
+  let value = self.dispatch(aVarUpdate.value,arg)
+  in ASTNode(aVarUpdate,Seq{value})
+  end
+end;

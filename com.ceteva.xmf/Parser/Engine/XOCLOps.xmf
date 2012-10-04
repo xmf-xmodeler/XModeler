@@ -1,0 +1,303 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+import Compiler;
+import OCL; 
+
+context Root
+  @Operation foldRefs(exp,refs)
+    refs->iterate(ref e = exp | 
+      @CaseObj ref of
+        Dot[target,name] do
+          Dot(e,name)
+        end
+        Iterate[collection,name,accumulator,value,body] do
+          Iterate(e,name,accumulator,value,body)
+        end
+        Send[args,message,target] do
+          Send(e,message,args)
+        end
+        else self.error("Unknown ref " + ref.toString())
+      end
+    )
+  end
+  
+context Root
+  @Operation resolve(exp)
+    @Case exp of
+      Apply(BinExp(e,".",Var(m)),as) do
+        Send(resolve(e),m,as->collect(e | resolve(e)))
+      end
+      Apply(BinExp(e,".",Drop(m)),as) do
+        Send(resolve(e),Drop(resolve(m)),as->collect(e | resolve(e)))
+      end
+      Apply(e,es) do
+        Apply(resolve(e),es->collect(e | resolve(e)))
+      end
+      BinExp(e,".",Var(n)) do
+        Dot(resolve(e),n)
+      end
+      BinExp(e,".",Drop(n)) do
+        Dot(resolve(e),Drop(resolve(n)))
+      end
+      BinExp(e,".",DropPattern(n)) do
+        Dot(resolve(e),DropPattern(resolve(n)))
+      end
+      BinExp(e,"::",Var(n)) do
+        resolvePath(e,Seq{n})
+      end
+      BinExp(e,"::",Drop(n)) do
+        resolvePath(resolve(e),Seq{Drop(resolve(n))})
+      end
+      BinExp(e,"::",CollExp(Var(n),o,es)) do
+        resolve(CollExp(resolvePath(e,Seq{n}),o,es))
+      end
+      BinExp(e1,"::",CollExp(e2,o,es)) do
+        resolve(CollExp(BinExp(e1,"::",e2),o,es))
+      end
+      BinExp(e1,"::",BinExp(e2,".",e3)) do
+        resolve(BinExp(BinExp(e1,"::",e2),".",e3))
+      end
+      BinExp(e1,"::",Send(e2,n,es)) do
+        resolve(Send(BinExp(e1,"::",e2),n,es))
+      end
+      BinExp(e1,";",e2) do
+        Order(resolve(e1),resolve(e2))
+      end
+      BinExp(Var(n),":=",e) do
+        VarUpdate(n,resolve(e))
+      end
+      BinExp(BinExp(e1,".",Var(n)),":=",e2) do
+        SlotUpdate(resolve(e1),n,resolve(e2))
+      end
+      BinExp(BinExp(e1,".",Drop(n)),":=",e2) do
+        SlotUpdate(resolve(e1),Drop(resolve(n)),resolve(e2))
+      end
+      BinExp(BinExp(e1,".",DropPattern(n)),":=",e2) do
+        SlotUpdate(resolve(e1),DropPattern(resolve(n)),resolve(e2))
+      end
+      BinExp(Path(e1,ns),":=",e2) do
+        PathUpdate(Path(e1,ns),resolve(e2))
+      end
+      BinExp(e1,":=",e2) do
+        resolve(update(resolve(e1),resolve(e2)))
+      end
+      BinExp(e1,o,e2) do
+        BinExp(resolve(e1),o,resolve(e2))
+      end
+      CollExp(e,o,es) do
+        CollExp(resolve(e),o,es->collect(e | resolve(e)))
+      end
+      ConsExp(h,t) do
+        ConsExp(resolve(h),resolve(t))
+      end
+      Dot(e,n) do
+        Dot(resolve(e),n)
+      end
+      Drop(e) do
+        Drop(resolve(e))
+      end
+      DropCollection(e) do
+        DropCollection(resolve(e))
+      end
+      HeadUpdate(e1,e2) do
+        HeadUpdate(resolve(e1),resolve(e2))
+      end
+      Instantiate(e,ks) do
+        Instantiate(resolve(e),ks->collect(k | resolve(k)))
+      end
+      Iterate(e1,v1,v2,e2,e3) do
+        Iterate(resolve(e1),v1,v2,resolve(e2),resolve(e3))
+      end
+      IterExp(e1,v,o,e2) do
+        IterExp(resolve(e1),v,o,resolve(e2))
+      end
+      KeyArg(n,e) do
+        KeyArg(n,resolve(e))
+      end
+      Let(Drop(e1),e2) do
+        Let(Drop(resolve(e1)),resolve(e2))
+      end
+      Let(bs,e) do
+        Let(bs->collect(b | resolve(b)),resolve(e))
+      end
+      Negate(BinExp(e1,";",e2)) do
+        resolve(BinExp(Negate(e1),";",e2))
+      end
+      Negate(BinExp(e1,"and",e2)) do
+        resolve(BinExp(Negate(e1),"and",e2))
+      end
+      Negate(BinExp(e1,"or",e2)) do
+        resolve(BinExp(Negate(e1),"or",e2))
+      end
+      Negate(BinExp(e1,"andthen",e2)) do
+        resolve(BinExp(Negate(e1),"and",e2))
+      end
+      Negate(BinExp(e1,"orelse",e2)) do
+        resolve(BinExp(Negate(e1),"or",e2))
+      end
+      Negate(e) do
+        Negate(resolve(e))
+      end
+      Order(e1,e2) do
+        Order(resolve(e1),resolve(e2))
+      end
+      PathUpdate(p,e) do
+        PathUpdate(p,resolve(e))
+      end
+      Send(e,m,es) do
+        Send(resolve(e),m,es->collect(e | resolve(e)))
+      end
+      SetExp(n,es) do
+        SetExp(n,es->collect(e | resolve(e)))
+      end
+      SlotUpdate(e1,n,e2) do
+        SlotUpdate(resolve(e1),n,resolve(e2))
+      end
+      TailUpdate(e1,e2) do
+        TailUpdate(resolve(e1),resolve(e2))
+      end
+      Throw(e) do
+        Throw(resolve(e))
+      end
+      Try(e1,n,e2) do
+        Try(resolve(e1),n,resolve(e2))
+      end
+      ValueBinding(n,e) do
+        ValueBinding(n,resolve(e))
+      end
+      VarUpdate(n,e) do
+        VarUpdate(n,resolve(e))
+      end
+      else exp
+    end
+  end
+  
+context Root
+  @Operation resolvePath(e,ns)
+    @Case e of
+      BinExp(e,"::",Var(n)) do
+        resolvePath(e,Seq{n|ns})
+      end
+      else Path(e,ns)
+    end
+  end
+  
+context Root
+  @Operation order(exp) 
+    @Case exp of
+      Apply(op,args) do
+        let op = order(op);
+            args = args->collect(arg | order(arg))
+        in Apply(op,args)
+        end
+      end
+      Instantiate(op,keys) do
+        Instantiate(order(op),keys->collect(key | order(key)))
+      end
+      BinExp(e,".",Apply(op,args)) do
+        order(Apply(BinExp(e,".",op),args))
+      end
+      BinExp(e,".",Instantiate(op,args)) do
+        order(Instantiate(BinExp(e,".",op),args))
+      end
+      BinExp(e,".",BinExp(e1,o,e2)) do
+        order(BinExp(BinExp(e,".",e1),o,e2))
+      end
+      BinExp(e1,".",CollExp(e2,o,es)) do
+        order(CollExp(BinExp(e1,".",e2),o,es))
+      end
+      BinExp(e1,".",IterExp(e2,o,v,e3)) do
+        order(IterExp(BinExp(e1,".",e2),o,v,e3))
+      end
+      BinExp(e1,".",Iterate(e2,v1,v2,e3,e4)) do
+        order(Iterate(BinExp(e1,".",e2),v1,v2,e3,e4))
+      end
+      BinExp(e,"::",Apply(op,args)) do
+        order(Apply(BinExp(e,"::",op),args))
+      end
+      BinExp(e,"::",Instantiate(op,args)) do
+        order(Instantiate(BinExp(e,"::",op),args))
+      end
+      BinExp(e,"::",BinExp(e1,o,e2)) do
+        order(BinExp(BinExp(e,"::",e1),o,e2))
+      end
+      BinExp(e1,"::",CollExp(e2,n,es)) do
+        order(CollExp(BinExp(e1,"::",e2),n,es))
+      end
+      BinExp(e1,o1,e2) do
+        let e1 = order(e1);
+            e2 = order(e2)
+        in @Case e1 of
+             BinExp(e11,o11,e12) do
+               if prec(o1) < prec(o11)
+               then order(BinExp(e11,o11,BinExp(e12,o1,e2)))
+               else 
+                 @Case e2 of
+                   BinExp(e21,o22,e22) do
+                     if prec(o1) < prec(o22)
+                     then order(BinExp(BinExp(e1,o1,e21),o22,e22))
+                     else BinExp(e1,o1,e2)
+                     end
+                   end
+                   else BinExp(e1,o1,e2)
+                 end
+               end
+             end
+             else 
+               @Case e2 of
+                 BinExp(e21,o2,e22) do
+                   if prec(o1) < prec(o2)
+                   then order(BinExp(BinExp(e1,o1,e21),o2,e22))
+                   else BinExp(e1,o1,e2)
+                   end
+                 end
+                 else BinExp(e1,o1,e2)
+               end
+           end
+        end
+      end
+      CollExp(e,o,es) do
+        CollExp(order(e),o,es->collect(e | order(e)))
+      end
+      IterExp(e1,o,v,e2) do
+        IterExp(order(e1),o,v,order(e2))
+      end
+      Iterate(e1,v1,v2,e2,e3) do
+        Iterate(order(e1),v1,v2,order(e2),order(e3))
+      end
+      Negate(BinExp(e1,";",e2)) do
+        order(BinExp(Negate(e1),";",e2))
+      end
+      Negate(e) do
+        Negate(order(e))
+      end
+      else exp
+    end
+  end 
+  
+context Root
+  @Operation prec(op)
+    @Case op of
+      "::"      do 0 end
+      "."       do 1 end
+      "+"       do 3 end
+      "-"       do 3 end
+      "*"       do 4 end
+      "/"       do 4 end
+      "="       do 5 end
+      "<>"      do 5 end
+      "<"       do 5 end
+      ">"       do 5 end
+      "<="      do 5 end
+      ">="      do 5 end
+      "and"     do 6 end
+      "andthen" do 6 end
+      "or"      do 6 end
+      "orelse"  do 6 end
+      "implies" do 7 end
+      ":="      do 8 end
+      ";"       do 10 end
+    end
+  end

@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context Root
+  @Class For 
+    @Grammar extends OCL::OCL.grammar
+      For ::= n = Name 'in' c = Exp 'do' b = Exp {
+        // let c = c->asSeq
+        // in @While not c->isEmpty do
+        //      let n = c->head
+        //      in b;
+        //         c := c->tail
+        //      end
+        //    end
+        // end
+        Let(
+          Seq{ValueBinding("c",CollExp(c,"asSeq",Seq{}))},
+          While(
+            Negate(CollExp(Var("c"),"isEmpty",Seq{})),
+            Order(
+              Let(
+                Seq{ValueBinding(n,CollExp(Var("c"),"head",Seq{}))},
+                b),
+              VarUpdate("c",CollExp(Var("c"),"tail",Seq{})))))
+      }.
+    end
+  end

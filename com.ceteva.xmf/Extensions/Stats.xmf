@@ -1,0 +1,56 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+
+context XOCL
+
+  @Class Stats extends Sugar
+  
+    @Doc
+      Binds the amount of memory used and the time taken when an 
+      expression is performed. Returns the value of the expression.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Stats ::= '(' memory = Name ',' time = Name ')' value = Name '=' exp = Exp 'in' body = Exp { 
+      
+        Stats(memory,time,value,exp,body) 
+        
+      }.
+      
+    end 
+    
+    @Attribute memory : String end
+    @Attribute time : String end
+    @Attribute value : String end
+    @Attribute exp : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(memory,time,value,exp,body) ! end
+    
+    @Operation desugar() 
+      [| let t0 = Time()
+         in gc(); gc();
+            let m0 = Kernel_usedHeap() then
+                <value> = <exp> then
+                <time> = Time() - t0
+            in gc(); gc();
+               let <memory> = Kernel_usedHeap() - m0
+               in <body>
+               end
+            end
+         end |]
+    end
+             
+    
+    @Operation pprint(out,indent)
+      format(out,"@Stats(~S,~S) ~S =~%~V",Seq{memory,time,value,indent+2});
+      exp.pprint(out,indent+2);
+      format(out,"~%~V in ",Seq{indent});
+      body.pprint(out,indent+4);
+      format(out,"~%~Vend",seq{indent})
+    end
+    
+  end

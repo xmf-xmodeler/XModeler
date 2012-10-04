@@ -1,0 +1,71 @@
+parserImport XOCL;
+
+import XCore;
+import Projects;
+import Clients::Menus;
+
+context Contained
+  @Operation delete_client()
+    if not self.isKindOf(Doc) then
+      self.deleteRecursive()
+    end
+  end
+  
+context Container
+  @Operation deleteContainedDiagrams()
+    let diagramManager = xmf.diagramManager()
+    in
+      if diagramManager <> null
+      then
+        let contents = self.allContents()->including(self)
+        in
+          @For content in contents
+          do
+            let diagrams = diagramManager.diagramsFor(content)
+            in
+              @For diagram in diagrams
+              do
+                diagram.diagram().delete()
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+context Project
+  @Operation delete_client_redirect()
+    if self.delete_client_check()
+    then
+      if self.isKindOf(Container)
+      then
+        self.deleteContainedDiagrams();
+        self.package.deleteContainedDiagrams()
+      end;
+      self.delete_client();
+      true
+    end
+  end
+
+context Contained
+  @Operation delete_client_redirect()
+    if self.delete_client_check()
+    then
+      if self.isKindOf(Container)
+      then
+        self.deleteContainedDiagrams()
+      end;
+      self.delete_client();
+      true
+    end
+  end
+
+
+context Contained
+  @Operation delete_client_check()
+    let name = if self.isKindOf(NamedElement) then self.name() else self.toString() end
+    in
+      xmf.question("Are you sure you want to delete " + name + "?")
+    end
+  end

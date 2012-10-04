@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler IntExp in Eval(aIntExp,arg,seen)
+  result(aIntExp,aIntExp.value,cont)
+end;

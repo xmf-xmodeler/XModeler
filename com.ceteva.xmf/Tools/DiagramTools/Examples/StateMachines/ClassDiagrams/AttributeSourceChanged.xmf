@@ -1,0 +1,10 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler Attribute_Source_Changed()
+    let attribute = find(event.edge())
+    in attribute.owner().remove(attribute);
+       find(event.new()).add(attribute)
+    end
+  end
+  

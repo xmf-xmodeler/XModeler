@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Drop in AST(aDrop,arg,seen)
+  let exp = self.dispatch(aDrop.exp,arg)
+  in ASTNode(aDrop,Seq{exp})
+  end
+end;

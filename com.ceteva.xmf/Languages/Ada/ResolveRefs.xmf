@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+// This operation resolves some circular references in the Ada model 
+context Ada
+@Operation resolveRefs()
+  Ada::Units::CompilationUnit::contextSpec.type := Set(Ada::Specs::ContextSpec);
+  Ada::Units::UseClause.parents := Set{Ada::Decls::DeclItem};
+  Ada::Types::CompositeTypes::RecordType::pragmas.type := Set(Ada::Units::Pragma);
+  Ada::Statements::Block::declParts.type := Seq(Ada::Bodies::DeclPart);
+  Ada::Expressions::DiscreteWithRange::range.type := Types::Ranges::Range;
+  Ada::Expressions::Choice::body.type := Seq(Statements::Statement);
+  Ada::Decls::GenericDeclSubprogram::subprogramSpec.type := Specs::SubprogramSpec;
+  Ada::Decls::GenericDeclPackageSpec::packageSpec.type := Specs::PackageSpec;
+  Ada::Decls::BodyStubSubProgDecl::subProg.type := Specs::SubprogramSpec;
+  Ada::Names::IndexedComp::values.type := Seq(Expressions::Value)
+end
+   

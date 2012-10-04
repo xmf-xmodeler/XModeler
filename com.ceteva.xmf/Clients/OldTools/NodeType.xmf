@@ -1,0 +1,56 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class NodeType extends ToolComponentType, Formatted
+  
+    @Attribute name       : String                      (!)   end
+    @Attribute parents    : Seq(NodeType)               (+,-) end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,parents) end
+    
+    @Operation allParents()
+      parents->iterate(p allParents = parents | allParents + p.allParents())
+    end
+    
+    @Operation new(tool,parent,x,y,width,height)
+      let handler = 
+            @Operation(event,node,width,height) 
+              let object = tool.objectFor(node)
+              in self.layout(object,node.x,node.y,node.width,node.height);
+                 tool.raise(event + "(" + name + ")",Seq{node,width,height}) 
+              end
+            end 
+              then
+          node = Node(x,y,width,height) then
+          object = ToolObject(self,node)
+      in tool.addToObjects(object);
+         tool.diagram.add(object.element);
+         menuType.new(object,tool);
+         object.element.new(parent);
+         @For a in attributes do
+           a.new(object,tool,object.element,0,0,width,height,name)
+         end;
+         tool.raise("New(" + name + ")",object,tool);
+         node.pack();
+         self.layout(object,x,y,width,height);
+         node.setHandler(handler);
+         object
+      end
+    end
+    
+    @Operation toolInheritsFrom(type)
+    
+      // Modified this to be name reference rather than identity reference
+      // since the save and load mechanism can cause the types to be
+      // duplicated.
+      
+      type.name = name or self.allParents().name->includes(type.name)
+    end
+    
+  end

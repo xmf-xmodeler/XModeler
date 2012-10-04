@@ -1,0 +1,199 @@
+parserImport XOCL;
+
+import Compiler;
+import OCL;
+import XOCL; 
+
+context XOCL 
+
+  @Class Class extends Def  
+  
+    @Doc 
+      The class XOCL::Class is a class definition. When a class definition is
+      performed, it produces a class. Classes (typically) live in name spaces and
+      should be added to a name space. Either define a class using a 'context ...'
+      construct or add a class directly to a name space and then initialise the
+      class via its 'init/0' operation.
+    end 
+     
+     @Attribute metaClass : Performable end
+     @Attribute isAbstract : Boolean end
+     @Attribute parents : Seq(Performable) end
+     @Attribute defs : Seq(Performable) end
+     
+     @Constructor(name,isAbstract,parents,defs) 
+       self.metaClass := [| XCore::Class |]
+     end
+     
+     @Constructor(name,metaClass,isAbstract,parents,defs) end
+     
+     @Operation allDefs()
+       @Doc
+         Computes a sequence of definitions that are performed
+         and added to the new class when the class definition is performed.
+         Extensions of XOCL::Class may wish to exten-d this operation
+         to add new types of automatically defined definition.
+       end
+       let ops = self.foldDefs(defs->select(d | d.isKindOf(Operation)));
+           nonOps = defs->reject(d | d.isKindOf(Operation)) then
+           modifiers = self.attributes()->iterate(a aops = Seq{} | aops + a.operations()->asSeq);
+           cOps = self.constructors()->iterate(c ops = Seq{} | ops + c.operations(name)->asSeq)
+       in modifiers + nonOps + cOps + ops
+       end
+     end
+     
+     @Operation attributes():Set(Attribute) 
+       defs->select(def | def.isKindOf(Attribute))
+     end
+     
+     @Operation compile(env,frame,isLast,saveSource)
+       self.compileClassPopulation(
+          self.compileClassCreation(env,frame),env,frame,isLast,saveSource)
+     end
+     
+     @Operation compileClassCreation(env,frame)
+     
+       // Turn all type references in the parents of the class into
+       // standard expressions delayed by an operation. Initialisation
+       // of a compiled class will perform the operation and thereby
+       // construct the parents. The delay is necessary to allow classes
+       // to involve forward references in a package.
+       
+       let parents = 
+             if parents->isEmpty 
+             then [| @Operation() newClass.defaultParents() end |] 
+             else [| @Operation() <parents->iterate(p e = [| Set{} |] | [| <e>->including(<p>) |])> end |]
+             end
+       in [| let newClass = <self.metaExp()>.new() in
+             let parents = <parents>
+             in parents.owner := newClass;
+                newClass.set("name",XCore::Symbol(<StrExp(name)>));
+                newClass.set("parents",parents);
+                newClass.set("isAbstract",<BoolExp(isAbstract)>);
+                newClass.set("imports",@Imports(imports) imports end);
+                <self.initExp([| newClass |])>
+             end end
+          |].compile(env.incNameSpaceRefs(),frame,false,false)
+       end
+     end 
+     
+     @Operation compileClassPopulation(classInstrs,env,frame,isLast,saveSource)
+       // Compile the elements and add them to the class at the head
+       // of the stack.
+       let env = env.incNameSpaceRefs().consNameSpaceRef(name,1);  // The class is defined wrt its container.
+           add = Compiler::Symbol("add")
+       in self.allDefs()->iterate(def instrs = classInstrs |
+            Seq{Instrs::StartCall() | def.compile(env,frame,false,saveSource)} + 
+            instrs + 
+            Seq{Instrs::Send(add,1)})
+       end
+     end
+     
+     @Operation constructors():Seq(Constructor)
+       defs->select(d | d.isKindOf(Constructor))
+     end
+     
+     @Operation desugar()
+       defs->iterate(def 
+         class = parents->iterate(parent 
+           class = [| <metaClass>(<StrExp(name.toString())>) |] |
+             [| <class>.addParent(<parent>) |]) |
+         [| <class>.add(<def>) |])
+     end
+     
+     @Operation eval(target,env,imports)
+       let class = self.metaExp().eval(target,env,imports).new(Seq{})
+       in class.name := XCore::Symbol(name);
+          class.parents := parents->collect(p | p.eval(target,env,imports))->asSet;
+          class.isAbstract := isAbstract;
+          class.imports := imports;
+          self.initExp([| self |]).eval(class,env,imports);
+          @For def in self.allDefs() do
+            class.add(def.eval(target,env,imports))
+          end;
+          class
+       end
+     end
+     
+     @Operation foldDefs(ops:Seq(Operation)):Seq(Operation)
+       if ops->isEmpty
+       then Seq{}
+       else 
+         let op = ops->head;
+             sameName = ops->tail->select(o | o.name = ops->head.name and o.arity() = ops->head.arity());
+             rest = ops->tail->reject(o | o.name = ops->head.name)
+         in if sameName->isEmpty
+            then Seq{ op | self.foldDefs(ops->tail) }
+            else Seq{ Operations(op.name,Seq{ op | sameName }) | self.foldDefs(rest) }
+            end
+         end
+       end
+     end
+     
+     @Operation initExp(class:Performable):Performable
+       @Doc
+         This operation returns initialisation actions that are to be
+         performed on the new class. the argument is an expression that
+         evaluates to the newly constructed class. Ensure that the final
+         result produced by the return value is the class. 
+       end
+       class
+     end
+      
+     @Operation lift():Performable
+      /*
+       let nameExp = if name.isKindOf(Performable) then name.lift() else StrExp(name) end;
+           parentExps = SetExp("Seq",parents->collect(parent | parent.lift()));
+           defExps = SetExp("Seq",defs->collect(def | def.lift()))
+       in Apply(Path(Var("XOCL"),Seq{"Class"}),Seq{nameExp,BoolExp(isAbstract),parentExps,defExps})
+       end
+       */
+       Element::lift.invoke(self,Seq{})
+     end
+     
+     @Operation maxLocals()
+       // A class definition *should* be Sugar. However, until this happens
+       // calculate the max locals by hand.
+       let importsLocals = [| @Imports(imports) imports end |].maxLocals();
+           creationLocals = 2
+       in defs->iterate(def maxLocals = importsLocals + creationLocals | maxLocals.max(def.maxLocals()))
+       end
+     end
+     
+     @Operation metaExp():Performable
+       @Doc
+         Returns an expression that evaluates to produce the class
+         which is instantiated. Useful in sub-classes of this class.
+       end
+       metaClass
+     end
+     
+     @Operation pprint(out,indent)
+       format(out,"@Class ~S metaclass ",Seq{name});
+       metaClass.pprint(out,indent);
+       format(out," ~[isabstract~;~]",Seq{isAbstract});
+       if not parents->isEmpty
+       then 
+         format(out," extends ");
+         @For parent in parents do
+           parent.pprint(out,indent);
+           if not isLast
+           then format(out,",")
+           end
+         end
+       end;
+       format(out,"~%~V",Seq{indent+2});
+       if defs.isKindOf(Seq(Element))
+       then
+         @For def in defs do
+           def.pprint(out,indent + 2);
+           if not isLast
+           then format(out,"~%~V",Seq{indent+2})
+           end
+         end
+       else defs.pprint(out,indent)
+       end;
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+   end

@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import TypeCheck;
+import Walkers;
+
+context TypeCheck
+
+  @Class ReportNode extends TreeNode
+  
+    @Attribute typeCheck : TypeCheckReport end
+    
+    @Constructor(typeCheck) !
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      @For node in typeCheck.children() do
+        self.addItem(ReportNode(node))
+      end
+    end
+    
+    @Operation doubleSelected()
+      typeCheck.doubleClick()
+    end 
+    
+    @Operation setReportText()
+      self.text := typeCheck.label()
+    end
+    
+    @Operation setReportIcon()
+      if typeCheck.ok()
+      then self.icon := "Classify/okay.gif"
+      else self.icon := "Classify/error.gif"
+      end
+    end
+    
+  end

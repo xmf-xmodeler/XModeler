@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Self extends OCL::OCL
+  
+    @Operation pprint(out,indent)
+      format(out,"self")
+    end
+
+  end

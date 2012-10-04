@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class StringConversionError extends Exception
+  
+    @Doc
+      This exception is raised during an invalid conversion of a string into another datatype.
+    end
+
+    @Attribute value : String end
+    @Attribute type : Classifier end
+    @Attribute suffix : String end
+
+    @Constructor(value,type) ! 
+      self.setBacktrace();
+      self.message := "Cannot convert \"" + value + "\" from String to " + type.name() + "."
+    end
+
+    @Constructor(value,type,suffix) ! 
+      self.setBacktrace();
+      self.message := "Cannot convert \"" + value + "\" from String to " + type.name() + ". "
+                    + suffix
+    end
+    
+  end

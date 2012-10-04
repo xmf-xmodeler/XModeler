@@ -1,0 +1,605 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class DiagramCommandInterpreter extends XMLCommandInterpreter
+  
+    @Doc
+       This class defines a command interpreter over diagrams. It can be used as the basis
+       for defining event driven mappings. The mapping handles the following output
+       commands by sen-ding them in the appropriate format to the client.
+          // [deleteCommand(element)]
+          // [deleteRightClickMenu]
+          // [moveCommand(element,x,y)]
+          // [newBoxCommand(nodeId,box)]
+          // [newGroupCommand(nodeId,subDiagram)]
+          // [newDiagramCommand(diagram)]
+          // [renameDiagramCommand(diagram,label)]
+          // [showDiagramCommand(diagram)]
+          // [newEdgeCommand(edge)]
+          // [newEdgeTextCommand(edgeId,label)]
+          // [newEllipse(parentId,id,x,y,w,h,showOutline)]
+          // [newLineCommand(parentId,id,x1,y1,x2,y2)]
+          // [newNodeCommand(parentId,node)]
+          // [newImageCommand(parentId,image)]
+          // [newShapeCommand(parentId,shape)]
+          // [redrawShapeCommand(shape)]
+          // [newPortCommand(nodeId,port)]
+          // [newRightClickMenu(ownerId,menuId,option)]
+          // [newTextCommand(parentId,text,x,y,editable,r,g,b,font)]
+          // [clearToolPaletteCommand(diagramId)]
+          // [newToolCommand(diagramId,groupName,label,typeName,isEdge,iconPath)]
+          // [newToolGroupCommand(diagramId,groupId,toolName,isEdge)]
+          // [newWayPointCommand(wayPoint)]
+          // [resizeCommand(element,width,height)]
+          // [repositionEdgeEndsCommand(edgeId,)]
+          // [setEdgeSourceCommand(edgeId,portId)]
+          // [setEdgeTargetCommand(edgeId,portId)]
+          // [setItaliciseCommand(textId,italicise)]
+          // [setTextCommand(textId,newText)]
+          // [setUnderlineCommand(textId,underline)]
+          // [setFill(id,boolean)]
+          // [resizeLineCommand(line)]
+          // [getTextDimension(text,eventHandler)]
+       end
+       
+    @Operation circulate(diagram)
+      @SendCommand(self)
+        circulate(diagram.id())
+      end
+    end
+    
+    @Operation closeNonDisplayedDiagrams()
+      @SendCommand(self)
+        closeNoneDisplayedDiagrams()
+      end
+    end   
+       
+    @Operation copyDiagramToClipboard(diagram)
+      @SendCommand(self)
+        copyToClipboard(diagram.id())
+      end
+    end
+
+    @Operation clearToolPaletteCommand(diagram)
+      @SendCommand(self)
+        clearToolPalette(diagram.id())
+      end
+    end
+
+    @Operation deleteCommand(element)
+      @SendCommand(self)
+        delete(element.id())
+      end
+    end
+    
+    @Operation deleteRightClickMenuCommand(element)
+      @SendCommand(self)
+        deleteRightClickMenu(element.id())
+      end
+    end
+    
+    @Operation editText(element)
+      @SendCommand(self)
+        editText(element.id())
+      end
+    end
+
+    @Operation enableDrag(element)
+      let id = element.id() 
+      in
+        @SendCommand(self)
+          enableDrag(id)
+        end;
+        id
+      end
+    end
+
+    @Operation enableDrop(element)
+      let id = element.id() 
+      in
+        @SendCommand(self)
+          enableDrop(id)
+        end;
+        id
+      end
+    end
+    
+    @Operation globalRenderOff()
+      @SendCommand(self)
+        globalRenderOff()
+      end
+    end
+    
+    @Operation globalRenderOn()
+      @SendCommand(self)
+        globalRenderOn()
+      end
+    end
+    
+    @Operation hideCommand(element)
+      @SendCommand(self)
+        hide(element.id())
+      end
+    end
+    
+    @Operation showCommand(element)
+      @SendCommand(self)
+        show(element.id())
+      end
+    end
+    
+    @Operation moveCommand(element,x,y) 
+      @SendCommand(self)
+        move(element.id(),x,y)
+      end
+    end
+    
+    @Operation newBoxCommand(parent,box)
+      let 
+        boxId = self.allocateId(box)
+      in 
+        @SendCommand(self)
+          newBox(parent.id(),
+                 boxId,
+                 box.x(),
+                 box.y(),
+                 box.width(),
+                 box.height(),
+                 box.cornerCurve(),
+                 box.showTop(),
+                 box.showRight(),
+                 box.showBottom(),
+                 box.showLeft(),
+                 box.lineColor().red(),
+                 box.lineColor().green(),
+                 box.lineColor().blue(),
+                 box.fillColor().red(),
+                 box.fillColor().green(),
+                 box.fillColor().blue())
+        end;
+        boxId
+      end
+    end
+    
+    @Operation newGroupCommand(parent,group)
+      let groupId = self.allocateId(group)
+      in @SendCommand(self)
+           newGroup(parent.id(),groupId,group.x(),group.y(),group.width(),group.height())
+         end;
+         groupId
+      end
+    end
+    
+    @Operation newDiagramCommand(diagram:Diagram)
+      let diagramId = self.allocateId(diagram)
+      in @SendCommand(self)
+           newDiagram(diagramId,diagram.toString())
+         end;
+         diagramId
+      end
+    end
+
+    @Operation setDiagramTextCommand(diagram:Diagram,label:String)
+      let diagramId = diagram.id()
+      in @SendCommand(self)
+           setName(diagramId,label)
+         end;
+         diagramId
+      end
+    end
+
+    @Operation showDiagram(diagram:Diagram)
+      let diagramId = diagram.id() in
+        if xmf.clientManager().idManager.hasId(diagramId)
+        then
+          @SendCommand(self)
+            setFocus(diagramId)
+          end
+        end
+      end
+    end
+    
+    @Operation newEdgeCommand(parent,edge)
+      let edgeId = self.allocateId(edge)
+      in @SendCommand(self)
+           newEdge(parent.id(),
+                   edgeId,edge.source().id(),
+                   edge.target().id(),
+                   edge.refx(),
+                   edge.refy(),
+                   edge.sourceHead(),
+                   edge.targetHead(),
+                   edge.lineStyle(),
+                   edge.color().red(),
+                   edge.color().green(),
+                   edge.color().blue())
+         end;
+         edgeId
+      end
+    end
+    
+    @Operation newEdgeTextCommand(parent,label)
+      let labelId = self.allocateId(label)
+      in @SendCommand(self)
+           newEdgeText(parent.id(),
+           			   labelId,
+           			   label.text(),
+           			   label.attachedTo(),
+           			   label.relx(),
+           			   label.rely(),
+           			   label.editable(),
+           			   label.underline(),
+           			   label.truncate(),
+           			   label.color().red(),
+                   	   label.color().green(),
+                       label.color().blue(),
+                       label.font())
+         end;
+         labelId
+      end
+    end
+    
+    @Operation newEllipseCommand(parent,ellipse)
+      let ellipseId = self.allocateId(ellipse)
+      in @SendCommand(self)
+           newEllipse(parent.id(),
+           			  ellipseId,
+           			  ellipse.x(),
+           			  ellipse.y(),
+           			  ellipse.width(),
+           			  ellipse.height(),
+           			  ellipse.showOutline(),
+           			  ellipse.lineColor().red(),
+                 	  ellipse.lineColor().green(),
+                 	  ellipse.lineColor().blue(),
+                 	  ellipse.fillColor().red(),
+                 	  ellipse.fillColor().green(),
+                 	  ellipse.fillColor().blue())
+         end;
+         ellipseId
+      end
+    end
+    
+    @Operation newImageCommand(parent,image)
+      let imageId = self.allocateId(image)
+      in @SendCommand(self)
+           newImage(parent.id(),imageId,image.filename,image.x,image.y,image.width,image.height)
+         end;
+         imageId
+      end
+    end
+    
+    @Operation newShapeCommand(parent,shape)
+      let shapeId = self.allocateId(shape) in
+        let points = Seq{} in
+          @For point in shape.points() do
+            points := points.append(Seq{point.x(),point.y()})
+          end;
+          @SendCommand(self)
+            newShape(parent.id(),
+            		 shapeId,
+            		 shape.x(),
+            		 shape.y(),
+            		 shape.width(),
+            		 shape.height(),
+            		 shape.outline(),
+            		 shape.lineColor().red(),
+                 	 shape.lineColor().green(),
+                 	 shape.lineColor().blue(),
+                 	 shape.fillColor().red(),
+                 	 shape.fillColor().green(),
+                 	 shape.fillColor().blue(),
+            		 points)
+          end;
+          shapeId
+        end
+      end
+    end
+    
+    @Operation redrawShapeCommand(shape)
+      let points = Seq{} in
+        @For point in shape.points() do
+          points := points.append(Seq{point.x(),point.y()})
+        end;
+        @SendCommand(self)
+          redrawShape(shape.id(),shape.x(),shape.y(),shape.width(),shape.height(),shape.outline(),points)
+        end;
+        shape.id()
+      end
+    end
+    
+    @Operation refreshZoom(diagram)
+      @SendCommand(self)
+        refreshZoom(diagram.id())
+      end
+    end
+    
+    @Operation newLineCommand(parent,line)
+      let lineId = self.allocateId(line)
+      in @SendCommand(self)
+           newLine(parent.id(),lineId,line.x1(),line.y1(),line.x2(),line.y2(),line.color().red(),line.color().green(),line.color().blue())
+         end;
+         lineId
+      end
+    end
+    
+    @Operation newNodeCommand(parent,node)
+      let nodeId = self.allocateId(node)
+      in @SendCommand(self)
+           newNode(parent.id(),nodeId,node.x(),node.y(),node.width(),node.height(),node.selectable())
+         end;
+         nodeId
+      end
+    end
+    
+    @Operation newPortCommand(parent,port)
+      let portId = self.allocateId(port)
+      in @SendCommand(self)
+           newPort(parent.id(),portId,port.x(),port.y(),port.width(),port.height())
+         end;
+         portId
+      end
+    end
+    
+    @Operation newRightClickMenuCommand(parent,menuItem)
+      let menuItemId = self.allocateId(menuItem)
+      in @SendCommand(self)
+           newRightClickMenu(parent.id(),menuItemId,menuItem.name())
+         end;
+         menuItemId
+      end
+    end
+    
+    @Operation newTextCommand(parent,text,textString)
+      let textId = self.allocateId(text)
+      in @SendCommand(self)
+           newText(parent.id(),
+           		   textId,
+           		   textString,
+           		   text.x(),
+           		   text.y(),
+           		   text.editable(),
+           		   text.underline(),
+           		   text.italicise(),
+           		   text.color().red(),
+                   text.color().green(),
+                   text.color().blue(),
+                   text.font())
+         end;
+         textId
+      end
+    end
+    
+    @Operation newMultilineTextCommand(parent,text)
+      let id = self.allocateId(text)
+      in 
+        @SendCommand(self)
+          newMultilineText(parent.id(),
+                           id,
+          				   text.text(),
+          				   text.x(),
+          				   text.y(),
+          				   text.width(),
+          				   text.height(),
+          				   text.editable(),
+          				   text.textColor.red(),
+          				   text.textColor.green(),
+          				   text.textColor.blue(),
+          				   text.fillColor.red(),
+          				   text.fillColor.green(),
+          				   text.fillColor.blue(),
+          				   text.font())
+        end
+      end
+    end
+    
+    @Operation newMultilineLabelCommand(parent,label)
+      let id = self.allocateId(label)
+      in 
+        @SendCommand(self)
+          newMultilineEdgeText(parent.id(),
+           			   id,
+           			   label.text(),
+           			   label.attachedTo(),
+           			   label.relx(),
+           			   label.rely(),
+           			   label.editable(),
+           			   label.underline(),
+           			   label.truncate(),
+           			   label.color().red(),
+                   	   label.color().green(),
+                       label.color().blue(),
+                       label.font())
+        end
+      end
+    end    
+    
+    @Operation newToolCommand(diagram,groupName:String,label,toolName,isEdge:Boolean,iconPath)
+      @SendCommand(self)
+        newTool(diagram.id(),groupName,label,toolName,isEdge,iconPath)
+      end
+    end
+    
+    @Operation newToolGroupCommand(diagram,groupName)
+      @SendCommand(self)
+        newToolGroup(diagram.id(),groupName)
+      end
+    end
+    
+    @Operation exportImage(diagram,filename,format)
+      @SendCommand(self)
+        exportImage(diagram.id(),filename,format)
+      end
+    end
+    
+    @Operation nestedZoomTo(diagram,percent)
+      @SendCommand(self)
+        nestedZoomTo(diagram.id,percent)
+      end
+    end
+    
+    @Operation newWayPointCommand(parent,wayPoint)
+      let wayPointId = self.allocateId(wayPoint)
+      in @SendCommand(self)
+           newWaypoint(parent.id(),wayPointId,wayPoint.index(),wayPoint.x(),wayPoint.y())
+         end;
+         wayPointId
+      end
+    end
+    
+    @Operation resizeCommand(element,width,height) 
+      @SendCommand(self)
+        resize(element.id(),width,height)
+      end
+    end
+    
+    @Operation setColor(element,color)
+      @SendCommand(self)
+        setColor(element.id(),color.red(),color.green(),color.blue())
+      end
+    end
+
+    @Operation setEdgeSourceCommand(edge,port)
+      @SendCommand(self)
+        setEdgeSource(edge.id(),port.id())
+      end
+    end
+    
+    @Operation setEdgeStyle(edge,style)
+      @SendCommand(self)
+        setEdgeStyle(edge.id(),style)
+      end
+    end
+    
+    @Operation setEdgeTargetCommand(edge,port)
+      @SendCommand(self)
+        setEdgeTarget(edge.id(),port.id())
+      end
+    end
+    
+    @Operation setEdgeWidth(edge,width)
+      @SendCommand(self)
+        setEdgeWidth(edge.id(),width)
+      end
+    end
+    
+    @Operation setEdgeType(edge,type)
+      @SendCommand(self)
+        setEdgeType(edge.id(),type)
+      end
+    end
+    
+    @Operation setFill(element,fill)
+      @SendCommand(self)
+        setFill(element.id(),fill)
+      end
+    end
+    
+    @Operation setFillColor(element,fillColor)
+      @SendCommand(self)
+        setFillColor(element.id(),fillColor.red(),fillColor.green(),fillColor.blue())
+      end
+    end
+    
+    @Operation setFont(text,font)
+      @SendCommand(self)
+        setFont(text.id(),font)
+      end
+    end
+    
+    @Operation setLineColor(element,lineColor)
+      @SendCommand(self)
+        setLineColor(element.id(),lineColor.red(),lineColor.green(),lineColor.blue())
+      end
+    end
+    
+    @Operation setImage(image)
+      @SendCommand(self)
+        setImage(image.id(),image.filename())
+      end
+    end
+    
+    @Operation setRefPointCommand(edge,x,y)
+      @SendCommand(self)
+        setRefPoint(edge.id(),x,y)
+       end
+    end
+    
+    @Operation setTextCommand(text,newText) 
+      @SendCommand(self)
+        setText(text.id(),newText)
+      end
+    end
+    
+    @Operation setItaliciseCommand(text,italicise)
+      @SendCommand(self)
+        italicise(text.id(),italicise)
+      end
+    end
+    
+    @Operation setUnderlineCommand(text,underline)
+      @SendCommand(self)
+        underline(text.id(),underline)
+      end
+    end
+    
+    @Operation startRender(diagram:Diagram)
+      @SendCommand(self)
+        startRender(diagram.id())
+      end
+    end
+    
+    @Operation stopRender(diagram:Diagram)
+      @SendCommand(self)
+        stopRender(diagram.id())
+      end;
+      self.setFlush(false)
+    end
+    
+    @Operation resizeLineCommand(line)
+      @SendCommand(self)
+        resizeLine(line.id(),line.x1(),line.y1(),line.x2(),line.y2())
+      end
+    end
+    
+    @Operation getTextDimension(text)
+      let result = self.call("getTextDimension",Seq{text.text(),text.italicise()})
+      in Seq{result->at(0),result->at(1)}
+      end
+    end
+    
+    @Operation getTextDimensionWithFont(text)
+      let result = self.call("getTextDimensionWithFont",Seq{text.text(),text.font()})
+      in Seq{result->at(0),result->at(1)}
+      end
+    end
+    
+    @Operation showBoxEdges(box)
+      @SendCommand(self)
+        showEdges(box.id,box.showTop,box.showBottom,box.showLeft,box.showRight)
+      end
+    end
+    
+    @Operation zoomIn(diagram)
+      @SendCommand(self)
+        zoomIn(diagram.id)
+      end
+    end
+    
+    @Operation zoomOut(diagram)
+      @SendCommand(self)
+        zoomOut(diagram.id)
+      end
+    end
+    
+    @Operation zoomTo(diagram,percent)
+      @SendCommand(self)
+        zoomTo(diagram.id,percent)
+      end
+    end
+    
+  end

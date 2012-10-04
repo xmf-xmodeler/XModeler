@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import XOCL;
+import Compiler;
+import Clients;
+import Tools;
+import Diagrams;
+
+context Tools
+
+  @Class ExpType extends TextType 
+  
+    @Attribute imports : Seq(XCore::NameSpace) = Seq{XCore,Root,XOCL} end
+    
+    @Operation exp(source:String):Exp
+      try
+        let name = "exp";
+            dynamics = imports->collect(i | Seq{2 | i.contents});
+            exp = OCL::OCL.grammar.parseString(source,"Exp1",imports) then
+            op = compileToFun(name,exp,Seq{},dynamics,true)
+        in Exp(exp,op)
+        end
+      catch(exception)
+        xmf.message("Error updating expression: " + exception.toString());
+        null
+      end
+    end
+  
+    @Operation new(tool,parent,x,y,width,height,name)
+      let text = Text(text,x,y,true) then
+          object = ToolObject(self,text);
+          this = self then
+          daemon = 
+            @Operation textChanged(slot,new,old)
+              if slot.toString() = "text"
+              then 
+                let exp = this.exp(new)
+                in if exp <> null
+                   then 
+                     tool.raise("Changed(" + name + ")",tool.rootFor(object),exp,old)
+                   end
+                end
+              end
+            end
+      in parent.add(text);
+         text.addPersistentDaemon(daemon);
+         text.new(parent);
+         object
+      end
+    end
+  end

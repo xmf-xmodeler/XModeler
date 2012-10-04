@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Observable; 
+
+context Observable
+
+  @Class Scope isabstract extends XOCL::Syntax
+  
+    @AbstractOp attach(generator) end
+    
+    @AbstractOp observe(observer) end
+  
+  end

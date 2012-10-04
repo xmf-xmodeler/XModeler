@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+
+  @Class TypeConverter
+  
+    @Operation javaTypeName(package:Package):String
+      @Case self of
+        Set(T) do
+          if T.isKindOf(DataType)
+          then T.javaTypeName(package) + "[]"
+          else "java.util.Vector"
+          end
+        end
+        Seq(T) do
+          if T.isKindOf(DataType)
+          then T.javaTypeName(package) + "[]"
+          else "java.util.Vector"
+          end
+        end
+        [Integer] do
+          "int"
+        end
+        [Boolean] do
+          "boolean"
+        end
+        [String] do
+          "String"
+        end
+        [Float] do
+          "double"
+        end
+        [Table] do
+          "java.util.Hashtable"
+        end
+        else 
+          if package.classes->includes(self)
+          then name
+          else "Object"
+          end
+      end
+    end
+  
+  end

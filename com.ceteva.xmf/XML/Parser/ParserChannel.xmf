@@ -1,0 +1,526 @@
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class ParserChannel extends SAXInputChannel
+  
+    @Bind START = 0 end
+    @Bind END   = 1 end
+    @Bind CHARS = 2 end
+    @Bind EMPTY = 3 end
+  
+    @Attribute grammar    : Grammar            (?)    end  // The grammar being parsed.
+    @Attribute manager    : EventManager       (?)    end  // Handles events (null if not used).
+    @Attribute stack      : Seq(Pattern)       (?)    end  // A stack of pending patterns.
+    @Attribute locals     : Seq(Env::Env)      (?)    end  // A stack of local variable bndings.
+    @Attribute values     : Seq(Element)       (?)    end  // A stack of synthesized values.
+    @Attribute tagName    : Buffer             (?)    end  // Saved copy of most recent tag.
+    @Attribute attributes : Buffer             (?)    end  // Saved copy of most recent atts.
+    @Attribute mode       : Integer            (?)    end  // Current mode.
+    @Attribute debug      : Boolean = false    (?,!)  end  // Controls debugging output.
+    @Attribute refTable   : Table = Table(100) (?)    end  // Saved associations.
+    @Attribute indent     : Integer            (?)    end  // Used by debug output.
+    @Attribute text       : Buffer             (?)    end  // Text when seen.
+    @Attribute nullEnv    : Env::Env = Env::NullEnv() end  // Empty locals env.
+    
+    @Constructor(input,grammar)
+      self.initialiseInput(input)
+    end
+    
+    @Constructor(input,grammar,manager)
+      self.initialiseInput(input)
+    end
+    
+    @Operation bind(name,value)
+      if debug
+      then format(stdout,"~VBIND ~S = ~S~%",Seq{indent,name,value})
+      end;
+      locals->head := locals->head.bind(name,value)
+    end
+    
+    @Operation bindAtts(attributes:Seq(Attribute))
+      @WithoutSourcePos
+      @For attribute in attributes do
+        let SAXAtt = self.findAtt(attribute.att())
+        in if SAXAtt = null
+           then 
+             if attribute.value() = null
+             then self.error("Cannot find attribute of " + tagName + " named " + attribute.att)
+             else self.bind(attribute.var(),attribute.value().perform())
+             end
+           else self.bind(attribute.var(),SAXAtt.value.toString())
+           end
+        end
+      end
+      end
+    end
+    
+    @Operation bindRef(key,value)
+      refTable.put(key,value)
+    end
+    
+    @Operation characters(chars:Buffer)
+      self.text := chars;
+      self.parseLoop()
+    end
+    
+    @Operation commandArgValues(args:Seq(CommandArg)):Seq(Element)
+      args->collect(a | 
+        @CaseObj a of
+          CommandConst[value] do
+            value
+          end
+          CommandVar[name] do
+            self.valueOfVar(name)
+          end
+          else a.error("Unknown type of command arg.")
+        end)
+     end
+    
+    @Operation dropLocals()
+      self.locals := locals->tail
+    end
+    
+    @Operation dropPattern()
+      self.stack := stack->tail
+    end
+    
+    @Operation endElement(tag:Buffer)
+      if debug
+      then 
+        format(stdout,"~V</~S>~%",Seq{indent-2,tag});
+        self.indent := indent - 2
+      end;
+      self.mode := ParserChannel::END;
+      self.tagName := tag;
+      self.parseLoop()
+    end
+    
+    @Operation fail(reason:String)
+      self.close();
+      self.error(reason)
+    end
+    
+    @Operation findAtt(name:String):SAXAttribute
+      let att = null;
+          i = 0
+      in @While i < attributes->size andthen att = null do
+           if attributes.ref(i).name.stringEqual(name)
+           then att := attributes.ref(i)
+           else i := i + 1
+           end
+         end;
+         att
+      end
+    end
+    
+    @Operation fireCommands(commands:Seq(Command))
+      // Perform the commands. Push the value of the last
+      // command if it is value producing.
+      @For command in commands do
+        self.fireCommand(command)
+      end
+    end
+    
+    @Operation fireCommand(command:Command)
+      @WithoutSourcePos
+      @CaseObj command of
+        VarRef[name] do
+          self.pushValue(self.valueOfVar(name))
+        end
+        Event[name,args,result] do
+          if result
+          then self.pushValue(self.fireEvent(name,self.commandArgValues(args)))
+          else self.fireEvent(name,self.commandArgValues(args))
+          end
+        end
+        Cons[head,tail] do
+          self.fireCommand(tail);
+          self.fireCommand(head);
+          let head = self.popValue() then
+              tail = self.popValue()
+          in self.pushValue(Seq{head | tail})
+          end
+        end
+        Nil[ ] do
+          self.pushValue(Seq{})
+        end
+        else command.error("Unknown type of command.")
+      end
+      end
+    end
+    
+    @Operation fireEvent(name:String,args:Seq(Element))
+      if manager = null
+      then format(stdout,"Warning: ignoring event ~S(~{,~;~S~})~%",Seq{name,args})
+      else 
+        if manager.hasElement(name)
+        then
+          let op = manager.getElement(name)
+          in op.invoke(self,args)
+          end
+        else self.error("Cannot find event handler for event: " + name)
+        end
+      end
+    end
+    
+    @Operation nextPattern():Pattern
+      stack->head
+    end
+    
+    @Operation parse(startNT:String)
+      self.parse(startNT,true)
+    end
+    
+    @Operation parse(startNT:String,resolveRefs:Boolean)
+    
+      // Initialises the parser channel, starts parsing at the supplied
+      // non terminal and optional resolves the references in the
+      // synthesized value before returning it.
+      
+      self.stack := Seq{Call(startNT)};
+      self.indent := 0;
+      self.parse();
+      self.result(resolveRefs)
+    end
+    
+   @Operation parsePattern(START,END,EMPTY)
+    
+      // Parse the next pattern on the stack. The state of the
+      // parser channel and the next pattern determines the action
+      // to perform. Returns true when the parser is blocking
+      // on the next input; false indicates that the next stack element
+      // can be inspected and parsed.
+      
+      //format(stdout,"mode = ~S~%tagName = ~S~%stack = ~S~%values = ~S~%locals = ~S~%~%",Seq{mode,tagName,stack,values,locals});
+      
+      @WithoutSourcePos
+      if not stack->isEmpty
+      then
+        @CaseObj self.topPattern() of 
+          Call[name] do
+            @CaseInt[4] mode of
+              Root::XML::Parser::ParserChannel::START do
+                self.parseCallStartElement(name)
+              end
+              Root::XML::Parser::ParserChannel::END do
+                self.parseCallEndElement(name)
+              end
+              Root::XML::Parser::ParserChannel::EMPTY do
+                true
+              end
+              else self.fail("Cannot parse Call(" + name + ")")
+            end
+          end
+          End[tag] do
+            @CaseInt[4] mode of
+              Root::XML::Parser::ParserChannel::START do
+                self.fail("Expecting </" + tag + "> but received <" + self.tagName + ">")
+              end
+              Root::XML::Parser::ParserChannel::END do
+                self.parseEndEndElement(tag,EMPTY)
+              end
+              Root::XML::Parser::ParserChannel::EMPTY do
+                true
+              end
+              else self.fail("Expecting </" + tag + ">")
+            end
+          end
+          Element[tag,attributes,children] do
+            @CaseInt[4] mode of
+              Root::XML::Parser::ParserChannel::START do
+                self.parseElementStartElement(tag,attributes,children)
+              end
+              Root::XML::Parser::ParserChannel::END do
+                self.fail("Expecting <" + tag + "> but received </" + self.tagName + ">")
+              end
+              Root::XML::Parser::ParserChannel::EMPTY do
+                true
+              end
+              else self.fail("Expecting <" + tag + ">")
+            end
+          end
+          Action[exps] do
+            @For exp inReverse exps do
+              self.performExp(exp)
+            end;
+            self.dropPattern();
+            false
+          end
+          Empty[ ] do
+            self.dropPattern();
+            false
+          end
+          Any[ ] do
+            @CaseInt[4] mode of
+              Root::XML::Parser::ParserChannel::START do
+                self.dropPattern();
+                //self.pushPattern(EndAny(tagName.toString()));
+                self.pushPattern(@Record(EndAny) tag=tagName.toString() end);
+                self.mode := EMPTY;
+                true
+              end
+              Root::XML::Parser::ParserChannel::END do
+                self.fail("Expecting ANY but received </" + tagName + ">")
+              end
+              Root::XML::Parser::ParserChannel::EMPTY do
+                true
+              end
+            end
+          end
+          EndAny[tag] do
+            @CaseInt[4] mode of
+              Root::XML::Parser::ParserChannel::START do
+                self.pushPattern(@Record(EndAny) tag = self.tagName.toString() end);
+                self.mode := EMPTY;
+                true
+              end
+              Root::XML::Parser::ParserChannel::END do
+                if tag = self.tagName.toString()
+                then 
+                  self.dropPattern();
+                  self.mode := EMPTY;
+                  false
+                else self.fail("Expecting " + tag + " but received </" + self.tagName + ">")
+                end
+              end
+              Root::XML::Parser::ParserChannel::EMPTY do
+                true
+              end
+            end
+          end
+          Return[name] do
+            self.dropLocals();
+            self.dropPattern();
+            false
+          end
+          Bind[names,pattern] do
+            self.dropPattern();
+            self.pushPattern(@Record(BindVar) names=names end);
+            self.pushPattern(pattern);
+            false
+          end
+          BindVar[names] do
+            @For name in names do
+              self.bind(name,self.popValue())
+            end;
+            self.dropPattern();
+            false
+          end
+          UpdateVar[name] do
+            self.bindRef(self.valueOfVar(name),self.topValue());
+            self.dropPattern();
+            false
+          end
+          Commands[commands] do
+            self.dropPattern();
+            self.fireCommands(commands);
+            false
+          end
+          Strip[tag,isLast] do
+            let values = self.popValue()
+            in if not isLast then self.pushValue(values) end;
+               self.pushValue(values->select(pair | pair->head = tag)->map("tail"));
+               self.dropPattern();
+               false
+            end
+          end
+          Text[ ] do
+            self.pushValue(text.toString());
+            self.dropPattern();
+            false
+          end
+          Tag[tag] do
+            self.pushValue(Seq{tag|self.popValue()});
+            self.dropPattern();
+            false
+          end
+          else stack->head.error("Unknown parse state.")
+        end
+      end
+      end
+    end
+    
+    @Operation parseCallStartElement(name)
+      let body = grammar.predict(name,tagName.toString())
+      in if body->isEmpty
+         then self.fail("Clause " + name + " cannot start with " + tagName)
+         else 
+           self.dropPattern();
+           self.startCall(name);
+           @For pattern inReverse body do
+             self.pushPattern(pattern)
+           end
+         end
+      end;
+      false
+    end
+    
+    @Operation parseCallEndElement(name)
+      let body = grammar.predict(name,"/" + tagName.toString())
+      in if body->isEmpty
+         then self.fail("Clause " + name + " cannot end with " + tagName)
+         else 
+           self.dropPattern();
+           self.startCall(name);
+           @For pattern inReverse body do
+             self.pushPattern(pattern)
+           end
+         end
+      end;
+      false
+    end
+    
+    @Operation parseElementStartElement(tag,atts,children)
+      if self.tagName().toString() = tag.toString()
+      then 
+        self.bindAtts(atts);
+        self.dropPattern();
+        self.pushPattern(@Record(End) tag=tag end);
+        self.pushPattern(self.performCase(children));
+        self.mode := ParserChannel::EMPTY;
+        false
+      else self.fail()
+      end
+    end
+    
+    @Operation parseEndEndElement(name,EMPTY)
+      if not tagName.toString() = name
+      then self.fail(name + " expected but received </" + tagName + ">")
+      else 
+        self.dropPattern();
+        self.mode := EMPTY;
+        false
+      end
+    end
+    
+    @Operation parseLoop()
+      let blocking = false;
+          START = ParserChannel::START;
+          END = ParserChannel::END;
+          EMPTY = ParserChannel::EMPTY
+      in @While self.ready() and not blocking do
+           blocking := self.parsePattern(START,END,EMPTY)
+         end
+      end
+    end
+    
+    @Operation performCase(case)
+      // Check the guards and return the first pattern
+      // that matches.
+      @Find(clause,case.clauses())
+        when clause.guard().eval(locals->head())
+        do clause.pattern()
+        else case.otherwise()
+      end
+    end
+    
+    @Operation performExp(exp)
+      // The exp references locals as arguments. Calculate the appropriate
+      // argument list and perform the expression.
+      let args = exp.args->collect(arg | self.valueOfVar(arg))
+      in //self.pushValue(exp.perform(args))
+         self.pushValue(exp.op.invoke(null,args))
+      end
+    end
+    
+    @Operation popValue()
+      let value = values->head
+      in self.values := values->tail;
+         value
+      end
+    end
+    
+    @Operation pushPattern(pattern:Pattern)
+      self.stack := Seq{pattern | stack}
+    end
+    
+    @Operation pushValue(value:Element)
+      if debug
+      then format(stdout,"~VPUSH(~S)~%",Seq{indent,value})
+      end;
+      self.values := Seq{value | values}
+    end
+    
+    @Operation ready():Boolean
+      // Returns true when there is some pattern to parse.
+      not stack->isEmpty
+    end
+    
+    @Operation result(resolveRefs:Boolean)
+    
+      // Return the result (if any) and optionally resolve any
+      // references that have been synthesized.
+      
+      if values->isEmpty
+      then null
+      else
+        let objPred = 
+              @Operation(o)
+                if o.isKindOf(XCore::NamedElement)
+                then o.pathSeq()->head <> "Root"
+                else true
+                end
+              end then
+            model = values->head;
+            walker = ResolveRefs(refTable,objPred)
+        in walker.walk(model,null)
+        end
+      end
+    end
+    
+    @Operation startCall(name)
+      self.locals := Seq{self.nullEnv | locals};
+      self.pushPattern(@Record(Return) name=name end)
+    end
+    
+    @Operation startElement(tag,atts)
+      if debug
+      then 
+        format(stdout,"~V<~S",Seq{indent,tag});
+        @Count i from 0 to atts->size do
+          format(stdout," ~S='~S'",Seq{atts.ref(i).name,atts.ref(i).value})
+        end;
+        format(stdout,">~%");
+        self.indent := indent + 2
+      end;
+      self.tagName := tag;
+      self.attributes := atts;
+      self.mode := ParserChannel::START;
+      self.parseLoop()
+    end
+    
+    @Operation topPattern():Pattern
+      if stack->isEmpty
+      then self.error("Attempting to take top pattern.")
+      else stack->head
+      end
+    end
+    
+    @Operation topValue()
+      if values->isEmpty
+      then self.error("Expecting a value at this point.")
+      else values->head
+      end
+    end
+    
+    @Operation valueOfVar(name:String)
+      // If the name is a local then look it up otherwise it is a global.
+      @Find(env,locals)
+        when env.binds(name)
+        do env.lookup(name)
+        else
+          @Find(nameSpace,grammar.imports)
+            when nameSpace.hasElement(name)
+            do nameSpace.getElement(name)
+            else self.error("Cannot find the value of variable " + name)
+          end
+      end
+    end
+    
+    
+  end

@@ -1,0 +1,57 @@
+// This is an example of an XML parser written in XOCL.
+// It imports XML that serialises instances of ComponentModels
+// and displays the results as a tree.
+
+// To run it, select Run XML Importer from Examples menu.
+
+parserImport XOCL;
+parserImport XML::Parser;
+
+import Components;
+import XML::Parser;  // Get ParserChannel and Ref
+
+context Root
+  @Grammar ComponentModel
+    ComponentModel ::= 
+      <ComponentModel>
+        C = Component*
+        N = Connector*
+      </ComponentModel>
+      { ComponentModel[components=C,connectors=N] }.
+    Component ::= 
+      <Component n=name>
+        P = Port*
+      </Component>
+      { Component[name=n,ports=P] }.
+    Port ::= 
+      <Port n=name t=type i=id/>
+      i := { Port[name=n,type=t] }.
+    Connector ::= 
+      <Connector sid=source tid=target/>
+      { Connector[source=Ref(sid),target=Ref(tid)] }.
+   end
+   
+context Root
+  @Operation parseXMLFile()
+    let file = xmf.openFile(xmf.projDir(),"*.xml")
+    in if file <> ""
+       then
+         @WithOpenFile(fout <- file)
+           Root::parse(fout).browse()
+         end
+       else xmf.message("Parse Cancelled")
+       end
+    end
+  end
+  
+context Root
+  @Operation parse(inch:InputChannel)
+    let grammar = Root::ComponentModel.compile()
+    in let xin = ParserChannel(inch,grammar)
+       in xin.debug := false;
+          xin.parse("ComponentModel");
+       // Get the result and resolve the references.
+          xin.result(true)
+       end
+    end
+  end

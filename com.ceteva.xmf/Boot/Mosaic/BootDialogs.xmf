@@ -1,0 +1,504 @@
+parserImport XOCL;
+
+import Comms;
+import IO;
+
+context XMF
+  @Operation bootDialogs()
+    try 
+      let dialogClient = Clients::DialogBoxes::DialogBoxClient("com.ceteva.dialogs")
+      in xmf.clientManager().add(dialogClient);
+         @Fork(Dialogs)
+           dialogClient.start()
+         end
+      end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end
+
+context XMF
+  @Operation dialogClient()
+    self.findClient(Clients::DialogBoxes::DialogBoxClient)
+  end
+  
+context XMF
+  @Operation getColor(message:String)
+    self.getColor(message,Clients::Diagrams::Color(0,0,0))
+  end
+  
+context XMF
+  @Operation getColor(message:String,color:Color)
+    self.dialogClient().newColorDialog(message,color)
+  end
+  
+context XMF
+  @Operation getFont(font:String)
+    self.dialogClient().newFontDialog(font)
+  end
+  
+context XMF
+  @Operation message(message:String)
+    self.dialogClient().newMessageDialog(message)
+  end
+  
+context XMF
+  @Operation warning(warning:String)
+    self.dialogClient().newWarningDialog(warning)
+  end
+  
+context XMF
+  @Operation errorMessage(error:String)
+    self.dialogClient().newErrorDialog(error)
+  end
+  
+context XMF
+  @Operation question(question:String):Boolean
+    self.dialogClient().newQuestionDialog(question) = "Yes"
+  end
+  
+context XMF
+  @Operation confirm(question:String)
+    self.dialogClient().newConfirmDialog(question)
+  end
+
+context XMF
+  @Operation input(title:String,question:String,value:String):String
+    let value = self.dialogClient().newInputDialog(title,question,value)
+    in if value <> "-1"
+       then value
+       else null
+       end
+    end
+  end
+
+context XMF
+  @Operation openFile(dir,ftype)
+    self.dialogClient().newOpenFileDialog(dir,ftype)
+  end
+
+context XMF
+  @Operation openFile(dir,ftype,initName)
+    self.dialogClient().newOpenFileDialog(dir,ftype,initName)
+  end
+
+context XMF
+  @Operation errorMessageWithText(message,text)
+    self.dialogClient().newTextAreaDialog(Clients::DialogBoxes::TextAreaDialog::error,message,text)
+  end
+  
+/* context XMF
+  @Operation multiSelectTreeDialog(title,elementTree,expandElements,disabledElements,stringOp)
+    let 
+      stringTree = self.sequenceToStrings(elementTree,expandElements,disabledElements,stringOp) then
+      choosenPath = self.dialogClient().newMultiSelectTreeDialog(title,stringTree)
+    in
+      let s = Seq{}
+      in
+        @For path in choosenPath
+        do
+          @Find(e,elementTree)
+          when self.pathToElement(elementTree,path->asSeq,stringOp) <> false
+          do
+            s := s->including(self.pathToElement(elementTree,path->asSeq,stringOp))
+          end
+        end;
+        s
+      end
+    end
+  end */
+  
+context XMF
+  @Operation multiSelectTreeDialog(title,elementTree,expandElements,stringOp)
+  
+    // Note that any passed encoding is now ignored, all trees should be pre
+    // encoded - this needs generalising
+  
+    let 
+      stringTree = self.treeSequenceToStrings(elementTree,expandElements,Seq{},stringOp) then
+      choosenPath = self.dialogClient().newMultiSelectTreeDialog(title,stringTree)
+    in
+      if choosenPath <> ""
+      then
+        let s = Seq{}
+        in
+          @For path in choosenPath
+          do
+            @Find(e,elementTree)
+            when self.pathToElement(elementTree,path->asSeq,stringOp) <> false
+            do
+              s := s->including(self.pathToElement(elementTree,path->asSeq,stringOp))
+            end
+          end;
+          s
+        end
+      else
+        null
+      end
+    end
+  end  
+  
+context XMF
+  @Operation order(title,command,options)
+    let optionsSeq = options->asSeq then
+        stringOptions = optionsSeq->map("toString") then
+        orderedOptions = self.dialogClient().newOrderingDialog(title,command,stringOptions)
+    in orderedOptions->collect(s | optionsSeq->at(stringOptions->indexOf(s)))
+    end
+  end
+  
+context XMF
+  @Operation order2(title,options)
+    let optionsSeq = options->asSeq then
+        stringOptions = optionsSeq->map("toString") then
+        orderedOptions = self.dialogClient().newOrderingDialog2(title,stringOptions)
+    in orderedOptions->collect(s | optionsSeq->at(stringOptions->indexOf(s)))
+    end
+  end  
+
+context XMF
+  @Operation saveFile(dir,ftype)
+    self.dialogClient().newSaveFileDialog(dir,ftype)
+  end
+
+context XMF
+  @Operation saveFile(dir,ftype,initName)
+    self.dialogClient().newSaveFileDialog(dir,ftype,initName)
+  end
+
+context XMF
+  @Operation selectDirectory(dir)
+    self.dialogClient().newDirectoryDialog(dir)
+  end
+
+context XMF
+  @Operation treeSelection(title,elementTree,expandElements,stringOp)
+    let 
+      stringTree = self.treeSequenceToStrings(elementTree,expandElements,Seq{},stringOp) then
+      choosenPath = self.dialogClient().newTreeDialog(title,stringTree)
+    in
+      if choosenPath.isKindOf(Vector)
+      then
+        @Find(e,elementTree)
+          when self.pathToElement(elementTree,choosenPath->asSeq,stringOp) <> false
+          do
+            self.pathToElement(elementTree,choosenPath->asSeq,stringOp)
+          else null
+        end
+      else
+        null
+      end
+    end
+  end
+
+context XMF
+  @Operation treeSequenceToStrings(elements,expandElements,disabledElements,stringOp)
+  
+    // Ignores any markup - this needs generalising
+  
+    let seq = Seq{}
+    in
+      @For element in elements->reverse
+      do
+        if element.isKindOf(SeqOfElement) then
+          seq := seq->prepend(self.treeSequenceToStrings(element,expandElements,disabledElements,stringOp))
+        else
+          let name = ""
+          in
+            if stringOp <> null
+            then name := stringOp(element)
+            else name := element.toString()
+            end;
+            seq := seq->prepend(name)
+          end
+        end
+      end;
+      seq
+    end
+  end
+
+/* context XMF
+  @Operation sequenceToStrings(elements,expandElements,disabledElements,stringOp)
+    let seq = Seq{}
+    in
+      @For element in elements->reverse
+      do
+        if element.isKindOf(SeqOfElement) then
+          seq := seq->prepend(self.sequenceToStrings(element,expandElements,disabledElements,stringOp))
+        else
+          let name = ""
+          in
+            if stringOp <> null
+            then name := stringOp(element)
+            else name := element.toString()
+            end;
+            if expandElements->includes(element)
+            then
+              name := name + "*"
+            end;
+            if disabledElements->includes(element)
+            then
+              name := name + "&"
+            end;
+            seq := seq->prepend(name)
+          end
+        end
+      end;
+      seq
+    end
+  end
+*/  
+context XMF
+  @Operation pathToElement(elements,path,stringOp)
+    if stringOp = null
+    then stringOp := @Operation(e) e.toString() end
+    end;
+    let element = stringOp(path.head())
+    in
+      if stringOp(elements.head()) = stringOp(path.head())
+      then
+        if path.size() = 1
+        then
+          elements.head()
+        else
+          let 
+            found = false;
+            remaining = elements.tail().head()
+          in
+            if not remaining.isKindOf(SeqOfElement)
+            then
+            
+              // this elements has been used to encode extra
+              // information about the node and should be ignored
+              
+              remaining := elements.tail().tail().head()
+              
+            end;
+            
+            @While found = false and not remaining.isEmpty()
+            do
+              let result = self.pathToElement(remaining.head(),path.tail(),stringOp)
+              in
+                if result <> false
+                then
+                  found := result
+                else
+                  remaining := remaining.tail()
+                end
+              end
+            end;
+            found
+          end
+        end
+      end
+    end
+  end
+
+context XMF
+  @Operation pathToElement(elements,path)
+    self.pathToElement(elements,path,null)
+  end
+  
+context XMF
+  @Operation select(title,command,options,default,stringOp)
+    options := options->asSeq;
+    let strings = Seq{};
+        table = Table(10)
+    in
+      @For loop in 0.to(options.size()-1) do
+        let option = options.at(loop) then
+            string = 
+              if stringOp <> null
+              then stringOp(option)
+              else option.toString()
+              end
+        in
+          if default <> null andthen default = option
+          then string := "!" + string
+          end;
+          table.put(string,option);
+          strings := strings->linkAt(string,loop)
+        end
+      end;
+      let dialogClient = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+        if dialogClient <> null
+        then
+          let chosenString = dialogClient.newSelectionDialog(false,title,command,strings)
+          in
+            if chosenString <> "" then
+              let chosenOption = table.get(chosenString)
+              in chosenOption
+              end
+            else null
+            end
+          end
+        else
+          format(stdout,"Dialog client not available.~%")
+        end
+      end
+    end
+  end  
+
+context XMF
+  @Operation selects(title,command,elements,defaults,stringOp)
+    let 
+      elementSeq = elements->asSeq;
+      elementStrings = Seq{};
+      optionTable = Table(10)
+    in
+      @For loop in 0.to(elementSeq.size()-1) do
+        let
+          element = elementSeq.at(loop) then
+          elementString = 
+            if stringOp <> null 
+            then stringOp(element)
+            else element.toString()
+            end
+        in
+          if defaults <> null andthen defaults->includes(element)
+          then elementString := "!" + elementString
+          end;
+          elementStrings := elementStrings + Seq{elementString};
+          optionTable.put(elementString,element)
+        end
+      end;
+      let selects = self.dialogClient().newSelectionDialog(true,title,command,elementStrings)
+      in
+        if selects <> 0-1
+        then selects->collect(s | optionTable.get(s))
+        else selects
+        end
+      end
+    end
+  end
+  
+/* context XMF
+  @Operation choices(title,command,elements)
+    let strings = elements->asSeq->map("toString") then
+        choices = self.selects(title,command,strings)
+    in choices->collect(s | elements->asSeq->at(strings->indexOf(s)))
+    end
+  end */
+
+/* Progress dialogs lock the application.  If an exception is thrown
+   then the exception displayer closes all open dialogs stored in the
+   following property 
+*/
+
+xmf.setProperty("progressDialogs",Set{});  
+
+context XMF
+  @Operation progress(workToBeDone)
+    let 
+      dialogs = xmf.property("progressDialogs") then
+      progress = self.dialogClient().newProgressDialog(workToBeDone)
+    in
+      xmf.setProperty("progressDialogs",dialogs->including(progress));
+      progress
+    end
+  end
+
+context XMF
+  @Operation busy(title,minimize)
+    let 
+      dialogs = xmf.property("progressDialogs") then
+      progress = self.dialogClient().newBusyDialog(title,minimize)
+    in
+      xmf.setProperty("progressDialogs",dialogs->including(progress));
+      progress
+    end
+  end
+  
+context XMF
+  @Operation busy(title)
+    xmf.busy(title,false)
+  end
+  
+context XMF
+  @Operation killProgressDialogs()
+    let dialogs = xmf.property("progressDialogs") in
+      @For dialog in dialogs do
+        dialog.finished()
+      end
+    end
+  end
+
+context XMF
+  @Operation getString(title,question,value)
+    let value = self.dialogClient().newInputDialog(title,question,value)
+    in
+      if value = "-1" then null
+      else value
+      end
+    end
+  end
+
+context XMF
+  @Operation getBoolean(title,question,value)
+    let value = self.getString(title,question,value.toString())
+    in
+      if value = null
+      then
+        value
+      elseif value.isBool()
+      then
+        value.asBool()
+      else
+        xmf.message("Please enter the value 'true' or 'false'");
+        xmf.getBoolean(title,question,value)
+      end
+    end
+  end
+
+context XMF
+  @Operation getFloat(title,question,value)
+    self.getString(title,question,value.toString()).asFloat()
+  end
+
+context XMF
+  @Operation getInteger(title,question,value)
+    self.getString(title,question,value.toString()).asInt()
+  end
+  
+context XMF
+  @Operation getClassifier(title,question,value,imports)
+    self.getString(title,question,value)
+      .subst(",","::",true)
+      .splitBy(",",0,0)
+      ->ref(imports)
+  end
+  
+context XMF
+  @Operation getExp(title,question):Performable
+  
+    // Returns an expression if the parse is OK otherwise
+    // returns null. Will display an error message if anything
+    // goes wrong.
+    
+    let string = self.getString(title,question,"")
+    in if string <> null
+       then 
+         try
+           if string.hasSuffix(";")
+           then string := string.truncate(string.size()-1)
+           end;
+           OCL::OCL.grammar.parseString(string,"Exp1",Seq{XOCL})
+         catch(exception)
+           @TypeCase(exception)
+             Parser::BNF::ParseError do
+               let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient)
+               in dialog.newTextAreaDialog(
+                  Clients::DialogBoxes::TextAreaDialog::error,
+                    exception.message,
+                    exception.consumed);
+                  null
+               end
+             end
+             else xmf.message(exception.toString()); null
+           end
+         end
+       else null
+       end
+    end
+  end
+  

@@ -1,0 +1,68 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+
+context Commands
+
+  @Package Statements
+  
+    @Operation compile(statements,typeEnv,varEnv,next)
+      @Case statements of
+        Seq{} do 
+          next(typeEnv,varEnv) 
+        end
+        Seq{statement | statements} do 
+          statement.compile(
+            typeEnv,
+            varEnv,
+            @Operation(typeEnv,varEnv)
+              Statements::compile(statements,typeEnv,varEnv,next)
+            end) 
+        end
+      end
+    end
+  
+    @Operation desugar1(statements,next:Performable):Performable
+      @Case statements of
+        Seq{} do 
+          next 
+        end
+        Seq{statement | statements} do 
+          statement.desugar1(Statements::desugar1(statements,next)) 
+        end
+      end
+    end
+    
+    @Operation desugar2(statements,typeEnv,next):Performable
+      @Case statements of
+        Seq{} do 
+          next(typeEnv)
+        end
+        Seq{statement | statements} do 
+          statement.desugar2(
+            typeEnv,
+            @Operation(typeEnv)
+              Statements::desugar2(statements,typeEnv,next)
+            end) 
+        end
+      end
+    end
+    
+    @Operation maxLocals(statements,locals,maxLocals,next)
+      @Case statements of
+        Seq{} do
+          next(locals,maxLocals)
+        end
+        Seq{statement | statements} do
+          statement.maxLocals(
+            locals,
+            maxLocals,
+            @Operation(locals,maxLocals) 
+              Statements::maxLocals(statements,locals,maxLocals,next) 
+            end)
+        end
+      end
+    end
+  
+  end

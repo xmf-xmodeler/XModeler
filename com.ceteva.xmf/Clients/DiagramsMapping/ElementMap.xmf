@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context DiagramsMapping
+
+  @Class ElementMap extends Contained
+    
+    @AbstractOp diagramElement()
+    end
+    
+    // the model element represented by the diagram element
+    
+    @AbstractOp element()
+    end
+
+    @Operation subMaps()
+      Seq{}
+    end
+
+    @Operation allSubMaps()
+      let C = Seq{self};
+          allSubMaps = Seq{}
+      in @While not C->isEmpty do
+           let parentMap = C->head then
+               M = parentMap.subMaps()
+           in C := C->tail;
+              @For m in M do
+                allSubMaps := allSubMaps->prepend(m);
+                if m <> parentMap and m <> null
+                then C := Seq{m | C}
+                end
+              end
+           end
+         end;
+         allSubMaps
+      end
+    end
+
+  end

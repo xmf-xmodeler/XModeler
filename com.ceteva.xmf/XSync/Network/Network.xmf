@@ -1,0 +1,106 @@
+parserImport XOCL;
+
+context XSync
+
+  @Package Network
+  
+    @Class Location
+    
+      @Attribute x : Integer end
+      @Attribute y : Integer end
+      
+    end
+    
+    @Class Hole extends Location end
+    
+    @Class Entity
+    
+      @Attribute x : Integer end
+      @Attribute y : Integer end
+      @Attribute alive : Boolean end
+      
+      @Constructor(x,y,alive) ! end
+      
+    end
+    
+    @Class Robot extends Entity end
+    
+    @Class Player extends Entity end
+  
+    @Operation test1()
+      let net = Net();
+          alpha1 = Alpha(Seq{"Root","XCore","Class"},Set{"name"});
+          alpha2 = Alpha(Seq{"Root","XCore","Class"},Set{"name"});
+          beta = Beta(true);
+          equiv = Equivalence(Left(SlotLocation("name")),Right(SlotLocation("name")));
+          gamma = Gamma("r1",1,@Operation(token) token.println() end)
+      in net.add(alpha1);
+         net.add(alpha2);
+         alpha1.add(beta);
+         alpha2.add(beta);
+         beta.setLeft(alpha1);
+         beta.setRight(alpha2);
+         beta.add(equiv,null);
+         beta.add(gamma,null);
+         @For c in XCore.classes do
+           net.add(c)
+         end;
+         net.enabled
+      end
+    end
+    
+    @Operation test2()
+      let net = Net();
+          alpha1 = Alpha(Seq{"Root","XSync","Network","Robot"},Set{"x","y","alive"});
+          alpha2 = Alpha(Seq{"Root","XSync","Network","Robot"},Set{"x","y","alive"});
+          alpha3 = Alpha(Seq{"Root","XSync","Network","Robot"},Set{"x","y","alive"});
+          alpha4 = Alpha(Seq{"Root","XSync","Network","Robot"},Set{"x","y","alive"});
+          beta1 = Beta(false);
+          beta2 = Beta(false);
+          gamma1 = Gamma("r1",10,
+            @Operation(token) 
+              format(stdout,"Killing robots~%");
+              token.left().object().alive := false;
+              token.right().object().alive := false
+            end);
+          gamma2 = Gamma("r2",1,
+            @Operation(token) 
+              format(stdout,"Moving robots xpos~%");
+              token.left().object().x := token.left().object().x + 1
+            end);
+          pred1 = Equivalence(SlotLocation("alive"),Const(true));
+          pred2 = GeneralPredicate(@Operation(t) t.left().object() <> t.right().object() end);
+          pred3 = Equivalence(Left(SlotLocation("x")),Right(SlotLocation("x")));
+          pred4 = Equivalence(Left(SlotLocation("y")),Right(SlotLocation("y")));
+          pred5 = GeneralPredicate(@Operation(t) t.left().object().x < t.right().object().x end)
+      in net.add(alpha1);
+         net.add(alpha2);
+         net.add(alpha3);
+         net.add(alpha4);
+         alpha1.add(beta1);
+         alpha1.add(pred1);
+         alpha2.add(beta1);
+         alpha2.add(pred1);
+         alpha3.add(beta2);
+         alpha3.add(pred1);
+         alpha4.add(beta2);
+         alpha4.add(pred1);
+         beta1.setLeft(alpha1);
+         beta1.setRight(alpha2);
+         beta2.setLeft(alpha3);
+         beta2.setRight(alpha4);
+         beta1.add(pred2);
+         beta1.add(pred3);
+         beta1.add(pred4);
+         beta2.add(pred5);
+         beta1.add(gamma1);
+         beta2.add(gamma2);
+         net.add(Robot(5,1,true));
+         net.add(Robot(1,1,true));
+         net.add(Robot(1,1,true));
+         net.add(Robot(0,1,true));
+         net.run()
+       end
+     end
+  
+  end

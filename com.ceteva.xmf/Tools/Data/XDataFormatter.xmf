@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import IO;
+import Tools;
+
+context Data
+
+  @Class XDataFormatter extends NameSpaceXMLFormatter
+  
+    @Operation objectAttributes(object:Object):Seq(Attribute)
+    
+      let class = object.of()
+      in @CaseObj object of
+           DiagramTools::Diagrams::Node[ ] do
+             class.allAttributes()
+               ->excluding(a | a.name().toString() = "owner" or a.name().toString() = "commandInterpreter")
+               ->asSeq
+           end
+           DiagramTools::Diagrams::Edge[ ] do
+             class.allAttributes()
+               ->excluding(a | a.name().toString() = "owner" or a.name().toString() = "commandInterpreter")
+               ->asSeq
+           end
+           else class.allAttributes()->asSeq
+         end
+      end
+      
+    end
+    
+  end

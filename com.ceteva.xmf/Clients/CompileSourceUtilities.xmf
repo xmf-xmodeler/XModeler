@@ -1,0 +1,79 @@
+parserImport XOCL;
+
+context Clients
+  @Operation checkParsable(op:CompiledOperation,value:String)
+    try
+      OCL::OCL.grammar.parseString(value,"Exp1",Seq{XOCL});
+      true
+    catch(exception)
+      let 
+        dialog = xmf.findClient(DialogBoxes::DialogBoxClient);
+        name = op.name()
+      in
+        dialog.newTextAreaDialog(
+            DialogBoxes::TextAreaDialog::error,
+            exception.message,
+            Clients::stripOperationSyntax(name,exception.consumed)
+        );
+        false
+      end
+    end
+  end
+
+context Clients
+  @Operation parseString(value:String,lastGoodSource:String)
+    try
+      OCL::OCL.grammar.parseString(value,"Exp1",Seq{XOCL})
+    catch(exception)
+      let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) 
+      in
+        dialog.newErrorDialog(exception.message);
+        OCL::OCL.grammar.parseString(lastGoodSource,"Exp1",Seq{XOCL})
+      end
+    end
+  end
+  
+context Clients
+  @Operation recompile(operation,newSource,oldSource)
+    let 
+      opString = operation.source() then 
+      opAS = Clients::parseString(newSource,oldSource) then 
+      opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then 
+      newOp = opASfun()
+    in
+      newOp.setDoc(operation.doc().doc);
+      operation.update(newOp)
+    end
+  end  
+
+context Clients
+  @Operation setSourceConstructor(constructor,source,newbody)
+    let 
+      lastGoodSource = constructor.getBodySource();
+      operation = constructor.body
+    in
+      constructor.setBodySource(source);
+      constructor.source := newbody;
+      Clients::recompile(operation,source,lastGoodSource)
+    end
+  end
+
+context Clients
+  @Operation setSource(operation,source)
+    let lastGoodSource = operation.source()
+    in
+      operation.setSource(source);
+      Clients::recompile(operation,source,lastGoodSource)
+    end
+  end
+  
+context Clients
+  @Operation stripOperationSyntax(name:String,text:String)
+    let
+      opheader = "@Operation " + name + "(classifier : Element):Element ";
+      coheader = "@Operation " + name + "():XCore::Element ";
+      footer = " end"
+    in
+      text.subst("",opheader,false).subst("",coheader,false).subst("",footer,false)
+    end
+  end

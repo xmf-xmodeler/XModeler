@@ -1,0 +1,95 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class StackFrame
+  
+    @Doc
+      Represents a VM stack frame at the user level.
+    end
+  
+    @Attribute codeBox   : CodeBox        end  // The executing code.
+    @Attribute codeIndex : Integer        end  // The index into the code.
+    @Attribute globals   : Element        end  // The 'closure' variables.
+    @Attribute dynamics  : Seq(Element)   end  // The 'dynamic' variables and tables.
+    @Attribute locals    : Integer        end  // The number of local variables.
+    @Attribute target    : Element        end  // The value of 'self'.
+    @Attribute supers    : Seq(Operation) end  // A sequence of operations.
+    @Attribute handler   : Operation      end  // A handler if this is a 'trye' frame.
+    @Attribute values    : Seq(Element)   end  // The parameter and local values.
+    @Attribute line      : Integer        end  // The line in the source file.
+    @Attribute char      : Integer        end  // The character in the source file.
+    
+    @Operation name():String
+    
+      if codeBox <> null
+      then codeBox.name()
+      else "?"
+      end
+      
+    end
+    
+    @Operation operation():Operation
+      
+      // If the supers of the stack frame is defined then the
+      // head of the supers sequence is the currently invoked
+      // operation.
+      
+      if supers = null or supers = Seq{}
+      then null
+      else supers->head
+      end
+      
+    end
+    
+    @Operation owner():Element
+    
+      // The owner of the operation invoked in the stack frame.
+      
+      if self.operation() = null
+      then null
+      else self.operation().owner
+      end
+      
+    end
+    
+    @Operation paramNames():Seq(String)
+    
+      // If the stack frame operation is defined then the names
+      // are found there.
+      
+      if self.operation() <> null
+      then self.operation().paramNames()
+      else Seq{}
+      end
+      
+    end
+    
+    @Operation paramTypes():Seq(Classifier)
+    
+      // If the stack frame operation is defined then the types
+      // are found there.
+      
+      if self.operation() <> null
+      then self.operation().paramTypes()
+      else Seq{}
+      end
+      
+    end
+    
+    @Operation resourceName():String
+    
+      if codeBox <> null
+      then codeBox.resourceName()
+      else ""
+      end
+      
+    end
+    
+    @Operation toString():String
+      target.toString() + "." + self.name() + "(" + values->map("toString")->separateWith(",") + ")"
+    end
+    
+  end
+    
+    

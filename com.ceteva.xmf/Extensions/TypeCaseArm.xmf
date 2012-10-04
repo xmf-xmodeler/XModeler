@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import OCL;
+
+context XOCL
+
+  @Class TypeCaseArm
+  
+    @Attribute type : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(type,body) end
+    
+    @Operation desugar(value:Performable,fail:Performable):Performable
+      [| if <value>.isKindOf(<type>)
+         then <body> 
+         else <fail>
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      type.pprint(out,indent);
+      format(out," do~%~V",Seq{indent + 2});
+      body.pprint(out,indent + 2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

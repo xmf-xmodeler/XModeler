@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XRules;
+
+context XRules
+
+  @Package Network
+  
+    @Doc
+      This package contains the definition of the XRules network
+      classes. These classes control the management of objects
+      maching the rules that have been compiled into the network.
+    end
+  
+  end

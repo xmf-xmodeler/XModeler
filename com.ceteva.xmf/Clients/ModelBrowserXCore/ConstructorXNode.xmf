@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class ConstructorXNode extends ObjectXNode
+
+    @Operation daemons_constructorArgsChanged(constructor,slot,newNames,oldNames)
+      self.node.textChangedOut(constructor.labelString())
+    end
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once ConstructorXNode::daemons_constructorArgsChanged(element,"names") end;
+      self
+    end
+
+  end

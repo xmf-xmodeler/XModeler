@@ -1,0 +1,105 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DroppableEventHandler isabstract extends EventHandler
+
+    @Operation acceptDrop(dropId,mode,dragIdsString)
+      self.debug("acceptDrop[~S]~%",Seq{dropId,mode,dragIdsString});
+      let idManager = xmf.clientManager().idManager;
+          dragIds = self.getIdSequence(dragIdsString);
+          allIdsValid = true
+      in
+        @For id in dragIds->including(dropId) do
+          if not idManager.hasId(id)
+          then
+            self.debug("  id ~S disposed~%",Seq{id});
+            allIdsValid := false
+          end
+        end;        
+        if allIdsValid
+        then
+          if idManager.hasId(dropId)
+          then
+            let
+              dragSources = Seq{};
+              dropTarget = idManager.find(dropId)
+            in
+              @For id in dragIds do
+                dragSources := dragSources + Seq{idManager.find(id)}
+              end;
+              xmf.clipboard().acceptMultipleDrop(dragSources,idManager.find(dropId),mode)
+            end
+          else self.debug("  id ~S disposed~%",Seq{dropId})
+          end
+        end
+      end
+    end
+
+    @Operation dragAndDrop(dropId:String,mode:String,dragIdsString:String,args:Seq(Element))
+      self.debug("dragAndDrop[~S]~%",Seq{dropId,mode,dragIdsString,args.toString()});
+      let idManager = xmf.clientManager().idManager;
+          dragIds = self.getIdSequence(dragIdsString);
+          allIdsValid = true
+      in
+        @For id in dragIds->including(dropId) do
+          if not idManager.hasId(id)
+          then
+            self.debug("  id ~S disposed~%",Seq{id});
+            allIdsValid := false
+          end
+        end;        
+        if allIdsValid
+        then
+          if idManager.hasId(dropId)
+          then
+            let
+              dragSources = Seq{};
+              dropTarget = idManager.find(dropId)
+            in
+              @For id in dragIds do
+                dragSources := dragSources + Seq{idManager.find(id)}
+              end;
+              self.handleDragAndDrop(dropTarget,mode,dragSources,args)
+            end
+          else self.debug("  id ~S disposed~%",Seq{dropId})
+          end
+        end
+      end
+    end
+
+    @Operation getIdSequence(idsString:String):Seq(String)
+      idsString.stripOut(" ").stripOut("[").stripOut("]").splitBy(",",0,0)      
+    end
+
+    @Operation handleDragAndDrop(dropTarget:DropTarget,mode:String,dragSources:Seq(DragSource),args:Seq(Element))
+      // Over-ride where necessary. Additional arguments supplied where necessary.
+      xmf.clipboard().dragAndDrop(DropEvent(dragSources,dropTarget,mode))
+    end
+
+    @Operation readAcceptDrop(parameters)
+      let dropId = parameters.at(0);
+          mode = parameters.at(1);
+          dragIdsString = parameters.at(2)
+      in
+        self.acceptDrop(dropId,mode,dragIdsString)
+      end
+    end
+
+    @Operation readDragAndDrop(parameters)
+      let dropId = parameters.at(0);
+          mode = parameters.at(1);
+          dragIdsString = parameters.at(2);
+          args = parameters->tail->tail->tail
+      in
+        self.dragAndDrop(dropId,mode,dragIdsString,args)
+      end
+    end
+
+
+  end
+    
+    

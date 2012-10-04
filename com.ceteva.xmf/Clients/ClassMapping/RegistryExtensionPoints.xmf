@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+let 
+  registry = xmf.registry() then
+  layout = "com.ceteva.xmf.classDiagrams.layouts"
+in
+  registry.addExtensionPoint(ExtensionPoint(layout))
+end;

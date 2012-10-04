@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class ElementXEdge extends ThemableMap
+
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ElementXEdge::selectedChangedDaemon(self.edge(),"selected") end
+    end
+
+    @Operation diagramElement()
+      self.edge()
+    end   
+
+    // the edge representing the model element
+    
+    @AbstractOp edge()
+    end
+
+    // sub classes should ensure that when the state of the element being mapped
+    // changes that the following operation is called
+    
+    @Operation elementChanged()
+      let theme = owner.theme()
+      in
+        self.theme := theme;
+        if self.applyTheme()
+        then
+          self.owner.refreshThemeExcludingElementMap(self)
+        end
+      end
+    end
+
+    @Operation removeDaemons()
+      self.edge().removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation selectedChangedDaemon(edge,slot,newSelected,oldSelected)
+      self.element().selectModelBrowserNode(newSelected)
+    end
+
+  end

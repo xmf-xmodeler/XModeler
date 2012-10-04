@@ -1,0 +1,123 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import FormTools;
+import FormEvents;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class TreeNode extends TreeElement
+
+  @Attribute nodes    : Seq(TreeElement)            (+,-,?) end
+  @Attribute editable : Boolean                     (?,!)   end
+  @Attribute icon     : String = self.getUserIcon() (?,!)   end
+  @Attribute text     : String                      (?,!)   end
+  @Attribute menu     : Menu = Menu()               (?,!)   end
+  
+  @Constructor(name,icon,text,editable)
+    self.setName(name)
+  end
+  
+  @Grammar extends FormElement.grammar
+  
+    TreeNode ::= name = EName patts = PosAtts text = Text natts = NamedAtts nodes = Exp* {
+    
+      [| let nodeType = <nodes->iterate(n exp = [| Tools::FormTools::Types::TreeNode(<name>) |] | [| <exp>.add(<n>) |])> 
+         in nodeType.setText(<OCL::StrExp(text)>);
+            nodeType.setEditable(not <OCL::BoolExp(patts->includes("readonly"))>);
+            nodeType.setIcon(<
+              let icon = FormElement::lookup(natts,"icon","") 
+              in if icon = "" 
+                 then [| nodeType.icon |] 
+                 else OCL::StrExp(icon) 
+                 end 
+              end>);
+            nodeType
+         end
+      |]
+    }.
+    
+    Text ::= Name | Str.
+    
+  end
+  
+  @Operation add(element)
+    @TypeCase(element)
+      TreeElement do
+        self.addToNodes(element)
+      end
+      Menu do
+        self.menu := element
+      end
+      Ref do
+        self.addToNodes(element)
+      end
+      Seq(Element) do
+        @For e in element do
+          self.add(e)
+        end;
+        self
+      end
+    end
+  end
+  
+  @Operation getUserIcon():String
+    // Select a default icon for this type.
+    "User/" + Tools::UserIcons->at(Kernel_value(self).mod(Tools::UserIcons->size))
+  end
+  
+  @Operation merge(inherited)
+  
+    // To merge a container of tree nodes, add in the new elements
+    // and merge the elements with the same name. Also merge the menus
+    // of the two elements.
+    
+    self.menu().merge(inherited.menu());
+    @For inheritedElement in inherited.nodes() do
+      @Find(localElement,self.nodes())
+        when localElement.name().toString() = inheritedElement.name().toString()
+        do localElement.merge(inheritedElement)
+        else self.add(inheritedElement)
+      end
+    end
+  end
+  
+  @Operation new(parent,path,env,tool)
+    let node = Forms::TreeNode(text,editable,icon);
+        path = path + Seq{name.toString()};
+        env = nodes->iterate(n env = env | n.bind(env))
+    in parent.add(node);
+       node.setType(self);
+       node.setSelectedHandler(@Operation(node,new,old) tool.raise(NodeSelected(path,node,new,old)) end);
+       node.setChangedHandler(@Operation(node,new,old) tool.raise(NodeChanged(path,node,new,old)) end);
+       node.setDoubleHandler(@Operation(node) tool.raise(DoubleClick(path,node)) end);
+       node.setIndexHandler(@Operation(node,newIndex,oldIndex) tool.raise(IndexChanged(path,node,newIndex,oldIndex)) end);
+       menu.setGlobalMenu(node,node,tool,path,Set{self,tool});
+       @For nodeType in nodes do
+         nodeType.new(node,path,env,tool)
+       end;
+       node
+    end
+  end
+  
+  @Operation nodeType(name:String):TreeNode
+    @Find(node,nodes)
+      when node.name().toString() = name
+      else null
+    end
+  end
+  
+  @Operation underlyingTypes(env):Seq(TreeNode)
+    Seq{self}
+  end
+  
+  @Operation underlyingNodeTypes(env):Seq(TreeNode)
+    nodes->iterate(node T = Seq{} | T + node.underlyingTypes(env))
+  end
+  
+end

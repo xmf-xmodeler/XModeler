@@ -1,0 +1,27 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Order in Eval(aOrder,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aOrder.first,
+       @Operation(next,result,call,return)
+         self.eval(aOrder.first,env,target,imports,next,result,call,return,
+           @Operation(value1)
+             next(aOrder.second,
+               @Operation(next,result,call,return)
+                 self.eval(aOrder.second,env,target,imports,next,result,call,return,
+                   @Operation(value2)
+                     result(aOrder,value2,cont)
+                   end)
+               end)
+            end)
+        end)
+  end
+end;

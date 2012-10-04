@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class HeadUpdate extends OCL::OCL
+  
+    // A sequence head update expression.
+    
+    @Attribute seq : Performable end
+    @Attribute value : Performable end
+    
+    @Constructor(seq,value) ! end
+    
+    @Operation pprint(out,indent)
+      seq.pprint(out,indent);
+      format(out,"->head := ");
+      value.pprint(out,indent)
+    end
+    
+  end

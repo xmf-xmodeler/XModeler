@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Predicate isabstract
+  
+    @AbstractOp satisfied(token:Token):Boolean end
+    
+  end

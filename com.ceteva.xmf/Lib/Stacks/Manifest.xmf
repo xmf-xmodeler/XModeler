@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Stacks
+  Stacks = @File Stacks         end
+           @File Stack          end
+           @File Queue          end
+           @File StackUnderflow end
+do
+  Project(Stacks,dir,self)
+end;

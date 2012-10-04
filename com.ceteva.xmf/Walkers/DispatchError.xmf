@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context Walkers
+
+  @Class DispatchError extends Exception
+
+    @Constructor(message) ! 
+       self.setBacktrace()
+    end
+  
+  end

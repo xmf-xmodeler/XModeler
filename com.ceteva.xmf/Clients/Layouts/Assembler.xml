@@ -1,0 +1,11 @@
+<Object id ='0' path='Root::Clients::Diagrams::DiagramLayout::Layout'><Slot name='nodes'><List id='1'><Object id ='2' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:66;' layoutId='S:7;CodeBox' x='I:54;' y='I:54;'></Object>
+<Object id ='3' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:101;' height='I:44;' layoutId='S:7;Element' x='I:50;' y='I:249;'></Object>
+<Object id ='4' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:110;' height='I:47;' layoutId='S:8;Resource' x='I:259;' y='I:55;'></Object>
+</List></Slot><Slot name='edges'><List id='5'><Object id ='6' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:7;CodeBox' targetId='S:8;Resource' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='7' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:7;CodeBox' targetId='S:7;Element' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:4;code' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='8'><Object id ='9' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='N:61;' rely='N:31;'></Object>
+<Object id ='10' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:4;code' relx='N:34;' rely='N:15;'></Object>
+</List></Slot></Object>
+<Object id ='11' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:7;CodeBox' targetId='S:7;Element' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:9;constants' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='12'><Object id ='13' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='I:15;' rely='N:31;'></Object>
+<Object id ='14' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;constants' relx='I:10;' rely='N:16;'></Object>
+</List></Slot></Object>
+</List></Slot></Object>

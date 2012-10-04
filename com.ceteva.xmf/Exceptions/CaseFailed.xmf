@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+context Exceptions
+
+  @Class CaseFailed extends Exception
+  
+    @Doc
+      This exception is raised when a case runs out of arms.
+    end
+     
+    @Attribute values : Seq(Element) end
+    
+    @Constructor(values) !
+       self.setBacktrace();
+       self.message := "Case ran out of arms for: " + (values->map("toString")->separateWith(", "))
+    end
+    
+  end
+      
+    

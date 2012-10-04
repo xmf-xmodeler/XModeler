@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Bind extends Recognizer
+  
+    // Bind a name to the value at the top of the stack.
+    // Creation: Bind(name)
+    
+    @Attribute name : String end
+    
+    @Constructor(name) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," = ~S ",Seq{name})
+    end
+    
+    @Operation FV():Set(String)
+      Set{name}
+    end
+    
+    @Operation parse(machine)
+      machine.bind(name,machine.stackTop())
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Bind(<StrExp(name)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

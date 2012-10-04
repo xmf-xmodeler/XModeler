@@ -1,0 +1,88 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Basic;
+
+context Root
+  @Class X 
+  end
+
+context X
+  @ToolDescriptor Browser
+    @Operation mapValue(value,parent,visited,limit)
+      if limit > 0
+      then
+      @TypeCase(value)
+        Null do
+          parent.changeTo("Value","Null")
+        end
+        Integer do
+          let node = parent.changeTo("Value","Integer")
+          in node.setTextIn(value.toString())
+          end
+        end
+        String do
+          let node = parent.changeTo("Value","String")
+          in node.setTextIn(value)
+          end
+        end
+        Boolean do
+          let node = parent.changeTo("Value","Boolean")
+          in node.setTextIn(value.toString())
+          end
+        end
+        Seq(Element) do
+          if value.isProperSequence()
+          then
+            let node = parent.changeTo("Value","Seq")
+            in if not visited.hasKey(value)
+               then
+                 visited.put(value,value);
+                 @For e in value do
+                   let elementNode = node.newNode("Elements")
+                   in X::Browser::mapValue(e,node,visited,limit-1)
+                   end
+                 end
+               end
+            end
+          else 
+            let node = parent.changeTo("Value","Pair")
+            in if not visited.hasKey(value)
+               then
+                 visited.put(value,value);
+                 X::Browser::mapValue(value->head,node.ref1(Seq{"Head"}),visited,limit-1);
+                 X::Browser::mapValue(value->tail,node.ref1(Seq{"Tail"}),visited,limit-1)
+               end
+            end
+          end 
+        end
+        Set(Element) do
+          let node = parent.changeTo("Value","Set")
+          in @For e in value do
+               let elementNode = node.newNode("Elements")
+               in X::Browser::mapValue(e,elementNode,visited,limit-1)
+               end
+             end
+          end
+        end 
+        Object do
+          let node = parent.changeTo("Value","Object")
+          in node.setTextIn(value.toString());
+             if not visited.hasKey(value)
+             then
+               visited.put(value,value);
+               @For s in value.getStructuralFeatureNames() do
+                 let value = value.get(s);
+                     slotNode = node.newNode("Slots")
+                 in slotNode.setTextIn(s.toString());
+                    X::Browser::mapValue(value,slotNode,visited,limit-1)
+                 end
+               end
+             end
+          end
+        end
+        else null
+      end
+    end
+    end
+  end

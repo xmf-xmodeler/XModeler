@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class UnExp extends JExp
+  
+    @Attribute op  : String  (?) end
+    @Attribute exp : JExp    (?) end
+    
+    @Constructor(op,exp) ! end
+    
+    @Operation pprint(out)
+      format(out," ~S ",Seq{op});
+      exp.pprint(out)
+    end
+    
+  end

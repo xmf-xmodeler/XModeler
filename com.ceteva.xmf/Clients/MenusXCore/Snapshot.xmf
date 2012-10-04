@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import XCore;
+import Clients::Menus;
+
+context Snapshot
+  @Operation checkConstraints_redirect()
+    self.checkConstraints().edit()
+  end
+

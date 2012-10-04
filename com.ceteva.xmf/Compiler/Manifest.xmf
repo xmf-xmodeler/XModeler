@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Compiler
+  @File Compiler end
+  @File Import end
+  @File CompilationError end
+  @File CompilationUnit end
+  @File Var end
+  @File Drop end
+  @File Dynamic end
+  @File Global end
+  @File Local end
+  @File NameSpaceRef end
+  @File Symbol end
+  @File Env end
+  @File CompileExp end
+  @File CompileFile end
+  @File Apply end
+  @File BinExp end
+  @File BoolExp end
+  @File CollExp end
+  @File ConsExp end
+  @File Const end
+  @File ContextDef end
+  @File Dot end
+  @File FloatExp end
+  @File HeadUpdate end
+  @File If end
+  @File ImportIn end
+  @File Instantiate end
+  @File IntExp end
+  @File IterExp end
+  @File Iterate end
+  @File Let end
+  @File Lift end
+  @File Negate end
+  @File OCL end
+  @File Operation end
+  @File Operations end
+  @File Order end
+  @File Path end
+  @File Parentheses end
+  @File ParserImport end
+  @File PathUpdate end
+  @File Parameter end
+  @File Self end
+  @File Send end
+  @File SetExp end
+  @File SlotUpdate end
+  @File StrExp end
+  @File TailUpdate end
+  @File Throw end
+  @File Try end
+  @File ValueBinding end
+  @File VarRef end
+  @File VarUpdate end
+do
+  Project(Compiler,dir,self)
+end;

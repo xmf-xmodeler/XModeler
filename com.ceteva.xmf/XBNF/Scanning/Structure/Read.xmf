@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XBNF::Scanning::Structure;
+
+context Scanner
+
+  @Operation read(input):Integer
+    @WithoutSourcePos
+      if charIndex < buffer->size
+      then 
+        self.charIndex := self.charIndex + 1;
+        Kernel_arrayRef(buffer,charIndex - 1)
+      elseif not input.eof()
+      then 
+        if input.read(buffer) > 0
+        then 
+          self.charIndex := self.charIndex + 1;
+          Kernel_arrayRef(buffer,charIndex - 1)
+        else self.error("Attempt to read past EOF.")
+        end
+      end
+    end
+  end
+    
+    

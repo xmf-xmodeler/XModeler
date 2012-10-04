@@ -1,0 +1,7 @@
+import Compiler;
+
+compileFile("Clients/EclipseBridge/Boot",true,true);
+compileFile("Clients/EclipseBridge/Manifest",true,true);
+compileFile("Clients/EclipseBridge/EclipseBridge",true,true);
+compileFile("Clients/EclipseBridge/EclipseBridgeClient",true,true);
+compileFile("Clients/EclipseBridge/EclipseBridgeCommandInterpreter",true,true);

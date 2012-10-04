@@ -1,0 +1,2617 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AdaSystem endName="">
+	<AdaProgram resourceName="C:\Documents and Settings\Andy\Desktop\eclipse\workspace\xmt\bin\..\PlugIns\Ada\AdaSource\bagslarge.adb" endName="">
+		<CompilationUnit endName="" private="false">
+			<ContextSpec endName="">
+				<WithClause endName="">
+					<SimpleName name="Exchange" endName="name" />
+				</WithClause>
+			</ContextSpec>
+			<PkgBody name="Bags" endName="">
+				<DeclPartItem endName="declPart">
+					<UseClause type="false" endName="declItem">
+						<SimpleName name="Implementation" endName="name" />
+					</UseClause>
+				</DeclPartItem>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Insert" abstract="false" endName="subprogramSpec">
+							<Parameter name="Item" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Into" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Depth_Increased" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Boolean" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SimpleName name="False" endName="name" />
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<DeclPartBody endName="declPart">
+							<SubprogramBody endName="body">
+								<ProcedureSpec name="Insert" abstract="false" endName="subprogramSpec">
+									<Parameter name="P" mode="inout" endName="">
+										<SubTypeMark endName="">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeMark>
+									</Parameter>
+								</ProcedureSpec>
+								<If endName="blockBody">
+									<CondClause endName="clauses">
+										<Binary op="=" endName="cond">
+											<ExpressionName endName="left">
+												<SimpleName name="P" endName="name" />
+											</ExpressionName>
+											<NullLiteral endName="right" />
+										</Binary>
+										<Assignment endName="statements">
+											<SelectedComp scname="Card" endName="name">
+												<SimpleName name="Into" endName="name" />
+											</SelectedComp>
+											<Binary op="+" endName="expression">
+												<ExpressionName endName="left">
+													<SelectedComp scname="Card" endName="name">
+														<SimpleName name="Into" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+												<NumericLiteral value="1" endName="right" />
+											</Binary>
+										</Assignment>
+										<Assignment endName="statements">
+											<SimpleName name="P" endName="name" />
+											<AllocatorQualified endName="">
+												<Qualified endName="qualified">
+													<SimpleName name="Cell" endName="name" />
+													<PPValues endName="parenthesizedPrimary">
+														<ValueCompAssoc endName="values">
+															<ChoiceExp endName="choices">
+																<ExpressionName endName="expr">
+																	<SimpleName name="Val" endName="name" />
+																</ExpressionName>
+															</ChoiceExp>
+															<ExpressionName endName="expr">
+																<SimpleName name="Item" endName="name" />
+															</ExpressionName>
+														</ValueCompAssoc>
+														<ValueCompAssoc endName="values">
+															<ChoiceExp endName="choices">
+																<ExpressionName endName="expr">
+																	<SimpleName name="Balance" endName="name" />
+																</ExpressionName>
+															</ChoiceExp>
+															<NumericLiteral value="0" endName="expr" />
+														</ValueCompAssoc>
+														<ValueCompAssoc endName="values">
+															<ChoiceExp endName="choices">
+																<ExpressionName endName="expr">
+																	<SimpleName name="Left" endName="name" />
+																</ExpressionName>
+															</ChoiceExp>
+															<ChoiceExp endName="choices">
+																<ExpressionName endName="expr">
+																	<SimpleName name="Right" endName="name" />
+																</ExpressionName>
+															</ChoiceExp>
+															<NullLiteral endName="expr" />
+														</ValueCompAssoc>
+													</PPValues>
+												</Qualified>
+											</AllocatorQualified>
+										</Assignment>
+										<Assignment endName="statements">
+											<SimpleName name="Depth_Increased" endName="name" />
+											<ExpressionName endName="expression">
+												<SimpleName name="True" endName="name" />
+											</ExpressionName>
+										</Assignment>
+									</CondClause>
+									<CondClause endName="clauses">
+										<Binary op="&lt;" endName="cond">
+											<ExpressionName endName="left">
+												<IndexedComp endName="name">
+													<SimpleName name="Key_Of" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="Item" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+											<ExpressionName endName="right">
+												<IndexedComp endName="name">
+													<SimpleName name="Key_Of" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SelectedComp scname="Val" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+										</Binary>
+										<ProcedureCall endName="statements">
+											<IndexedComp endName="name">
+												<SimpleName name="Insert" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SelectedComp scname="Left" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ProcedureCall>
+										<If endName="statements">
+											<CondClause endName="clauses">
+												<ExpressionName endName="cond">
+													<SimpleName name="Depth_Increased" endName="name" />
+												</ExpressionName>
+												<Case endName="statements">
+													<ExpressionName endName="cond">
+														<SelectedComp scname="Balance" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+													<CaseAlt endName="caseAlts">
+														<ChoiceExp endName="choices">
+															<Unary op="+" endName="expr">
+																<NumericLiteral value="1" endName="arg" />
+															</Unary>
+														</ChoiceExp>
+														<Assignment endName="body">
+															<SelectedComp scname="Balance" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+															<NumericLiteral value="0" endName="expression" />
+														</Assignment>
+														<Assignment endName="body">
+															<SimpleName name="Depth_Increased" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="False" endName="name" />
+															</ExpressionName>
+														</Assignment>
+													</CaseAlt>
+													<CaseAlt endName="caseAlts">
+														<ChoiceExp endName="choices">
+															<NumericLiteral value="0" endName="expr" />
+														</ChoiceExp>
+														<Assignment endName="body">
+															<SelectedComp scname="Balance" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+															<Unary op="-" endName="expression">
+																<NumericLiteral value="1" endName="arg" />
+															</Unary>
+														</Assignment>
+													</CaseAlt>
+													<CaseAlt endName="caseAlts">
+														<ChoiceExp endName="choices">
+															<Unary op="-" endName="expr">
+																<NumericLiteral value="1" endName="arg" />
+															</Unary>
+														</ChoiceExp>
+														<Block endName="body">
+															<DeclPartItem endName="declParts">
+																<ObjectDeclSubType name="P2" qualifier="" endName="declItem">
+																	<SubTypeInd endName="subTypeInd">
+																		<SimpleName name="Link" endName="name" />
+																	</SubTypeInd>
+																</ObjectDeclSubType>
+																<ObjectDeclSubType name="P1" qualifier="" endName="declItem">
+																	<SubTypeInd endName="subTypeInd">
+																		<SimpleName name="Link" endName="name" />
+																	</SubTypeInd>
+																</ObjectDeclSubType>
+															</DeclPartItem>
+															<Assignment endName="statements">
+																<SimpleName name="P1" endName="name" />
+																<ExpressionName endName="expression">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P" endName="name" />
+																	</SelectedComp>
+																</ExpressionName>
+															</Assignment>
+															<If endName="statements">
+																<CondClause endName="clauses">
+																	<Binary op="=" endName="cond">
+																		<ExpressionName endName="left">
+																			<SelectedComp scname="Balance" endName="name">
+																				<SimpleName name="P1" endName="name" />
+																			</SelectedComp>
+																		</ExpressionName>
+																		<Unary op="-" endName="right">
+																			<NumericLiteral value="1" endName="arg" />
+																		</Unary>
+																	</Binary>
+																	<Assignment endName="statements">
+																		<SelectedComp scname="Left" endName="name">
+																			<SimpleName name="P" endName="name" />
+																		</SelectedComp>
+																		<ExpressionName endName="expression">
+																			<SelectedComp scname="Right" endName="name">
+																				<SimpleName name="P1" endName="name" />
+																			</SelectedComp>
+																		</ExpressionName>
+																	</Assignment>
+																	<Assignment endName="statements">
+																		<SelectedComp scname="Right" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																		<ExpressionName endName="expression">
+																			<SimpleName name="P" endName="name" />
+																		</ExpressionName>
+																	</Assignment>
+																	<Assignment endName="statements">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P" endName="name" />
+																		</SelectedComp>
+																		<NumericLiteral value="0" endName="expression" />
+																	</Assignment>
+																	<Assignment endName="statements">
+																		<SimpleName name="P" endName="name" />
+																		<ExpressionName endName="expression">
+																			<SimpleName name="P1" endName="name" />
+																		</ExpressionName>
+																	</Assignment>
+																</CondClause>
+																<Assignment endName="elseClause">
+																	<SimpleName name="P2" endName="name" />
+																	<ExpressionName endName="expression">
+																		<SelectedComp scname="Right" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Right" endName="name">
+																		<SimpleName name="P1" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SelectedComp scname="Left" endName="name">
+																			<SimpleName name="P2" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P2" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SimpleName name="P1" endName="name" />
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SelectedComp scname="Right" endName="name">
+																			<SimpleName name="P2" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Right" endName="name">
+																		<SimpleName name="P2" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SimpleName name="P" endName="name" />
+																	</ExpressionName>
+																</Assignment>
+																<If endName="elseClause">
+																	<CondClause endName="clauses">
+																		<Binary op="=" endName="cond">
+																			<ExpressionName endName="left">
+																				<SelectedComp scname="Balance" endName="name">
+																					<SimpleName name="P2" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																			<Unary op="-" endName="right">
+																				<NumericLiteral value="1" endName="arg" />
+																			</Unary>
+																		</Binary>
+																		<Assignment endName="statements">
+																			<SelectedComp scname="Balance" endName="name">
+																				<SimpleName name="P" endName="name" />
+																			</SelectedComp>
+																			<NumericLiteral value="1" endName="expression" />
+																		</Assignment>
+																	</CondClause>
+																	<Assignment endName="elseClause">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P" endName="name" />
+																		</SelectedComp>
+																		<NumericLiteral value="0" endName="expression" />
+																	</Assignment>
+																</If>
+																<If endName="elseClause">
+																	<CondClause endName="clauses">
+																		<Binary op="=" endName="cond">
+																			<ExpressionName endName="left">
+																				<SelectedComp scname="Balance" endName="name">
+																					<SimpleName name="P2" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																			<NumericLiteral value="1" endName="right" />
+																		</Binary>
+																		<Assignment endName="statements">
+																			<SelectedComp scname="Balance" endName="name">
+																				<SimpleName name="P1" endName="name" />
+																			</SelectedComp>
+																			<Unary op="-" endName="expression">
+																				<NumericLiteral value="1" endName="arg" />
+																			</Unary>
+																		</Assignment>
+																	</CondClause>
+																	<Assignment endName="elseClause">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																		<NumericLiteral value="0" endName="expression" />
+																	</Assignment>
+																</If>
+																<Assignment endName="elseClause">
+																	<SimpleName name="P" endName="name" />
+																	<ExpressionName endName="expression">
+																		<SimpleName name="P2" endName="name" />
+																	</ExpressionName>
+																</Assignment>
+															</If>
+														</Block>
+														<Assignment endName="body">
+															<SelectedComp scname="Balance" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+															<NumericLiteral value="0" endName="expression" />
+														</Assignment>
+														<Assignment endName="body">
+															<SimpleName name="Depth_Increased" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="False" endName="name" />
+															</ExpressionName>
+														</Assignment>
+													</CaseAlt>
+												</Case>
+											</CondClause>
+										</If>
+									</CondClause>
+									<CondClause endName="clauses">
+										<Binary op="and then" endName="cond">
+											<Unary op="NOT" endName="left">
+												<ExpressionName endName="arg">
+													<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+														<SimpleName name="Into" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Unary>
+											<Binary op="=" endName="right">
+												<ExpressionName endName="left">
+													<IndexedComp endName="name">
+														<SimpleName name="Key_Of" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SimpleName name="Item" endName="name" />
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ExpressionName>
+												<ExpressionName endName="right">
+													<IndexedComp endName="name">
+														<SimpleName name="Key_Of" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SelectedComp scname="Val" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ExpressionName>
+											</Binary>
+										</Binary>
+										<Raise endName="statements">
+											<SimpleName name="Duplicate_Key" endName="name" />
+										</Raise>
+									</CondClause>
+									<ProcedureCall endName="elseClause">
+										<IndexedComp endName="name">
+											<SimpleName name="Insert" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Right" endName="name">
+														<SimpleName name="P" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<If endName="elseClause">
+										<CondClause endName="clauses">
+											<ExpressionName endName="cond">
+												<SimpleName name="Depth_Increased" endName="name" />
+											</ExpressionName>
+											<Case endName="statements">
+												<ExpressionName endName="cond">
+													<SelectedComp scname="Balance" endName="name">
+														<SimpleName name="P" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+												<CaseAlt endName="caseAlts">
+													<ChoiceExp endName="choices">
+														<Unary op="-" endName="expr">
+															<NumericLiteral value="1" endName="arg" />
+														</Unary>
+													</ChoiceExp>
+													<Assignment endName="body">
+														<SelectedComp scname="Balance" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+														<NumericLiteral value="0" endName="expression" />
+													</Assignment>
+													<Assignment endName="body">
+														<SimpleName name="Depth_Increased" endName="name" />
+														<ExpressionName endName="expression">
+															<SimpleName name="False" endName="name" />
+														</ExpressionName>
+													</Assignment>
+												</CaseAlt>
+												<CaseAlt endName="caseAlts">
+													<ChoiceExp endName="choices">
+														<NumericLiteral value="0" endName="expr" />
+													</ChoiceExp>
+													<Assignment endName="body">
+														<SelectedComp scname="Balance" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+														<NumericLiteral value="1" endName="expression" />
+													</Assignment>
+												</CaseAlt>
+												<CaseAlt endName="caseAlts">
+													<ChoiceExp endName="choices">
+														<Unary op="+" endName="expr">
+															<NumericLiteral value="1" endName="arg" />
+														</Unary>
+													</ChoiceExp>
+													<Block endName="body">
+														<DeclPartItem endName="declParts">
+															<ObjectDeclSubType name="P2" qualifier="" endName="declItem">
+																<SubTypeInd endName="subTypeInd">
+																	<SimpleName name="Link" endName="name" />
+																</SubTypeInd>
+															</ObjectDeclSubType>
+															<ObjectDeclSubType name="P1" qualifier="" endName="declItem">
+																<SubTypeInd endName="subTypeInd">
+																	<SimpleName name="Link" endName="name" />
+																</SubTypeInd>
+															</ObjectDeclSubType>
+														</DeclPartItem>
+														<Assignment endName="statements">
+															<SimpleName name="P1" endName="name" />
+															<ExpressionName endName="expression">
+																<SelectedComp scname="Right" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</Assignment>
+														<If endName="statements">
+															<CondClause endName="clauses">
+																<Binary op="=" endName="cond">
+																	<ExpressionName endName="left">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																	<NumericLiteral value="1" endName="right" />
+																</Binary>
+																<Assignment endName="statements">
+																	<SelectedComp scname="Right" endName="name">
+																		<SimpleName name="P" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SelectedComp scname="Left" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="statements">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P1" endName="name" />
+																	</SelectedComp>
+																	<ExpressionName endName="expression">
+																		<SimpleName name="P" endName="name" />
+																	</ExpressionName>
+																</Assignment>
+																<Assignment endName="statements">
+																	<SelectedComp scname="Balance" endName="name">
+																		<SimpleName name="P" endName="name" />
+																	</SelectedComp>
+																	<NumericLiteral value="0" endName="expression" />
+																</Assignment>
+																<Assignment endName="statements">
+																	<SimpleName name="P" endName="name" />
+																	<ExpressionName endName="expression">
+																		<SimpleName name="P1" endName="name" />
+																	</ExpressionName>
+																</Assignment>
+															</CondClause>
+															<Assignment endName="elseClause">
+																<SimpleName name="P2" endName="name" />
+																<ExpressionName endName="expression">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P1" endName="name" />
+																	</SelectedComp>
+																</ExpressionName>
+															</Assignment>
+															<Assignment endName="elseClause">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="P1" endName="name" />
+																</SelectedComp>
+																<ExpressionName endName="expression">
+																	<SelectedComp scname="Right" endName="name">
+																		<SimpleName name="P2" endName="name" />
+																	</SelectedComp>
+																</ExpressionName>
+															</Assignment>
+															<Assignment endName="elseClause">
+																<SelectedComp scname="Right" endName="name">
+																	<SimpleName name="P2" endName="name" />
+																</SelectedComp>
+																<ExpressionName endName="expression">
+																	<SimpleName name="P1" endName="name" />
+																</ExpressionName>
+															</Assignment>
+															<Assignment endName="elseClause">
+																<SelectedComp scname="Right" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+																<ExpressionName endName="expression">
+																	<SelectedComp scname="Left" endName="name">
+																		<SimpleName name="P2" endName="name" />
+																	</SelectedComp>
+																</ExpressionName>
+															</Assignment>
+															<Assignment endName="elseClause">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="P2" endName="name" />
+																</SelectedComp>
+																<ExpressionName endName="expression">
+																	<SimpleName name="P" endName="name" />
+																</ExpressionName>
+															</Assignment>
+															<If endName="elseClause">
+																<CondClause endName="clauses">
+																	<Binary op="=" endName="cond">
+																		<ExpressionName endName="left">
+																			<SelectedComp scname="Balance" endName="name">
+																				<SimpleName name="P2" endName="name" />
+																			</SelectedComp>
+																		</ExpressionName>
+																		<NumericLiteral value="1" endName="right" />
+																	</Binary>
+																	<Assignment endName="statements">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P" endName="name" />
+																		</SelectedComp>
+																		<Unary op="-" endName="expression">
+																			<NumericLiteral value="1" endName="arg" />
+																		</Unary>
+																	</Assignment>
+																</CondClause>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Balance" endName="name">
+																		<SimpleName name="P" endName="name" />
+																	</SelectedComp>
+																	<NumericLiteral value="0" endName="expression" />
+																</Assignment>
+															</If>
+															<If endName="elseClause">
+																<CondClause endName="clauses">
+																	<Binary op="=" endName="cond">
+																		<ExpressionName endName="left">
+																			<SelectedComp scname="Balance" endName="name">
+																				<SimpleName name="P2" endName="name" />
+																			</SelectedComp>
+																		</ExpressionName>
+																		<Unary op="-" endName="right">
+																			<NumericLiteral value="1" endName="arg" />
+																		</Unary>
+																	</Binary>
+																	<Assignment endName="statements">
+																		<SelectedComp scname="Balance" endName="name">
+																			<SimpleName name="P1" endName="name" />
+																		</SelectedComp>
+																		<Unary op="+" endName="expression">
+																			<NumericLiteral value="1" endName="arg" />
+																		</Unary>
+																	</Assignment>
+																</CondClause>
+																<Assignment endName="elseClause">
+																	<SelectedComp scname="Balance" endName="name">
+																		<SimpleName name="P1" endName="name" />
+																	</SelectedComp>
+																	<NumericLiteral value="0" endName="expression" />
+																</Assignment>
+															</If>
+															<Assignment endName="elseClause">
+																<SimpleName name="P" endName="name" />
+																<ExpressionName endName="expression">
+																	<SimpleName name="P2" endName="name" />
+																</ExpressionName>
+															</Assignment>
+														</If>
+													</Block>
+													<Assignment endName="body">
+														<SelectedComp scname="Balance" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+														<NumericLiteral value="0" endName="expression" />
+													</Assignment>
+													<Assignment endName="body">
+														<SimpleName name="Depth_Increased" endName="name" />
+														<ExpressionName endName="expression">
+															<SimpleName name="False" endName="name" />
+														</ExpressionName>
+													</Assignment>
+												</CaseAlt>
+											</Case>
+										</CondClause>
+									</If>
+								</If>
+								<Node name="except_handler_part_opt" endName="blockBody" val="" />
+							</SubprogramBody>
+						</DeclPartBody>
+						<ProcedureCall endName="blockBody">
+							<IndexedComp endName="name">
+								<SimpleName name="Insert" endName="name" />
+								<ValueExpr endName="values">
+									<ExpressionName endName="expr">
+										<SelectedComp scname="Root" endName="name">
+											<SimpleName name="Into" endName="name" />
+										</SelectedComp>
+									</ExpressionName>
+								</ValueExpr>
+							</IndexedComp>
+						</ProcedureCall>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Insert" abstract="false" endName="subprogramSpec">
+							<Parameter name="Items" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="List" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Into" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Unary op="NOT" endName="cond">
+									<ExpressionName endName="arg">
+										<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+											<SimpleName name="Into" endName="name" />
+										</SelectedComp>
+									</ExpressionName>
+								</Unary>
+								<Block endName="statements">
+									<DeclPartItem endName="declParts">
+										<ObjectDeclSubType name="Temp" qualifier="" endName="declItem">
+											<SubTypeInd endName="subTypeInd">
+												<IndexedComp endName="name">
+													<SimpleName name="Bag" endName="name" />
+													<ValueCompAssoc endName="values">
+														<ChoiceExp endName="choices">
+															<ExpressionName endName="expr">
+																<SimpleName name="Duplicate_Keys_Allowed" endName="name" />
+															</ExpressionName>
+														</ChoiceExp>
+														<ExpressionName endName="expr">
+															<SimpleName name="False" endName="name" />
+														</ExpressionName>
+													</ValueCompAssoc>
+												</IndexedComp>
+											</SubTypeInd>
+										</ObjectDeclSubType>
+									</DeclPartItem>
+									<ForLoop id="I" isReversed="false" endName="statements">
+										<DiscreteRangeRange endName="discreteRange">
+											<RangeName endName="">
+												<SimpleName name="Items" endName="name" />
+											</RangeName>
+										</DiscreteRangeRange>
+										<ProcedureCall endName="body">
+											<IndexedComp endName="name">
+												<SimpleName name="Insert" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<IndexedComp endName="name">
+															<SimpleName name="Items" endName="name" />
+															<ValueExpr endName="values">
+																<ExpressionName endName="expr">
+																	<SimpleName name="I" endName="name" />
+																</ExpressionName>
+															</ValueExpr>
+														</IndexedComp>
+													</ExpressionName>
+												</ValueExpr>
+												<ValueCompAssoc endName="values">
+													<ChoiceExp endName="choices">
+														<ExpressionName endName="expr">
+															<SimpleName name="Into" endName="name" />
+														</ExpressionName>
+													</ChoiceExp>
+													<ExpressionName endName="expr">
+														<SimpleName name="Temp" endName="name" />
+													</ExpressionName>
+												</ValueCompAssoc>
+											</IndexedComp>
+										</ProcedureCall>
+									</ForLoop>
+									<ProcedureCall endName="statements">
+										<IndexedComp endName="name">
+											<SimpleName name="Destroy" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SimpleName name="Temp" endName="name" />
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<ExceptionHandler endName="exceptionHandlers">
+										<ExceptChoiceName endName="exceptChoices">
+											<SimpleName name="Duplicate_Key" endName="name" />
+										</ExceptChoiceName>
+										<ProcedureCall endName="statements">
+											<IndexedComp endName="name">
+												<SimpleName name="Destroy" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SimpleName name="Temp" endName="name" />
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ProcedureCall>
+										<Raise endName="statements" />
+									</ExceptionHandler>
+								</Block>
+								<ForLoop id="I" isReversed="false" endName="statements">
+									<DiscreteRangeRange endName="discreteRange">
+										<RangeName endName="">
+											<SimpleName name="Items" endName="name" />
+										</RangeName>
+									</DiscreteRangeRange>
+									<If endName="body">
+										<CondClause endName="clauses">
+											<ExpressionName endName="cond">
+												<IndexedComp endName="name">
+													<SimpleName name="Member" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<IndexedComp endName="name">
+																<SimpleName name="Key_Of" endName="name" />
+																<ValueExpr endName="values">
+																	<ExpressionName endName="expr">
+																		<IndexedComp endName="name">
+																			<SimpleName name="Items" endName="name" />
+																			<ValueExpr endName="values">
+																				<ExpressionName endName="expr">
+																					<SimpleName name="I" endName="name" />
+																				</ExpressionName>
+																			</ValueExpr>
+																		</IndexedComp>
+																	</ExpressionName>
+																</ValueExpr>
+															</IndexedComp>
+														</ExpressionName>
+													</ValueExpr>
+													<ValueCompAssoc endName="values">
+														<ChoiceExp endName="choices">
+															<ExpressionName endName="expr">
+																<SimpleName name="Of_Bag" endName="name" />
+															</ExpressionName>
+														</ChoiceExp>
+														<ExpressionName endName="expr">
+															<SimpleName name="Into" endName="name" />
+														</ExpressionName>
+													</ValueCompAssoc>
+												</IndexedComp>
+											</ExpressionName>
+											<Raise endName="statements">
+												<SimpleName name="Duplicate_Key" endName="name" />
+											</Raise>
+										</CondClause>
+									</If>
+								</ForLoop>
+							</CondClause>
+						</If>
+						<ForLoop id="I" isReversed="false" endName="blockBody">
+							<DiscreteRangeRange endName="discreteRange">
+								<RangeName endName="">
+									<SimpleName name="Items" endName="name" />
+								</RangeName>
+							</DiscreteRangeRange>
+							<ProcedureCall endName="body">
+								<IndexedComp endName="name">
+									<SimpleName name="Insert" endName="name" />
+									<ValueExpr endName="values">
+										<ExpressionName endName="expr">
+											<IndexedComp endName="name">
+												<SimpleName name="Items" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SimpleName name="I" endName="name" />
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ExpressionName>
+									</ValueExpr>
+									<ValueExpr endName="values">
+										<ExpressionName endName="expr">
+											<SimpleName name="Into" endName="name" />
+										</ExpressionName>
+									</ValueExpr>
+								</IndexedComp>
+							</ProcedureCall>
+						</ForLoop>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Insert" abstract="false" endName="subprogramSpec">
+							<Parameter name="Items" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Into" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartBody endName="declPart">
+							<SubprogramBody endName="body">
+								<ProcedureSpec name="Add_Subtree" abstract="false" endName="subprogramSpec">
+									<Parameter name="L" mode="in_" endName="">
+										<SubTypeMark endName="">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeMark>
+									</Parameter>
+								</ProcedureSpec>
+								<DeclPartItem endName="declPart">
+									<ObjectDeclSubType name="Z" qualifier="" endName="declItem">
+										<SubTypeInd endName="subTypeInd">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeInd>
+										<ExpressionName endName="initializer">
+											<SimpleName name="L" endName="name" />
+										</ExpressionName>
+									</ObjectDeclSubType>
+								</DeclPartItem>
+								<WhileLoop endName="blockBody">
+									<Binary op="/=" endName="cond">
+										<ExpressionName endName="left">
+											<SimpleName name="Z" endName="name" />
+										</ExpressionName>
+										<NullLiteral endName="right" />
+									</Binary>
+									<ProcedureCall endName="body">
+										<IndexedComp endName="name">
+											<SimpleName name="Add_Subtree" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Left" endName="name">
+														<SimpleName name="Z" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<ProcedureCall endName="body">
+										<IndexedComp endName="name">
+											<SimpleName name="Insert" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Val" endName="name">
+														<SimpleName name="Z" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SimpleName name="Into" endName="name" />
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<Assignment endName="body">
+										<SimpleName name="Z" endName="name" />
+										<ExpressionName endName="expression">
+											<SelectedComp scname="Right" endName="name">
+												<SimpleName name="Z" endName="name" />
+											</SelectedComp>
+										</ExpressionName>
+									</Assignment>
+								</WhileLoop>
+								<Node name="except_handler_part_opt" endName="blockBody" val="" />
+							</SubprogramBody>
+						</DeclPartBody>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<ExpressionName endName="cond">
+									<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+										<SimpleName name="Into" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+								<ProcedureCall endName="statements">
+									<IndexedComp endName="name">
+										<SimpleName name="Add_Subtree" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Items" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+									</IndexedComp>
+								</ProcedureCall>
+							</CondClause>
+							<CondClause endName="clauses">
+								<ExpressionName endName="cond">
+									<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+										<SimpleName name="Items" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+								<ProcedureCall endName="statements">
+									<IndexedComp endName="name">
+										<SimpleName name="Insert" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<IndexedComp endName="name">
+													<SimpleName name="To_List" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="Items" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+										</ValueExpr>
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SimpleName name="Into" endName="name" />
+											</ExpressionName>
+										</ValueExpr>
+									</IndexedComp>
+								</ProcedureCall>
+							</CondClause>
+							<Block endName="elseClause">
+								<DeclPartBody endName="declParts">
+									<SubprogramBody endName="body">
+										<ProcedureSpec name="Check_Subtree" abstract="false" endName="subprogramSpec">
+											<Parameter name="L" mode="in_" endName="">
+												<SubTypeMark endName="">
+													<SimpleName name="Link" endName="name" />
+												</SubTypeMark>
+											</Parameter>
+										</ProcedureSpec>
+										<DeclPartItem endName="declPart">
+											<ObjectDeclSubType name="Z" qualifier="" endName="declItem">
+												<SubTypeInd endName="subTypeInd">
+													<SimpleName name="Link" endName="name" />
+												</SubTypeInd>
+												<ExpressionName endName="initializer">
+													<SimpleName name="L" endName="name" />
+												</ExpressionName>
+											</ObjectDeclSubType>
+										</DeclPartItem>
+										<WhileLoop endName="blockBody">
+											<Binary op="/=" endName="cond">
+												<ExpressionName endName="left">
+													<SimpleName name="Z" endName="name" />
+												</ExpressionName>
+												<NullLiteral endName="right" />
+											</Binary>
+											<If endName="body">
+												<CondClause endName="clauses">
+													<ExpressionName endName="cond">
+														<IndexedComp endName="name">
+															<SimpleName name="Member" endName="name" />
+															<ValueExpr endName="values">
+																<ExpressionName endName="expr">
+																	<IndexedComp endName="name">
+																		<SimpleName name="Key_Of" endName="name" />
+																		<ValueExpr endName="values">
+																			<ExpressionName endName="expr">
+																				<SelectedComp scname="Val" endName="name">
+																					<SimpleName name="Z" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																		</ValueExpr>
+																	</IndexedComp>
+																</ExpressionName>
+															</ValueExpr>
+															<ValueCompAssoc endName="values">
+																<ChoiceExp endName="choices">
+																	<ExpressionName endName="expr">
+																		<SimpleName name="Of_Bag" endName="name" />
+																	</ExpressionName>
+																</ChoiceExp>
+																<ExpressionName endName="expr">
+																	<SimpleName name="Into" endName="name" />
+																</ExpressionName>
+															</ValueCompAssoc>
+														</IndexedComp>
+													</ExpressionName>
+													<Raise endName="statements">
+														<SimpleName name="Duplicate_Key" endName="name" />
+													</Raise>
+												</CondClause>
+											</If>
+											<ProcedureCall endName="body">
+												<IndexedComp endName="name">
+													<SimpleName name="Check_Subtree" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SelectedComp scname="Left" endName="name">
+																<SimpleName name="Z" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ProcedureCall>
+											<Assignment endName="body">
+												<SimpleName name="Z" endName="name" />
+												<ExpressionName endName="expression">
+													<SelectedComp scname="Right" endName="name">
+														<SimpleName name="Z" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Assignment>
+										</WhileLoop>
+										<Node name="except_handler_part_opt" endName="blockBody" val="" />
+									</SubprogramBody>
+								</DeclPartBody>
+								<ProcedureCall endName="statements">
+									<IndexedComp endName="name">
+										<SimpleName name="Check_Subtree" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Items" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+									</IndexedComp>
+								</ProcedureCall>
+								<ProcedureCall endName="statements">
+									<IndexedComp endName="name">
+										<SimpleName name="Add_Subtree" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Items" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+									</IndexedComp>
+								</ProcedureCall>
+							</Block>
+						</If>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Remove" abstract="false" endName="subprogramSpec">
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="From" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Junk" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeInd>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<ProcedureCall endName="blockBody">
+							<IndexedComp endName="name">
+								<SimpleName name="Remove" endName="name" />
+								<ValueExpr endName="values">
+									<ExpressionName endName="expr">
+										<SimpleName name="Key" endName="name" />
+									</ExpressionName>
+								</ValueExpr>
+								<ValueExpr endName="values">
+									<ExpressionName endName="expr">
+										<SimpleName name="From" endName="name" />
+									</ExpressionName>
+								</ValueExpr>
+								<ValueCompAssoc endName="values">
+									<ChoiceExp endName="choices">
+										<ExpressionName endName="expr">
+											<SimpleName name="Removed_Item" endName="name" />
+										</ExpressionName>
+									</ChoiceExp>
+									<ExpressionName endName="expr">
+										<SimpleName name="Junk" endName="name" />
+									</ExpressionName>
+								</ValueCompAssoc>
+							</IndexedComp>
+						</ProcedureCall>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Remove" abstract="false" endName="subprogramSpec">
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="From" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Removed_Item" mode="out" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Depth_Decreased" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Boolean" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SimpleName name="False" endName="name" />
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Key_Deleted" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Boolean" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SimpleName name="False" endName="name" />
+								</ExpressionName>
+							</ObjectDeclSubType>
+							<ObjectDeclSubType name="Key_Found" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Boolean" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SimpleName name="False" endName="name" />
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<DeclPartBody endName="declPart">
+							<SubprogramBody endName="body">
+								<ProcedureSpec name="Remove" abstract="false" endName="subprogramSpec">
+									<Parameter name="P" mode="inout" endName="">
+										<SubTypeMark endName="">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeMark>
+									</Parameter>
+								</ProcedureSpec>
+								<If endName="blockBody">
+									<CondClause endName="clauses">
+										<Binary op="=" endName="cond">
+											<ExpressionName endName="left">
+												<SimpleName name="P" endName="name" />
+											</ExpressionName>
+											<NullLiteral endName="right" />
+										</Binary>
+										<If endName="statements">
+											<CondClause endName="clauses">
+												<Unary op="NOT" endName="cond">
+													<ExpressionName endName="arg">
+														<SimpleName name="Key_Found" endName="name" />
+													</ExpressionName>
+												</Unary>
+												<Raise endName="statements">
+													<SimpleName name="Nonexistent_Key" endName="name" />
+												</Raise>
+											</CondClause>
+										</If>
+									</CondClause>
+									<CondClause endName="clauses">
+										<Binary op="&lt;" endName="cond">
+											<ExpressionName endName="left">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+											<ExpressionName endName="right">
+												<IndexedComp endName="name">
+													<SimpleName name="Key_Of" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SelectedComp scname="Val" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+										</Binary>
+										<ProcedureCall endName="statements">
+											<IndexedComp endName="name">
+												<SimpleName name="Remove" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SelectedComp scname="Left" endName="name">
+															<SimpleName name="P" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ProcedureCall>
+										<If endName="statements">
+											<CondClause endName="clauses">
+												<ExpressionName endName="cond">
+													<SimpleName name="Depth_Decreased" endName="name" />
+												</ExpressionName>
+												<ProcedureCall endName="statements">
+													<IndexedComp endName="name">
+														<SimpleName name="Balance_1" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SimpleName name="P" endName="name" />
+															</ExpressionName>
+														</ValueExpr>
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SimpleName name="Depth_Decreased" endName="name" />
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ProcedureCall>
+											</CondClause>
+										</If>
+									</CondClause>
+									<CondClause endName="clauses">
+										<Binary op="=" endName="cond">
+											<ExpressionName endName="left">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+											<ExpressionName endName="right">
+												<IndexedComp endName="name">
+													<SimpleName name="Key_Of" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SelectedComp scname="Val" endName="name">
+																<SimpleName name="P" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+										</Binary>
+										<Assignment endName="statements">
+											<SimpleName name="Key_Found" endName="name" />
+											<ExpressionName endName="expression">
+												<SimpleName name="True" endName="name" />
+											</ExpressionName>
+										</Assignment>
+										<If endName="statements">
+											<CondClause endName="clauses">
+												<ExpressionName endName="cond">
+													<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+														<SimpleName name="From" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+												<ProcedureCall endName="statements">
+													<IndexedComp endName="name">
+														<SimpleName name="Remove" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ProcedureCall>
+											</CondClause>
+										</If>
+										<If endName="statements">
+											<CondClause endName="clauses">
+												<ExpressionName endName="cond">
+													<SimpleName name="Key_Deleted" endName="name" />
+												</ExpressionName>
+												<If endName="statements">
+													<CondClause endName="clauses">
+														<ExpressionName endName="cond">
+															<SimpleName name="Depth_Decreased" endName="name" />
+														</ExpressionName>
+														<ProcedureCall endName="statements">
+															<IndexedComp endName="name">
+																<SimpleName name="Balance_1" endName="name" />
+																<ValueExpr endName="values">
+																	<ExpressionName endName="expr">
+																		<SimpleName name="P" endName="name" />
+																	</ExpressionName>
+																</ValueExpr>
+																<ValueExpr endName="values">
+																	<ExpressionName endName="expr">
+																		<SimpleName name="Depth_Decreased" endName="name" />
+																	</ExpressionName>
+																</ValueExpr>
+															</IndexedComp>
+														</ProcedureCall>
+													</CondClause>
+												</If>
+											</CondClause>
+											<Assignment endName="elseClause">
+												<SimpleName name="Removed_Item" endName="name" />
+												<ExpressionName endName="expression">
+													<SelectedComp scname="Val" endName="name">
+														<SimpleName name="P" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Assignment>
+											<Block endName="elseClause">
+												<DeclPartItem endName="declParts">
+													<ObjectDeclSubType name="Q" qualifier="" endName="declItem">
+														<SubTypeInd endName="subTypeInd">
+															<SimpleName name="Link" endName="name" />
+														</SubTypeInd>
+													</ObjectDeclSubType>
+												</DeclPartItem>
+												<If endName="statements">
+													<CondClause endName="clauses">
+														<Binary op="=" endName="cond">
+															<ExpressionName endName="left">
+																<SelectedComp scname="Right" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+															<NullLiteral endName="right" />
+														</Binary>
+														<Assignment endName="statements">
+															<SimpleName name="Q" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="P" endName="name" />
+															</ExpressionName>
+														</Assignment>
+														<Assignment endName="statements">
+															<SimpleName name="P" endName="name" />
+															<ExpressionName endName="expression">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</Assignment>
+														<Assignment endName="statements">
+															<SimpleName name="Depth_Decreased" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="True" endName="name" />
+															</ExpressionName>
+														</Assignment>
+													</CondClause>
+													<CondClause endName="clauses">
+														<Binary op="=" endName="cond">
+															<ExpressionName endName="left">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+															<NullLiteral endName="right" />
+														</Binary>
+														<Assignment endName="statements">
+															<SimpleName name="Q" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="P" endName="name" />
+															</ExpressionName>
+														</Assignment>
+														<Assignment endName="statements">
+															<SimpleName name="P" endName="name" />
+															<ExpressionName endName="expression">
+																<SelectedComp scname="Right" endName="name">
+																	<SimpleName name="P" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</Assignment>
+														<Assignment endName="statements">
+															<SimpleName name="Depth_Decreased" endName="name" />
+															<ExpressionName endName="expression">
+																<SimpleName name="True" endName="name" />
+															</ExpressionName>
+														</Assignment>
+													</CondClause>
+													<Block endName="elseClause">
+														<DeclPartBody endName="declParts">
+															<SubprogramBody endName="body">
+																<ProcedureSpec name="Delete" abstract="false" endName="subprogramSpec">
+																	<Parameter name="R" mode="inout" endName="">
+																		<SubTypeMark endName="">
+																			<SimpleName name="Link" endName="name" />
+																		</SubTypeMark>
+																	</Parameter>
+																</ProcedureSpec>
+																<If endName="blockBody">
+																	<CondClause endName="clauses">
+																		<Binary op="=" endName="cond">
+																			<ExpressionName endName="left">
+																				<SelectedComp scname="Right" endName="name">
+																					<SimpleName name="R" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																			<NullLiteral endName="right" />
+																		</Binary>
+																		<Assignment endName="statements">
+																			<SelectedComp scname="Val" endName="name">
+																				<SimpleName name="P" endName="name" />
+																			</SelectedComp>
+																			<ExpressionName endName="expression">
+																				<SelectedComp scname="Val" endName="name">
+																					<SimpleName name="R" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																		</Assignment>
+																		<Assignment endName="statements">
+																			<SimpleName name="Q" endName="name" />
+																			<ExpressionName endName="expression">
+																				<SimpleName name="R" endName="name" />
+																			</ExpressionName>
+																		</Assignment>
+																		<Assignment endName="statements">
+																			<SimpleName name="R" endName="name" />
+																			<ExpressionName endName="expression">
+																				<SelectedComp scname="Left" endName="name">
+																					<SimpleName name="R" endName="name" />
+																				</SelectedComp>
+																			</ExpressionName>
+																		</Assignment>
+																		<Assignment endName="statements">
+																			<SimpleName name="Depth_Decreased" endName="name" />
+																			<ExpressionName endName="expression">
+																				<SimpleName name="True" endName="name" />
+																			</ExpressionName>
+																		</Assignment>
+																	</CondClause>
+																	<ProcedureCall endName="elseClause">
+																		<IndexedComp endName="name">
+																			<SimpleName name="Delete" endName="name" />
+																			<ValueExpr endName="values">
+																				<ExpressionName endName="expr">
+																					<SelectedComp scname="Right" endName="name">
+																						<SimpleName name="R" endName="name" />
+																					</SelectedComp>
+																				</ExpressionName>
+																			</ValueExpr>
+																		</IndexedComp>
+																	</ProcedureCall>
+																	<If endName="elseClause">
+																		<CondClause endName="clauses">
+																			<ExpressionName endName="cond">
+																				<SimpleName name="Depth_Decreased" endName="name" />
+																			</ExpressionName>
+																			<ProcedureCall endName="statements">
+																				<IndexedComp endName="name">
+																					<SimpleName name="Balance_2" endName="name" />
+																					<ValueExpr endName="values">
+																						<ExpressionName endName="expr">
+																							<SimpleName name="R" endName="name" />
+																						</ExpressionName>
+																					</ValueExpr>
+																					<ValueExpr endName="values">
+																						<ExpressionName endName="expr">
+																							<SimpleName name="Depth_Decreased" endName="name" />
+																						</ExpressionName>
+																					</ValueExpr>
+																				</IndexedComp>
+																			</ProcedureCall>
+																		</CondClause>
+																	</If>
+																</If>
+																<Node name="except_handler_part_opt" endName="blockBody" val="" />
+															</SubprogramBody>
+														</DeclPartBody>
+														<ProcedureCall endName="statements">
+															<IndexedComp endName="name">
+																<SimpleName name="Delete" endName="name" />
+																<ValueExpr endName="values">
+																	<ExpressionName endName="expr">
+																		<SelectedComp scname="Left" endName="name">
+																			<SimpleName name="P" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</ValueExpr>
+															</IndexedComp>
+														</ProcedureCall>
+														<If endName="statements">
+															<CondClause endName="clauses">
+																<ExpressionName endName="cond">
+																	<SimpleName name="Depth_Decreased" endName="name" />
+																</ExpressionName>
+																<ProcedureCall endName="statements">
+																	<IndexedComp endName="name">
+																		<SimpleName name="Balance_1" endName="name" />
+																		<ValueExpr endName="values">
+																			<ExpressionName endName="expr">
+																				<SimpleName name="P" endName="name" />
+																			</ExpressionName>
+																		</ValueExpr>
+																		<ValueExpr endName="values">
+																			<ExpressionName endName="expr">
+																				<SimpleName name="Depth_Decreased" endName="name" />
+																			</ExpressionName>
+																		</ValueExpr>
+																	</IndexedComp>
+																</ProcedureCall>
+															</CondClause>
+														</If>
+													</Block>
+												</If>
+												<Assignment endName="statements">
+													<SelectedComp scname="Card" endName="name">
+														<SimpleName name="From" endName="name" />
+													</SelectedComp>
+													<Binary op="-" endName="expression">
+														<ExpressionName endName="left">
+															<SelectedComp scname="Card" endName="name">
+																<SimpleName name="From" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+														<NumericLiteral value="1" endName="right" />
+													</Binary>
+												</Assignment>
+												<ProcedureCall endName="statements">
+													<IndexedComp endName="name">
+														<SimpleName name="Dispose" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SimpleName name="Q" endName="name" />
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ProcedureCall>
+											</Block>
+											<Assignment endName="elseClause">
+												<SimpleName name="Key_Deleted" endName="name" />
+												<ExpressionName endName="expression">
+													<SimpleName name="True" endName="name" />
+												</ExpressionName>
+											</Assignment>
+										</If>
+									</CondClause>
+									<ProcedureCall endName="elseClause">
+										<IndexedComp endName="name">
+											<SimpleName name="Remove" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Right" endName="name">
+														<SimpleName name="P" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<If endName="elseClause">
+										<CondClause endName="clauses">
+											<ExpressionName endName="cond">
+												<SimpleName name="Depth_Decreased" endName="name" />
+											</ExpressionName>
+											<ProcedureCall endName="statements">
+												<IndexedComp endName="name">
+													<SimpleName name="Balance_2" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="P" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="Depth_Decreased" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ProcedureCall>
+										</CondClause>
+									</If>
+								</If>
+								<Node name="except_handler_part_opt" endName="blockBody" val="" />
+							</SubprogramBody>
+						</DeclPartBody>
+						<ProcedureCall endName="blockBody">
+							<IndexedComp endName="name">
+								<SimpleName name="Remove" endName="name" />
+								<ValueExpr endName="values">
+									<ExpressionName endName="expr">
+										<SelectedComp scname="Root" endName="name">
+											<SimpleName name="From" endName="name" />
+										</SelectedComp>
+									</ExpressionName>
+								</ValueExpr>
+							</IndexedComp>
+						</ProcedureCall>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Search" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Item_Type" endName="returnType" />
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Within" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Z" qualifier="constant" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Link" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<IndexedComp endName="name">
+										<SimpleName name="Pointer" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+										</ValueExpr>
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Within" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+										<ValueCompAssoc endName="values">
+											<ChoiceExp endName="choices">
+												<ExpressionName endName="expr">
+													<SimpleName name="First_Match" endName="name" />
+												</ExpressionName>
+											</ChoiceExp>
+											<Unary op="NOT" endName="expr">
+												<ExpressionName endName="arg">
+													<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+														<SimpleName name="Within" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Unary>
+										</ValueCompAssoc>
+									</IndexedComp>
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="/=" endName="cond">
+									<ExpressionName endName="left">
+										<SimpleName name="Z" endName="name" />
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<Return endName="statements">
+									<ExpressionName endName="expr">
+										<SelectedComp scname="Val" endName="name">
+											<SimpleName name="Z" endName="name" />
+										</SelectedComp>
+									</ExpressionName>
+								</Return>
+							</CondClause>
+							<Raise endName="elseClause">
+								<SimpleName name="Nonexistent_Key" endName="name" />
+							</Raise>
+						</If>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Search" abstract="false" endName="subprogramSpec">
+							<SimpleName name="List" endName="returnType" />
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Within" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<DeclPartBody endName="declPart">
+							<SubprogramBody endName="body">
+								<FunctionSpec name="Equiv" abstract="false" endName="subprogramSpec">
+									<SimpleName name="List" endName="returnType" />
+									<Parameter name="L" mode="in_" endName="">
+										<SubTypeMark endName="">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeMark>
+									</Parameter>
+								</FunctionSpec>
+								<If endName="blockBody">
+									<CondClause endName="clauses">
+										<Binary op="=" endName="cond">
+											<ExpressionName endName="left">
+												<SimpleName name="L" endName="name" />
+											</ExpressionName>
+											<NullLiteral endName="right" />
+										</Binary>
+										<Block endName="statements">
+											<DeclPartItem endName="declParts">
+												<ObjectDeclSubType name="Null_List" qualifier="" endName="declItem">
+													<SubTypeInd endName="subTypeInd">
+														<IndexedComp endName="name">
+															<SimpleName name="List" endName="name" />
+															<ValueDiscreteWithRange endName="values">
+																<DiscreteWithRange endName="withRange">
+																	<RangeExpr endName="range">
+																		<NumericLiteral value="1" endName="lhs" />
+																		<NumericLiteral value="0" endName="rhs" />
+																	</RangeExpr>
+																</DiscreteWithRange>
+															</ValueDiscreteWithRange>
+														</IndexedComp>
+													</SubTypeInd>
+												</ObjectDeclSubType>
+											</DeclPartItem>
+											<Return endName="statements">
+												<ExpressionName endName="expr">
+													<SimpleName name="Null_List" endName="name" />
+												</ExpressionName>
+											</Return>
+										</Block>
+									</CondClause>
+									<If endName="elseClause">
+										<CondClause endName="clauses">
+											<Binary op="&lt;" endName="cond">
+												<ExpressionName endName="left">
+													<SimpleName name="Key" endName="name" />
+												</ExpressionName>
+												<ExpressionName endName="right">
+													<IndexedComp endName="name">
+														<SimpleName name="Key_Of" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SelectedComp scname="Val" endName="name">
+																	<SimpleName name="L" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ExpressionName>
+											</Binary>
+											<Return endName="statements">
+												<ExpressionName endName="expr">
+													<IndexedComp endName="name">
+														<SimpleName name="Equiv" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SelectedComp scname="Left" endName="name">
+																	<SimpleName name="L" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ExpressionName>
+											</Return>
+										</CondClause>
+										<CondClause endName="clauses">
+											<Binary op="=" endName="cond">
+												<ExpressionName endName="left">
+													<SimpleName name="Key" endName="name" />
+												</ExpressionName>
+												<ExpressionName endName="right">
+													<IndexedComp endName="name">
+														<SimpleName name="Key_Of" endName="name" />
+														<ValueExpr endName="values">
+															<ExpressionName endName="expr">
+																<SelectedComp scname="Val" endName="name">
+																	<SimpleName name="L" endName="name" />
+																</SelectedComp>
+															</ExpressionName>
+														</ValueExpr>
+													</IndexedComp>
+												</ExpressionName>
+											</Binary>
+											<Return endName="statements">
+												<Binary op="&amp;" endName="expr">
+													<Binary op="&amp;" endName="left">
+														<ExpressionName endName="left">
+															<IndexedComp endName="name">
+																<SimpleName name="Equiv" endName="name" />
+																<ValueExpr endName="values">
+																	<ExpressionName endName="expr">
+																		<SelectedComp scname="Left" endName="name">
+																			<SimpleName name="L" endName="name" />
+																		</SelectedComp>
+																	</ExpressionName>
+																</ValueExpr>
+															</IndexedComp>
+														</ExpressionName>
+														<ExpressionName endName="right">
+															<SelectedComp scname="Val" endName="name">
+																<SimpleName name="L" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</Binary>
+													<ExpressionName endName="right">
+														<IndexedComp endName="name">
+															<SimpleName name="Equiv" endName="name" />
+															<ValueExpr endName="values">
+																<ExpressionName endName="expr">
+																	<SelectedComp scname="Right" endName="name">
+																		<SimpleName name="L" endName="name" />
+																	</SelectedComp>
+																</ExpressionName>
+															</ValueExpr>
+														</IndexedComp>
+													</ExpressionName>
+												</Binary>
+											</Return>
+										</CondClause>
+										<Return endName="elseClause">
+											<ExpressionName endName="expr">
+												<IndexedComp endName="name">
+													<SimpleName name="Equiv" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SelectedComp scname="Right" endName="name">
+																<SimpleName name="L" endName="name" />
+															</SelectedComp>
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ExpressionName>
+										</Return>
+									</If>
+								</If>
+								<Node name="except_handler_part_opt" endName="blockBody" val="" />
+							</SubprogramBody>
+						</DeclPartBody>
+						<Return endName="blockBody">
+							<ExpressionName endName="expr">
+								<IndexedComp endName="name">
+									<SimpleName name="Equiv" endName="name" />
+									<ValueExpr endName="values">
+										<ExpressionName endName="expr">
+											<IndexedComp endName="name">
+												<SimpleName name="Pointer" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SimpleName name="Key" endName="name" />
+													</ExpressionName>
+												</ValueExpr>
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SelectedComp scname="Root" endName="name">
+															<SimpleName name="Within" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+												</ValueExpr>
+												<ValueCompAssoc endName="values">
+													<ChoiceExp endName="choices">
+														<ExpressionName endName="expr">
+															<SimpleName name="First_Match" endName="name" />
+														</ExpressionName>
+													</ChoiceExp>
+													<ExpressionName endName="expr">
+														<SimpleName name="True" endName="name" />
+													</ExpressionName>
+												</ValueCompAssoc>
+											</IndexedComp>
+										</ExpressionName>
+									</ValueExpr>
+								</IndexedComp>
+							</ExpressionName>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Update" abstract="false" endName="subprogramSpec">
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Within" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Z" qualifier="constant" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Link" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<IndexedComp endName="name">
+										<SimpleName name="Pointer" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+										</ValueExpr>
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Within" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+										<ValueCompAssoc endName="values">
+											<ChoiceExp endName="choices">
+												<ExpressionName endName="expr">
+													<SimpleName name="First_Match" endName="name" />
+												</ExpressionName>
+											</ChoiceExp>
+											<Unary op="NOT" endName="expr">
+												<ExpressionName endName="arg">
+													<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+														<SimpleName name="Within" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Unary>
+										</ValueCompAssoc>
+									</IndexedComp>
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Old_Item" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeInd>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="=" endName="cond">
+									<ExpressionName endName="left">
+										<SimpleName name="Z" endName="name" />
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<Raise endName="statements">
+									<SimpleName name="Nonexistent_Key" endName="name" />
+								</Raise>
+							</CondClause>
+							<Assignment endName="elseClause">
+								<SimpleName name="Old_Item" endName="name" />
+								<ExpressionName endName="expression">
+									<SelectedComp scname="Val" endName="name">
+										<SimpleName name="Z" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+							</Assignment>
+							<ProcedureCall endName="elseClause">
+								<IndexedComp endName="name">
+									<SimpleName name="Modify" endName="name" />
+									<ValueExpr endName="values">
+										<ExpressionName endName="expr">
+											<SelectedComp scname="Val" endName="name">
+												<SimpleName name="Z" endName="name" />
+											</SelectedComp>
+										</ExpressionName>
+									</ValueExpr>
+								</IndexedComp>
+							</ProcedureCall>
+							<If endName="elseClause">
+								<CondClause endName="clauses">
+									<Binary op="/=" endName="cond">
+										<ExpressionName endName="left">
+											<IndexedComp endName="name">
+												<SimpleName name="Key_Of" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SimpleName name="Old_Item" endName="name" />
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ExpressionName>
+										<ExpressionName endName="right">
+											<IndexedComp endName="name">
+												<SimpleName name="Key_Of" endName="name" />
+												<ValueExpr endName="values">
+													<ExpressionName endName="expr">
+														<SelectedComp scname="Val" endName="name">
+															<SimpleName name="Z" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+												</ValueExpr>
+											</IndexedComp>
+										</ExpressionName>
+									</Binary>
+									<Assignment endName="statements">
+										<SelectedComp scname="Val" endName="name">
+											<SimpleName name="Z" endName="name" />
+										</SelectedComp>
+										<ExpressionName endName="expression">
+											<SimpleName name="Old_Item" endName="name" />
+										</ExpressionName>
+									</Assignment>
+									<Raise endName="statements">
+										<SimpleName name="Invalid_Key" endName="name" />
+									</Raise>
+								</CondClause>
+							</If>
+						</If>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Replace" abstract="false" endName="subprogramSpec">
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="New_Item" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Within" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Z" qualifier="constant" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Link" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<IndexedComp endName="name">
+										<SimpleName name="Pointer" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+										</ValueExpr>
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Within" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+										<ValueCompAssoc endName="values">
+											<ChoiceExp endName="choices">
+												<ExpressionName endName="expr">
+													<SimpleName name="First_Match" endName="name" />
+												</ExpressionName>
+											</ChoiceExp>
+											<Unary op="NOT" endName="expr">
+												<ExpressionName endName="arg">
+													<SelectedComp scname="Duplicate_Keys_Allowed" endName="name">
+														<SimpleName name="Within" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Unary>
+										</ValueCompAssoc>
+									</IndexedComp>
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="=" endName="cond">
+									<ExpressionName endName="left">
+										<SimpleName name="Z" endName="name" />
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<Raise endName="statements">
+									<SimpleName name="Nonexistent_Key" endName="name" />
+								</Raise>
+							</CondClause>
+							<CondClause endName="clauses">
+								<Binary op="/=" endName="cond">
+									<ExpressionName endName="left">
+										<IndexedComp endName="name">
+											<SimpleName name="Key_Of" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SimpleName name="New_Item" endName="name" />
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ExpressionName>
+									<ExpressionName endName="right">
+										<IndexedComp endName="name">
+											<SimpleName name="Key_Of" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Val" endName="name">
+														<SimpleName name="Z" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ExpressionName>
+								</Binary>
+								<Raise endName="statements">
+									<SimpleName name="Invalid_Key" endName="name" />
+								</Raise>
+							</CondClause>
+							<Assignment endName="elseClause">
+								<SelectedComp scname="Val" endName="name">
+									<SimpleName name="Z" endName="name" />
+								</SelectedComp>
+								<ExpressionName endName="expression">
+									<SimpleName name="New_Item" endName="name" />
+								</ExpressionName>
+							</Assignment>
+						</If>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Empty" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Boolean" endName="returnType" />
+							<Parameter name="The_Bag" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<Return endName="blockBody">
+							<Binary op="=" endName="expr">
+								<ExpressionName endName="left">
+									<SelectedComp scname="Root" endName="name">
+										<SimpleName name="The_Bag" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+								<NullLiteral endName="right" />
+							</Binary>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Card" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Natural_Count" endName="returnType" />
+							<Parameter name="Of_Bag" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<Return endName="blockBody">
+							<ExpressionName endName="expr">
+								<SelectedComp scname="Card" endName="name">
+									<SimpleName name="Of_Bag" endName="name" />
+								</SelectedComp>
+							</ExpressionName>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Member" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Boolean" endName="returnType" />
+							<Parameter name="Key" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Key_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Of_Bag" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<Return endName="blockBody">
+							<Binary op="/=" endName="expr">
+								<ExpressionName endName="left">
+									<IndexedComp endName="name">
+										<SimpleName name="Pointer" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SimpleName name="Key" endName="name" />
+											</ExpressionName>
+										</ValueExpr>
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="Of_Bag" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+										<ValueCompAssoc endName="values">
+											<ChoiceExp endName="choices">
+												<ExpressionName endName="expr">
+													<SimpleName name="First_Match" endName="name" />
+												</ExpressionName>
+											</ChoiceExp>
+											<ExpressionName endName="expr">
+												<SimpleName name="True" endName="name" />
+											</ExpressionName>
+										</ValueCompAssoc>
+									</IndexedComp>
+								</ExpressionName>
+								<NullLiteral endName="right" />
+							</Binary>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Min" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Item_Type" endName="returnType" />
+							<Parameter name="Of_Bag" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Z" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Link" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SelectedComp scname="Root" endName="name">
+										<SimpleName name="Of_Bag" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="=" endName="cond">
+									<ExpressionName endName="left">
+										<SimpleName name="Z" endName="name" />
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<Raise endName="statements">
+									<SimpleName name="Bag_Empty" endName="name" />
+								</Raise>
+							</CondClause>
+						</If>
+						<WhileLoop endName="blockBody">
+							<Binary op="/=" endName="cond">
+								<ExpressionName endName="left">
+									<SelectedComp scname="Left" endName="name">
+										<SimpleName name="Z" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+								<NullLiteral endName="right" />
+							</Binary>
+							<Assignment endName="body">
+								<SimpleName name="Z" endName="name" />
+								<ExpressionName endName="expression">
+									<SelectedComp scname="Left" endName="name">
+										<SimpleName name="Z" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+							</Assignment>
+						</WhileLoop>
+						<Return endName="blockBody">
+							<ExpressionName endName="expr">
+								<SelectedComp scname="Val" endName="name">
+									<SimpleName name="Z" endName="name" />
+								</SelectedComp>
+							</ExpressionName>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<FunctionSpec name="Max" abstract="false" endName="subprogramSpec">
+							<SimpleName name="Item_Type" endName="returnType" />
+							<Parameter name="Of_Bag" mode="in_" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</FunctionSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Z" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Link" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SelectedComp scname="Root" endName="name">
+										<SimpleName name="Of_Bag" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="=" endName="cond">
+									<ExpressionName endName="left">
+										<SimpleName name="Z" endName="name" />
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<Raise endName="statements">
+									<SimpleName name="Bag_Empty" endName="name" />
+								</Raise>
+							</CondClause>
+						</If>
+						<WhileLoop endName="blockBody">
+							<Binary op="/=" endName="cond">
+								<ExpressionName endName="left">
+									<SelectedComp scname="Right" endName="name">
+										<SimpleName name="Z" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+								<NullLiteral endName="right" />
+							</Binary>
+							<Assignment endName="body">
+								<SimpleName name="Z" endName="name" />
+								<ExpressionName endName="expression">
+									<SelectedComp scname="Right" endName="name">
+										<SimpleName name="Z" endName="name" />
+									</SelectedComp>
+								</ExpressionName>
+							</Assignment>
+						</WhileLoop>
+						<Return endName="blockBody">
+							<ExpressionName endName="expr">
+								<SelectedComp scname="Val" endName="name">
+									<SimpleName name="Z" endName="name" />
+								</SelectedComp>
+							</ExpressionName>
+						</Return>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Remove_Max" abstract="false" endName="subprogramSpec">
+							<Parameter name="From" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Junk" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeInd>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<ProcedureCall endName="blockBody">
+							<IndexedComp endName="name">
+								<SimpleName name="Remove_Max" endName="name" />
+								<ValueExpr endName="values">
+									<ExpressionName endName="expr">
+										<SimpleName name="From" endName="name" />
+									</ExpressionName>
+								</ValueExpr>
+								<ValueCompAssoc endName="values">
+									<ChoiceExp endName="choices">
+										<ExpressionName endName="expr">
+											<SimpleName name="Max" endName="name" />
+										</ExpressionName>
+									</ChoiceExp>
+									<ExpressionName endName="expr">
+										<SimpleName name="Junk" endName="name" />
+									</ExpressionName>
+								</ValueCompAssoc>
+							</IndexedComp>
+						</ProcedureCall>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartBody endName="declPart">
+					<SubprogramBody endName="body">
+						<ProcedureSpec name="Remove_Max" abstract="false" endName="subprogramSpec">
+							<Parameter name="From" mode="inout" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Bag" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+							<Parameter name="Max" mode="out" endName="">
+								<SubTypeMark endName="">
+									<SimpleName name="Item_Type" endName="name" />
+								</SubTypeMark>
+							</Parameter>
+						</ProcedureSpec>
+						<DeclPartItem endName="declPart">
+							<ObjectDeclSubType name="Depth_Decreased" qualifier="" endName="declItem">
+								<SubTypeInd endName="subTypeInd">
+									<SimpleName name="Boolean" endName="name" />
+								</SubTypeInd>
+								<ExpressionName endName="initializer">
+									<SimpleName name="False" endName="name" />
+								</ExpressionName>
+							</ObjectDeclSubType>
+						</DeclPartItem>
+						<DeclPartBody endName="declPart">
+							<SubprogramBody endName="body">
+								<ProcedureSpec name="Remove_Max" abstract="false" endName="subprogramSpec">
+									<Parameter name="L" mode="inout" endName="">
+										<SubTypeMark endName="">
+											<SimpleName name="Link" endName="name" />
+										</SubTypeMark>
+									</Parameter>
+								</ProcedureSpec>
+								<If endName="blockBody">
+									<CondClause endName="clauses">
+										<Binary op="=" endName="cond">
+											<ExpressionName endName="left">
+												<SelectedComp scname="Right" endName="name">
+													<SimpleName name="L" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+											<NullLiteral endName="right" />
+										</Binary>
+										<Block endName="statements">
+											<DeclPartItem endName="declParts">
+												<ObjectDeclSubType name="Q" qualifier="" endName="declItem">
+													<SubTypeInd endName="subTypeInd">
+														<SimpleName name="Link" endName="name" />
+													</SubTypeInd>
+													<ExpressionName endName="initializer">
+														<SimpleName name="L" endName="name" />
+													</ExpressionName>
+												</ObjectDeclSubType>
+											</DeclPartItem>
+											<Assignment endName="statements">
+												<SimpleName name="Max" endName="name" />
+												<ExpressionName endName="expression">
+													<SelectedComp scname="Val" endName="name">
+														<SimpleName name="L" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Assignment>
+											<Assignment endName="statements">
+												<SimpleName name="L" endName="name" />
+												<ExpressionName endName="expression">
+													<SelectedComp scname="Left" endName="name">
+														<SimpleName name="L" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</Assignment>
+											<Assignment endName="statements">
+												<SimpleName name="Depth_Decreased" endName="name" />
+												<ExpressionName endName="expression">
+													<SimpleName name="True" endName="name" />
+												</ExpressionName>
+											</Assignment>
+											<Assignment endName="statements">
+												<SelectedComp scname="Card" endName="name">
+													<SimpleName name="From" endName="name" />
+												</SelectedComp>
+												<Binary op="-" endName="expression">
+													<ExpressionName endName="left">
+														<SelectedComp scname="Card" endName="name">
+															<SimpleName name="From" endName="name" />
+														</SelectedComp>
+													</ExpressionName>
+													<NumericLiteral value="1" endName="right" />
+												</Binary>
+											</Assignment>
+											<ProcedureCall endName="statements">
+												<IndexedComp endName="name">
+													<SimpleName name="Dispose" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="Q" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ProcedureCall>
+										</Block>
+									</CondClause>
+									<ProcedureCall endName="elseClause">
+										<IndexedComp endName="name">
+											<SimpleName name="Remove_Max" endName="name" />
+											<ValueExpr endName="values">
+												<ExpressionName endName="expr">
+													<SelectedComp scname="Right" endName="name">
+														<SimpleName name="L" endName="name" />
+													</SelectedComp>
+												</ExpressionName>
+											</ValueExpr>
+										</IndexedComp>
+									</ProcedureCall>
+									<If endName="elseClause">
+										<CondClause endName="clauses">
+											<ExpressionName endName="cond">
+												<SimpleName name="Depth_Decreased" endName="name" />
+											</ExpressionName>
+											<ProcedureCall endName="statements">
+												<IndexedComp endName="name">
+													<SimpleName name="Balance_2" endName="name" />
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="L" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+													<ValueExpr endName="values">
+														<ExpressionName endName="expr">
+															<SimpleName name="Depth_Decreased" endName="name" />
+														</ExpressionName>
+													</ValueExpr>
+												</IndexedComp>
+											</ProcedureCall>
+										</CondClause>
+									</If>
+								</If>
+								<Node name="except_handler_part_opt" endName="blockBody" val="" />
+							</SubprogramBody>
+						</DeclPartBody>
+						<If endName="blockBody">
+							<CondClause endName="clauses">
+								<Binary op="/=" endName="cond">
+									<ExpressionName endName="left">
+										<SelectedComp scname="Root" endName="name">
+											<SimpleName name="From" endName="name" />
+										</SelectedComp>
+									</ExpressionName>
+									<NullLiteral endName="right" />
+								</Binary>
+								<ProcedureCall endName="statements">
+									<IndexedComp endName="name">
+										<SimpleName name="Remove_Max" endName="name" />
+										<ValueExpr endName="values">
+											<ExpressionName endName="expr">
+												<SelectedComp scname="Root" endName="name">
+													<SimpleName name="From" endName="name" />
+												</SelectedComp>
+											</ExpressionName>
+										</ValueExpr>
+									</IndexedComp>
+								</ProcedureCall>
+							</CondClause>
+							<Raise endName="elseClause">
+								<SimpleName name="Bag_Empty" endName="name" />
+							</Raise>
+						</If>
+						<Node name="except_handler_part_opt" endName="blockBody" val="" />
+					</SubprogramBody>
+				</DeclPartBody>
+				<DeclPartItem endName="declPart">
+					<BodyStubPackageDecl name="Implementation" endName="declItem" />
+				</DeclPartItem>
+			</PkgBody>
+		</CompilationUnit>
+	</AdaProgram>
+</AdaSystem>

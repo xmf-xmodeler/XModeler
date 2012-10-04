@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Env;
+import Walkers;
+
+context Constraint
+
+  @Operation typeCheck(selfType:Classifier,env:Env)
+    let bexp = OCL::OCL.grammar.parseString(self.body.source(),"Exp",Seq{XOCL}).performable;
+        sexp = OCL::OCL.grammar.parseString(self.success().source(),"Exp",Seq{XOCL}).performable then
+        fexp = OCL::OCL.grammar.parseString(self.fail().source(),"Exp",Seq{XOCL}).performable then
+        typeChecker = TypeChecker(selfType) then
+        bodyType = typeChecker.dispatch(bexp,env);
+        successType = typeChecker.dispatch(sexp,env);
+        failType = typeChecker.dispatch(fexp,env)
+    in if bodyType.type() = Boolean and successType.type() = String and failType.type() = String
+       then TypeCheckConstraint(self,bodyType,successType,failType)
+       else 
+         let message = 
+               "Constraint " + 
+               self.name().toString() + 
+               " fails because the body is not of type Boolean or the success or fail type is not String."
+         in TypeCheckFails(message,TypeCheckConstraint(self,bodyType,successType,failType))
+         end
+       end
+    end
+  end
+          

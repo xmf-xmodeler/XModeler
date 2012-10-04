@@ -1,0 +1,113 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Objectp extends Pattern
+  
+    @Doc
+      An object pattern consists of a class path and a sequence of patterns. The
+      general form is C(p1,..,pn). A value matches an object pattern when it
+      is an instance of C and when its slots match the patterns p1 to pn. In 
+      order for the slots to match, the class C must define a constructor of
+      arity n. this constructor defines a sequence of attribute names which in
+      turn define the mapping from the slots of the value to the patterns. 
+      
+      Constructor: Objectp(nameSpace,names,slots)
+        The name space is a string, the names are a sequence of names and slots
+        is a sequence of expressions.
+     end
+    
+     @Attribute class : String end
+     @Attribute names : Seq(String) end
+     @Attribute slots : Seq(Pattern) end
+     
+     @Constructor(class,names,slots) end
+     
+     @Operation bind(value:Element,target:Element,env:Env::Env,imports:Seq(NameSpace)):Env::Env
+       format(stdout,"Warning: Objectp::bind not implemented.~%");
+       env
+     end 
+     
+     @Operation lift():Performable
+       let nameExps = SetExp("Seq",names->collect(name | StrExp(name)));
+           slotExps = SetExp("Seq",slots->collect(slot | slot.lift()))
+       in Apply(self.typeExp(),Seq{StrExp(class),nameExps,slotExps})
+       end
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       let matchClass = self.newVar();
+           matchCnstr = self.newVar();
+           classCode = names->iterate(n code = Var(class) | [| <code> :: <n> |])
+       in 
+         [| let <matchClass> = <classCode>
+            in if <Var(matchClass)> = null or not <Var(matchClass)>.isKindOf(XCore::Class)
+               then <fail>
+               else 
+                 if <value>.isKindOf(<Var(matchClass)>)
+                 then
+                   <if slots->isEmpty
+                    then success
+                    else 
+                      [| let <matchCnstr> = <Var(matchClass)>.getConstructor(<IntExp(slots->size)>)
+                         in if <Var(matchCnstr)> = null
+                            then <fail>
+                            else <self.matchSlots(slots,Var(matchCnstr),value,0,success,fail)>
+                            end
+                         end
+                      |]
+                    end>
+                 else <fail>
+                 end
+               end
+            end
+         |] 
+       end
+     end
+     
+     @Operation needsBacktrack():Boolean
+       slots->exists(pattern | pattern.needsBacktrack())
+     end
+     
+     @Operation matchSlots(slots:Seq(Pattern),matchCnstr:Performable,value:Performable,index:Integer,success:Performable,fail:Performable):Performable
+       if slots->isEmpty
+       then success
+       else 
+         let pattern = slots->head
+         in let newVar = pattern.newVar()
+            in [| let <newVar> = <matchCnstr>.ref(<value>,<IntExp(index)>)
+                  in <pattern.matchCode(Var(newVar),
+                        self.matchSlots(slots->tail,matchCnstr,
+                          value,
+                          index+1,
+                          success,
+                          fail),
+                        fail)>
+                  end
+               |]
+            end
+         end
+       end
+     end
+     
+     @Operation pprint(out)
+       let index = 0
+       in format(out,"~S~{~;::~S~}(",Seq{class,names});
+          @For slot in slots do
+            slot.pprint(out);
+            index := index + 1;
+            if index <> slots->size
+            then format(out,",")
+            end
+          end;
+          format(out,")")
+       end
+     end
+     
+     @Operation toSig()
+       NamedType(Seq{class| names}).toSig()
+     end
+            
+   end

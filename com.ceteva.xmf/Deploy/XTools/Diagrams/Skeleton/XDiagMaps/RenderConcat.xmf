@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class RenderConcat extends RenderText
+  
+    @Attribute left  : RenderText (?,!) end
+    @Attribute right : RenderText (?,!) end
+    
+    @Constructor(left,right) end
+    
+    @Operation code(value:String):String
+      left.code(value) + " + " + right.code(value)
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText)
+      left.writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText);
+      right.writeHandlers(dir,toolDescriptorType,root,class,manifest,renderText)
+    end
+
+  end

@@ -1,0 +1,21 @@
+parserImport Manifests;
+
+@Manifest Browser
+  @File Browser end
+  @File ToolDescriptor end
+  @File ToolType end
+  @File ElementManager end
+  @File RootNodes end
+  @File Links end
+  @File ToolBars end
+  @File Attributes end
+  @File Displays end
+  @File Points end
+  @File Associations end
+  @File IntelliLinks end
+  @File Menus end
+  @File Edit end
+  @File Monitors end
+  @File MenuRegistry end  
+  @File MenuUpgrader end
+end;

@@ -1,0 +1,13 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class RadioButtonLayout extends Layout
+    
+    @ToXML(Radio_Button_Layout)[x,y,width,height] end 
+    
+  end

@@ -1,0 +1,105 @@
+parserImport XOCL;
+
+import StateMachines;
+
+context Package
+  @Operation showDiagram()
+    // A package is transformed into a tool.
+    let tool = super()
+    in @Busy("Generating Tool")
+         // Don't bother drawing the diagram while the tool is under construction...
+         @WithoutRendering(tool.diagram())
+           // Suppress events while the tool is under construction...
+           tool.setHandleEvents(false);
+           // Add the nodes...
+           @For machine in self.contentsOf(StateMachine) do
+             machine.toTool(tool)
+           end;
+           @For machine in self.contentsOf(StateMachine) do
+             machine.toToolEdges(tool)
+           end;
+           // Restart events...
+           tool.setHandleEvents(true)
+         end
+       end
+    end
+  end
+  
+context StateMachine
+  @Operation toTool(tool:Tool)
+    // Create a new instance of the Node type in the tool...
+    let node = Package::ClassDiagrams::Editor.nodeType("StateMachine").new(10,10,tool);
+        // The env is used to pass in a context of types...
+        env = Env::NullEnv()
+    in // Set the node label...
+       node.ref1(Seq{"nodeBox","nameBox","name"}).setText(name);
+       // Add simple attributes...
+       @For attribute in attributes when attribute.underlyingType().isKindOf(DataType) do
+         let att = node.ref1(Seq{"nodeBox","bodyBox"}).addNew("attribute")
+         in att.ref1(Seq{"name"}).setText(attribute.name());
+            att.ref1(Seq{"type"}).setText(attribute.underlyingType().name());
+            tool.register(att.ref1(Seq{"name"}),attribute);
+            tool.register(att.ref1(Seq{"type"}),attribute)
+         end
+       end;
+       // Register the elements with the tool...
+       tool.register(node,self);
+       tool.register(self,node);
+       // Observe changes in the new node...
+       self.observeBy(tool)
+    end
+  end
+  
+context Clock
+  @Operation toTool(tool:Tool)
+    // Create a new instance of the Node type in the tool...
+    let node = Package::ClassDiagrams::Editor.nodeType("Clock").new(10,10,tool)
+    in tool.register(node,self);
+       tool.register(self,node);
+       // Observe changes in the new node...
+       self.observeBy(tool)
+    end
+  end
+    
+context StateMachine
+  @Operation toToolEdges(tool:Tool)
+    let sourceNode = tool.find(self)
+    in @For parent in parents do
+         if owner.allContentsOf(StateMachine)->includes(parent)
+         then
+           let targetNode = self.find(parent) then
+               sourcePort = sourceNode.port();
+               targetPort = targetNode.port() then
+               edge = Package::ClassDiagrams::Editor.edgeType("Inheritance").new(sourcePort,targetPort,tool)
+           in tool.register(edge,Seq{self,parent})
+           end
+         end
+       end;
+       @For attribute in attributes 
+         when owner.allContentsOf(StateMachine)->includes(attribute.underlyingType())
+         do let targetNode = tool.find(attribute.underlyingType()) then
+                sourcePort = sourceNode.port();
+                targetPort = targetNode.port() then
+                edge = Package::ClassDiagrams::Editor.edgeType("Attribute").new(sourcePort,targetPort,tool)
+            in edge.ref("name").textChanged(attribute.name);
+               tool.register(edge,attribute);
+               tool.register(edge.ref("name"),attribute)
+            end
+       end
+     end
+   end
+   
+context Clock
+  @Operation toToolEdges(tool:Tool)
+    if self.hasAttribute("consumer")
+    then 
+      let attribute = self.getAttribute("consumer") then
+          sourceNode = tool.find(self);
+          targetNode = tool.find(attribute.type) then
+          sourcePort = sourceNode.port();
+          targetPort = targetNode.port() then
+          edge = Package::ClassDiagrams::Editor.edgeType("Consumer").new(sourcePort,targetPort,tool)
+      in tool.register(edge,attribute)
+      end
+    end
+  end

@@ -1,0 +1,21 @@
+parserImport Manifests;
+
+@Manifest Xar
+  @File XarDB end
+  @File XarInstr end
+  @File IndexedInstr end
+  @File MkCons end
+  @File Const end
+  @File HotLoad end
+  @File Lookup end
+  @File MkObj end
+  @File MkSet end
+  @File MkSlot end
+  @File MkSymbol end
+  @File ProcessInstr end
+  @File Put end
+  @File Ref end
+  @File RefObj end
+  @File Table end
+  @File XarFile end
+end;

@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class XarInstr isabstract extends OrderedContainer, Contained
+  
+    @Operation browse()
+      let mappingClient = xmf.findClient(Clients::ModelBrowserXCore::MappingClient) in
+        if mappingClient <> null
+        then mappingClient.showModelBrowser(self)
+        else format(stdout,"Model browser client not available.~%")
+        end
+      end
+    end
+    
+    @Operation find(type,index)
+      let instr = null;
+          instrs = contents
+      in @While instr = null and not instrs->isEmpty do
+           instr := instrs->head.find(type,index);
+           instrs := instrs->tail
+         end;
+         instr
+      end
+    end
+      
+    @Operation setOwner(owner)
+      self.owner := owner;
+      @For i in contents do
+        i.setOwner(owner)
+      end
+    end
+    
+  end

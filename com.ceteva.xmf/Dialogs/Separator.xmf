@@ -1,0 +1,26 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Separator extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Separator ::= { Separator() }.
+      
+    end 
+    
+    @Operation desugar()  
+      [| @Operation(c) @Operation(d) d.separator(c) end end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Separator end")
+    end
+    
+  end

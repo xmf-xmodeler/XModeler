@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class OrAtt extends Pattern
+  
+    @Doc
+      Succeeds when either the left or the right pattern succeeds.
+      Binding and return value occurs due to the successful pattern.
+    end
+    
+    @Attribute left : Attribute end
+    @Attribute right : Attribute end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::OrAtt(<left.desugar()>,<right.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      left.parse(grammar,env,element,succ,
+        @Operation()
+          right.parse(grammar,env,element,succ,fail,indent)
+        end,
+        indent)
+    end
+    
+  end

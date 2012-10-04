@@ -1,0 +1,38 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Instantiate in Eval(aInstantiate,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     evalArgs =
+       @Operation(args,object)
+         if args->isEmpty
+         then result(aInstantiate,object,cont)
+         else
+           next(args->head.value,
+             @Operation(nextArg,resultArg,call,return)
+               self.eval(args->head.value,env,target,imports,nextArg,resultArg,call,return,
+                 @Operation(value)
+                   object.set(args->head.name,value);
+                   evalArgs(args->tail,object)
+                 end)
+             end)
+         end
+       end
+  in next(aInstantiate.class,
+       @Operation(next,result,call,return)
+         self.eval(aInstantiate.class,env,target,imports,next,result,call,return,
+           @Operation(class)
+             evalArgs(aInstantiate.args,class())
+           end)
+       end)
+  end
+end;

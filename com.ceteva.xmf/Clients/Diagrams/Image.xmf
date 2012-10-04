@@ -1,0 +1,72 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Image extends Display
+  
+    @Attribute filename : String (?,!) end
+     
+    @Constructor(filename,x,y,width,height) end
+    
+    @Operation expandHeight()
+      self
+    end
+    
+    @Operation expandWidth()
+      self
+    end
+    
+    @Operation maxHeight()
+      self.height  
+    end
+    
+    @Operation maxWidth()
+      self.width    
+    end
+    
+    @Operation minHeight()
+      self.height  
+    end
+    
+    @Operation minWidth()
+      self.width    
+    end
+    
+    @Operation new(parent,setMenu)
+      self.setOwner(parent);
+      @Command(self) newImageCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation packHeight()
+      self
+    end
+    
+    @Operation packWidth()
+      self
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newImageCommand(parent,self) end;
+      self.setRightClickMenu();
+      self
+    end
+    
+    @Operation resize(width,height)
+      @Command(self) resizeCommand(self,width,height) end;
+      self.width := width;
+      self.height := height
+    end
+    
+    @Operation setImage(filename)
+      self.filename := filename;
+      @Command(self) setImage(self) end
+    end
+  
+  end

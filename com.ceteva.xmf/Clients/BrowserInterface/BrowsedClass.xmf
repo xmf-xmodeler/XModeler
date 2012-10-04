@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import Clients;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class BrowsedClass extends Class
+  
+    // Use this class to define operations with a property
+    // called MenuItem that will add in the operation as
+    // a browser menu for instances of the class...
+    
+    @Attribute interface : Interface (?) end
+    
+    @Operation add(element)
+      if element.isReallyKindOf(Interface)
+      then
+        self.interface := element;
+        if self.initialized()
+        then self.initInterface()
+        else self
+        end
+      else super(element)
+      end
+    end
+    
+    @Operation allBrowsedParents():Seq(Class)
+      // Calculates all the parents that are browsed
+      // classes.
+      parents->iterate(p S = Seq{} |
+        if p.isKindOf(BrowsedClass)
+        then S->including(p) + p.allBrowsedParents()
+        else S
+        end)
+    end
+  
+    @Operation init()
+    
+      // Class initialisation seems not to go through init/1.
+      // All classes are guaranteed to go through init/0.
+      // Be careful to do default init/0 before anything else.
+      
+      super();
+      self.initInterface()
+    end
+    
+    @Operation initInterface()
+    
+      // Assumes that the class is initialized. Adds in
+      // BrowsedObject as a parent and then registers the 
+      // interface definitions...
+      
+      self.parents := parents->including(BrowsedObject);
+      if interface <> null then interface.register(self) end;
+      self
+    end
+  end

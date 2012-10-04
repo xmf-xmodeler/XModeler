@@ -1,0 +1,83 @@
+parserImport XOCL;
+
+import Arrays;
+
+context Arrays
+
+  @Class Simple2DArray
+  
+    @Doc
+      A standard two dimensional array.
+    end
+  
+    @Attribute cols     : Integer (?,!) end // number of columns
+    @Attribute rows     : Integer (?,!) end // number of rows
+    @Attribute records  : Vector end
+    @Attribute index    : Integer end 
+    @Attribute firstRowHeader : Boolean = false (?,!) end // flag for determining whether the first row
+                                                          // contains column header information for display
+    
+    @Constructor(cols,rows)
+      self.initialiseArray()
+    end
+
+    @Operation get(col, row)
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      elseif row >= rows
+      then
+        throw ArrayIndexOutOfBounds(self,row,rows)
+      else
+        let record = self.getRow(row)
+        in
+          record->asSeq->at(col)
+        end
+      end
+    end
+    
+    @Operation getRow(row)
+      self.records->asSeq->at(row)
+    end
+
+    @Operation initialiseArray()
+      self.records := Vector(rows);
+      @Count i from 0 to rows do
+        records.put(i,Vector(cols))
+      end
+    end
+
+    @Operation pprint()
+      @For record in records do
+        let s = "[ "
+        in
+          @Count i from 0 to record.size() do
+            s := s + record.ref(i).toString();
+            if i < record.size() - 1
+            then s := s + ", "
+            end
+          end;
+          s := s + " ]";
+          format(stdout,s+"~%")
+        end
+      end
+    end
+
+    @Operation put(col, row, element)
+      if col >= cols
+      then
+        throw ArrayIndexOutOfBounds(self,col,cols)
+      elseif row >= rows
+      then
+        throw ArrayIndexOutOfBounds(self,row,rows)
+      else
+        let record = self.getRow(row)
+        in
+          record.put(col,element);
+          self
+        end
+      end
+    end
+
+  end
+      

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+
+context Structure
+
+  @Class Import 
+  
+    @Attribute path : Path end
+    
+    @Constructor(path) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"import ");
+      path.pprint(out,indent);
+      format(out,";")
+    end
+    
+  end

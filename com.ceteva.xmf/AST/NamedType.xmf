@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler NamedType in AST(aNamedType,arg,seen)
+  ASTNode(aNamedType)
+end;

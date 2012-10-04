@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import IO;
+
+context Debug
+
+  @Class OperationReport
+  
+    @Attribute op         : CompiledOperation (?,!) end
+    @Attribute calls      : Integer           (?,!) end
+    @Attribute active     : Boolean           (?,!) end
+    @Attribute memoryUsed : Integer           (?,!) end
+    @Attribute startMem   : Integer           (?,!) end
+    @Attribute startTime  : Time              (?,!) end
+    @Attribute time       : Time              (?,!) end
+    
+    @Constructor(op) ! end
+    
+    @Operation call()
+      self.calls := calls + 1
+    end
+    
+    @Operation start()
+      self.startTime := Time();
+      self.time := (Time() - Time())
+    end
+    
+    @Operation finish()
+      self.time := time + (Time() - startTime)
+    end
+    
+    @Operation incMemoryUsed(delta)
+      self.memoryUsed := memoryUsed + delta
+    end
+    
+    @Operation report(out)
+      format(out," ~<30>S ~<30>S called ~<4>S times in ~S using ~<10>S words.",Seq{op.owner().name(),op.name(),calls,time.pprint(),memoryUsed})
+    end
+  end

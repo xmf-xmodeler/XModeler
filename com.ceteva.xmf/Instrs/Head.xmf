@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class Head extends Instr
+  
+    @Doc
+      This machine instruction expects a sequence at the head of the stack.
+      It pops the sequence and pushes the head of the sequence back on the
+      stack. If the value is not a sequence then the instruction sen-ds a
+      'head/0' message to the value.
+    end
+     
+    @Operation toString():String
+      "<Head>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

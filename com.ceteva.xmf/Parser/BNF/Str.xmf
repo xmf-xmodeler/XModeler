@@ -1,0 +1,55 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Str extends Recognizer
+  
+    // Succeeds when the next sequence of input characters 
+	// constitutes a string. Leaves the string on the stack.
+	//
+	// Constructor: Str()
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Str ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+
+	@Operation parse(machine)
+	  if machine.eof()
+	  then 
+	    if machine.grammar.debug then machine.debug("EOF encountered when expecting a string.") end;
+	    machine.fail()
+	  else 
+	    let token = machine.next()
+	    in if token->at(0) = 5
+	       then
+	         if machine.grammar.debug then machine.debug("Str succeeds: " + token->at(1)) end;
+	         machine.pushStack(token->at(1));
+	         machine.consumedChars := token->at(2)
+	       else
+	         if machine.grammar.debug then machine.debug("Fail: expecting a string, received " + token) end;
+	         machine.fail()
+	       end
+	    end
+	  end
+	end
+	  
+	@Operation toExp(FV:Set(String))
+	   [| Root::Parser::BNF::Str() |] 
+    end
+	  
+	@Operation transform(FV:Set(String),grammar):Recognizer
+	  self
+	end
+	   
+end

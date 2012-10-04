@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Compiler;
+
+context Compiler
+
+  @Class Symbol extends NamedElement
+  
+     // A symbol is a string that has been interned in the current machine. Two symbols
+     // with the same name must be == at run-time. Symbols are used as the keys into
+     // various lookup tables so that == can be used for lookup rather than char-by-char
+     // comparison.
+     
+     @Constructor(name) end
+     
+   end

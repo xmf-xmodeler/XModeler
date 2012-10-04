@@ -1,0 +1,81 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class DiagramStub extends SyncableDiagram, ElementViewer
+    
+    @Attribute mainHandler : Operation (?,!) end
+    @Attribute postHandler : Operation (?,!) end
+    @Attribute preHandler : Operation (?,!) end
+    @Attribute toolStub : Element (?,!) end
+    
+    @Constructor(name,element,mainHandler) end
+    
+    @Operation deleteCommand()
+      self.delete()
+    end
+
+    @Operation createToolStub()
+      self.toolStub := Tools::DiagramTools::Structure::ToolStub(element,self);
+      xmf.toolManager().addTool(toolStub);
+      self
+    end
+
+    @Operation delete()
+      //xmf.diagramManager().removeDiagram(self);
+      if toolStub <> null
+      then
+        xmf.toolManager().removeTool(toolStub)
+      end;
+      super()
+    end
+
+    @Operation doubleClick()
+      let diagram = self.show()
+      in
+        diagram.show()
+      end
+    end
+
+    @Operation refreshName()
+      self //over-rides normal Diagram behaviour
+    end
+
+    @Operation setDroppable()
+      self.dropEnabled := true
+    end
+
+    @Operation show()
+      // pre handling ...
+      if self.preHandler <> null
+      then self.preHandler.invoke(null,Seq{})
+      end;
+
+      // main handling ...
+      let diagramManager = xmf.diagramManager() then
+          elements = diagramManager.elementsFor(self);
+          diagram = self.mainHandler.invoke(null,Seq{element,name})
+      in
+        self.delete();
+        @For element in elements do
+          diagramManager.addDiagram(element,diagram)
+        end;
+        diagram.setName(name); // this forces a refresh on the diagram tab
+        if self.dropEnabled
+        then diagram.enableDrop()
+        end;
+
+        // post handling ...
+        if self.postHandler <> null
+        then self.postHandler.invoke(null,Seq{diagram})
+        end;
+        
+        diagram
+      end
+    end
+    
+  end

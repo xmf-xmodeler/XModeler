@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import StateMachines;
+import Parser::BNF;
+
+context StateMachines
+
+  @Class MessageArg
+    @Attribute value : Element end
+    @Constructor(value) end
+  end

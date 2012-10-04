@@ -1,0 +1,25 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckExp extends TypeCheckContainer
+  
+    @Attribute exp      : Performable (?) end
+    @Attribute type     : Classifier (?)  end
+    
+    @Constructor(exp,type) ! end
+    
+    @Constructor(exp,type,children) end
+
+    @Operation element()
+      self.exp
+    end
+    
+    @Operation label():String
+      exp.pprint().subst(" ","\n",true) + " [" + type.toString() + "]"
+    end
+    
+  end

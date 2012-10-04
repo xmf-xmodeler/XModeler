@@ -1,0 +1,14 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler OpType in PPrint(type,out,seen)
+  format(out,"(");
+  @For domain in type.domains do
+    self.dispatch(domain,out);
+    if not isLast then format(out,",") end
+  end;
+  format(out,") -> ");
+  self.dispatch(type.range,out)
+end;

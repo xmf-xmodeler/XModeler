@@ -1,0 +1,49 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Tools
+  Tools = @File Tools end
+  @File ToolButton end
+  @File CreationButton end
+  @File EdgeCreationButton end
+  @File NodeCreationButton end
+  @File ToolGroup end
+  @File ToolBar end
+  @File MenuItem end
+  @File MenuAction end
+  @File MenuType end
+  @File RightClickable end
+  @File DisplayType end
+  @File ToolComponentAttribute end
+  @File LayoutManager end
+  @File StandardLayoutManager end
+  @File Formatted end
+  @File Instantiable end
+  @File ToolComponentType end
+  @File Node end
+  @File NodeType end
+  @File LabelType end
+  @File EdgeType end
+  @File ToolSlot end
+  @File ToolObject end
+  @File EdgeObject end
+  @File Association end
+  @File SingletonSlot end
+  @File SequenceSlot end
+  @File Tool end
+  @File BoxType end
+  @File GroupType end
+  @File EllipseType end
+  @File ImageType end
+  @File BarType end
+  @File TextType end
+  @File ExpType end
+  @File ExpLabelType end
+  @File Handler end
+  @File ToolType end
+  @File Bootstrap end
+  @File Package end
+do Project(Tools,dir,self)
+end;

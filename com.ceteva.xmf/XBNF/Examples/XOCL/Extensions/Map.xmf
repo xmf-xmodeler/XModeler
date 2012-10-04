@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import OCL;
+import XOCL;
+
+context Map
+
+  @Grammar extends Class.grammar()
+    
+      Map ::= name = Name domains = Domains '->' range = Exp isAbstract = IsAbstract parents = Parents defs = Exp*
+      { Map(name,
+            [| XMap::Map |],
+            domains,
+            range,
+            isAbstract,
+            parents,
+            defs->reject(c | c.isKindOf(Clause)),
+            defs->select(c | c.isKindOf(Clause))) }.
+            
+      Domains ::= '(' d = Exp ds = (',' Exp)* ')' { Seq{d | ds} }.
+      
+    end
+    
+   

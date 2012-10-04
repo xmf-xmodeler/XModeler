@@ -1,0 +1,47 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XOCL
+  @File AbstractOp         end
+  @File For                end
+  @File AttributeGrammar   end
+  @File BindGrammar        end
+  @File Busy               end
+  @File CallCommand        end
+  @File CaseGrammar        end
+  @File CaseInt            end
+  @File CaseObj            end
+  @File ClassGrammar       end
+  @File Clause             end
+  @File Constraint         end
+  @File Constructor        end
+  @File Count              end
+  @File Doc                end
+  @File Enum               end
+  @File Env                end
+  @File Find               end
+  @File Fork               end
+  @File XBNFScanner        end
+  @File Grammar            end
+  @File Imports            end
+  @File Letrec             end
+  @File Map                end
+  @File NameSpace          end
+  @File PackageGrammar     end
+  @File Repeat             end
+  // @File Stats              end
+  // @File SendCommand        end
+  // @File Snapshot           end
+  // @File Todo		       end
+  @File SlotValueChanged end
+  @File TypeCase           end
+  @File WhileGrammar       end
+  @File WithOpenFile       end
+  @File WithoutRendering   end
+  @File WithoutDaemons     end
+  @File WithoutSourcePos end
+  //@File Grammar end
+end;
+    

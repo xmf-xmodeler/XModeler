@@ -1,0 +1,23 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Vector in Lift(v,arg,encountered)
+  if encountered
+  then
+    [| <arg>.ref(<IntExp(stack.indexOf(v))>) |]
+  else
+    stack.push(v);
+    let var = Var(self.newVar())
+    in [| <arg>.push(Vector(<IntExp(v.size())>));
+          let <var.name> = <arg>.top()
+          in
+            <0.to(v.size() - 1)->iterate(i exp = var |
+              [| <exp>;
+                 <var>.put(<IntExp(i)>,<self.dispatch(v.ref(i),arg)>) |])>
+          end |]
+    end
+  end
+end;
+ 

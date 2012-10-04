@@ -1,0 +1,13 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler ParametricType in PPrint(type,out,seen)
+  format(out,"~{::~;~S~}(",Seq{type.constructor});
+  @For arg in type.args do
+    self.dispatch(arg,out);
+    if not isLast then format(out,",") end
+  end;
+  format(out,")")
+end;

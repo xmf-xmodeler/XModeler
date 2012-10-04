@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ImportIn in AST(aImportIn,arg,seen)
+  let body = self.dispatch(aImportIn.body,arg);
+      nameSpace = self.dispatch(aImportIn.nameSpace,arg)
+  in ASTNode(aImportIn,Seq{nameSpace,body})
+  end
+end;

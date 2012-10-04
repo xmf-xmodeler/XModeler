@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Option isabstract
+  
+    @Attribute display : String end
+    @Attribute value : String end
+    
+  end

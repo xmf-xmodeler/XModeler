@@ -1,0 +1,29 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ToolDeployment;
+
+context ToolDeployment
+
+  @Class DeployedToolDescriptor extends NamedElement
+  
+    @Grammar extends OCL::OCL.grammar
+  
+      DeployedToolDescriptor ::= name = Name contents = Exp* {
+        contents->iterate(element exp = 
+          [| Clients::ToolDeployment::DeployedToolDescriptor(<OCL::StrExp(name)>) |] |
+          [| <exp>.add(<element>) |])
+      }.
+      
+    end
+    
+    @Attribute brandingProperties : Set(BrandingProperty) (+,-) end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        BrandingProperty do self.addToBrandingProperties(element) end
+      end
+    end
+ 
+  end

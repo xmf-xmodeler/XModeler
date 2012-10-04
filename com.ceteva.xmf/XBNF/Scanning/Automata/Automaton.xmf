@@ -1,0 +1,155 @@
+parserImport XOCL;
+
+import XBNF::Scanning::Automata;
+import Graphs;
+
+context ! XBNF::Scanning::Automata
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Automaton extends Graphs::Graph
+  
+    @Attribute closureCache : Table  = Table(100)  end
+    @Attribute recogTable   : Vector = Vector(256) end
+    
+    @Operation calcRecogTable()
+      @Count x from 0 to 255 do
+        Kernel_arraySet(recogTable,x,Set{})
+      end;
+      @For edge in edges do
+        @Count x from 0 to 255 do
+          if edge.data().recognizes(x)
+          then Kernel_arraySet(recogTable,x,recogTable.ref(x)->including(edge))
+          end
+        end
+      end
+    end
+    
+    @Operation closure(S:Set(Node))
+      if Kernel_tableHasKey(closureCache,S)
+      then Kernel_tableGet(closureCache,S)
+      else
+        let closure = self.calculateClosure(S)
+        in Kernel_tablePut(closureCache,S,closure);
+           closure
+        end
+      end
+    end
+    
+    @Operation calculateClosure(S:Set(Node))
+    
+      // Given a set of states, calculate the reachable states just
+      // following epsilon. This is used to calculate equivalent
+      // states when translating a NFA to a DFA.
+      
+      let T = S; Tprime = Set{}
+      in @Repeat
+           Tprime := T;
+           //T := Tprime->iterate(s S = Tprime | 
+           //  S + self.edges()->select(e | 
+           //    e.source() = s and e.data().of() = Epsilon)->map("target"))
+           T := Tprime->asSeq;
+           @For s in Tprime->asSeq do
+             @For edge in self.edges() do
+               if edge.source() = s and edge.data().of() = Epsilon
+               then T := Seq{edge.target() | T}
+               end
+             end
+           end;
+           T := T->asSet
+         until T = Tprime
+         end;
+         T
+      end
+    end
+    
+    @Operation DFAEdge(S:Set(State),c:Integer)
+    
+      // Given a set of edges, calculate the target states
+      // that can be reached by consuming the character c.
+      
+      let edgesRecognizingC = Kernel_arrayRef(recogTable,c)->asSeq;
+          targetNodes = Seq{}
+      in @For edge in edgesRecognizingC do
+           if S->includes(edge.source())
+           then targetNodes := Seq{edge.target() | targetNodes}
+           end
+         end;
+         self.closure(targetNodes->asSet)
+      end
+    end
+    
+    @Operation root()
+      self.roots()->sel
+    end
+  
+    @Operation scanningTable(trans,actions,rules)
+    
+      // Given a NFA calculate a scanning table for a DFA. The scanning table
+      // is two dimentional. The first dimension is the state number. The second
+      // dimention is the character code. To use a scanning table start in state 1
+      // (always the starting state) and consume a character from the input.
+      // Index into the current state and then char index to get the next state.
+      
+      @WithoutSourcePos
+      let states = Buffer(100,false);
+          p = 1;  // State table index.
+          j = 0;  // Transition table index.
+          chars = 0.to(255)
+      in self.calcRecogTable();
+         Kernel_arraySet(states,0,Set{});
+         Kernel_arraySet(states,1,self.closure(Set{self.root()}));
+         
+         // While we have created a new state...
+         
+         @While j <= p do
+           Kernel_arraySet(trans,j,Vector(256));
+           @Count c from 0 to 255 do
+           
+             // e represents the DFA state calculated from the NFA
+             // by coalescing all the states that can be referenced
+             // without consuming any input and states that can be
+             // reached by consuming the same input.
+             
+             let e = self.DFAEdge(Kernel_arrayRef(states,j),c)
+             in @Find(i,chars)
+             
+                  // If we already have this DFA state....
+                  when i <= p andthen Kernel_arrayRef(states,i) = e
+                  do Kernel_arraySet(Kernel_arrayRef(trans,j),c,i)
+                  
+                  // Else create a new state...
+                  else 
+                    p := p + 1;
+                    Kernel_arraySet(states,p,e);
+                    if e->exists(n | n.data().isKindOf(FinalNode))
+                    then 
+                      @Find(node,e)
+                        when node.data().isKindOf(FinalNode) andthen
+                             not e->exists(earlierNode |
+                               earlierNode.data().isKindOf(FinalNode) andthen
+                               earlierNode.data().action().order() < node.data().action().order() andthen
+                               not(earlierNode.data().action().isKindOf(XBNF::Scanning::Actions::Token) andthen earlierNode.data().action().name() = "Name"))
+                        do Kernel_arraySet(actions,p,node.data().action())
+                      end
+                    else Kernel_arraySet(actions,p,null)
+                    end;  
+                    Kernel_arraySet(Kernel_arrayRef(trans,j),c,p)
+                end
+             end
+           end;
+           j := j + 1
+         end;
+         trans
+      end
+      end
+    end           
+
+  end

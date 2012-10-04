@@ -1,0 +1,13 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler New_Clock()
+    let classNode = event.node() then
+        className = event.tool().element().newName("Clock") then
+        class = Clock(className)
+    in register(classNode,class);
+       event.tool().element().add(class)
+    end
+  end

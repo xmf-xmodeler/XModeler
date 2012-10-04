@@ -1,0 +1,174 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class ObservedNode extends ObservedClass
+
+    @Attribute node               : Node          (?,!)     end
+    @Attribute observedAttributes : Set(Attribute) (?,!,+,-) end
+    
+    @Constructor(node) ! end
+    
+    @Operation writeAtomicHandler(dir,toolDescriptorType,att,map,manifest)
+    
+      // The type of the observed attribute is not a collection...
+      
+      if map.isAttributeEdge(att)
+      then self.writeAtomicAttributeHandler(dir,toolDescriptorType,att,map,manifest)
+      elseif node.attributes()->includes(att)
+      then node.writeObservationHandlers(dir,toolDescriptorType,att,map,manifest)
+      end
+    end
+    
+    @Operation writeAtomicAttributeHandler(dir,toolDescriptorType,att,map,manifest)
+    
+      // The attribute is displayed as an edge. Handle changed
+      // to the slots by moving the edge about.
+      
+      let class = att.owner() then
+          handlerName = class.name() + "_Object_" + att.name() + "_Changed"
+      in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@Observer ~S::~S::Manager(~S) ~S !~%",Seq{map.class().path(),toolDescriptorType,class.path(),att.name()});
+           format(out,"  if isRegistered(object)~%");
+           format(out,"  then~%");
+           self.writeValueAdded(out,toolDescriptorType,att,map);
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end
+    
+    @Operation writeValueAdded(out,toolDescriptorType,att,map)
+    
+      // The code that processes a single value added to a slot. Can
+      // be used in a handle body where the new value is bound to the
+      // variable 'new'. If a single value has changed then the variable
+      // 'old' is bound to the original value otherwise it is null.
+      
+      format(out,"    @WithoutEvents(tool)~%");
+      format(out,"    @WithoutRendering(tool.diagram())~%");
+      format(out,"      let sourceNode = find(object);~%");
+      format(out,"          targetNode = ~%");
+      format(out,"            if isRegistered(new)~%");
+      format(out,"            then find(new)~%");
+      format(out,"            elseif new <> null~%");
+      format(out,"            then ~%");
+      format(out,"              let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,att.underlyingType().name()});
+      format(out,"              in register(node,new);~%");
+      format(out,"                 register(new,node);~%");
+      format(out,"                 node~%");
+      format(out,"              end~%");
+      format(out,"            else null~%");
+      format(out,"            end then~%");
+      format(out,"          edge = ~%");
+      format(out,"            if isRegisteredEdge(object,\"~S\",old)~%",Seq{att.name()});
+      format(out,"            then findEdge(object,\"~S\",old)~%",Seq{att.name()});
+      format(out,"            elseif isRegisteredEdge(object,\"~S\",new)~%",Seq{att.name()});
+      format(out,"            then findEdge(object,\"~S\",new)~%",Seq{att.name()});
+      format(out,"            elseif targetNode <> null~%");
+      format(out,"            then~%");
+      format(out,"              let edge = ~S::~S::Editor.edgeType(\"~S\").new(sourceNode.port(),targetNode.port(),tool)~%",Seq{map.class().path(),toolDescriptorType,map.attributeEdge(att).name()});
+      format(out,"              in register(edge,Seq{object,new,\"~S\"});~%",Seq{att.name()});
+      format(out,"                 edge~%");
+      format(out,"              end~%");
+      format(out,"            else null~%");
+      format(out,"            end~%");
+      format(out,"      in if targetNode = null~%~%");
+      format(out,"         then deregisterEdge(object,\"~S\",old);~%",Seq{att.name()});
+      format(out,"              if edge <> null~%");
+      format(out,"              then ~%");
+      format(out,"                deregister(edge);~%");
+      format(out,"                edge.delete()~%");
+      format(out,"              end~%");
+      format(out,"         else~%");
+      format(out,"           new.observeBy(tool);~%");
+      format(out,"           edge.targetReconnected(targetNode.port());~%");
+      format(out,"           deregisterEdge(object,\"~S\",old);~%",Seq{att.name()});
+      format(out,"           registerEdge(object,\"~S\",new,edge);~%",Seq{att.name()});
+      format(out,"           register(edge,Seq{object,new,\"~S\"})~%",Seq{att.name()});
+      format(out,"         end~%");
+      format(out,"      end~%");
+      format(out,"    end~%");
+      format(out,"    end~%")
+    end
+    
+    @Operation writeAttributeAddedHandler(dir,toolDescriptorType,att,map,manifest)
+      
+      // The attribute is displayed as an edge. Handle changed
+      // to the slots by moving the edge about.
+      
+      let class = att.owner() then
+          handlerName = class.name() + "_Object_" + att.name() + "_Added"
+      in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@Observer ~S::~S::Manager(~S) ~S +~%",Seq{map.class().path(),toolDescriptorType,class.path(),att.name()});
+           format(out,"  @For new in new when new.isKindOf(XCore::Object) do~%");
+           format(out,"    let old = null~%");
+           format(out,"    in~%");
+           self.writeValueAdded(out,toolDescriptorType,att,map);
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end
+    
+    @Operation writeAttributeRemovedHandler(dir,toolDescriptorType,att,map,manifest)
+      let class = att.owner() then
+          handlerName = class.name() + "_Object_" + att.name() + "_Removed"
+      in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@Observer ~S::~S::Manager(~S) ~S -~%",Seq{map.class().path(),toolDescriptorType,class.path(),att.name()});
+           format(out,"  @For old in old when old.isKindOf(XCore::Object) do~%");
+           format(out,"    if isRegisteredEdge(object,\"~S\",old)~%",Seq{att.name()});
+           format(out,"    then~%");
+           format(out,"      let edge = findEdge(object,\"~S\",old)~%",Seq{att.name()});
+           format(out,"      in edge.delete();~%");
+           format(out,"         deregister(edge);~%");
+           format(out,"         deregisterEdge(object,\"~S\",old)~%",Seq{att.name()});
+           format(out,"      end~%");
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end
+    
+    @Operation writeCollectionAttributeHandler(dir,toolDescriptorType,att,map,manifest)
+      self.writeAttributeAddedHandler(dir,toolDescriptorType,att,map,manifest);
+      self.writeAttributeRemovedHandler(dir,toolDescriptorType,att,map,manifest)
+    end
+    
+    @Operation writeCollectionHandler(dir,toolDescriptorType,att,map,manifest)
+      if map.isAttributeEdge(att)
+      then self.writeCollectionAttributeHandler(dir,toolDescriptorType,att,map,manifest)
+      elseif node.attributes()->includes(att)
+      then node.writeObservationHandlers(dir,toolDescriptorType,att,map,manifest)
+      end
+    end
+   
+    @Operation writeHandler(dir,toolDescriptorType,att,map,manifest)
+      if att.type = att.underlyingType()
+      then self.writeAtomicHandler(dir,toolDescriptorType,att,map,manifest)
+      else self.writeCollectionHandler(dir,toolDescriptorType,att,map,manifest)
+      end
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,map,manifest)
+      @For att in observedAttributes do
+        self.writeHandler(dir,toolDescriptorType,att,map,manifest)
+      end
+    end
+
+  end

@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+  @Class MkSymbol extends XarInstr
+    @Attribute name : String end
+    @Constructor(name) ! end
+  end

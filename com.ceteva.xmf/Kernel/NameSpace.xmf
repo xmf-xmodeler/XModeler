@@ -1,0 +1,209 @@
+parserImport XOCL;
+
+context NameSpace
+
+  // The following variable controls whether or not
+  // definitions will repopulate existing elements
+  // or will replace them. If it is set to true then
+  // the elements are replaced...
+  
+  @Bind replaceDefs = false end
+
+context NameSpace
+  @Operation add(element)
+    if element.isKindOf(Bind)
+    then 
+      self.addBinding(element)
+    elseif element.isKindOf(NamedElement)
+    then
+      element.setOwner(self);
+      contents.put(element.name,element);
+      Kernel_objSetSaveAsLookup(element,true);
+      self
+    else super(element)
+    end
+  end
+ 
+context NameSpace 
+  @Operation addBinding(binding:Bind)
+    self.bindings := bindings->including(binding);
+    binding.setOwner(self);
+    self
+  end
+  
+context NameSpace
+  @Operation redefine(newElement)
+  
+    // The newElement is assumed to have a clash with
+    // an existing defined element. NamedElement supports
+    // a repopulation protocol that returns true when the
+    // receiver has re-populated itself with the contents
+    // of the new element. If the repopulation returns 
+    // false then replace goes ahead via the 'add' operation.
+    
+    let oldElement = self.getElement(newElement.name)
+    in if oldElement.isKindOf(NamedElement) and oldElement.of() = newElement.of()
+       then 
+         if not oldElement.repopulate(newElement)
+         then self.add(newElement)
+         end
+       else self.add(newElement)
+       end
+    end
+  end
+  
+context NameSpace
+  @Operation define(element,nameSpace,isForward)
+  
+    // Called when an element id defined in a container.
+    // If the element is named and the container is a 
+    // namespace then check to see if the element is being
+    // redefined. The isForward flag is used to determine
+    // whether or not to call init on the element, when 
+    // a definition is initialised, all type references are
+    // resolved. Returns the element that is defined...
+    
+    let isNamedElement = element.isKindOf(NamedElement) then
+        defineNamedElement = isNamedElement and nameSpace.isKindOf(NameSpace) 
+    in if defineNamedElement
+       then
+         if nameSpace.hasElement(element.name) and NameSpace::replaceDefs
+         then nameSpace.redefine(element)
+         else nameSpace.add(element)
+         end
+       else nameSpace.add(element)
+       end;
+       if not isForward
+       then 
+         if defineNamedElement andthen nameSpace.hasElement(element.name)
+         then nameSpace.getElement(element.name).init()
+         else element.init()
+         end
+       else 
+         if defineNamedElement andthen nameSpace.hasElement(element.name)
+         then nameSpace.getElement(element.name)
+         else element
+         end
+       end
+    end
+  end
+  
+context NameSpace
+  @Operation getContents(name):Element
+    contents.get(name)
+  end  
+
+context XCore::NameSpace
+  @Operation getInstantiableClasses()
+    self.contents()->select(c | c <> null andthen c.isKindOf(XCore::Class) andthen not c.isAbstract)
+      - if self = XCore
+        then
+          Set{// the following cannot be created by raw instantiation
+              // or cannot supported by snapshot diagrams...
+            BasicArray,Bind,Buffer,Classifier,CodeBox,Collection,
+            CompiledOperation,Constructor,Daemon,Doc,Exception,
+            ForeignOperation,InitialisedAttribute,InterpretedOperation,
+            MachineException,Operation,Parameter,Seq,Set,Snapshot,SnapshotSet }
+        else Set{}
+        end
+  end
+
+context NameSpace
+  @Operation init()
+    // We must map over a namespace and check to see if
+    // there are any bindings. If so then the binding
+    // values may have been delayed by the compiler by
+    // wrapping them up as an operator.
+    super(); 
+    self.initBindings()
+  end
+  
+context NameSpace
+  @Operation init(args)
+    self.init();
+    self.imports := imports->including(XCore)->including(Root);
+    if args->size > 0
+    then 
+      if args->at(0).isKindOf(String)
+      then 
+        super(args);
+        self.setName(args->at(0))
+      else super(args)
+      end
+    else super(args)
+    end;
+    self
+  end
+  
+context NameSpace
+  @Operation initBindings()
+    let elements = bindings->asSeq
+    in @While not elements->isEmpty do
+         elements->head.init();
+         elements := elements->tail
+       end;
+       self
+    end
+  end
+
+context NameSpace
+  @Operation nameChanged(namedElement,newName,oldName)
+    contents.remove(oldName);
+    contents.remove(newName);
+    contents.put(newName,namedElement)
+  end
+  
+context NameSpace
+  @Operation names():Set(String)
+    self.contents.keys()
+  end
+  
+context NameSpace
+  @Operation newName(root:String):String
+  
+    // Generate a new name that does not clash with any name
+    // in the name space. The supplied string is the prefix of
+    // the name. Names are suffixed with numbers.
+    
+    let index = 0
+    in @While self.hasElement(root + index.toString()) do
+         index := index + 1
+       end;
+       root + index.toString()
+    end
+  end
+  
+context NameSpace
+  @Operation putElement(name:String,value:Element)
+    if name.isKindOf(Symbol) 
+    then 
+      contents.put(name,value);
+      self
+    else 
+      contents.put(Symbol(name),value);
+      self
+    end
+  end
+  
+context NameSpace
+  @Operation remove(element)
+    if element.isKindOf(NamedElement)
+    then 
+      if contents.hasKey(element.name())
+      then 
+        element.removeFromOwner();
+        contents.remove(element.name())
+      else super(element)
+      end
+    else super(element)
+    end
+  end
+
+context NameSpace
+  @Operation resolveNameClash(name,collection)
+    @Find(e,collection)
+      when e.isKindOf(NamedElement) andthen e.name = name
+      do self.remove(e)
+    end;
+    self
+  end

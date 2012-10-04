@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XMap
+  @File SyncPackage end
+  @File Sync end
+  @File SyncContainerAction end
+  @File AddAction end
+  @File AddLeft end
+  @File AddRight end
+  @File DeleteAction end
+  @File DeleteLeft end
+  @File DeleteRight end
+  @File Mapping end
+  @File Clause end
+  @File Map end
+  @File SlotValueChanged end
+  @File SyncContainers end
+do
+  Project(XMap,dir,self)
+end;

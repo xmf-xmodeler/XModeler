@@ -1,0 +1,204 @@
+parserImport XOCL;
+
+import IO;
+import Parser::Machine;
+import OCL;
+import Env;
+import TopLevel;
+
+context TopLevel
+
+  @Class Loop
+  
+    @Doc
+       Create an instance of Loop and supply an input channel.
+       This returns a command interpreter for the input channel.
+       Start the command interpreter using 'loop/0'. The attributes
+       of the class control the context and behaviour of the 
+       command interpreter.
+    end
+    
+    @Bind level = 1 end
+     
+    @Attribute inputChannel  : InputChannel             end
+    @Attribute outputChannel : OutputChannel            end
+    @Attribute prompt        : String                   end
+    @Attribute env           : Env::Env                 end
+    @Attribute target        : Element                  end
+    @Attribute imports       : Seq(NameSpace) (!,?)     end
+    @Attribute grammar       : Parser::BNF::Grammar (!) end
+    @Attribute startNT       : String (!)               end
+    @Attribute printBanner   : Boolean (!)              end
+    @Attribute terminated    : Boolean                  end
+    @Attribute returnValue   : Element                  end
+    @Attribute value         : Element                  end
+    @Attribute lastValue     : Element                  end
+    @Attribute lastLastValue : Element                  end
+    
+    @Constructor(inputChannel,outputChannel) !  
+      @Doc
+        Create a top level loop whose input and output are bound to
+        the given channel. Assume that this loop is a fresh start. Use
+        other constructors to create top level loops that are initialised
+        with a given context.
+      end
+      self.prompt := "XMF> ";
+      self.env := NullEnv();
+      self.target := self;
+      self.imports := Seq{XCore,Root};
+      self.grammar := Command.grammar;
+      self.startNT := "Command";
+      self.printBanner := true
+    end
+     
+    @Constructor(prompt,env,target,inputChannel,outputChannel) 
+      @Doc
+        A top level loop that is initialised with the supplied
+        context. Use the updaters to set the values of various
+        control attributes of this class. Default values are set
+        in this constructor to import XCore and Root and to parse
+        top level commands (including expressions).
+      end
+      self.imports := Seq{XCore,Root};
+      self.grammar := Command.grammar;
+      self.startNT := "Command"
+    end
+    
+    @Operation deleteNameSpace(nameSpace:NameSpace)
+      self.imports := imports->excluding(nameSpace)
+    end
+    
+    @Operation exitOperation()
+      @Operation exit()
+        self.terminated := true
+      end
+    end
+     
+    @Operation handleException(exception)
+      try
+        format(outputChannel,"~%Error: ");
+        format(outputChannel,exception.message);
+        format(outputChannel,"~%Source file position: line = ~S, char = ~S~%",Seq{exception.lineCount,exception.charCount});
+        if exception.resourceName <> "" then format(outputChannel,"Resource name = ~S~%",Seq{exception.resourceName}) end;
+        format(outputChannel,"~%The following backtrace shows recent message calls:~%~%");
+        xmf.raise(exception);
+        format(outputChannel,"~%")
+      catch(exception)
+        format(outputChannel," **** Error reporting top level error! ***~%")
+      end
+    end
+    
+    @Operation importNameSpace(nameSpace:NameSpace)
+      // Import the name space into the top level.
+      self.imports := imports->including(nameSpace)
+    end
+  
+    @Operation loop()
+    
+       @Doc
+         Start the command interpreter. The interpreter will continually
+         parse input from the input channel using the supplied grammar and
+         starting non terminal. Each command must be performable - it is
+         interpreted using 'eval/3'. The value is then printed. Any errors
+         are trapped and a backtrace is printed. Use 'exit/0' to leave the
+         loop and 'return/1' to exit and return a specific value.
+       end
+       
+       let state = State(grammar,inputChannel);
+           promptString = "[" + Loop::level.toString() + "] " + prompt;
+           env = self.loopEnv()
+       in if printBanner then self.printBanner() end;
+          Loop::level := Loop::level + 1;
+          @While not terminated do
+            try 
+              self.readEvalPrint(state,promptString,env)
+            catch(exception)
+              self.handleException(exception);
+              state.resetInputChannel(inputChannel)
+            end
+          end;
+          Loop::level := Loop::level - 1;
+          returnValue
+       end
+     end
+     
+     @Operation loopEnv()
+       env
+         .bind("exit",self.exitOperation())
+         .bind("return",self.returnOperation())
+     end
+     
+     @Operation printBanner()
+       let input = FileInputChannel(xmf.homeDir() + "/TopLevel/XMF.txt")
+       in @While not input.eof() do
+             let char = input.read()
+             in outputChannel.write(char)
+             end
+          end;
+          input.close();
+          format(outputChannel,"~S (Built on ~S)~%",Seq{xmf.date(),xmf.buildDate()});
+          format(outputChannel,"~%Version ~S~%~%",Seq{xmf.version()});
+          format(outputChannel,"Type ?h for top level help.~%~%")
+       end
+     end
+     
+     @Operation read(state)
+     
+       // Reads a top-level command. If an error occurs then this
+       // operation deals with the error and returns null otherwise
+       // it returns the command.
+       
+       let command = 
+             try 
+               state.run(startNT)
+             catch(exception)
+               state.grammar := grammar;
+               throw exception
+             end
+       in if state.failed
+          then 
+            state.parseError("Syntax error in top level.");
+            state.resetInputChannel(inputChannel);
+            state.reset();
+            state.grammar := grammar;
+            null
+          else command
+          end
+       end
+     end
+     
+     @Operation readEvalPrint(state,promptString,env)
+     
+       @Doc
+         Read a command from the input channel, parse using the grammar
+         eval and then print out the result.
+       end
+       
+       format(outputChannel,promptString);
+       outputChannel.flush();
+       let command = self.read(state)
+       in if command <> null
+          then
+            let env = env.bind("xx",xmf.exception)
+                       .bind("v0",self.value)
+                       .bind("v1",self.lastValue)
+                       .bind("v2",self.lastLastValue) then
+                result = command.eval(target,env,imports)
+            in self.lastLastValue := lastValue;
+               self.lastValue := value;
+               self.value := result;
+               format(outputChannel,"~S~%",Seq{result});
+               state.resetInputChannel(inputChannel)
+            end
+          end
+       end
+     end
+     
+     @Operation returnOperation()
+       @Operation return(value)
+         self.returnValue := value;
+         self.terminated := true
+       end
+     end
+     
+   end 

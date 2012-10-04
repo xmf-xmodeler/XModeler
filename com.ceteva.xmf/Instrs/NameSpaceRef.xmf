@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class NameSpaceRef extends Instr
+  
+    @Doc
+       A name space contains definitions. When a name space and its definitions
+       are statically defined, it is possible for the definitions to be mutually
+       recursive. Each name is scoped over all the other definitions in the name
+       space. Since name spaces can contain nested name spaces, names are scoped over 
+       nested definitions. This machine instruction is used to index a name that
+       is statically declared in an enclosing name space. Name space contents are
+       linked to their enclosing name space using their 'owner' slot. The instruction
+       contains two operands in the instruction word. The contour defines how many
+       'owner' slots must be traversed to get to the appropriate name space. The name 
+       to reference is given by the second operand which is an offset into the current
+       constants array in the stack frame. The instruction either signals an error
+       if the name is not found or pushes the value of the name space reference 
+       onto the stack.
+     end
+  
+    @Attribute contour : Integer end // How many containing name spaces we should traverse.
+    @Attribute name : String end     // The name to reference in the name space.
+    @Attribute nameOffset : Integer end
+    
+    @Constructor(name,contour) end
+    
+    @Operation toString():String
+      "<NameSpaceRef " + contour + ":" + name.toString() + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.nameOffset := codeBox.symbolOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      Kernel_mk24bit(contour,nameOffset.byte(1),nameOffset.byte(2))
+    end
+    
+  end
+  

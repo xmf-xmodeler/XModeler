@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class EdgeCreationButton extends CreationButton
+  
+    @Constructor(name,icon)
+      self.isEdge := true;
+      self.handler := 
+        let this = self
+        in @Operation edgeCreationHandler(tool,source,target)
+             tool.newEdge(this.name,source,target)
+           end
+        end
+    end
+    
+  end
+  

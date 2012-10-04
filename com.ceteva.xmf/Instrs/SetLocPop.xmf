@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SetLocPop extends Instr
+  
+    @Doc
+      Sets the value of the local at the given offset in the
+      current stack frame to be the value at the head of the 
+      stack and then pops the value. Combines the two instructions
+      SetLocal and Pop.
+    end
+  
+    @Attribute name : String end
+    @Attribute offset : Integer end
+    
+    @Constructor(name,offset) end
+    
+    @Operation toString():String
+      "<SetLocPop " + name + "," + offset + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      offset
+    end
+    
+  end
+  

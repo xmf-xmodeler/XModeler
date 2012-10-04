@@ -1,0 +1,212 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import Comms;
+import IO;
+import XML;
+import Generator;
+
+context Wizard
+
+  @Class Client
+  
+    @Attribute commandsPort   : Integer end
+    @Attribute guiPort        : Integer end
+    @Attribute commandsInput  : InputChannel end
+    @Attribute commandsOutput : OutputChannel end
+    @Attribute input          : InputChannel end
+    @Attribute output         : OutputChannel end
+    @Attribute dir            : String (!) end
+    
+    @Constructor(commandsPort,guiPort) ! end
+    
+    @Operation startCommands()
+      let server = Server(commandsPort)
+      in format(stdout,"Waiting on ~S~%",Seq{commandsPort});
+         server.accept();
+         format(stdout,"Connected to Command Interpreter~%");
+         self.commandsInput := server.input;
+         self.commandsOutput := server.output;
+         @While true do
+           let command = self.read(commandsInput)
+           in format(commandsOutput,"SEND: ~S(~S)~%",Seq{command->at(0),command->at(1)});
+              format(output,"~S(~S)",Seq{command->at(0),command->at(1)});
+              output.flush()
+           end
+         end
+      end
+    end
+    
+    @Operation startGUI()
+      let server = Server(guiPort)
+      in format(stdout,"Waiting on ~S~%",Seq{guiPort});
+         server.accept();
+         format(stdout,"Connected to GUI~%");
+         self.input := server.input;
+         self.output := server.output
+      end
+    end
+    
+    @Operation send(command,args)
+      format(output,"~S(~{,~;~S~})~%",Seq{command,args});
+      format(commandsOutput," Sent ~S(~{,~;~S~}) to GUI~%",Seq{command,args})
+    end
+    
+    @Operation read()
+      self.read(input)
+    end
+    
+    @Operation read(input)
+      let command = "";
+          done = false;
+          result = null;
+          LPAREN = "("->at(0)
+      in @While not done do
+           let c = input.read()
+           in if c = LPAREN
+              then 
+                result := Seq{command,self.readArg(input)};
+                done := true
+              else 
+                if not c.isWhiteSpaceChar()
+                then command := command + Seq{c}->asString
+                end
+              end
+           end
+         end;
+         result
+      end
+    end
+    
+    @Operation readArg(input)
+      let arg = "";
+          RPAREN = ")"->at(0);
+          done = false
+      in @While not done do
+           let c = input.read()
+           in if c = RPAREN
+              then done := true
+              else arg := arg + Seq{c}->asString
+              end
+           end
+         end;
+         arg
+      end
+    end
+    
+    @Operation readXML(file)
+      try
+        let fin = FileInputChannel(dir + file) then
+            xin = XMLInputChannel(fin) then
+            xml = xin.read() then
+            data = XMLToWizard(xml.root)
+        in xin.close();
+           data
+        end
+      catch(exception)
+        format(commandsOutput,"~S~%",Seq{exception})
+      end
+    end
+    
+    @Operation report(id,op)
+      // Wait for a report string result with id then
+      // call the operation.
+      self.wait(@Operation(message)
+        format(commandsOutput,"got ~S~%",Seq{message});
+        if message->head = "Report_String_Result"
+        then
+          let reportId = message->at(1)
+          in if reportId = id
+             then op()
+             else self.report(id,op)
+             end
+          end
+        else self.report(id,op)
+        end
+      end)
+    end
+    
+    @Operation sendData(op)
+      // Request the data in the current GUI and supply it to
+      // the given operation.
+      self.send("Send_Data",Seq{});
+      self.waitForDataSent(op)
+    end
+     
+    @Operation waitForDataSent(op)
+      self.wait(
+        @Operation(message)
+          format(commandsOutput,"got ~S~%",Seq{message});
+          if message->head = "Data_Sent"
+          then 
+            try
+              let file = message->at(1)
+              in op(self.readXML(file))
+              end
+            catch(exception)
+              format(commandsOutput,"~S~%",Seq{exception})
+            end 
+          else self.waitFordataSent(op)
+          end
+        end)
+    end
+    
+    @Operation valueOf(reportId,valueId)
+      // Wait for some data defined by the reportId.
+      // Read in the data and return the value
+      // of the element with the given valueId.
+      format(commandsOutput,"valueOf: ~S ~S~%",Seq{reportId,valueId});
+      self.wait(@Operation(message)
+        format(commandsOutput,"got ~S~%",Seq{message});
+        if message->head = "Report_String_Result"
+        then
+          let id = message->at(1)
+          in if reportId = id
+             then self.send("Send_Data",Seq{});
+                  self.wait(
+                    @Operation(message)
+                      format(commandsOutput,"got ~S~%",Seq{message});
+                      if message->head = "Data_Sent"
+                      then 
+                        try
+                          let file = message->at(1) then
+                              gui = self.readXML(file) then
+                              element = gui.find(valueId)
+                          in format(commandsOutput,"Found element ~S with id ~S~%",Seq{element,valueId});
+                             element.value
+                          end
+                        catch(exception)
+                          format(commandsOutput,"~S~%",Seq{exception})
+                        end
+                      else self.valueOf(reportId,valueId)
+                      end
+                    end)
+             else self.valueOf(reportId,valueId)
+             end
+         end
+        end
+      end)
+    end
+  
+    @Operation wait(handler)
+      // Wait for the next event from the GUI and
+      // pass the event to the handler.
+      handler(self.read())
+    end
+    
+    @Operation writeXML(file,data)
+      let out = FileOutputChannel(dir + file)
+      in self.XMLHeader(out);
+         data.toXML(IdTable()).print(out);
+         out.close()
+      end
+    end
+    
+    @Operation XMLHeader(out)
+      format(out,"<?xml version='1.0' standalone='yes'?>")
+    end
+  
+    
+  end 
+  

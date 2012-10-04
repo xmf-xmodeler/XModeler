@@ -1,0 +1,19 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+context XML::Parser
+
+  @Class EventManager extends NameSpace
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      EventManager ::= name = Name handlers = Exp* {
+      
+        handlers->iterate(handler e = [| XML::Parser::EventManager(<OCL::StrExp(name)>) |] |
+          [| <e>.add(<handler>) |])
+          
+      }.
+      
+    end
+    
+  end

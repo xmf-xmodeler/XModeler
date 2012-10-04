@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DraggableClientElement isabstract extends ContainedClientElement, DragHandler
+
+    @Attribute dragEnabled : Boolean (?,!) end
+    
+    @Operation enableDrag()
+      if not self.dragEnabled()
+      then
+        self.setDraggable()
+      end
+    end
+
+    @Operation setDraggable()
+      self.dragEnabled := true;
+      self.commandInterpreter().enableDrag(self)
+    end
+    
+  end

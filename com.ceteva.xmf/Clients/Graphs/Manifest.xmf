@@ -1,0 +1,12 @@
+parserImport Manifests;
+
+@Manifest Graphs
+
+  Graphs = @File Graphs end
+           @File ColorGenerator end
+           @File Line   end
+           @File Label  end
+           @File Canvas end
+           @File Graph  end
+do Graphs
+end;

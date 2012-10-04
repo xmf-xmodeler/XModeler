@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+context Root
+
+  @Class WithoutDaemons
+  
+    @Attribute body : Seq(Performable) end
+    
+    @Grammars::Grammar extends Performable
+      WithoutDaemons ::= Exp*
+        new(Root::WithoutDaemons)
+        update("body",$1).
+    end
+    
+    @Operation desugar()
+      [| Kernel_daemonsOff();
+         let result = <body->iterate(e exp = [| 0 |] | [| <exp>; <e> |])>
+         in Kernel_daemonsOn(); result
+         end
+      |]
+    end
+    
+    @Operation FV()
+      self.desugar().FV()
+    end
+    
+    @Operation maxLocals()
+      self.desugar().maxLocals()
+    end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      self.desugar().compile(env,frame,isLast,saveSource)
+    end
+    
+  end

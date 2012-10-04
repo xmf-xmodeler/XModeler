@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import IO;
+import Projects;
+import Exceptions;
+import Manifests;
+
+context Projects
+
+  @Class ProjectManagerContainer extends ProjectManager
+  
+    @Doc
+      A project manager container has a collection of project managers. This is 
+      distinct from a project manager in that it is not inten-ded to contain 
+      projects directly. Currently this is enforced only by a more restricted
+      set of menus for user interaction 
+    end
+    
+  end 

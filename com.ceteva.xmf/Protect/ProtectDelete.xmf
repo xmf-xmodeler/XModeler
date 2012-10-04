@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+context Contained
+  let delete = Contained::delete_client_check
+  in @Operation delete_client_check()
+       if self.isDeleteProtected()
+       then xmf.warning("This is a protected element and cannot be deleted.");
+            false
+       else delete.invoke(self,Seq{})
+       end
+     end
+  end
+
+context Projects::Project
+  @Operation delete_client_check()
+    if self.package.isDeleteProtected()
+    then xmf.warning("This is a protected project and cannot be deleted.");
+         false
+    else super()
+    end
+  end

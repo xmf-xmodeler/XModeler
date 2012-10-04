@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Comms;
+import TopLevel;
+import IO;
+
+context XMF
+  @Operation bootDiagrams()
+    try 
+        let diagramClient = Clients::Diagrams::DiagramClient("com.ceteva.diagram") then
+            mappingClient = Clients::ClassMapping::MappingClient("com.ceteva.classMapping",diagramClient);
+            mapClient = Clients::MappingMapping::MappingClient("com.ceteva.mappingMapping",diagramClient);
+            snapClient = Clients::SnapshotMapping::MappingClient("com.ceteva.snapshots",diagramClient)
+        in xmf.clientManager().add(diagramClient);
+           xmf.clientManager().add(mappingClient);
+           xmf.clientManager().add(mapClient);
+           xmf.clientManager().add(snapClient);
+           @Fork(Diagrams)
+             diagramClient.start()
+           end
+        end
+    catch(exception)
+      format(stdout,"~S~%",Seq{exception})
+    end
+  end

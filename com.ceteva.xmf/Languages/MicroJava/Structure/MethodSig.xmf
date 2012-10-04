@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+
+context Structure
+
+  @Class MethodSig extends Feature
+  
+    @Attribute modifiers : Modifiers end
+    @Attribute type      : Type end
+    @Attribute name      : String end
+    @Attribute formals   : Seq(Formal) end
+    @Attribute throws    : Seq(Path) end
+    
+    @Constructor(modifiers,type,name,formals,throws) ! end
+    
+    @Operation pprintPre(out,indent)
+      modifiers.pprint(out);
+      type.pprint(out);
+      format(out," ~S",Seq{name});
+      if formals.isKindOf(Seq(Element))
+      then
+        format(out,"(");
+        @For f in formals do
+          f.pprint(out);
+          if not isLast then format(out,",") end
+        end;
+        format(out,")")
+      else formals.pprint(out,indent)
+      end;
+      if not throws->isEmpty
+      then 
+        format(out," throws ");
+        @For path in throws do
+          format(out,"~{.~;~S~}",Seq{path});
+          if not isLast 
+          then format(out,",") 
+          end
+        end
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      self.pprintPre(out,indent);
+      format(out,";")
+    end
+    
+  end

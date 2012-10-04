@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context WithOpenFile
+
+  @Grammar extends O
+     
+       WithOpenFile ::= '(' channel = Name mode = Mode file = Exp ')' body = Exp 'end' {
+       
+         WithOpenFile(channel,mode,file,body)
+         
+       }.
+       
+       Mode ::= '->' { "->" } | '<-' { "<-" }.
+       
+    end

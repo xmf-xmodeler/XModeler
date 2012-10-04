@@ -1,0 +1,69 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+  
+context Entries    
+  @Operation addHandlers(displayEngine)
+    @For entry in entries
+    do entry.addHandlers(displayEngine)
+    end
+  end
+  
+context Entry    
+  @Operation addHandlers(displayEngine)
+    self
+  end
+  
+context Font    
+  @Operation addHandlers(displayEngine)
+    entry.addHandlers(displayEngine)
+  end
+  
+context List    
+  @Operation addHandlers(displayEngine)
+    @For entry in entries
+    do entry.addHandlers(displayEngine)
+    end
+  end
+  
+context Page    
+  @Operation addHandlers(displayEngine)
+    @For entry in entries
+    do entry.addHandlers(displayEngine)
+    end
+  end
+  
+context Para    
+  @Operation addHandlers(displayEngine)
+    @For entry in entries
+    do entry.addHandlers(displayEngine)
+    end
+  end
+  
+context Row    
+  @Operation addHandlers(displayEngine)
+    @For col in cols
+    do col.addHandlers(displayEngine)
+    end
+  end
+  
+context Table    
+  @Operation addHandlers(displayEngine)
+    @For row in rows
+    do row.addHandlers(displayEngine)
+    end
+  end
+
+context ActiveText
+  @Operation addHandlers(displayEngine)
+    displayEngine.addPageHandler(id,select)
+  end
+  
+context Form
+  @Operation addHandlers(displayEngine)
+    displayEngine.addFormHandler(handler)
+  end
+  
+    

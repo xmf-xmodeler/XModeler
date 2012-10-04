@@ -1,0 +1,20 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import StateMachines;
+
+context StateMachines::StateMachine
+  @ToolDescriptor StateDiagrams
+    @Bind TransitionNames =
+      @Grammar
+        TransitionName ::= n = OptName args = Args { Seq{n | args} }.
+        OptName ::= Name | { "" }.
+        Args ::= SomeArgs | NoArgs.
+        NoArgs ::= '(' ')' { Seq{} }.
+        SomeArgs ::= '(' a = Arg as = (',' Arg)* ')' { Seq{a | as} }.
+        Arg ::= n = Name ':' t = Type { Arg(n,t) }.
+        Type ::= n = Name { NamedType(n) } | 'Seq' '(' t = Type ')' { SeqType(t) }.
+      end
+    end
+  end

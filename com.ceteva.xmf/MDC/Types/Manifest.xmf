@@ -1,0 +1,26 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest MDC
+  p = @File Types end
+  @File AbstractMappingType end
+  @File SlotMonitor end
+  @File CreationMonitor end
+  @File Display_x_Display end
+  @File Ref_x_Display end
+  @File Box_x_Box end
+  @File Element_x_Edge end
+  @File Attribute_x_Edge end
+  @File Label_x_Label end
+  @File Attribute_x_Display end
+  @File Free_x_Node end
+  @File Root_x_Node end
+  @File RootElementType end
+  @File RootElementTypeNameSpace end
+  @File Class_x_Edge end
+  @File Attribute_x_Label end
+  @File Classifier_x_Display end
+  @File Classifier_x_Node end
+  @File ContainerType end
+do p
+end;

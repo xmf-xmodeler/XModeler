@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+context Root
+  @Package Filmstrips
+    @Class Note isabstract
+      @Attribute text : String end
+    end
+    @Class Object 
+      @Attribute slots : Seq(Slot) end
+      @Attribute type : String end
+      @Attribute id : String end
+      @Attribute notes : Seq(ObjectNote) end
+    end
+    @Class ObjectNote extends Note end
+    @Class Slot
+      @Attribute name : String end
+      @Attribute type : Filmstrips::Type end
+      @Attribute value : String end
+    end
+    @Enum Type(String,Int,Bool,Float) end
+    @Class Link
+      @Attribute type : String end
+      @Attribute end1 : LinkEnd end
+      @Attribute end2 : LinkEnd end
+    end
+    @Class LinkEnd
+      @Attribute name : String end
+      @Attribute value : Object end
+    end
+    @Class Snapshot
+      @Attribute name : String end
+      @Attribute model : Model = Model() end
+      @Attribute notes : Seq(SnapshotNote) end
+    end
+    @Class SnapshotNote extends Note end
+    @Class Model 
+      @Attribute objects : Seq(Object) end
+      @Attribute links : Seq(Link) end
+    end
+    @Class Filmstrip
+      @Attribute snapshots : Seq(Snapshot) end
+      @Attribute steps : Seq(Step) end
+    end
+    @Class Step
+      @Attribute pre : Snapshot end
+      @Attribute post : Snapshot end
+      @Attribute description : String end
+    end
+  end

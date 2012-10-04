@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Languages::MicroJava;
+
+context Package
+  @Operation toJava()
+    let units = classes->collect(c | c.toJava())
+    in Structure::Package(name,units->asSeq)
+    end
+  end
+  
+context Class
+  @Operation toJava()
+    let imports = Seq{};
+        implements = Seq{};
+        parent = 
+          if parents->isEmpty 
+          then null
+          else Seq{parents->sel.name}
+          end;
+        features = attributes->collect(a | a.toJava())->asSeq + operations->collect(m | m.toJava())->asSeq
+    in Structure::CompilationUnit(imports,Structure::Class(name,isAbstract,implements,parent,features))
+    end
+  end
+  
+context Classifier
+  @Operation toJavaType()
+    @Case self of
+      [Boolean] do Structure::NamedType(Seq{"boolean"}) end
+      [Integer] do Structure::NamedType(Seq{"int"})     end
+      [Float]   do Structure::NamedType(Seq{"float"})   end
+      [String]  do Structure::NamedType(Seq{"String"})  end
+      Set(T)    do Structure::NamedType(Seq{"Vector"})  end
+      Seq(T)    do Structure::NamedType(Seq{"Vector"})  end
+      else         Structure::NamedType(Seq{name})
+    end
+  end
+  
+context Attribute
+  @Operation toJava()
+    let modifiers = Structure::Modifiers("private",false,false)
+    in Structure::Field(modifiers,type.toJavaType(),name,null)
+    end
+  end
+  
+context Operation
+  @Operation toJava()
+    let modifiers = Structure::Modifiers("private",false,false);
+        formals = self.paramNames().zip(self.paramTypes())->collect(a | Structure::Formal(a->tail.toJavaType(),a->head))
+    in Structure::Method(modifiers,self.type().toJavaType(),name,formals,Seq{},Statements::Block(Seq{}))
+    end
+  end
+    

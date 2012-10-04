@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class ClassifierXInheritanceEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute child : XCore::Classifier end
+    @Attribute parent : XCore::Classifier end
+    @Attribute edge : InheritanceEdge (?) end
+    
+    @Constructor(child,parent,edge) !
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Classifier,edge.of()})
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false)
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",RightClickableProxy::proxyTarget,Seq{},ClassifierXInheritanceEdge::delete));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+    
+    @Operation childChangedDaemon(edge,slot,newPort,oldPort)
+      owner.inheritanceSourceChanged(self,newPort.owner)
+    end
+    
+    @Operation checkDaemons()
+      @SlotValueChanged multi once ClassifierXInheritanceEdge::childChangedDaemon(edge,"source")  end;
+      @SlotValueChanged multi once ClassifierXInheritanceEdge::parentChangedDaemon(edge,"target") end
+    end
+    
+    @Operation delete()
+      child.removeParent(parent)
+    end
+    
+    @Operation deleteEdgeFromDiagram()
+      edge.delete();
+      self.owner.remove(self)
+    end
+    
+    @Operation element()
+      Seq{child,parent}
+    end
+    
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Classifier,edge.of()},false)
+    end
+    
+    @Operation parentChangedDaemon(edge,slot,newPort,oldPort)
+      owner.inheritanceTargetChanged(self,newPort.owner)
+    end
+    
+    @Operation removeDaemons()
+      // Called to tidy up when the mapping is no longer valid.
+      edge.removeDaemonsWithTarget(self,true)
+    end
+    
+  end

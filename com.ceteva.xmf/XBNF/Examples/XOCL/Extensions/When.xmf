@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import IO;
+
+context XOCL
+
+  @Class When extends Sugar
+  
+    @Doc
+      This class defines a new syntax construct that allows
+      conditional statements. The body of the when-statement
+      is performed providing that the guard evaluates to true.
+      Otherwise the string GUARD FAILS is returned.
+    end
+  
+    @Attribute guard : Performable end
+    @Attribute body  : Performable end
+    
+    @Constructor(guard,body) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      When ::= guard = Exp 'do' body = Exp {
+        When(guard,body)
+      }.
+      
+    end
+    
+    @Operation desugar():Peformable
+    
+      // A sub-class of Sugar must implement a desugar
+      // operation that produces a performable element.
+      // To evaluate an instance of a sugared class the
+      // XMF evaluation/compilation mechanism uses desugar
+      // to produce a performable element that it already
+      // knows how to evaluate or compile.
+      
+      [| if <guard> 
+         then <body> 
+         else "GUARD FAILS" 
+         end 
+      |]
+    end
+    
+    @Operation pprint(out:OutputChannel,indent:Integer)
+    
+      // A sugared class must implement a pprint operation
+      // that writes out the receiver to the supplied output
+      // channel. This is used when reconstructing the source
+      // code from an instance of the sugared class.
+      
+      format(out,"@When ");
+      guard.pprint(out,indent);
+      format(out," do~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

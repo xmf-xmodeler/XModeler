@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class Send extends JExp
+  
+    @Attribute target  : JExp      (?) end
+    @Attribute message : String    (?) end
+    @Attribute args    : Seq(JExp) (?) end
+    
+    @Constructor(target,message,args) ! end
+    
+    @Operation pprint(out)
+      if target <> null
+      then 
+        target.pprint(out);
+        format(out,".")
+      end;
+      format(out,"~S(",Seq{message});
+      @For arg in args do
+        arg.pprint(out);
+        if not isLast then format(out,",") end
+      end;
+      format(out,")")
+    end
+    
+  end

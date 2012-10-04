@@ -1,0 +1,55 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs; 
+import DiagramEvents;
+
+Root::type := 
+
+@ToolType ActivityEditor
+  @EdgeType Step Activity -> Activity targetHead = arrow 
+    @Label name(end,10,10) "name" end
+    @LabelExp guard(end,0-10,0-10) "true" end 
+  end
+  @EdgeType Action Actor -> Activity targetHead = arrow 
+    @Label performs(end,10,10) "performs" end
+  end
+  @NodeType Activity(hasport)
+    @Box box(nofill,hideLeft,hideRight,hideBottom,hideTop,OVERLAY)
+      @Ellipse ellipse(ALIGN)   width = 20 height = 20 end
+      @PaddedText name(CENTRE) "Activity Name" pad = 10 end
+      @Menu
+        @MenuAction Delete self.owner().delete(true) end
+      end
+    end
+  end
+  @NodeType Actor(hasport,VERTICAL)
+    @Image image(CENTRE)
+      "Actor.gif"
+      width = 50
+      height = 50
+    end
+    @PaddedText name(CENTRE) "Name" pad = 10 end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Activity      icon = "Tools/Activity.gif" end
+      @ToolButton Actor         icon = "Tools/Actor.gif"    end
+      @ToolButton Step   isEdge icon = "Tools/Edge.gif"     end
+      @ToolButton Action isEdge icon = "Tools/Edge.gif"     end
+    end
+  end
+end;
+
+Root::manager :=
+@ElementManager ActivityManager
+end;
+
+Root::tool := Tool(type,"Activity Editor",manager,null);

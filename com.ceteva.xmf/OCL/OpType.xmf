@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class OpType extends TypeExp
+  
+    @Doc
+      Represents a type expression consisting of a sequence of
+      domain type expressions and a range type expression.
+    end
+    
+    @Attribute range   : TypeExp end
+    @Attribute domains : Seq(TypeExp) end
+    
+    @Constructor(domains,range) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"(");
+      @For domain in domains do
+        domain.pprint(out,indent);
+        if not isLast then format(out,",") end
+      end;
+      format(out,") -> ");
+      range.pprint(out,indent)
+    end
+    
+    @Operation toSig()
+      Seq{TypeExp::OPTYPE,domains->collect(d | d.toSig()),range.toSig()}
+    end
+    
+  end

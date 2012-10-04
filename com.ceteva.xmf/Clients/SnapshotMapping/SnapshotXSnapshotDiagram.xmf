@@ -1,0 +1,909 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import Menus;
+
+context SnapshotMapping
+
+  @Class SnapshotXSnapshotDiagram extends ElementXDiagram
+  
+    @Attribute contentDaemon  : Daemon end
+    @Attribute snapshot       : NameSpace (?) end
+    @Attribute diagram        : SnapshotDiagram (?) end
+    @Attribute objectMaps     : Seq(ObjectXNode) (+,-) end
+    @Attribute docMaps        : Seq(DocXNote) (+,-) end
+    @Attribute slotMaps       : Seq(SlotXEdge) (+,-) end
+    @Attribute setValueMaps   : Seq(SlotXEdge) (+,-) end
+    @Attribute dependencyMaps : Seq(DependencyXDependencyEdge) (+,-) end
+
+    @Constructor(snapshot,diagram,owner)
+      self.setHotLoad(true);
+      diagram.setOwner(self);
+      self.registerWithDiagram(diagram);
+      self.checkDaemons();
+      self.setGlobalMenu(diagram,Set{snapshot.of(),diagram.of()})
+    end
+     
+    @Operation addPackage(package)
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::classRemoved(package,"classes") end
+    end
+    
+    @Operation attributeRemoved(objectMap,removedAttribute)
+      @For map in slotMaps 
+      do  
+        if map.object = objectMap.object and map.slot = removedAttribute.name
+        then
+          map.edge.delete()
+        end
+      end;
+      @For map in setValueMaps
+      do
+        if map.object = objectMap.object and map.slot = removedAttribute.name
+        then
+          map.edge.delete()
+        end
+      end
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        DependencyXDependencyEdge do
+          self.addDependencyEdge(element)
+        end
+        ObjectXNode do
+          self.addObjectMap(element)
+        end
+        SetValueXEdge do
+          self.addSetValueMap(element)
+        end
+        SlotXEdge do
+          self.addSlotMap(element)
+        end
+        DocXNote do
+          self.addDocMap(element)
+        end
+      end
+    end
+    
+    @Operation addDependencyEdge(dependencyEdge)
+      self.addToDependencyMaps(dependencyEdge);
+      dependencyEdge.setOwner(self)
+    end
+    
+    @Operation contentsChanged(newContents,oldContents)
+      let added = newContents - oldContents
+      in
+        if not added->isEmpty 
+        then
+          let object = added->asSeq->head
+          in
+            @Find(map,objectMaps)
+      		  when object = map.object
+      		  do
+        		    let
+          		   objectName = snapshot.nameFor(object).toString();
+          		   nodeName = map.node.nameBox.name.text
+        		    in
+          		   if objectName <> nodeName
+          		   then
+          		     @WithoutDaemons(map.node.nameBox.name)
+            		   map.node.nameBox.name.setText(objectName)
+            		end
+                end
+          	  end
+        		end
+      	 end
+        end
+      end
+    end
+    
+    @Operation dependencyEdgeAdded(diagram,slot,dependencyEdge)
+      if not self.dependencyMaps->exists(map | map.edge = dependencyEdge)
+      then
+        @Find(sourceMap,objectMaps + self.docMaps)
+          when sourceMap.node = dependencyEdge.sourceNode()
+          do @Find(targetMap,objectMaps + self.docMaps)
+                when targetMap.node = dependencyEdge.targetNode()
+                do let source = sourceMap.element();
+                       target = targetMap.element();
+                       metaClass = dependencyEdge.typePath->ref(Seq{Root,XCore}) then
+                       dependency = metaClass(source,target)
+                   in  self.add(DependencyXDependencyEdge(dependency,dependencyEdge));
+                       dependency.attach()
+                   end
+             end
+        end
+      end
+    end
+    
+    @Operation dependencyEdgeRemoved(diagram,slot,dependencyEdge)
+      @Find(dependencyMap,self.dependencyMaps)
+        when dependencyMap.edge = dependencyEdge
+        do self.remove(dependencyMap);
+           dependencyMap.detach();
+           dependencyMap.dispose()
+      end
+    end
+    
+    @Operation element()
+      snapshot
+    end
+
+    @Operation subMaps()
+      self.objectMaps +
+      self.docMaps +
+      self.slotMaps +
+      self.setValueMaps +
+      self.dependencyMaps
+    end
+
+    @Operation excludeAttributes(node)
+      @Find(map,objectMaps)
+        when map.node = node
+        do
+          slotMaps->iterate(m p = Seq{} |
+            if m.object = map.object
+            then
+              p := p->prepend(m.object.of().getAttribute(m.slot))
+            else
+              p
+            end
+        )
+      end
+    end
+    
+    @Operation findObjectForNode(node)
+      @Find(map,objectMaps)
+        when map.node = node
+        do
+          map.object
+      end
+    end
+    
+    @Operation getType(diagramElement)
+      @Find(map,objectMaps)
+        when map.node = diagramElement
+        do
+          map.object
+        else null
+      end
+    end
+
+    @Operation hotLoaded()
+      if not snapshot.hasSlot("instanceOf")
+      then
+        self.registerWithDiagram(diagram);
+        xmf.diagramManager().addDiagram(snapshot,diagram);
+        self.checkDaemons();
+        self.setGlobalMenu(diagram,Set{snapshot.of(),diagram.of()},false)
+      end
+    end
+
+    @Operation remove(element)
+      @TypeCase(element)
+        ObjectXNode do
+          self.deleteFromObjectMaps(element);
+          element.removeDaemons()
+        end
+        DocXNote do
+          self.deleteFromDocMaps(element);
+          element.removeDaemons()
+        end
+        SetValueXEdge do
+          self.deleteFromSetValueMaps(element);
+          element.removeDaemons()
+        end
+        SlotXEdge do
+          self.deleteFromSlotMaps(element);
+          element.removeDaemons()
+        end
+        DependencyXDependencyEdge do
+          self.deleteFromDependencyMaps(element);
+          element.removeDaemons()
+        end
+      end
+    end
+    
+    @Operation renew()
+      // Called when the diagram is to be regenerated from existing components
+      // such as after it is loaded from a file.
+      diagram.renew()
+    end
+    
+    @Operation addDocMap(docMap)
+      self.addToDocMaps(docMap);
+      docMap.setOwner(self)
+    end
+    
+    @Operation addObjectMap(objectMap)
+      self.addToObjectMaps(objectMap);
+      objectMap.setOwner(self)
+    end
+    
+    @Operation addSlotMap(slotMap)
+      self.addToSlotMaps(slotMap);
+      slotMap.setOwner(self)
+    end
+    
+    @Operation addSetValueMap(setValueMap)
+      self.addToSetValueMaps(setValueMap);
+      setValueMap.setOwner(self)
+    end
+
+    @Operation buildGlobalMenuExtras(globalMenu)
+      super(globalMenu);
+      globalMenu.add(MenuAction("Add Missing Snapshot Objects to Diagram",RightClickableProxy::proxyTarget,Seq{},SnapshotXSnapshotDiagram::addMissingContents));
+      let constraintsMenu = globalMenu.findOrAddMenuItems("Check Constraints")
+      in
+        constraintsMenu.add(MenuAction("Objects in Diagram Only",RightClickableProxy::proxyTarget,Seq{},SnapshotXSnapshotDiagram::checkConstraintsPartial))
+      end
+    end
+
+    @Operation checkDaemons()
+      super();
+      self.checkDiagramDaemons();
+      self.checkSnapshotDaemons();
+      self.checkClassModelDaemons()
+    end
+    
+    @Operation closeSnapshot(element,slot,newOwner,oldOwner)
+      if newOwner.isKindOf(Null) and not xmf.clientManager().saving then
+        // diagram.deleteCommand()
+        diagram.delete()
+      end
+    end
+
+    @Operation classRemoved(element,slot,removedClass)
+      @For map in objectMaps
+      do
+        if map.object.of() = removedClass
+        then
+          map.node.delete()
+        end
+      end
+    end
+    
+    @Operation checkDiagramDaemons()
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::noteNodeAdded(diagram,"noteNodes") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::noteNodeRemoved(diagram,"noteNodes") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::objectNodeAdded(diagram,"objectNodes") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::objectNodeRemoved(diagram,"objectNodes") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::slotEdgeAdded(diagram,"slotEdges") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::slotEdgeRemoved(diagram,"slotEdges") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::setEdgeAdded(diagram,"setEdges") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::setEdgeRemoved(diagram,"setEdges") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::dependencyEdgeAdded(diagram,"dependencyEdges") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::dependencyEdgeRemoved(diagram,"dependencyEdges") end
+    end
+    
+    @Operation checkClassModelDaemons()
+      @For package in snapshot.packages
+      do self.addPackage(package) end
+    end
+    
+    @Operation checkSnapshotDaemons()
+      @SlotValueChanged multi once   SnapshotXSnapshotDiagram::nameChanged_snapshotDaemon(snapshot,"name") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::packageAdded(snapshot,"packages") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::packageRemoved(snapshot,"packages") end;
+      @SlotValueChanged multi once   SnapshotXSnapshotDiagram::ownerChanged_snapshotDiagramDaemon(snapshot,"owner") end;
+      @SlotValueChanged multi once   SnapshotXSnapshotDiagram::closeSnapshot(snapshot,"owner") end;
+      @SlotValueChanged multi once + SnapshotXSnapshotDiagram::objectAdded_daemon(snapshot,"objects") end;
+      @SlotValueChanged multi once - SnapshotXSnapshotDiagram::objectRemoved(snapshot,"objects") end;
+      self.objectNameChangedDaemon()
+    end
+    
+    @Operation dependencySourceChanged(edgeMap,newValue)
+      @Find(sourceMap,objectMaps + self.docMaps)
+        when sourceMap.element() = newValue
+        do
+          edgeMap.edge.sourceReconnected(sourceMap.node.ports->sel)
+        else
+          edgeMap.edge.delete()
+      end
+    end
+    
+    @Operation dependencyTargetChanged(edgeMap,newValue)
+      @Find(targetMap,objectMaps + self.docMaps)
+        when targetMap.element() = newValue
+        do
+          edgeMap.edge.targetReconnected(targetMap.node.ports->sel)
+        else
+          edgeMap.edge.delete()
+      end
+    end
+    
+    @Operation dependencyEdgeSourceChanged(edgeMap,newNode)
+      @Find(sourceMap,objectMaps + self.docMaps)
+        when sourceMap.node = newNode
+        do
+          edgeMap.dependency.source := sourceMap.element()
+      end
+    end
+    
+    @Operation dependencyEdgeTargetChanged(edgeMap,newNode)
+      @Find(targetMap,objectMaps + self.docMaps)
+        when targetMap.node = newNode
+        do
+          edgeMap.dependency.target := targetMap.element()
+      end
+    end
+    
+    @Operation nameChanged_snapshotDaemon(snapshot,slot,newName,oldName)
+      diagram.refreshName()
+    end
+    
+    @Operation objectNameChangedDaemon()
+      snapshot.addContentDaemon(self,
+        SnapshotXSnapshotDiagram::contentsChanged)
+    end
+    
+    @Operation objectNodeAdded(element,slot,objectNode)
+      if not objectMaps->exists(map | map.node = objectNode)
+      then
+        let class = objectNode.classOf() in
+          let 
+            object = class() then
+            map = ObjectXNode(object,objectNode,self);
+            name = snapshot.newName("object")
+          in
+            map.createSlotText();
+            self.add(map);
+            objectNode.setName(name);
+            snapshot.add(name,object);
+            map.elementChanged()
+          end
+        end
+      end
+    end
+    
+    @Operation noteNodeAdded(element,slot,noteNode)
+      if not self.docMaps->exists(map | map.node = noteNode)
+      then
+        let 
+          doc = Doc(noteNode.text.text) then
+          map = DocXNote(doc,noteNode,self)
+        in
+          self.add(map)
+        end
+      end
+    end
+    
+    @Operation noteNodeRemoved(element,slot,noteNode)
+      @Find(map,self.docMaps)
+        when map.node = noteNode
+        do
+           self.remove(map)
+      end
+    end    
+    
+    @Operation objectNodeRemoved(element,slot,objectNode)
+      @Find(map,objectMaps)
+        when map.node = objectNode
+        do
+           self.remove(map);
+           snapshot.remove(map.object)
+      end
+    end
+    
+    @Operation objectAdded_daemon(element,slot,object)
+      if not self.eventFiltered("object added")
+      then self.objectAdded(object)
+      end
+    end
+    
+    @Operation objectAdded(object)
+      @Find(map,objectMaps)
+        when map.object = object
+        do map.node
+        else
+          let
+            node = ObjectNode(object.of(),0,0) then
+            map = ObjectXNode(object,node,self);
+            name = snapshot.nameFor(object)
+          in
+            @WithoutRendering(self.diagram)
+              self.add(map);
+              diagram.add(node);
+              node.new(diagram);
+              map.createSlotText();
+              map.elementChanged();
+              if name <> null
+              then node.setName(name)
+              end;
+              node
+            end
+          end
+       end
+    end
+    
+    @Operation objectRemoved(element,slot,object)
+      @Find(map,objectMaps)
+        when map.object = object
+        do self.remove(map);
+           map.node.delete()
+      end
+    end
+    
+    @Operation ownerChanged_snapshotDiagramDaemon(snapshot,slot,newOwner,oldOwner)
+      if newOwner.isKindOf(Null) and not xmf.clientManager().saving 
+      then
+        diagram.delete()
+      end
+    end
+    
+    @Operation ownerChanged_snapshotPackage(snapshot,slot,newOwner,oldOwner)
+      if newOwner.isKindOf(Null) and not xmf.clientManager().saving 
+      then
+        diagram.delete()
+      end
+    end
+    
+    @Operation packageAdded(element,slot,object)
+      self.addPackage(object)
+    end
+    
+    @Operation packageRemoved(element,slot,object)
+      self.removePackage(object)
+    end
+    
+    @Operation removeDaemonCollection(seq:Seq(Element))
+      @For element in seq do
+        element.removeDaemons()
+      end
+    end
+
+    @Operation removeEdgeForSlot(object,slot)
+      @For map in setValueMaps
+      do
+        if map.object = object and map.slot = slot
+        then
+          map.edge.delete()
+        end
+      end;
+      @For map in slotMaps
+      do
+        if map.object = object and map.slot = slot
+        then
+          map.edge.delete()
+        end
+      end
+    end
+
+    @Operation removeDaemons()
+      super();
+      @For package in snapshot.packages
+      do
+        package.removeDaemonsWithTarget(self,true)
+      end;
+      @For map in objectMaps
+      do
+        map.removeDaemons()
+      end;
+      @For map in docMaps
+      do
+        map.removeDaemons()
+      end;
+      @For map in slotMaps
+      do
+        map.removeDaemons()
+      end;
+      @For map in setValueMaps
+      do
+        map.removeDaemons()
+      end;
+      @For map in dependencyMaps
+      do
+        map.removeDaemons()
+      end;
+      diagram.removeDaemonsWithTarget(self,true);
+      snapshot.removeDaemonsWithTarget(self,true);
+      self.removeDaemonCollection(self.objectMaps);
+      self.removeDaemonCollection(self.slotMaps);
+      self.removeDaemonCollection(self.setValueMaps);
+      self.removeDaemonCollection(self.docMaps);
+      self.removeDaemonCollection(self.dependencyMaps)
+    end
+     
+    @Operation removePackage(package)
+    
+      // remove all objects that are an instance of a class in the package
+      // remove the daemons on the package
+    
+      @For map in objectMaps
+      when map.object.of().owner = package or map.object.of() = package
+      do
+        snapshot.remove(map.object);
+        self.remove(map)
+      end;
+      package.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation setElementAdded(object,slot,newValue)
+      if not setValueMaps->exists(map | map.object = object
+        and map.slot.toString() = slot.toString() and map.value = newValue)
+      then
+        @Find(sourceMap,objectMaps)
+          when sourceMap.object = object
+          do
+            @Find(targetMap,objectMaps)
+            when targetMap.object = newValue
+            do
+              let sourcePort = sourceMap.node.ports->sel;
+                  targetPort = targetMap.node.ports->sel then
+                  edge = SetEdge(slot,sourcePort,targetPort)
+              in diagram.add(edge);
+                 edge.new(diagram);
+                 sourceMap.elementChanged()
+              end
+            else
+              if self.total() andthen newValue.of().isKindOf(Classifier) andthen newValue <> null
+              then
+              
+                // if the snapshot diagram is in total view sync mode and
+                // if the target object is not already a member of the snapshot
+                // it is added and the set element is then added again
+            
+                snapshot.add("",newValue);
+                self.setElementAdded(object,slot,newValue)
+              end
+            end
+        end
+      end
+    end
+    
+    @Operation setElementRemoved(object,slot,newValue)
+      @Find(map,setValueMaps)
+        when map.object = object and 
+             map.slot.toString() = slot.toString() and 
+             map.value = newValue
+        do map.remove();
+           map.removeDaemons();
+           map.edge.delete();
+           map.elementChanged();
+           self.remove(map)
+      end
+    end
+    
+    @Operation slotEdgeAdded(element,slot,slotEdge)
+      if not slotMaps->exists(map | map.edge = slotEdge)
+      then
+        @Find(sourceMap,objectMaps)
+          when sourceMap.node = slotEdge.source.owner do
+          @Find(targetMap,objectMaps)
+            when targetMap.node = slotEdge.target.owner do
+              self.add(SlotXEdge(sourceMap.object(),slotEdge.name.text(),targetMap.object(),slotEdge,self));
+              if sourceMap.object().hasStructuralFeature(slotEdge.name.text().toString())
+              then
+                sourceMap.object().set(slotEdge.name.text(),targetMap.object());
+                sourceMap.elementChanged()
+              end
+          end
+        end
+      end
+    end
+    
+    @Operation slotSourceChanged(slotMap,newSourcePort,oldSourcePort)
+      // defaults back to old port
+      
+      @WithoutDaemons(slotMap.edge)
+        slotMap.edge.sourceReconnected(oldSourcePort)
+      end
+    end
+    
+    @Operation slotTargetChanged(slotMap,newTargetPort,oldTargetPort,attribute)
+      let 
+        sourceObject = slotMap.object;
+        slotType = slotMap.object.of().getAttribute(attribute).type;
+        targetObject = self.findObjectForNode(newTargetPort.owner);
+        oldObject = self.findObjectForNode(oldTargetPort.owner)
+      in
+        if targetObject.of().inheritsFrom(slotType)
+        then
+          slotMap.value := targetObject;
+          sourceObject.set(attribute,targetObject)
+        elseif slotType.isKindOf(Set) or slotType.isKindOf(Seq)
+        then
+          if targetObject.of().inheritsFrom(slotType.elementType)
+          then
+            slotMap.value := targetObject;
+            let value = sourceObject.get(attribute)->excluding(oldObject)->including(targetObject)
+            in
+              sourceObject.set(attribute,value)
+            end
+          else
+            @WithoutDaemons(slotMap.edge)
+              slotMap.edge.targetReconnected(oldTargetPort)
+            end
+          end
+        else
+          @WithoutDaemons(slotMap.edge)
+            slotMap.edge.targetReconnected(oldTargetPort)
+          end
+        end
+      end
+    end
+    
+    // called when the slot does have a diagrammed value
+    
+    @Operation slotValueChanged(slotMap,newValue)
+      @Find(targetMap,objectMaps)
+        when targetMap.node = slotMap.edge.target.owner do
+          if targetMap.object() <> newValue then
+            let sourcePort = slotMap.edge.source in
+              @Find(targetObjectMap,objectMaps)
+                when targetObjectMap.object() = newValue do
+                  let targetPort = targetObjectMap.node.ports->sel in
+                    slotMap.edge.targetReconnected(targetPort)
+                  end
+                else
+                  if self.total() andthen newValue.of().isKindOf(Classifier) and newValue <> null
+            	  then
+            
+                    // if the snapshot diagram is in total view sync mode and
+                    // if the value is not already in the snapshot then it is added
+                    // and slotValueChanged called again to add in the appropriate
+                    // edge
+          
+                    snapshot.add("",newValue);
+                    self.slotValueChanged(slotMap,newValue)
+                  else
+                    self.deleteSlotMap(slotMap)
+                  end
+              end
+            end
+          end
+        else
+          self.deleteSlotMap(slotMap)
+      end
+    end
+    
+    @Operation deleteSlotMap(slotMap)
+      diagram.removeEdge(slotMap.edge);
+      slotMap.edge.delete();
+      slotMap.removeDaemons();
+      self.remove(slotMap)
+    end
+    
+    // called when the slot does not yet have a diagrammed value
+
+    @Operation slotValueChanged(object,slot,newValue)
+      if not self.slotMaps->exists(s |
+        s.object = object and s.slot.toString() = slot.toString())
+      then
+        @Find(sourceMap,objectMaps)
+          when sourceMap.object = object do
+          @Find(targetMap,objectMaps)
+            when targetMap.object = newValue do
+              let 
+                sourcePort = sourceMap.node.ports->sel then
+                targetPort = targetMap.node.ports->sel then
+             	edge = SlotEdge(slot,sourcePort,targetPort)
+              in 
+                edge.new(diagram);
+                diagram.addEdge(edge);
+                self.add(SlotXEdge(object,slot,newValue,edge,self))
+              end
+            else
+              if self.total() andthen newValue.of().isKindOf(Classifier) and newValue <> null
+              then
+            
+                // if the snapshot diagram is in total view sync mode and
+                // if the value is not already in the snapshot then it is added
+                // and slotValueChanged called again to add in the appropriate
+                // edge
+          
+                snapshot.add("",newValue);
+                self.slotValueChanged(object,slot,newValue)
+              end
+          end
+        end
+      end
+    end
+    
+    @Operation setEdgeAdded(element,slot,setEdge)
+      if not setValueMaps->exists(map | map.edge = setEdge)
+      then
+        @Find(sourceMap,objectMaps)
+          when sourceMap.node = setEdge.source.owner do
+          @Find(targetMap,objectMaps)
+            when targetMap.node = setEdge.target.owner do
+              self.add(SetValueXEdge(sourceMap.object(),setEdge.slotName,targetMap.object(),setEdge,self));
+              let set = sourceMap.object().get(setEdge.slotName)
+              in
+                sourceMap.object.set(setEdge.slotName,set->including(targetMap.object()));
+                sourceMap.elementChanged()
+              end
+          end
+        end
+      end
+    end
+    
+    @Operation slotEdgeRemoved(element,slot,slotEdge)
+      @Find(map,slotMaps)
+        when map.edge = slotEdge
+        do map.remove();
+           self.remove(map)
+      end
+    end
+    
+    @Operation setEdgeRemoved(element,slot,setEdge)
+      @Find(map,setValueMaps)
+        when map.edge = setEdge
+        do map.remove();
+           self.remove(map)
+      end
+    end
+    
+    @Operation diagram()
+      diagram
+    end
+    
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else
+        xmf.findClient(DiagramClient).commandInterpreter
+      end
+    end
+    
+    @Operation generateDiagram()
+      super();
+      diagram.cardLayout(7,200,15,40)
+    end
+    
+    @Operation generateNodes()
+      if self.total()
+      then
+        @For object in snapshot.contents() do
+          self.objectAdded(object)
+        end
+      end
+    end
+    
+    @Operation generateEdges()
+      self.generateDiagramSlots();
+      self.generateDiagramSetSlots()
+    end
+
+    @Operation generateDiagramSetSlots()
+      @For source in objectMaps
+      do 
+        @For slotName in source.object.getStructuralFeatureNames() 
+        do
+          let slot = source.object.get(slotName) 
+          in
+            if (slot.isKindOf(SetOfElement) or slot.isKindOf(SeqOfElement)) and slot <> null 
+            then
+              @For element in slot 
+              do
+                if not self.setValueMaps->exists(map | map.slot.toString() = slotName.toString() andthen
+                                                       map.object = source.object andthen
+                                                       map.value = element)
+                then
+                  @Find(target,objectMaps)
+                  when target.object = element
+                  do
+                    let 
+                      sourcePort = source.node.ports->sel;
+					  targetPort = target.node.ports->sel then
+				      setEdge = SetEdge(slotName,sourcePort,targetPort)
+				    in 
+        		      diagram.addEdge(setEdge);
+        			  setEdge.new(diagram);
+        			  self.add(SetValueXEdge(source.object,slotName.toString(),target.object,setEdge,self))
+      				end
+      		      end
+      		    end
+              end  
+            end
+          end
+        end      
+      end
+    end
+    
+    @Operation generateDiagramSlots()
+      @For source in objectMaps
+      do
+        @For target in objectMaps
+        do
+          if source <> target
+          then
+            let slots = source.object.getStructuralFeatureNames()
+            in
+              @Find(slot,slots)
+              when target.object = source.object.get(slot)
+              do
+                if not self.slotMaps->exists(map | map.slot.toString() = slot.toString() andthen
+              									   map.object = source.object andthen
+              									   map.value = target.object)
+                then
+                  let 
+                    sourcePort = source.node.ports->sel;
+                    targetPort = target.node.ports->sel then
+                    slotEdge = SlotEdge(slot.toString(),sourcePort,targetPort)
+                  in
+                    self.add(SlotXEdge(source.object,slot.toString(),target.object,slotEdge,self));
+                    diagram.add(slotEdge);
+                    slotEdge.new(diagram)
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation setToPartialSyncMode()
+      super();
+      self.addEventFilter("object added",ElementXDiagram::defaultEventFilterHandler)
+    end
+    
+    @Operation setToTotalSyncMode()
+      super();
+      self.removeEventFilter("object added")
+    end
+
+    @Operation missingSnapshotObjects()
+      let snapshotObjects = snapshot.contents();
+          diagramObjects = objectMaps->collect(o | o.object)->asSet
+      in
+          snapshotObjects - diagramObjects
+      end
+    end
+    
+    @Operation addMissingContents()
+      let missingContents = self.missingSnapshotObjects()
+      in
+        if not missingContents->isEmpty
+        then
+          let objectSeq = missingContents->asSeq.sortNamedElements_CaseIndependent();
+              stringOp = 
+                @Operation(object)
+                  snapshot.nameFor(object) + " = " + object.toString() + " : " + object.of().nameString()
+                end then
+              objects = xmf.selects("Add Missing Objects",
+                                    "Select objects to add to this diagram",
+                                    objectSeq,
+                                    null,
+                                    stringOp)
+          in
+            if objects <> 0-1
+            then
+              @For o in objects do
+                self.objectAdded(o)
+              end;
+              self.generateEdges()
+            end
+          end
+        else
+          xmf.message("All objects in the snapshot are already shown in the diagram.")
+        end
+      end
+    end
+
+    @Operation handleDiagramEvent(diagram,event)
+      super(diagram,event);
+      let eventType = event->at(0)
+      in
+        @Case eventType of
+          "add missing contents" do self.addMissingContents() end 
+        else self
+        end
+      end
+    end
+
+    @Operation checkConstraintsPartial()
+      let diagramObjects = objectMaps->collect(o | o.object)->asSet
+      in
+        snapshot.checkConstraints(diagramObjects).edit()
+      end
+    end
+
+ end

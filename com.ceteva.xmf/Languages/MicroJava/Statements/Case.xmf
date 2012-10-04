@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Statements;
+import Expressions;
+
+context Statements
+
+  @Class Case extends Statement
+  
+    @Attribute exp        : JExp            (?) end
+    @Attribute statements : Seq(Statement)  (?) end
+    
+    @Constructor(exp,statements) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"case ");
+      exp.pprint(out);
+      format(out,":");
+      @For s in statements do
+        format(out,"~%~V",Seq{indent+2});
+        s.pprint(out,indent+2)
+      end
+    end
+    
+  end

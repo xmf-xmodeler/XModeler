@@ -1,0 +1,26 @@
+import Tools;
+import DiagramTools;
+import Structure;
+
+context Package
+  @Operation showDiagram()
+    let descriptors = self.of().diagramToolDescriptors()
+    in if descriptors->isEmpty
+       then self.selectDiagram()
+       else 
+         let descriptor = descriptors->sel then
+             type = descriptor.type();
+             manager = descriptor.manager()
+         in if type <> null and manager <> null
+            then
+              let tool = Tool(type,self.toString(),manager.new(),self)
+              in tool.showDiagram();
+                 descriptor.add(tool);
+                 tool
+              end
+            else xmf.message("Tool descriptor " + descriptor + " must define both type and manager.")
+            end
+         end
+       end
+    end
+  end

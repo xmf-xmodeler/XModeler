@@ -1,0 +1,152 @@
+parserImport XOCL;
+parserImport XML::Generator;
+
+context Languages
+
+@Package ClassTool
+
+  @Class Tool
+    @Attribute name       : String end
+    @Attribute operations : Set(ToolOperation) end
+    @Attribute managers   : Set(Manager) end
+    
+    @Constructor(name,operations,managers) end
+    
+    @ToXML(Tool)[Name = name]
+      operations*
+      managers*
+    end 
+    
+  end
+  
+  @Class Manager
+    @Attribute class           : String end
+    @Attribute operations      : Set(ClassOperation) end
+    @Attribute instanceManager : InstanceManager end
+  
+    @Constructor(class,operations,instanceManager) 
+    end
+  
+    @ToXML(Manager)[class = class]
+      operations*
+      instanceManager
+    end
+  end
+  
+  @Class InstanceManager
+    @Attribute operations : Set(InstanceOperation) end
+    
+    @Constructor(operations) end
+    
+    @ToXML(InstanceManager)[]
+      operations*
+    end
+  end
+  
+  @Class ClassOperation isabstract
+    @Attribute name	: String end
+    
+    @Constructor(name) end
+ 
+  end
+  
+  @Class NewOperation extends ClassOperation
+  
+    @ToXML(ManagerOperation)[Name = "New "+name.toString(),type = "new"]
+    end
+  
+  end
+  
+  @Class LoadClassOperation extends ClassOperation
+  
+    @ToXML(ManagerOperation)[Name = "Load Class",type = "loadClass"]
+    end
+  
+  end
+  
+  @Class DeleteClassOperation extends ClassOperation
+  
+    @ToXML(ManagerOperation)[Name = "Delete "+name.toString(),type = "delete"]
+    end
+  
+  end
+  
+  @Class ReflectClassOperation extends ClassOperation
+    @Attribute reflect : String end
+  
+    @Constructor(name,reflect) end
+    
+    @ToXML(ManagerOperation)[Name = name.toString(),type = "reflect",ref = reflect]
+    end
+  end
+  
+  @Class InstanceOperation isabstract
+    @Attribute name	: String end
+    
+    @Constructor(name) end
+   
+  end
+  
+  @Class CheckConstraints extends InstanceOperation
+  
+    @ToXML(InstanceOperation)[Name = "Check Constraint",type="constraintCheck"]
+    end
+  end
+  
+  @Class SaveInstanceOperation extends InstanceOperation
+  
+    @ToXML(InstanceOperation)[Name = "Save Instance",type="saveInstance"]
+    end
+  end
+  
+  @Class DeleteInstanceOperation extends InstanceOperation
+  
+    @ToXML(InstanceOperation)[Name = "Delete",type = "delete"]
+    end
+  
+  end
+  
+  @Class ReflectInstanceOperation extends InstanceOperation
+    @Attribute reflect : String end
+  
+    @Constructor(name,reflect) end
+    
+    @ToXML(InstanceOperation)[Name = name,type = "reflect",ref = reflect]
+    end
+  end
+  
+  @Class ToolOperation isabstract
+    @Attribute name	: String end
+    
+    @Constructor(name) end
+    
+  end
+  
+  @Class SaveOperation extends ToolOperation
+  
+    @ToXML(ToolOperation)[Name = "Save Snapshot",type="save"]
+    end
+  end
+  
+  @Class LoadOperation extends ToolOperation
+  
+    @ToXML(ToolOperation)[Name = "Load Snapshot",type="load"]
+    end
+  end
+  
+  @Class CheckAllOperation extends ToolOperation
+  
+    @ToXML(ToolOperation)[Name = "Check All",type="constraintCheckAll"]
+    end
+  end
+  
+  @Class ReflectOperation extends ToolOperation
+    @Attribute reflect : String end
+  
+    @Constructor(name,reflect) end
+    
+    @ToXML(ToolOperation)[Name = name,type = "reflect",ref = reflect]
+    end
+  end
+
+end

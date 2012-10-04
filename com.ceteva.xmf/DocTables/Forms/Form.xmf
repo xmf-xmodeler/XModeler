@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class Form extends Entry
+
+    @Attribute entries : Seq(Entry) (?,!,+,-) end
+    @Attribute handler : Operation (?,!) end
+    
+    @Constructor(handler)
+    end
+    
+    @Constructor(entries,handler)
+    end
+    
+    @Operation contents()
+      entries
+    end
+
+  end

@@ -1,0 +1,75 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XOCL
+  @File XOCL               end
+  @File Def                end
+  @File Sugar              end
+  @File AbstractDoc        end
+  @File AbstractOp         end
+  @File AlienAttribute	   end
+  @File AlienClass		   end
+  @File AttributeModifiers end
+  @File Attribute          end
+  @File AttributeGrammar   end
+  @File AsPacket		   end
+  @File Bind               end
+  @File BindGrammar        end
+  @File Busy               end
+  @File CallCommand        end
+  @File CaseArm            end
+  @File Case               end
+  @File CaseGrammar        end
+  @File CaseIntValue       end
+  @File CaseIntConst       end
+  @File CaseIntRange       end
+  @File CaseIntClause      end
+  @File CaseInt            end
+  @File CaseObj            end
+  @File Character          end
+  @File Class              end
+  @File ClassGrammar       end
+  @File Clause             end
+  @File Command            end
+  @File Constraint         end
+  @File Constructor        end
+  @File Count              end
+  @File Doc                end
+  @File Enum               end
+  @File Env                end
+  @File ExtendClass        end
+  @File Find               end
+  @File For                end
+  @File Fork               end
+  @File Imports            end
+  @File Letrec             end
+  @File Map                end
+  @File NameSpace          end
+  @File Package            end
+  @File PackageGrammar     end
+  @File Record             end
+  @File Repeat             end
+  @File Stats              end
+  @File SendCommand        end
+  @File Snapshot           end
+  @File Syntax             end
+  @File SyntaxConstant     end
+  @File SyntaxNameSpace    end
+  @File Todo		       end
+  @File Exp                end
+  @File Exps               end
+  @File TypeCaseArm        end
+  @File TypeCase           end
+  @File When               end
+  @File While              end
+  @File WhileGrammar       end
+  @File WithOpenFile       end
+  @File WithoutRendering   end
+  @File WithoutDaemons     end
+  @File WithoutSourcePos   end
+do
+  Project(XOCL,dir,self)
+end;
+    

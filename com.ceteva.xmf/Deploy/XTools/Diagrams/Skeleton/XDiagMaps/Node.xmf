@@ -1,0 +1,284 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Node 
+
+    @Attribute display  : Display   (?,!) end
+    @Attribute class    : Class     (?,!) end
+    @Attribute layoutId : Attribute (?,!) end
+    @Attribute menu     : Menu      (?,!) end
+
+    @Constructor(class,display,layoutId,menu) ! end
+    
+    @Operation attributes():Set(Attribute)
+    
+      // Calculates those attributes contained in the display...
+      
+      display.attributes()
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,manifest)
+  
+      // Write handlers for the creation and deletion events...
+    
+      self.writeNewHandler(dir,toolDescriptorType,root,manifest);
+      display.writeHandlers(dir,toolDescriptorType,root,class,class.name(),manifest);
+      self.writeRemovedHandler(dir,toolDescriptorType,root,manifest);
+      self.writeSelectedHandler(dir,toolDescriptorType,root,manifest);
+      self.writeDeselectedHandler(dir,toolDescriptorType,root,manifest)
+    
+    end
+    
+    @Operation writeNewHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that creates a new instance of the class associated
+      // with the node type and registers it with the tool.
+   
+      let handlerName = "New_" + class.name();
+          update =
+            @Operation(out,name,type)
+              @Case type of
+                Seq[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->including(o);~%",Seq{name,name})
+                end
+                Set[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->including(o);~%",Seq{name,name})
+                end
+                else format(out,"       event.tool().element().~S := o;~%",Seq{name})
+              end
+            end
+       in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+            writeToolHeader(out);
+            writeHandlerComment(out);
+            format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  let o = ~S()~%",Seq{class.path()});
+            format(out," in event.tool().register(event.node(),o);~%");
+            format(out,"    event.tool().register(o,event.node());~%");
+            let A = root.allAttributes()->select(a | class.inheritsFrom(a.underlyingType()))->asSeq
+            in if not A->isEmpty
+               then 
+                 if A->size = 1
+                 then update(out,A->at(0).name,A->at(0).type)
+                 else 
+                   let att = xmf.select("Name",formats("When ~S is instantiated which slot is updated:",Seq{class.name()}),A,null,null)
+                   in if att <> null
+                      then update(out,att.name,att.type)
+                      end
+                   end
+                 end
+               end
+            end;
+            display.writeRegister(out,Seq{});
+            format(out,"     o.observeBy(event.tool())~%");
+            format(out,"  end~%");
+            format(out,"end;~%")
+          end;
+          manifest.add("ElementManager/" + handlerName)
+       end
+    end
+    
+    @Operation writeObservationHandlers(dir,toolDescriptorType,att,map,manifest)
+      display.writeObservationHandlers(dir,toolDescriptorType,class,att,Seq{},map,manifest)
+    end
+    
+    @Operation writeRegisterCode(out,indent,node:String,object:String)
+      display.writeRegisterCode(out,indent,Seq{},node,object);
+      format(out,"~Vregister(~S,~S);~%",Seq{indent,node,object});
+      format(out,"~Vregister(~S,~S)~%",Seq{indent,object,node})
+    end
+    
+    @Operation writeDeregisterCode(out,indent,node:String,object:String)
+      display.writeDeregisterCode(out,indent,Seq{},node);
+      format(out,"~Vderegister(~S);~%",Seq{indent,node});
+      format(out,"~Vderegister(~S);~%",Seq{indent,object})
+    end
+
+    @Operation writeSelectedHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that looks for the element associated with the
+      // selected node, and selects a node for it in the browser.
+   
+      let handlerName = class.name() + "_Selected";
+          update =
+            @Operation(out,name,type)
+              @Case type of
+                Seq[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                Set[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                else format(out,"       event.tool().element().~S := ~S.default();~%",Seq{name,type.path()})
+              end
+            end
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.value())~%");
+           format(out,"  then~%");
+           format(out,"    let element = event.tool().find(event.value())~%");
+           format(out,"    in~%");
+           format(out,"      element.selectModelBrowserNode(true)~%");
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end 
+
+    @Operation writeDeselectedHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that looks for the element associated with the
+      // deselected node, and selects a node for it in the browser.
+   
+      let handlerName = class.name() + "_Deselected";
+          update =
+            @Operation(out,name,type)
+              @Case type of
+                Seq[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                Set[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                else format(out,"       event.tool().element().~S := ~S.default();~%",Seq{name,type.path()})
+              end
+            end
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.value())~%");
+           format(out,"  then~%");
+           format(out,"    let element = event.tool().find(event.value())~%");
+           format(out,"    in~%");
+           format(out,"      element.selectModelBrowserNode(false)~%");
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end 
+
+    @Operation writeRemovedHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that looks for the element associated with the
+      // deleted node, if present then the appropriate updates take place.
+   
+      let handlerName = class.name() + "_Removed";
+          update =
+            @Operation(out,name,type)
+              @Case type of
+                Seq[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                Set[ ] do
+                  format(out,"       event.tool().element().~S := event.tool().element().~S->excluding(o);~%",Seq{name,name})
+                end
+                else format(out,"       event.tool().element().~S := ~S.default();~%",Seq{name,type.path()})
+              end
+            end
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.node())~%");
+           format(out,"  then~%");
+           format(out,"    let o = event.tool().find(event.node())~%");
+           format(out,"    in~%");
+           self.writeDeregisterCode(out,9,"event.node()","o");
+           let A = root.allAttributes()->select(a | class.inheritsFrom(a.underlyingType()))->asSeq
+           in if not A->isEmpty
+              then 
+                if A->size = 1
+                then update(out,A->at(0).name,A->at(0).type)
+                else 
+                  let att = xmf.select("Name",formats("When ~S is deleted which slot is updated:",Seq{class.name()}),A,null,null)
+                  in if att <> null
+                     then update(out,att.name,att.type)
+                     end
+                  end
+                end
+              end
+           end;        
+           format(out,"        o~%");
+           format(out,"     end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end 
+    
+    @Operation writeSetLayoutId(out)
+    
+      // Write out code that sets the layout id prior
+      // to saving the data...
+      
+      let id = if layoutId = null then "send(\"of\",Seq{}).path()" else layoutId.name() end
+      in
+        format(out,"           let O = flatten.results()->select(o | o.isKindOf(~S))~%",Seq{class.path()});
+        format(out,"           in @For o in O do~%");
+        format(out,"                if tool.isRegistered(o)~%");
+        format(out,"                then tool.find(o).setLayoutId(o.~S)~%",Seq{id});
+        format(out,"                end~%");
+        format(out,"              end~%");
+        format(out,"           end;~%")
+      end
+    end
+    
+    @Operation writeCreateDiagram(out)
+      format(out,"                    ~S[ ] do~%",Seq{class.path()});
+      display.writeCreateDiagram(out,Seq{});
+      if layoutId <> null
+      then format(out,"                   node.setLayoutId(n.~S);~%",Seq{layoutId.name()})
+      else format(out,"                   node.setLayoutId(n.send(\"of\",Seq{}).path());~%")
+      end;
+      format(out,"                  n.observeBy(tool)~%");
+      format(out,"                end~%")
+    end
+      
+    @Operation writeType(out,indent,classes)
+    
+      // Write out a type descriptor for the node.
+      // The indent is used for formatting. The classes
+      // are all other class nodes.
+      
+      format(out,"~V@NodeType ~S(hasport)",Seq{indent,class.name()});
+      let parents = classes->excluding(class)->select(parent | class.inheritsFrom(parent))->asSeq
+      in if not parents->isEmpty
+         then format(out," extends ~{,~;~S~}~%",Seq{parents.name})
+         else format(out," extends RootNodeType~%")
+         end
+      end;
+      display.writeType(out,indent+2);
+      format(out,"~V@Menu~%",Seq{indent+2});
+      format(out,"~V@MenuAction Delete self.delete() end~%",Seq{indent+4});
+      format(out,"~V@MenuAction Edit tool.find(self).edit() end~%",Seq{indent+4});
+      display.writeMenu(out,Seq{},indent+4);
+      if menu <> null
+      then 
+        @For item in menu.items() do
+          item.write(out,indent+4)
+        end
+      end;
+      format(out,"~Vend~%",Seq{indent+2});
+      format(out,"~Vend~%",Seq{indent})
+   
+    end
+  end

@@ -1,0 +1,20 @@
+import IO;
+import Parser::BNF;
+import Parser::Machine;
+
+context OCL::OCL
+  let grammar = Grammar.grammar;
+      input = FileInputChannel("Grammar/XOCL.xbnf")
+  in let state = State(grammar,input)
+     in //grammar.debug := true;
+        let XOCLGrammar = state.run()
+        in if state.failed
+           then self.error("Booting XOCL.xbnf failed.")
+           else
+             XOCLGrammar.dynamics := Seq{Seq{2|Root.contents},Seq{2|OCL.contents},Seq{2|Compiler.contents}};
+             XOCLGrammar.transform();
+             XOCLGrammar
+           end
+        end
+     end 
+  end

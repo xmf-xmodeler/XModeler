@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Projects;
+import Clients;
+import Diagrams;
+
+context Projects
+
+  @Class Diagram extends NamedElement
+  
+    @Grammar extends OCL::OCL.grammar, NamedElement.grammar
+    
+      Diagram ::= name = Str path = Path dir = Str { 
+      
+        [| Projects::Diagram(<StrExp(name)>,<StrExp(dir)>,<path>) |]
+          
+      }.
+       
+    end
+  
+    @Attribute diagram : Diagram end
+    @Attribute diagramName : String end
+    
+    @Constructor(diagramName,resourceName,path,diagram) end
+    @Constructor(diagramName,resourceName,path) end
+    
+    @Operation build()
+      self
+    end
+    
+    @Operation load(loadpre)
+      self
+    end
+    
+    @Operation saveProjectSource(out,indent)
+      format(out,"@Diagram \"~S\" ~{::~;~S~} \"~S\" end",Seq{diagramName,path.names,resourceName,indent+2})
+    end
+    
+  end

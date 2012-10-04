@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import XRules;
+
+context XRules
+
+  @Class RuleDef extends XOCL::Syntax
+    
+    @Attribute arity   : Integer     (?)   end
+    @Attribute clauses : Seq(Clause) (?,+) end
+    
+    @Constructor(arity,clauses) ! end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Clause do
+          self.clauses := clauses + Seq{element}
+        end
+      end
+    end
+    
+    @Operation compile()
+      @For clause in clauses do 
+        clause.compile()
+      end
+    end
+    
+  end

@@ -1,0 +1,433 @@
+parserImport XOCL;
+
+// A Daemon is an invocable element that implements a monitor on a slot. When the
+// state of an object changes and the conditions of the daemon are satisfied then 
+// the action associated with the daemon is fired. Daemons are invisibly implemented
+// as VM-level data items. Daemons are added to an object using Object::addDaemon.
+
+// A daemon has a type that should be one of the following values...
+
+context Daemon
+  // Any change to the state of the owning object will fire the daemon...
+  @Bind ANY = 0 end
+  
+context Daemon
+  // Change to a specific slot value fires the daemon...
+  @Bind VALUE = 1 end
+  
+context Daemon
+  // Adding a value to the named slot sired the daemon....
+  @Bind ADD = 2 end
+  
+context Daemon
+  // Removing a value from the named slot fires the daemon...
+  @Bind SUB = 3 end
+  
+context Daemon
+  // Last daemon type...
+  @Bind LAST = 4 end
+  
+context Daemon
+  // All daemons in the system. Used to trace daemons...
+  @Bind allDaemons = Seq{} end
+  
+context Daemon
+  // Table containing all multi object daemons...
+  @Bind multiDaemons = Table(10) end
+  
+context Daemon
+  // Trace any new daemons...
+  @Bind traceDaemons = false end
+  
+context Daemon
+  @Operation action()
+   self.action
+  end
+
+context Daemon
+  @Operation addDaemon(d):Element
+    self // cannot add a daemon to a daemon
+  end
+
+context Daemon
+  @Operation addMultiDaemon(d,target)
+    self // cannot add a multidaemon to a daemon
+  end  
+
+context Daemon
+  @Operation addMultiTarget(object,target)
+    if self.target.hasKey(object)
+    then
+      let targetSet = self.target.get(object)->including(target)
+      in
+        self.target.remove(object);
+        self.target.put(object,targetSet)
+      end
+    else
+      object.addDaemon(self);
+      self.target.put(object,Set{target})
+    end
+  end
+
+context Daemon
+  @Operation addToDaemonTable(d:Daemon)
+    // Record a daemon in 'allDaemons' table
+    Daemon::allDaemons := Daemon::allDaemons->prepend(d)
+  end
+
+context Daemon
+  @Operation addToMultiDaemonTable(key,d:Daemon)
+    // Record a daemon in 'multiDaemons' table
+    Daemon::multiDaemons.put(key,d)
+  end
+
+context Daemon
+  @Operation daemons()
+    Seq{} // no daemons on a daemon
+  end
+
+context Daemon
+  @Operation getStructuralFeatureNames():Set(String)
+    Daemon.attributes.name->map("toString")
+  end
+  
+context Daemon
+  @Operation get(name:String)
+    @Case name.toString() of 
+      "id"         do Kernel_daemonId(self)         end
+      "type"       do Kernel_daemonType(self)       end
+      "slot"       do Kernel_daemonSlot(self)       end
+      "action"     do Kernel_daemonAction(self)     end
+      "persistent" do Kernel_daemonPersistent(self) end
+      "traced"     do Kernel_daemonTraced(self)     end
+      "target"     do Kernel_daemonTarget(self)     end
+      else         self.error(self.toString() + " has no slot named " + name)
+    end
+  end
+
+context Daemon
+  @Operation getMultiDaemon(key)
+    // Get a daemon from the 'multiDaemons' table
+    if Daemon::multiDaemons.hasKey(key)
+    then Daemon::multiDaemons.get(key)
+    else null
+    end
+  end
+
+context Daemon
+  @Operation getTarget(object)
+    if self.isMultiDaemon()
+    then if self.target.hasKey(object)
+         then self.target.get(object)
+         else null
+         end
+    else self.target
+    end
+  end
+
+context Daemon
+  @Operation hasMultiDaemon(key)
+    // Checks whether a daemon exists in the 'multiDaemons' table
+    Daemon::multiDaemons.hasKey(key)
+  end
+
+context Daemon 
+  @Operation hasSlot(name:String):Boolean
+    self.getStructuralFeatureNames()->includes(name->toString)
+  end
+  
+context Daemon
+  @Operation id()
+    self.id
+  end
+
+context Daemon
+  @Operation init(args:Seq(Element))
+  
+    // Override the system generated Daemon instance by creating a
+    // machine level instance and returning it after initialisation...
+  
+    if args->size = 7
+    then
+      let daemon = Kernel_mkDaemon();
+          id = args->at(0);
+          type = args->at(1);
+          slot = args->at(2);
+          action = args->at(3);
+          persistent = args->at(4);
+          traced = args->at(5);
+          target = args->at(6)
+      in Daemon::addToDaemonTable(daemon);
+         daemon.id := id;
+         daemon.type := type;
+         daemon.slot := slot;
+         daemon.action := action;
+         daemon.persistent := persistent;
+         daemon.traced := traced;
+         daemon.target := target
+      end
+    else self.error("Illegal args to Daemon creation: " + args.toString())
+    end
+  end
+  
+context Daemon
+
+  @Operation invoke(target:Element,args:Seq(Element)):Element
+  
+    // A daemon is invoked with the following arguments:
+    //
+    // o the slot that has changed.
+    // o the new value.
+    // o the old value.
+    //
+    // The value of target is the object that has changed.
+    // Under normal circumstances the invocation of a daemon is
+    // handled by the VM that implements this operation at the machine
+    // level.
+    
+    @CaseInt[4] self.type of
+    
+      Daemon::ANY do
+      
+        // The action should be an operation that expects the object
+        // that has changed, the slot that is updated, the new value 
+        // and the old value. It is always invoked...
+        
+        if self.traced
+        then format(stdout,"Fire ~S(~S,~{,~;~S~})~%~%",Seq{self,target,args})
+        end;
+        //self.action.invoke(self.target,Seq{target | args})
+        self.invokeAction(target,Seq{target | args})
+      end
+      
+      Daemon::VALUE do
+      
+        // The action should be an operation that expects the object and
+        // slot that is updated, the new value and the old value. It is
+        // invoked when the daemon slot is the same as the updated
+        // slot....
+        
+        if self.slot = args->at(0)
+        then 
+          if self.traced
+          then format(stdout,"Fire ~S(~S,~{,~;~S~})~%~%",Seq{self,target,args})
+          end;
+          //self.action.invoke(self.target,Seq{target | args})
+          self.invokeAction(target,Seq{target | args})
+        end
+      end
+      
+      Daemon::ADD do
+      
+        // The action should be an operation that expects the object and
+        // name of the slot that changes and the new value that is added 
+        // to the slot (which should be a collection). The action is
+        // invoked if the daemon slot is the same as that which is
+        // modified...
+        
+        if self.slot = args->at(0)
+        then 
+          let newValues = args->at(1);
+              oldValues = args->at(2) then
+              values = newValues - oldValues
+          in if not values->isEmpty
+             then
+               @For value in values do
+                 if self.traced
+                 then format(stdout,"Fire + ~S(~S,~S)~%~%",Seq{self,target,value})
+                 end;
+                 //self.action.invoke(self.target,Seq{target,self.slot,value})
+                 self.invokeAction(target,Seq{target,self.slot,value})
+               end
+             end
+          end
+        end
+        
+      end
+      
+      Daemon::SUB do
+      
+        // As for ADD, but for values that are removed....
+        
+        if self.slot = args->at(0)
+        then 
+          let newValues = args->at(1);
+              oldValues = args->at(2) then
+              values = oldValues - newValues
+          in if not values->isEmpty
+             then
+               @For value in values do
+                 if self.traced
+                 then format(stdout,"Fire - ~S(~S,~S)~%~%",Seq{self,target,value})
+                 end;
+                 //self.action.invoke(self.target,Seq{target,self.slot,value})
+                 self.invokeAction(target,Seq{target,self.slot,value})
+               end
+             end
+          end
+        end
+        
+      end
+      
+    end
+    
+  end
+  
+context Daemon
+  @Operation invokeAction(target:Element,args:Seq(Element)):Element
+    let handlerTarget = self.getTarget(target)
+    in
+      if handlerTarget <> null
+      then
+        if self.isMultiDaemon()
+        then
+          @For t in handlerTarget do
+            self.action.invoke(t,args)
+          end
+        else
+          self.action.invoke(handlerTarget,args)
+        end
+      end
+    end
+  end
+  
+context Daemon
+  @Operation isMultiDaemon()
+    self.target.isKindOf(Table)
+  end
+
+context Daemon
+  @Operation matchesId(id)
+    self.id = id
+  end
+  
+context Daemon
+  @Operation matchesTarget(object,target)
+    if self.isMultiDaemon()
+    then
+      let targetSet = self.target.get(object)
+      in
+        targetSet->includes(target)
+      end
+    else
+      self.target = target
+    end
+  end
+  
+context Daemon
+  @Operation name()
+  
+    // Operations that use the name of the daemon use the
+    // unique identifier for the daemon. The name may be
+    // the same as the action name ormay be supplied as 
+    // an arbitrary value.
+    
+    self.id
+  end
+  
+context Daemon
+  @Operation persistent()
+    self.persistent
+  end
+
+context Daemon
+  @Operation removeDaemon(d,target):Element
+    self // cannot remove a daemon from a daemon
+  end
+
+context Daemon
+  @Operation removeFromDaemonTable(d:Daemon)
+    // Remove a daemon from 'allDaemons' table
+    Daemon::allDaemons := Daemon::allDaemons->excluding(d)
+  end
+
+context Daemon
+  @Operation removeMultiTarget(object,target)
+    if self.target.hasKey(object)
+    then
+      let targetSet = self.target.get(object)
+      in
+        targetSet := targetSet->excluding(target);
+        if targetSet->isEmpty
+        then
+          self.target.remove(object);
+          object.setDaemons(object.daemons()->excluding(self))
+        else
+          self.target.remove(object);
+          self.target.put(object,targetSet)
+        end
+      end
+    end
+  end
+
+context Daemon
+  @Operation set(name,value) 
+    @Case name.toString() of
+      "id"         do Kernel_daemonSetId(self,value)              end
+      "type"       do Kernel_daemonSetType(self,value)            end
+      "slot"       do Kernel_daemonSetSlot(self,value.asSymbol()) end
+      "action"     do Kernel_daemonSetAction(self,value)          end
+      "persistent" do Kernel_daemonSetPersistent(self,value)      end
+      "traced"     do Kernel_daemonSetTraced(self,value)          end
+      "target"     do Kernel_daemonSetTarget(self,value)          end
+      else         self.error(self.toString() + " has no slot named " + name)
+    end
+  end
+  
+context Daemon
+  @Operation slot()
+    self.slot
+  end
+  
+context Daemon
+  @Operation target()
+    self.target
+  end
+  
+context Daemon
+  @Operation toString():String
+    "<Daemon " + self.id + ", target=" + self.target.toString() + ">"
+  end
+  
+context Daemon 
+  @Operation trace()
+    self.traced := true
+  end
+  
+context Daemon
+  @Operation traced()
+    self.traced
+  end
+  
+context Daemon
+  @Operation traceAll()
+    @Doc
+      Trace all current daemons. Trace will print a message
+      when the daemon fires.
+    end
+    @For daemon in Daemon::allDaemons do
+      daemon.trace()
+    end;
+    Daemon::traceDaemons := true
+  end
+  
+context Daemon
+  @Operation type()
+    self.type
+  end
+  
+context Daemon
+  @Operation untrace()
+    self.traced := false
+  end
+  
+context Daemon
+  @Operation untraceAll()
+    @Doc
+      Untrace all currently traced daemons.
+    end
+    @For daemon in Daemon::allDaemons do
+      daemon.untrace()
+    end;
+    Daemon::traceDaemons := false
+  end 

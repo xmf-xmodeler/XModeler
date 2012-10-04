@@ -1,0 +1,966 @@
+parserImport XOCL;
+
+context SeqOfElement
+  // Append two sequences.
+  @Operation append(s:Seq(Element)):Seq(Element)
+    @Doc 
+    Appe-nd two sequences.
+    end
+    self + s
+  end
+  
+context SeqOfElement
+  // Turn a sequence into a set.
+  @Operation asSet():Set(Element)
+    @Doc
+      Turn a sequence into a set.
+    end
+    Kernel_asSet(self)
+  end
+  
+context SeqOfElement 
+  @Operation asSeq():Seq(Element)
+    @Doc
+      Turns a sequence into a sequence.
+    end
+    self
+  end
+
+context SeqOfElement 
+  @Operation asProperSeq():Seq(Element)
+    if self.isProperSequence()
+    then self
+    else Seq{self->head,self->tail}
+    end
+  end
+  
+context SeqOfElement
+  @Operation assoc(key)
+    @Doc
+      Receiver must be an a-list. Returns a-list headed
+      by pair whose head is the key or null.
+    end
+    self->assoc(key)
+  end
+
+context SeqOfElement
+  // Turns a sequence of integers into a string.
+  @Operation asString():String
+    @Doc
+      Turns a sequence of integers into a string.
+    end
+    let string = Kernel_mkString(self->size);
+        index = 0;
+        chars = self;
+        setCharAt = Kernel_setCharAt
+    in @While not chars->isEmpty do
+         setCharAt(string,index,chars->head);
+         chars := chars->tail;
+         index := index + 1
+       end;
+       string
+    end
+  end
+  
+context SeqOfElement
+  @Operation asVector():Vector
+    @Doc
+      Turns a sequence into a vector.
+    end
+    let v = Vector(self->size)
+    in @Count x from 0 to self->size do
+         Kernel_arraySet(v,x,self->at(x))
+       end;
+       v
+    end
+  end
+  
+context SeqOfElement
+  // 'at' returns the 0-based element of a sequence
+  @Operation at(n:Integer):Element
+    @Doc 
+      Returns the nth element of a sequence starting from 0.
+    end
+    if self->size = 0
+    then self.error("Seq(Element).at: empty sequence.")
+    else if n <= 0 
+         then self->head
+         else self.drop(1).at(n - 1)
+         end
+    end
+  end    
+  
+context SeqOfElement
+  @Operation bind(key,value):Seq(Element)
+    @Doc
+      Binds a key with a value and adds it to the
+      head of the sequence.
+    end
+    Seq{Seq{key|value} | self}
+  end
+  
+context SeqOfElement
+  @Operation binds(key):Boolean
+    @Doc
+      Returns true of a sequence contains
+      a binding that matches the key.
+    end
+    self->exists(pair | pair->head = key)
+  end
+  
+context SeqOfElement
+  // Return all elements but the last element.
+  @Operation butLast():Seq(Element)
+    @Doc
+      Returns all elements but the last element.
+    end
+    if self->size = 0
+    then self.error("Seq(Element)::butLast: empty sequence.")
+    else if self->size = 1
+         then Seq{}
+         else Seq{self->head | self->tail->butLast}
+         end
+    end
+  end
+  
+context SeqOfElement
+  @Operation contains(element:Element):Boolean
+    @Doc
+      Returns true if the sequence contains the element.
+    end
+    if self->isEmpty
+    then false
+    else 
+      if self->head = element
+      then true
+      else self->tail->contains(element)
+      end
+    end
+  end
+
+context SeqOfElement
+  @Operation default():Seq(Element)
+    @Doc 
+      Returns the default sequence: an empty sequence.
+    end
+    Seq{}
+  end
+
+context SeqOfElement
+  @Operation delete(element)
+    self.delete(element,true)
+  end
+
+context SeqOfElement
+  @Operation delete(element,multiple:Boolean):Seq(Element)
+    @Doc
+      Deletes the element by side effect from the receiver
+      and returns the receiver. The second argument controls
+      whether or not multiple occurrences are deleted.
+    end
+    if self->isEmpty
+    then self
+    elseif self->head = element
+    then 
+      if multiple
+      then self->tail->excluding(element,multiple)
+      else self->tail
+      end
+    elseif self->tail->isEmpty
+    then self
+    elseif self->tail->head = element
+    then 
+      self->tail := self->tail->tail;
+      if multiple
+      then self->excluding(element,multiple)
+      else self
+      end;
+      self
+    else 
+      self->tail->excluding(element,multiple);
+      self
+    end
+  end
+  
+context SeqOfElement
+  @Operation dot(name:String):Seq(Element)
+    @Doc
+      Returns the result of iterating over a 
+      sequence and performing dot on each element.
+    end
+    self->iterate(element s = Seq{} |
+      let value = element.get(name)
+      in if value.isKindOf(SetOfElement) or value.isKindOf(SeqOfElement)
+         then s + value->asSeq
+         else s + Seq{value}
+         end
+      end)
+  end
+  
+context SeqOfElement
+  @Operation drop(n:Integer):Seq(Element)
+    @Doc
+      Drops the first n elements from a sequence.
+    end
+    if n <= 0 or self->isEmpty
+    then self
+    else 
+      self->tail->drop(n - 1)
+    end
+  end
+  
+context SeqOfElement
+  @Operation dropWhile(pred:Operation):Seq(Element)
+    @Doc
+      Drop elements until pred is not satisfied.
+    end
+    if self->isEmpty
+    then self
+    else 
+      if pred(self->head)
+      then self->tail.dropWhile(pred)
+      else self
+      end
+    end
+  end
+  
+context SeqOfElement
+  @Operation equals(other:Element):Boolean
+    @Doc
+      Returns true if a sequence equals another sequence.
+      To be equal they must both be sequences and their
+      elements should be equal and in the same order. 
+    end
+    if other.isKindOf(SeqOfElement)
+    then
+      if self->isEmpty and other->isEmpty
+      then true
+      elseif self->isEmpty or other->isEmpty 
+      then false
+      else self->head.equals(other->head) and self->tail.equals(other->tail)
+      end
+    else false
+    end
+  end
+  
+context SeqOfElement
+  // 'exists' returns 'true' when one element of the sequence
+  // satisfies the predicate otherwise it returns 'false'.
+  @Operation exists(pred):Boolean
+    @Doc 
+       Returns true when one element of the sequence
+       satisfies the predicate otherwise it returns false.
+    end
+    if self->size = 0
+    then false
+    else if pred(self->head)
+         then true
+         else self->tail.exists(pred)
+         end
+    end
+  end
+  
+context SeqOfElement
+  // 'flatten' turns a sequence of sequences of X into a sequence of X.
+  @Operation flatten():Seq(Element)
+    @Doc
+      Turns a sequence of sequences of X into a sequence of X.
+    end
+    if self->isEmpty
+    then self
+    elseif self->head.of() = SeqOfElement
+    then self->head + self->tail->flatten
+    else Seq{self->head | self->tail->flatten}
+    end
+  end
+  
+context SeqOfElement
+  @Operation hasPrefix(s:Seq(Element)):Boolean
+    @Doc
+      Returns true if a sequence is prefixed by
+      the sequence s.
+    end
+    if self->size >= s->size
+    then
+      0.to(s->size - 1)->forAll(i | self->at(i) = s->at(i))
+    else false
+    end
+  end
+  
+context SeqOfElement
+  @Operation includes(x:Element):Boolean
+    @Doc 
+     Returns true if a sequence contains the element x.
+    end
+    self->includes(x)
+  end
+  
+context SeqOfElement
+  // Test whether a sequence includes all elements from
+  // another collection.
+  @Operation includesAll(c:Collection(Element)):Boolean
+    @Doc
+      Returns true if a sequence includes all the elements
+      in the collection c.
+    end
+    c->forAll(e | self->includes(e))
+  end
+  
+context SeqOfElement
+  @Operation including(e:Element):Seq(Element)
+    @Doc
+      Returns the result of including the element e in
+      a sequence. The element is added to the head of 
+      the sequence.
+    end
+    Seq{e|self}
+  end
+  
+context SeqOfElement
+  // 'indexOf' returns the first index of for the element or -1.
+  @Operation indexOf(element:Element):Integer
+    @Doc
+      Returns the first index of the element in a sequence. If
+      it is not found, returns -1.
+    end
+    let l = self;
+        i = 0 - 1;
+        found = false
+    in @While l <> Seq{} and not found do
+         i := i + 1;
+         if l->head = element
+         then found := true
+         else l := l->tail
+         end
+       end;
+       if found then i else (0-1) end
+    end
+  end
+  
+context SeqOfElement
+  @Operation insertAt(e:Element,i:Integer):Seq(Element)
+    @Doc
+      Inserts an element e at position i in a sequence.
+    end
+    if i <= 0 or self->isEmpty
+    then Seq{e | self}
+    else Seq{self->head | self->tail->insertAt(e,i-1)}
+    end
+  end
+  
+context SeqOfElement
+  @Operation intersection(s:Seq(Element)):Set(Element)
+    @Doc
+      Returns common elements.
+    end
+    self->asSet->intersection(s->asSet)
+  end
+  
+context SeqOfElement
+  @Operation isKindOf(type:Classifier):Boolean
+    @Doc
+      Returns true if all elements in a sequence are
+      instances of type. 
+    end
+    if type.isKindOf(Seq)
+    then 
+      if self->isEmpty 
+      then true
+      elseif self->head.isKindOf(type.elementType)
+      then 
+        if self->tail.of() = SeqOfElement
+        then self->tail.isKindOf(type)
+        else self->tail.isKindOf(type.elementType)
+        end
+      else false
+      end
+    else type = Element
+    end
+  end
+  
+context SeqOfElement
+  // 'last' returns the last element of a non-empty sequence.
+  @Operation last():Element
+    @Doc
+      Returns the last element of a non-empty sequence.
+    end
+    if self->size = 0
+    then self.error("Seq(Element)::last: empty sequence.")
+    else if self->size = 1
+         then self->head
+         else self->tail->last
+         end
+    end
+  end
+  
+context SeqOfElement
+  @Operation linkAt(element:Element,index:Integer):Seq(Element)
+    @Doc
+      Inserts an element into a sequence at the index.
+    end
+    if index <= 0 or self->isEmpty
+    then Seq{element | self}
+    else 
+      let l = self->drop(index - 1)
+      in if l->isEmpty
+         then self + Seq{element}
+         else l->tail := Seq{element | l->tail};
+              self
+         end
+      end
+    end
+  end
+  
+context SeqOfElement
+  @Operation lookup(key)
+    @Doc
+      Looks up a pair in a sequence using the key.
+      Returns an error if the key cannot be found.
+    end
+    @Find(pair,self)
+      when pair->head = key
+      do pair->tail
+      else self.error("Cannot find key " + key.toString() + " in " + self.toString())
+    end
+  end
+  
+context SeqOfElement
+  // 'forAll' returns 'true' when all elements of the sequence
+  // satisfy the predicate otherwise it returns 'false'.
+  @Operation forAll(pred):Boolean
+    @Doc
+      Returns true if all elements of the sequence
+      satisfy the predicate otherwise returns false.
+    end
+    if self->size = 0
+    then true
+    else if pred(self->head)
+         then self->tail.forAll(pred)
+         else false
+         end
+    end
+  end
+  
+context SeqOfElement
+  @Operation hasPrefix(prefix:Seq(Element)):Boolean
+    @Doc
+      Returns true if a sequence is prefixed by the
+      sequence prefix.
+    end
+    if prefix->isEmpty
+    then true
+    else 
+      if self->isEmpty
+      then false
+      else 
+        if self->head = prefix->head
+        then self->tail->hasPrefix(prefix->tail)
+        else false
+        end
+      end
+    end
+  end
+  
+context SeqOfElement
+  @Operation hasSuffix(suffix:Seq(Element)):Boolean
+    @Doc 
+      Returns true if a sequence is suffixed by
+      the sequence suffix
+    end
+    self->reverse->hasPrefix(suffix->reverse)
+  end
+  
+context SeqOfElement
+  // Head should be compiled out elsewhere to a 
+  // machine instruction.   
+  @Operation head():Element
+    @Doc 
+      Returns the head of a sequence.
+    end
+    self->head
+  end
+  
+context SeqOfElement
+  // Test whether a sequence includes an element.
+  @Operation includes(element:Element):Boolean
+    @Doc
+      Returns true if a sequence contains element.
+    end
+    if self = Seq{}
+    then false
+    else if self->head = element
+         then true
+         else self->tail->includes(element)
+         end
+    end
+  end
+  
+context SeqOfElement
+  @Operation isEmpty():Boolean
+    @Doc
+      Returns true if a sequence is empty.
+    end
+    self = Seq{}
+  end
+  
+context SeqOfElement
+  @Operation isProperSequence():Boolean
+    // Test whether the last tail is Seq{}
+    @Doc
+      Returns true if the last tail is
+      a valid sequence.
+    end
+    if self->isEmpty
+    then true
+    else 
+      if self->tail.of() = SeqOfElement
+      then self->tail->isProperSequence
+      else false
+      end
+    end
+  end   
+  
+context SeqOfElement
+  // Iteration as for SetOfElement::iterate except we return
+  // a sequence.
+  @Operation iter(iterator,value):Seq(Element)
+    @Doc
+      Iterates through a sequence, returning a sequence.
+    end
+    if self = Seq{}
+    then value
+    else self->drop(1).iter(iterator,iterator(self->head,value))
+    end
+  end
+
+context SeqOfElement
+  // Lookup is a message which when sent to a sequence of
+  // strings will lookup the element at the path given by the
+  // strings in order. If no element exists then an error
+  // is raised.
+  @Operation lookup():Element
+    @Doc
+       Lookup is a message which when sent to a sequence of
+       strings will lookup the element at the path given by the
+       strings in order. If no element exists then an error
+       is raised.
+    end
+    if self->forAll(e | e.isKindOf(String))
+    then if self->size = 0
+         then self.error("Cannot lookup an empty sequence of names")
+         else self->drop(1)->iterate(name p = self->head.lookup() | p.getElement(name))
+         end
+    else self.error("Lookup requires a sequence of strings")
+    end
+  end
+
+context SeqOfElement
+  @Operation makeTree(children)
+    self + Seq{children}
+  end
+
+context SeqOfElement
+  @Operation map(message . args)
+    self->collect(x | x.send(message,args))
+  end
+  
+context SeqOfElement
+  // Find the max element.
+  @Operation max():Integer
+    @Doc
+      Returns the maximum valued element in the sequence.
+    end
+    if self->isEmpty
+    then 0
+    else self->head.max(self->tail->max)
+    end
+  end
+  
+context SeqOfElement
+  @Operation mul(s:Seq(Element)):Seq(Element)
+    @Doc
+      Generates a sequence containing all combinations of 
+      elements in the two sequences.
+    end
+    self->collect(x | s->collect(y | Seq{x,y}))->flatten
+  end
+  
+context SeqOfElement
+  @Operation prefixes():Seq(Element)
+    @Doc
+      Returns all possible prefixes of a sequence including
+      the empty sequence.
+    end
+    if self->isEmpty
+    then Seq{Seq{}}
+    else
+      self->tail->prefixes->collect(s | Seq{self->head | s})->including(Seq{})
+    end
+  end
+
+context SeqOfElement
+  // Prepend adds an element to the head of a sequence and
+  // returns a new sequence.
+  @Operation prepend(e:Element):Seq(Element)
+    @Doc
+      Prepe-nd adds an element to the head of a sequence and
+      returns a new sequence.
+    end
+    Seq{e|self}
+  end 
+  
+context SeqOfElement
+  @Operation qsort(pred:Operation):Seq(Element)
+    @Doc
+      Quicksorts the elements in the sequence. Is 
+      supplied with an operation of the form @Operation(x,y)
+      predicate en-d where x and y will be elements in the
+      sequence. An example predicate might be x < y.
+    end
+    @Letrec sort = 
+      @Operation(v:Vector,lo0,hi0)
+        let hi = hi0;
+            lo = lo0
+        in if hi0 > lo0
+           then
+             let mid = Kernel_arrayRef(v,(lo0 + hi0).div(2))
+             in @While lo <= hi do
+                   // @While (lo < hi0) and pred(Kernel_arrayRef(v,lo),mid) and not(Kernel_arrayRef(v,lo) = mid) do
+                   @While (lo < hi0) and pred.invoke(self,Seq{Kernel_arrayRef(v,lo),mid}) and not(Kernel_arrayRef(v,lo) = mid) do
+                     lo := lo + 1
+                   end;
+                   // @While (hi > lo0) and not(pred(Kernel_arrayRef(v,hi),mid)) and not(mid = Kernel_arrayRef(v,hi)) do
+                   @While (hi > lo0) and not(pred.invoke(self,Seq{Kernel_arrayRef(v,hi),mid})) and not(mid = Kernel_arrayRef(v,hi)) do
+                     hi := hi - 1
+                   end;
+                   if lo <= hi
+                   then
+                     let temp = Kernel_arrayRef(v,lo)
+                     in Kernel_arraySet(v,lo,Kernel_arrayRef(v,hi));
+                        Kernel_arraySet(v,hi,temp)
+                     end;
+                     lo := lo + 1;
+                     hi := hi - 1
+                   end
+                end;
+                if lo0 < hi
+                then sort(v,lo0,hi)
+                end;
+                if lo < hi0
+                then sort(v,lo,hi0)
+                end
+             end
+           end;
+           v
+        end
+      end
+    in let v = self->asVector
+       in sort(v,0,self->size - 1);
+          v->asSeq
+       end
+    end
+  end
+      
+  
+context SeqOfElement
+  @Operation ref(nameSpaces)
+    @Doc
+      Looks up a namespace path represented as a sequence of strings
+      to the element found at the path. The operation takes a sequence 
+      of namespaces as an argument; the namespace arguments are used 
+      as the basis for the lookup.
+    end
+    if self->isEmpty or not self->forAll(x | x.isKindOf(String))
+    then self.error("I am not a namespace path " + self.toString())
+    else
+      let nameSpace = 
+            @Find(nameSpace,nameSpaces) 
+              when nameSpace.hasElement(self->head) 
+              do nameSpace.getElement(self->head) 
+              else null 
+            end;
+          names = self->tail
+      in @While not names->isEmpty and nameSpace <> null do
+           if nameSpace.hasElement(names->head)
+           then nameSpace := nameSpace.getElement(names->head)
+           else nameSpace := null
+           end;
+           names := names->tail
+         end;
+         nameSpace
+      end
+    end
+  end
+  
+context SeqOfElement
+  @Operation removeAt(index:Integer):Seq(Element)
+    @Doc
+      Removes element at speicified index.
+    end
+    if self->isEmpty
+    then self.error("Cannot remove element from empty sequence.")
+    elseif index <= 0
+    then self->tail
+    else Seq{self->head | self->tail->removeAt(index - 1)}
+    end
+  end
+  
+context SeqOfElement
+  @Operation replaceAt(index:Integer,new):Seq(Element)
+    @Doc 
+      Replace the element at the supplied index.
+    end
+    if self->isEmpty
+    then self.error("Cannot replace element in empty sequence.")
+    elseif index <= 0
+    then Seq{new | self->tail}
+    else Seq{self->head | self->tail.replaceAt(index - 1,new)}
+    end
+  end
+  
+context SeqOfElement
+  // Reverse the receiver.
+  @Operation reverse():Seq(Element)
+    @Doc
+      Reverses a sequence.
+    end
+    let reverse = Seq{};
+        order = self
+    in @While not order->isEmpty do
+          reverse := Seq{order->head | reverse};
+          order := order->tail
+       end;
+       reverse
+    end
+  end
+  
+context SeqOfElement
+  @Operation sel()
+    @Doc
+      Returns one element from a sequence.
+    end
+    self->sel
+  end
+  
+context SeqOfElement
+  // Apply a filter to a sequence of elements.
+  @Operation select(predicate):Seq(Element)
+    @Doc
+      Applies a filter to a sequence of elements.
+    end
+    if self = Seq{}
+    then self
+    else if predicate(self->head)
+         then Seq{self->head | self->tail.select(predicate)}
+         else self->tail.select(predicate)
+         end
+    end
+  end
+  
+context SeqOfElement
+  // Create a string by concatenating the component strings
+  // and placing the argument string in between.
+  @Operation separateWith(sep:String):String
+    @Doc
+      Constructs a string by concatenating the elements of
+      a sequence together, separated by sep.
+    end
+    if self->isEmpty
+    then ""
+    elseif self->tail->isEmpty
+    then self->head.toString()
+    else self->head.toString() + sep + self->tail->separateWith(sep)
+    end
+  end
+  
+context SeqOfElement
+  @Operation set(key,value):Seq(Element)
+    @Doc
+      Sets the value of a binding in a sequence indexed by key. Creates
+      a binding if one does not exist.
+    end
+    let pair = @Find(pair,self) when pair->head = key  else null end
+    in if pair = null
+       then self->bind(key,value)
+       else 
+         pair->tail := value;
+         self
+       end
+    end
+  end
+  
+context SeqOfElement
+  @Operation size():Integer
+    @Doc
+      Returns the size of a sequence.
+    end
+    self->size
+  end
+  
+context SeqOfElement
+  // Sort using a comparison predicate. Use quicksort.
+  // The predicate should implement <.
+  @Operation sort(pred):Seq(Element)
+    @Doc
+      Sorts a sequence using a comparison predicate of the
+      form @Operation(x,y) predicate en-d. The predicate
+      must be a comparison expression, e.g. x < y.
+    end
+    if self->isEmpty
+    then self
+    else 
+      let e = self->head
+      in let pre = self->select(x | pred(x,e));
+             post = self->select(x | x <> e and not pred(x,e))
+         in pre->sort(pred) + Seq{e} + post->sort(pred)
+         end
+      end
+    end
+  end
+  
+context SeqOfElement
+  // Sort a sequence of names
+  @Operation sortNamedElements():Seq(NamedElement)
+    @Doc
+      Default case depen-dent use of sortNamedElements(arg)
+    end
+    self.sortNamedElements(true)
+  end
+
+context SeqOfElement
+  // Sort a sequence of names
+  @Operation sortNamedElements(caseDependent:Boolean):Seq(NamedElement)
+    @Doc
+      Sorts a sequence of names. This operation is
+      implemented in the kernel as is therefore very
+      fast.
+    end
+    Kernel_sortNamedElements(self,caseDependent)
+  end
+  
+context SeqOfElement
+  // Sort a sequence of names.
+  @Operation sortNamedElements_CaseIndependent():Seq(Element)
+    Kernel_sortNamedElements(self,false)
+  end
+
+context SeqOfElement
+  // Sort a sequence of names.
+  @Operation sortNames():Seq(String)
+    @Doc
+      Sorts a sequence of names.
+    end
+    self.qsort(
+      @Operation(n1,n2)
+        if n1->size = 0
+        then true
+        else 
+          if n2->size = 0
+          then false
+          else n1->at(0) < n2->at(0)
+          end
+        end
+      end)
+  end
+  
+context SeqOfElement
+  @Operation subst(new,old,all:Boolean):Seq(Element)
+    @Doc
+      Substitutes old for new in a sequence. If all
+      is true, it will replace all elements, otherwise
+      it will replace the first element.
+    end
+    if self->isEmpty
+    then Seq{}
+    else 
+      if self->hasPrefix(old)
+      then
+        if all
+        then new + self->drop(old->size)->subst(new,old,all)
+        else new + self->drop(old->size)
+        end
+      else Seq{self->head | self->tail->subst(new,old,all)}
+      end
+    end
+  end
+  
+context SeqOfElement
+  // SubSequence produces a subsequence given two indices.
+  // The first index is inclusive and is the starting index.
+  // The second index is exclusive and is the terminating
+  // index.
+  @Operation subSequence(starting,terminating)
+    @Doc
+      Produces a subsequence given two indices.
+      The first index is inclusive and is the starting index.
+      The second index is exclusive and is the terminating
+      index.
+    end
+    if starting > self->size
+    then Seq{}
+    else 
+      self->drop(starting)->take(terminating - starting)
+    end
+  end
+  
+context SeqOfElement
+  @Operation take(n:Integer)
+    @Doc
+      Takes n elements from the tail of a
+      sequence.
+    end
+    if self->isEmpty or n <= 0
+    then Seq{}
+    else 
+      Seq{self->head | self->tail->take(n - 1)}
+    end
+  end
+  
+context SeqOfElement
+  // Tail should be compiled out elsewhere to
+  // a machine instruction.
+  @Operation tail():Seq(Element)
+    @Doc
+      Returns the tail of a sequence.
+    end
+    self->tail
+  end
+  
+context SeqOfElement
+  // Produce a printed representation of a sequence.
+  @Operation toString():String
+    @Doc
+      Produces a printed representation of a sequence.
+    end
+    if self.isProperSequence()
+    then 
+      let s = "Seq{"
+      in @For e in self do
+           s := s + e.toString();
+           if not isLast
+           then s := s + ","
+           end
+         end;
+         s + "}"
+      end
+    else "Seq{" + self->head.toString() + " | " + self->tail.toString() + "}"
+    end
+  end
+  
+context SeqOfElement
+  @Operation unbind(key)
+    self->reject(bind | bind->head = key)
+  end
+  
+context SeqOfElement
+  @Operation zip(s:Seq(Element)):Seq(Element)
+    // Produce a sequence of pairs...
+    @Doc
+      Produces a sequences of pairs by matching the first element
+      of a sequence with the first element of s, and so on...
+    end
+    if self->isEmpty or s->isEmpty
+    then Seq{}
+    else Seq{Seq{self->head | s->head} | self->tail->zip(s->tail)}
+    end
+  end

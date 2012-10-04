@@ -1,0 +1,19 @@
+parserImport Tools::Events;
+parserImport XOCL;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler StateMachine_nodeBox_bodyBox_attribute_type_Changed()
+    let attribute = find(event.value());
+        typeName = event.new()
+    in @Case typeName of 
+         "Element" do attribute.type := Element end
+         "String"  do attribute.type := String  end
+         "Integer" do attribute.type := Integer end
+         "Boolean" do attribute.type := Boolean end
+         "Float"   do attribute.type := Float   end
+         else 
+           xmf.warning("Unknown type for attribute: " + typeName);
+           event.value().setText(event.old())
+       end
+    end
+  end

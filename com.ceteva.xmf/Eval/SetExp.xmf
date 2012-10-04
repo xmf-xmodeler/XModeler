@@ -1,0 +1,9 @@
+import OCL;
+
+context SetExp
+  @Operation eval(target,env,imports)
+    if collType = "Set"
+    then elements->collect(e | e.eval(target,env,imports))->asSet
+    else elements->collect(e | e.eval(target,env,imports))->asSeq
+    end
+  end

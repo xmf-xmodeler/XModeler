@@ -1,0 +1,150 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ToolBar_Group"()
+  let name = xmf.getString("Group Name","Type Group Name","Group")
+  in if name = null
+     then event.value().delete()
+     else 
+       event.value().setTextIn(name);
+       let group = ToolGroup(name);
+           rootElementType = event.tool().find(event.parent().owner())
+       in rootElementType.displayType().toolBar().add(group);
+          event.tool().register(group,event.value());
+          event.tool().register(event.value(),group)
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)ToolBar_Group"()
+  if event.tool().isRegistered(event.value())
+  then
+    let rootElementType = event.tool().find(event.owner().owner()) then
+        toolBar = rootElementType.displayType().toolBar();
+        groupNode = event.value() then
+        group = event.tool().find(groupNode)
+    in toolBar.deleteFromGroups(group);
+       event.tool().deregister(group);
+       event.tool().deregister(groupNode)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)ToolBar_Group_Changed"()
+  if event.tool().isRegistered(event.value())
+  then
+    let group = event.tool().find(event.value())
+    in group.setName(event.new())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ToolBar_Group_NodeButton"()
+  let rootElementType = event.tool().find(event.parent().owner().owner()) then
+      nodeTypes = rootElementType.displayType().nodeTypes() then
+      nodeType = xmf.select("Node Type","Select node type",nodeTypes,null,@Operation(n) n.name().toString() end)
+  in if nodeType = null
+     then event.value().delete()
+     else 
+       let name = nodeType.name().toString() then
+           button = ToolButton(nodeType.name().toString(),"",false);
+           groupName = event.parent().text()
+       in event.value().setTextIn(nodeType.name().toString());
+          button.icon := "XCore/Object.gif";
+          @Find(group,rootElementType.displayType().toolBar().groups())
+            when group.name() = groupName
+            do group.add(button);
+               event.tool().register(button,event.value());
+               event.tool().register(event.value(),button)
+            else self.error("Cannot find group named " + name)
+          end
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)ToolBar_Group_NodeButton_Changed"()
+  if event.tool().isRegistered(event.value())
+  then
+    let nodeTypes = event.tool().nodeTypes();
+        button = event.tool().find(event.value())
+    in button.setName(event.new())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)ToolBar_Group_EdgeButton"()
+  let rootElementType = event.tool().find(event.parent().owner().owner()) then
+      edgeMaps = rootElementType.edges() +
+                 rootElementType.classEdges() +
+                 rootElementType.displayType().intelliLinkTypes()->asSet then
+      edgeMap = xmf.select("Edge Type","Select edge type",edgeMaps,null,null)
+  in if edgeMap = null
+     then event.value().delete()
+     else
+       let edgeType =
+             if edgeMap.isKindOf(IntelliLinkType) or edgeMap.isKindOf(AllEdgesIntelliLinkType)
+             then edgeMap
+             else edgeMap.edgeType()
+             end then
+           name = edgeType.name().toString() then
+           button = ToolButton(edgeType.name().toString(),"",true);
+           groupName = event.parent().text()
+       in event.value().setTextIn(edgeMap.toString());
+          button.icon := "XCore/Attribute.gif";
+          @Find(group,rootElementType.displayType().toolBar().groups())
+            when group.name() = groupName
+            do group.add(button);
+               event.tool().register(button,event.value());
+               event.tool().register(event.value(),button)
+            else self.error("Cannot find group named " + name)
+          end
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Type_Tree_RootElementType_(.*)ToolBar_Group_EdgeButton_Changed"()
+  if event.tool().isRegistered(event.value())
+  then
+    let edgeTypes = event.tool().edgeTypes();
+        button = event.tool().find(event.value())
+    in button.setName(event.new())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)ToolBar_Group_NodeButton"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let button = event.tool().find(event.value());
+        rootElementType = event.tool().find(event.owner().owner().owner())
+    in @Find(group,rootElementType.displayType().toolBar().groups())
+         when group.buttons()->includes(button)
+         do group.deleteFromButtons(button)
+       end
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)ToolBar_Group_EdgeButton"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let button = event.tool().find(event.value());
+        rootElementType = event.tool().find(event.owner().owner().owner())
+    in @Find(group,rootElementType.displayType().toolBar().groups())
+         when group.buttons()->includes(button)
+         do group.deleteFromButtons(button)
+       end
+    end
+  end
+end;
+

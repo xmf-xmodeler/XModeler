@@ -1,0 +1,269 @@
+parserImport XOCL;
+
+context Languages
+
+ @Package Activities
+ 
+   @Doc
+     An activity model specifies the operations of a classifier.
+     Each operation is defined in terms of its pre and post
+     conditions. A top-level model can be viewed as a use case
+     model in that actors are allocated to top-level activities.
+     An activity may optionally have an implementation which is
+     another activity model. A nested activity model must have
+     a single start point and multiple en-d points. The sub-activities
+     are linked together via steps. An activity model may be
+     associated with a classifier which is an instance of Specification.
+     In this case the specification for an operation is called when
+     the operation is invoked on an instance. By invoking an
+     activity, the pre and post condition can be checked and 
+     diagnostics produced when the conditions are violated.
+   end
+ 
+   @Class Actor 
+     @Attribute name            : String        (!)   end
+     @Attribute activities      : Set(Activity) (+,-) end
+     @Attribute description     : String              end
+     @Attribute characteristics : String              end
+     @Attribute ref             : String              end
+     
+     @Constructor(name) ! end
+   end
+      
+   @Class ActivityModel extends Contained
+   
+     @Attribute steps      : Set(Step)     (+,-) end
+     @Attribute actors     : Set(Actor)    (+,-) end
+     @Attribute activities : Set(Activity) (+,-) end
+     @Attribute start      : Start         (!)   end
+     @Attribute ends       : Set(End)      (+,-) end
+     
+     @Operation addActivity(activity)
+       self.addToActivities(activity);
+       activity.setOwner(self);
+       self
+     end
+     
+     @Operation getElement(name:String)
+       @Find(activity,activities)
+         when name.toString() = activity.name
+         else null
+       end
+     end
+     
+     @Operation findClassifier():Classifier
+       if owner <> null
+       then 
+         if owner.isKindOf(Classifier)
+         then owner
+         else owner.findClassifier()
+         end
+       else null
+       end
+     end   
+     
+     @Operation path(x)
+     
+       // Return a path from x.
+       
+      @Find(step,steps)
+        when step.source = x
+        do Seq{x | self.path(step.target)}
+        else Seq{x}
+      end
+      
+     end
+     
+     @Operation perform(target,args,out)
+     
+       // Called when an owning activity is performed.
+       // search for the start and then select a sequence
+       // of activites that form a path.
+       
+       if start <> null
+       then 
+         let path = self.path(start)->tail->butLast
+         in @For activity in path do
+               activity.invoke(target,args,out)
+            end
+         end
+       end
+       
+     end
+     
+   end
+        
+   @Class StepSource isabstract end
+   @Class StepTarget isabstract end
+        
+   @Class Start extends StepSource end
+   @Class End extends StepTarget end
+        
+   @Class Step   
+     @Attribute source : StepSource end
+     @Attribute target : StepTarget end
+     @Constructor(source,target) ! end
+   end
+   
+   @Class Activity extends StepSource,StepTarget,Contained
+   
+     @Attribute pre   : XOCL::Exp     (!) end
+     @Attribute post  : XOCL::Exp     (!) end
+     @Attribute imp   : ActivityModel (!) end 
+     @Attribute trace : Boolean           end
+     @Attribute name  : String        (!) end
+     @Attribute ref   : String            end
+     @Attribute example : String          end
+     @Attribute scope : String            end
+     @Attribute brief : String            end
+     @Attribute primaryActor : String     end
+     @Attribute trigger : String          end
+     @Attribute frequency : String        end
+     
+     @Operation argDynamics(target,args)
+       let classifier = target.of()
+       in if classifier.hasElement(name)
+          then 
+            let op = classifier.getElement(name)
+            in if op.isReallyKindOf(XCore::CompiledOperation)
+               then 
+                 let names = op.paramNames()
+                 in if names->size = args->size
+                    then 
+                      names->zip(args)->collect(pair | Seq{1 | Seq{pair->head.asSymbol() | pair->tail}})
+                    else self.error("Arity error: supplied " + args + " expecting " + names->size + " args.")
+                    end
+                 end
+               else Seq{}
+               end
+            end
+          else Seq{}
+          end
+       end
+     end
+     
+     @Operation checkPre(target,dynamics,out)
+       try
+         if pre <> null
+         then 
+           if trace
+           then
+             format(out,"Checking precondition of ~S.~S(~{,~;~S~})~%",Seq{target,name,dynamics->collect(pair | pair->tail)})
+           end;
+           pre.op.dynamics := dynamics;
+           if not pre.op.invoke(target,Seq{}) 
+           then 
+             format(out,"Precondition for ~S failed.~%Object = ~S~%Condition = ~S~%",Seq{name,target,pre.source()});
+             xmf.message(
+               "Precondition for " + name + " failed.\n" +
+               "Object = " + target.toString() + "\n" +
+               "Condition = " + pre.source());
+             false
+           else true
+           end
+         else true
+         end
+       catch(exception)
+         xmf.message("Error in precondition: " + exception.toString());
+         false
+       end
+     end
+     
+     @Operation checkPost(preTarget,target,dynamics,out)
+       try
+         if post <> null
+         then 
+           if trace
+           then
+             format(out,"Checking postcondition of ~S.~S(~{,~;~S~})~%",Seq{target,name,dynamics->collect(pair | pair->tail)})
+           end;
+           let op = post.op then
+               newDynamics = Seq{Seq{1 | Seq{Symbol("preSelf") | preTarget}}} + dynamics
+           in op.dynamics := newDynamics;
+              if not op.invoke(target,Seq{}) 
+              then 
+                format(out,"Postcondition for ~S failed.~%Object = ~S~%Condition = ~S~%",Seq{name,target,post.source()});
+                xmf.message(
+                 "Postcondition for " + name + " failed.\n" +
+                 "Object = " + target.toString() + "\n" +
+                 "Condition = " + post.source());
+                false
+              else true
+              end
+           end
+         else true
+         end
+       catch(exception)
+         xmf.message("Error in postcondition: " + exception.toString());
+         false
+       end
+     end
+     
+     @Operation findClassifier():Classifier
+       if owner <> null
+       then owner.findClassifier()
+       else null
+       end
+     end
+     
+     @Operation invoke(target,args)
+     
+       // The standard invocation produces trace output to the
+       // stdout.
+       
+       self.invoke(target,args,stdout)
+     end
+     
+     @Operation invoke(target,args,out)
+     
+       // Supply either a filename or an output channel to specify
+       // where the trace output goes.
+       
+       if out.isReallyKindOf(String)
+       then
+         let fout = IO::FileOutputChannel(out) then
+             value = self.invoke(target,args,fout)
+         in fout.close();
+            value
+         end
+       else
+         if trace
+         then
+           format(out,"Calling ~S.~S(~{,~;~S~})~%",Seq{target,name,args})
+         end;
+         let dynamics = self.argDynamics(target,args)
+         in if self.checkPre(target,dynamics,out)
+            then
+              let preTarget = target.copy() then
+                  value = self.performImp(target,args,out) 
+              in if self.checkPost(preTarget,target,dynamics,out)
+                 then value
+                 else null
+                 end
+              end
+            else null
+            end
+         end 
+       end
+     end
+     
+     @Operation performImp(target,args,out)
+       let classifier = target.of()
+       in if imp <> null
+          then imp.perform(target,args,out)
+          elseif classifier.hasElement(name)
+          then 
+            let op = classifier.getElement(name)
+            in if op.isReallyKindOf(XCore::CompiledOperation)
+               then op.invoke(target,args)
+               else null
+               end
+            end
+          end
+       end
+     end  
+     
+   end
+        
+        
+  end

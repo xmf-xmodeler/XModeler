@@ -1,0 +1,216 @@
+parserImport XOCL;
+
+import OCL;
+
+context Root
+  @Class RefTable
+    @Attribute table      : Table = Table(10) end
+    @Attribute refCounter : Integer             end
+  end
+
+context Element
+  @Operation lift():Performable
+    let refTable = RefTable() then
+        references = refTable.table;
+        mark = Table(1000);
+        sweep = Table(1000)
+    in self.forwardReferenceTable(mark,refTable);
+       let liftCode = self.lift(references,sweep)
+       in if references->isEmpty
+          then liftCode
+          else 
+            [| let table = Table(1000)
+               in < @For key inTableKeys references do
+                     let index = references.get(key);
+                         newCode = key.liftNewValue()
+                     in liftCode := [| table.put(<IntExp(index)>,<newCode>); <liftCode> |]
+                     end
+                   end;
+                   liftCode>
+               end
+            |]
+          end
+       end     
+    end
+  end
+  
+context Element
+  @Operation liftNewValue():Performable
+  
+    // Produces the code that creates a new *empty* value ready for populating
+    // with the components. This is used for creating forward references when
+    // lifting code. This should only be called on sharable containers.
+    
+    @CaseInt[29] Kernel_tag(self) of
+      XMF::ARRAY do
+        [| Vector(<IntExp(self->size)>) |]
+      end
+      XMF::OBJ do
+        [| Kernel_newObj(<Path::toPath(Kernel_of(self).pathSeq())>) |]
+      end
+      XMF::FUN do
+        try
+          OCL::OCL.grammar.parseString(self.source(),"Exp",Seq{XOCL})
+        catch(exception)
+          format(stdout,"Error ~S lifing compiled operation ~S",Seq{exception,self});
+          [| self.error(<StrExp("Missing operation " + self.name().toString())>) |]
+        end
+      end
+      XMF::CONS do
+        [| Seq{null | null} |]
+      end
+      XMF::HASHTABLE do
+        [| Table(100) |]
+      end
+      else self.error("LiftNewValue not implemented for  " + self.toString())
+    end
+  end
+  
+context Element 
+  @Operation forwardReferenceTable(mark:Table,refTable:RefTable)
+    if mark.hasKey(self) 
+    then
+      if not refTable.table.hasKey(self)
+      then 
+        refTable.table.put(self,refTable.refCounter);
+        refTable.refCounter := refTable.refCounter + 1
+      end
+    else
+      @CaseInt[29] Kernel_tag(self) of
+        XMF::ARRAY do
+          mark.put(self,self);
+          @Count i from 0 to self->size do
+            self.ref(i).forwardReferenceTable(mark,refTable)
+          end
+        end
+        XMF::FUN do
+          mark.put(self,self)
+        end
+        XMF::CONS do
+          mark.put(self,self);
+          self->head.forwardReferenceTable(mark,refTable);
+          self->tail.forwardReferenceTable(mark,refTable)
+        end
+        XMF::OBJ do
+          mark.put(self,self);
+          @For slot in Kernel_objSlots(self) do
+            slot.ref(1).forwardReferenceTable(mark,refTable)
+          end
+        end
+        XMF::SET do
+          @For e in self do
+            e.forwardReferenceTable(mark,refTable)
+          end
+        end
+        XMF::HASHTABLE do
+          mark.put(self,self);
+          @For key inTableKeys self do
+            key.forwardReferenceTable(mark,refTable)
+          end;
+          @For value inTableValues self do
+            value.forwardReferenceTable(mark,refTable)
+          end
+        end
+        else null
+      end
+    end   
+  end
+  
+context Element
+  @Operation lift(refTable:Table,sweep:Table):Performable
+    if sweep.hasKey(self)
+    then [| table.get(<IntExp(refTable.get(self))>) |] 
+    else
+      @CaseInt[29] Kernel_tag(self) of
+        XMF::ARRAY do
+          sweep.put(self,self);
+          let e = if refTable.hasKey(self) 
+                  then [| table.get(<IntExp(refTable.get(self))>) |]
+                  else [| Vector(<IntExp(self->size)>) |]
+                  end
+          in @Count i from 0 to self->size do
+               if self.ref(i) <> null
+               then e := [| <e>.put(<IntExp(i)>,<self.ref(i).lift(refTable,sweep)>) |]
+               end
+             end;
+             e
+          end
+        end
+        XMF::UNDEFINED do
+          [| null |]
+        end
+        XMF::INT do
+          IntExp(self)
+        end
+        XMF::STRING do
+          StrExp(self)
+        end
+        XMF::BOOL do
+          BoolExp(self)
+        end
+        XMF::OBJ do
+          sweep.put(self,self);
+          let e = if refTable.hasKey(self) 
+                  then [| table.get(<IntExp(refTable.get(self))>) |]
+                  else [| Kernel_newObj(<Path::toPath(Kernel_of(self).pathSeq())>) |]
+                  end
+          in @For slot in Kernel_objSlots(self) do
+               let name = slot.ref(0).toString();
+                   value = slot.ref(1)
+               in e := [| Kernel_addAtt(<e>,<StrExp(name)>,<value.lift(refTable,sweep)>) |]
+               end
+             end;
+             e
+          end
+        end
+        XMF::FUN do
+          sweep.put(self,self);
+          try
+            let e = OCL::OCL.grammar.parseString(self.source(),"Exp",Seq{XOCL})
+            in if refTable.hasKey(self)
+               then [| table.get(<IntExp(refTable.get(self))>) |]
+               else e
+               end
+            end
+          catch(exception)
+            format(stdout,"Error ~S lifing compiled operation ~S",Seq{exception,self});
+            [| self.error(<StrExp("Missing operation " + self.name().toString())>) |]
+          end
+        end
+        XMF::CONS do
+          sweep.put(self,self);
+          if refTable.hasKey(self)
+          then [| let c = table.get(<IntExp(refTable.get(self))>)
+                  in c->head := <self->head.lift(refTable,sweep)>; 
+                     c->tail := <self->tail.lift(refTable,sweep)>; 
+                     c 
+                  end 
+               |]
+          else [| Seq{<self->head.lift(refTable,sweep)> | <self->tail.lift(refTable,sweep)>} |]
+          end
+        end
+        XMF::NIL do
+          [| Seq{} |]
+        end
+        XMF::SYMBOL do
+          [| Symbol(<StrExp(self.toString())>) |]
+        end
+        XMF::SET do
+          SetExp("Set",self->collect(e | e.lift(refTable,sweep)))
+        end
+        XMF::HASHTABLE do
+          sweep.put(self,self);
+          let e = if refTable.hasKey(self)
+                  then [| table.get(<IntExp(refTable.get(self))>) |]
+                  else [| Table(100) |]
+                  end
+          in @For k inTableKeys self do
+               e := [| <e>.put(<k.lift(refTable,sweep)>,<self.get(k).lift(refTable,sweep)>) |]
+             end;
+             e
+          end
+        end
+        else self.error("Lift not implemented for instances of " + Kernel_of(self).name())
+      end
+    end
+  end

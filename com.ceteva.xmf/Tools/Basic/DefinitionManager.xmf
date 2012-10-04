@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Basic;
+import Events;
+import Menus;
+
+context Basic
+
+  @Class DefinitionManager extends NameSpace
+  
+    @Doc
+      The XTools definition manager is the container for all the definitions created
+      using XTools so they are all in one place.
+    end
+    
+    @Operation addDefinition(definition)
+      if self.ensureNameClashResolved(definition)
+      then self.add(definition)
+      end
+    end
+    
+    @Operation loadXTD()
+      xmf.toolManager().loadXTD()
+    end
+
+    @Operation ensureNameClashResolved(element):Boolean
+      if element.isReallyKindOf(NamedElement)
+      then
+        let name = element.name()
+        in
+          if self.hasElement(name)
+          then
+            if xmf.question("There is already a tool definition named '" + name +
+                            "' for this class. You must delete or rename the existing " +
+                            "one before loading the new one.\n\nDo you wish to delete " +
+                            "the existing one and complete the load?")
+            then self.removeDefinition(element);
+                 true
+            else false
+            end
+          else true
+          end
+        end
+      else false
+      end
+    end
+    
+    @Operation loadDefinition(definition)
+      if self.ensureNameClashResolved(definition)
+      then self.add(definition);
+           definition.postLoad()
+      end
+    end
+    
+    @Operation removeDefinition(definition)
+      self.remove(definition)
+    end
+
+  end

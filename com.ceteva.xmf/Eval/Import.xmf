@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Evaluator
+
+  @Class Import
+      
+    @Attribute nameSpace : Performable (?) end
+    
+    @Constructor(nameSpace) end
+    
+    @Operation eval(target,env,imports)
+      nameSpace.eval(target,env,imports)
+    end
+      
+  end    

@@ -1,0 +1,65 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Instrs;
+import Languages;
+import Commands;
+import Expressions;
+
+context Expressions
+
+  @Class Exp isabstract extends Performable
+  
+    @Grammar
+    
+      Exp ::= LogicalExp.
+      
+      LogicalExp ::= e = ArithExp [ op = LogicalOp l = LogicalExp { BinExp(op,e,l) } ].
+      
+      LogicalOp ::= 'and' { "and" } | 'or' { "or" }.
+      
+      ArithExp ::= e = Atom [ op = ArithOp a = Atom { BinExp(op,e,a) } ].
+      
+      ArithOp ::= '+' { "+" }.
+      
+      Atom ::= Const | Var | New | '(' Exp ')'.
+      
+      Const ::= IntConst | StrConst | BoolConst.
+      
+      IntConst ::= i = Int { Const(i) }.
+      
+      StrConst ::= s = Str { Const(s) }.
+      
+      BoolConst ::= 'true' { Const(true) } | 'false' { Const(false) }.
+      
+      Var ::= n = Name { Var(n) }.
+      
+      New ::= 'new' n = Name { New(n) }.
+      
+    end
+    
+    @AbstractOp compile(typeEnv:Env::Env,valueEnv:Seq(String)):Seq(Instr)
+      @Doc
+        Compiles the receiver to a sequence of XMF machine instructions.
+        The resulting code represents records as a-lists and does not
+        have run-time types.
+      end
+    end
+    
+    @AbstractOp desugar1():Performable 
+      @Doc
+        Desugars the receiver to an OCL expression that includes run-time
+        types.
+      end
+    end
+    
+    @AbstractOp desugar2(typeEnv:Env::Env):Performable
+      @Doc
+        Desugars the receiver to an OCL expression that omits run-time
+        types. Record values are represented as a-lists.
+      end
+    end
+    
+    @AbstractOp pprint(out) end
+
+  end

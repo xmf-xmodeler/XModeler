@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context ! MDC
+
+// Package deployed by Tony Clark on Wed Dec 21 09:34:22 GMT 2005
+// Note that the ! above means that the definitions in this
+// file may contain forward references. Any namespace defined
+// using ! must be initialised (either directly or via its 
+// containing name space) when loaded. The initialisation
+// will occur automatically if you build and load the deployed
+// model using the deployed manifest.
+
+@Package Values end

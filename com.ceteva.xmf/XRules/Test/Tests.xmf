@@ -1,0 +1,370 @@
+parserImport XOCL;
+parserImport XRules;
+
+import IO;
+import XRules;
+import Env;
+
+context Root
+  @Class X
+    @Attribute x : X end
+  end
+
+context Root
+  @Operation test0()
+    @WithRules(Test)
+      Append(Seq{0,1,2,3,4},l,Seq{0,1,2,3,4,5,6,7,8,9})
+      return l
+    end
+  end
+ 
+context Root
+  @Operation test1()
+    let time = Time()
+    in @Count x from 0 to 1000 do
+         @WithRules(Test)
+           Append(Seq{1,2,3,4},l,Seq{1,2,3,4,5,6,7,8,9})
+           return l
+         end
+       end;
+       (Time() - time).pprint()
+    end
+  end
+  
+context Root
+  @Operation test2()
+    let v = NamedElement("fred")
+    in let time = Time()
+       in @Count x from 0 to 1000 do
+            @WithRules(Test)
+              GetName(<Class>,name)
+              return name
+            end
+          end;
+          (Time() - time).pprint()
+       end
+    end
+  end
+  
+context Root
+  @Operation test3()
+    let time = Time()
+    in @WithRules(Test)
+         To(0,1000,l)
+         return l
+       end
+    end
+  end
+  
+context Root
+  @Operation test4()
+    let time = Time()
+    in @WithRules(Test)
+         SerializePackage(<Clients>,data)
+         return data
+       end;
+       (Time() - time).pprint()
+    end
+  end
+  
+context Root
+  @Operation test5()
+    @WithRules(Test)
+      SerializePackage(P,Seq{
+        "Package","P",Seq{
+          Seq{"Class","C"},
+          Seq{"Package","Q",Seq{
+            Seq{"Class","D"}
+          }}
+        }})
+      return P
+    end
+  end
+  
+context Root
+  @Operation test6()
+    @WithRules(Test)
+      Concat("My_","Integer",P)
+      return P
+    end
+  end
+  
+context Root
+  @Operation test7()
+    @WithRules(Test)
+      Cycle(X,X,Y)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test7a()
+    @WithRules(Test)
+      Cycle2(V,V)
+      return V
+    end
+  end
+  
+context Root
+  @Operation test8()
+    @WithRules(Test)
+      PrintIt(100)
+      return true
+    end
+  end
+  
+context Root
+  @Operation test9()
+    @WithRules(Test)
+      IncIt(10,Y)
+      return Y
+    end
+  end
+  
+Root::counter := 0;
+  
+context Root
+  @Operation test10()
+    @WithRules(Test)
+      NextId(Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test11()
+    @WithRules(Test)
+      FloatTest(Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test12()
+    @WithRules(Test)
+      FloatTest(1.234)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test12a()
+    @WithRules(Test)
+      X = 1.0 + 0.2 + 0.034
+      FloatTest(X)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test13()
+    @WithRules(Test)
+      CutTest(Seq{1,2,1,3,1,4,1,5},1)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test14()
+    @WithRules(Test)
+      FailTest(Seq{Seq{1,Seq{2,3},Seq{4}},Seq{5,Seq{6},7}})
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test15()
+    @WithRules(Test)
+      TryTest(10)
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test16(n)
+    @WithRules(Test)
+      try
+        IfTest(<n>)
+        Return = "OK"
+      catch(Error)
+        Return = Error
+      end
+      return Return
+    end
+  end
+  
+context Root
+  @Operation test17(key)
+    @WithRules(Test)
+      Search(<key>,Seq{Seq{"A"|1},Seq{"B"|2},Seq{"C"|3}})
+      fail
+      return "OK"
+    end
+  end
+  
+context Root
+  @Operation test18(package)
+    @WithRules(Test)
+      GetNames(<package>,names)
+      return names
+    end
+  end
+  
+context Root
+  @Operation test19()
+    @WithRules(Test)
+      Seq_x_String(Seq{100,101,102},X)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test20()
+    @WithRules(Test)
+      Seq_x_String(X,"Elephant")
+      return X
+    end
+  end
+  
+context Root
+  @Operation test21(x)
+    @WithRules(Test)
+      ToString(<x>,X)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test22(x)
+    @WithRules(Test)
+      StringLength(<x>,X)
+      return X
+    end
+  end
+  
+context Root
+  @Operation test23(x,y)
+    @WithRules(Test)
+      Pow(<x>,<y>,Z)
+      return Z
+    end
+  end
+  
+context Root
+  @Operation test24a(x)
+    @WithRules(Test)
+      Floor(<x>,Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test24b(x)
+    @WithRules(Test)
+      Ceiling(<x>,Y)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test25(x)
+    @WithRules(Test)
+      Floor(Y,<x>)
+      return Y
+    end
+  end
+  
+context Root
+  @Operation test26(x,y)
+    @WithRules(Test)
+      Mod(<x>,<y>,Z)
+      return Z
+    end
+  end
+  
+context Root
+  @Operation test27(x,y)
+    @WithRules(Test)
+      Div(<x>,<y>,Z)
+      return Z
+    end
+  end
+  
+context Root
+  @Operation test28()
+    @WithRules(Test)
+      X(A)
+      returnAll A
+    end
+  end
+  
+context Root
+  @Operation test29()
+    @WithRules(Test)
+      P(P::B[x=P::Y[v=100] ],A)
+      Q(B)
+      R(C)
+      S(D)
+      return Seq{A,B,C,D}
+    end
+  end
+  
+context Root
+  @Operation test30(x,y)
+    @WithRules(Test)
+      Pow(<x>,<y>,Z)
+      return Z
+    end
+  end
+  
+context Root
+  @Operation test31()
+    @WithRules(Test)
+      4 > 4
+      return true
+    end
+  end
+  
+context Root
+  @Operation test32()
+    @WithRules(Test)
+      5 > 4
+      return true
+    end
+  end
+  
+context Root
+  @Operation test33()
+    @WithRules(Test)
+      4 <> 4
+      return true
+    end
+  end
+  
+context Root
+  @Operation test34()
+    @WithRules(Test)
+      4 >= 4
+      return true
+    end
+  end
+  
+context Root
+  @Operation testAll()
+    test1().println();
+    test2().println();
+    test3().println();
+    test4().println();
+    test5().println();
+    test6().println();
+    test7();
+    test8();
+    test9().println();
+    test10().println();
+    test11().println();
+    test12().println();
+    test13().println();
+    test14().println();
+    test15().println();
+    test16(1).println()
+  end

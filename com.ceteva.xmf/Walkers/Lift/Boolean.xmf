@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Boolean in Lift(b,arg,encountered)
+  BoolExp(b)
+end;
+
+context XCore::Boolean
+  @Operation lift():Performable
+    BoolExp(self)
+  end
+
+  

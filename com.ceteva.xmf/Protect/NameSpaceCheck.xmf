@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+context XCore::Element
+ @Operation isWithinNameSpace(nameSpace)
+   self.isReallyKindOf(Contained) andthen
+     (self = nameSpace orelse self.allOwners()->includes(nameSpace))
+ end
+
+context XCore::Element
+  @Operation isProtected(id)
+    let
+      registry = xmf.registry() then
+      point = registry.getExtensionPoint(id) then
+      contributions = point.getAll();
+      isProtected = false
+    in
+      @For c in contributions do
+        let nameSpace = c.type()
+        in
+          if self.isWithinNameSpace(nameSpace)
+          then isProtected := true
+          end
+        end
+      end;
+      isProtected
+    end
+  end
+
+context XCore::Element
+  @Operation isViewProtected()
+    self.isProtected("com.ceteva.xmf.protect.view")
+  end
+
+context XCore::Element
+  @Operation isDeleteProtected()
+    self.isProtected("com.ceteva.xmf.protect.delete")
+  end

@@ -1,0 +1,202 @@
+// This file defines a collection of operations that translate
+// XCore elements to latex commands. These definitions can be used
+// to automatically generate a document from an instance of XCore.
+
+parserImport XOCL;
+parserImport Aspects;
+
+import IO;
+
+@Aspect ToLatex
+
+  @Class Element
+    @Operation toLatex(out:OutputChannel)
+      // Everything can be translated to latex in
+      // principle, but the default is to ignore the
+      // request.
+      ""
+    end
+  end
+  
+  @Class XCore::NameSpace
+    @Operation toLatex(out:OutputChannel)
+      // Translate the name space to a latex definition.
+      let owner =
+            if owner = null
+            then ""
+            else owner.path()
+            end
+      in
+        format(out,"\\NameSpace{~S}{~S}~%",Seq{owner,name});
+        format(out,"~S~%",Seq{self.doc().doc});
+        @For key in contents.keys()->asSeq->sortNames do
+          let value = contents.get(key)
+          in if value = self
+             then self
+             else value.toLatex(out)
+             end
+          end  
+        end
+      end
+    end  
+  end
+  
+  @Class DataType
+    @Operation toLatex(out:OutputChannel)
+      format(out,"\\DataType{~S}~%",Seq{name});
+      format(out,"~S~%",Seq{self.doc().doc});
+      self.interface(out);
+      @For o in operations do
+        if o.documentation <> ""
+        then o.toLatex(out)
+        else self
+        end
+      end
+    end
+ 
+    @Operation interface(out:OutputChannel)
+      format(out,"\\begin{Interface}~%");
+      format(out,"@DataType ~S",Seq{name});
+      format(out," extends ~{,~;~S~}~%",Seq{parents.name->asSeq});
+      @For o in operations->asSeq->sortNamedElements do
+        format(out,"~V@Operation ~S end~%",Seq{2,o.name})
+      end;
+      format(out,"end~%");
+      format(out,"\\end{Interface}~%")
+    end
+  end
+  
+  @Class XCore::Package
+  
+    @Operation toLatex(out:OutputChannel):String
+    
+      @Doc
+    
+        A package is flattened into a sequence of latex definitions
+        A simple package definition and a sequence of content 
+        definitions. The argument is an output channel to receive
+        the latex.
+        
+      end
+     
+      let owner = if owner = null then "" else owner.path() end
+      in
+        format(out,"\\Package{~S}{~S}~%",Seq{owner,name});
+        format(out,"~S~%",Seq{self.doc().doc});
+        self.contentsToLatex(out)
+      end
+    end
+ 
+    @Operation contentsToLatex(out:OutputChannel)
+      @For key in contents.keys()->select(k | k.isKindOf(String))->asSeq->sortNames do
+         let element = contents.get(key)
+         in if element = Root
+            then self
+            else element.toLatex(out)
+            end
+         end
+       end
+    end
+  end
+  
+  @Class XCore::Class
+  
+    @Operation toLatex(out:OutputChannel):String
+    
+      @Doc
+  
+        A class is flattened into a sequence of latex definitions
+        for the class interface, the class operations and the class
+        constraints. The class interface is complete. The detailed
+        descriptions that follow occur only if the definition has a
+        documentation string. The argument is an output channel to 
+        receive the latex.
+         
+       end
+     
+      let owner = if owner = null then "" else owner.path() end
+      in
+        format(out,"\\Class{~S}{~S}~%",Seq{owner,name});
+        format(out,"~S~%",Seq{self.doc().doc});
+        self.interface(out);
+        self.operationsToLatex(out);
+        self.constraintsToLatex(out)
+      end
+    end
+  
+    @Operation interface(out:OutputChannel)
+      format(out,"\\begin{Interface}~%");
+      format(out,"@Class ~S~[ isabstract~;~]",Seq{name,isAbstract});
+      format(out," extends ~{,~;~S~}~%",Seq{parents.name->asSeq});
+      @For a in attributes->asSeq->sortNamedElements do
+        format(out,"~V@Attribute ~S : ~S end~%",Seq{2,a.name,a.type.name})
+      end;
+      @For o in operations->asSeq->sortNamedElements do
+        format(out,"~V@Operation ~S end~%",Seq{2,o.name})
+      end;
+      format(out,"end~%");
+      format(out,"\\end{Interface}~%")
+    end
+  
+   @Operation operationsToLatex(out:OutputChannel)
+      // Creates a documentation entry for each operation that has
+      // a non empty documentation string.
+      @For o in operations->asSeq->sortNamedElements do
+        if o.doc().doc <> ""
+        then o.toLatex(out)
+        else self
+        end
+      end
+    end
+  
+    @Operation constraintsToLatex(out:OutputChannel)
+      format(out,"")
+    end
+  end
+   
+  @Class CompiledOperation
+    @Operation toLatex(out:OutputChannel):String
+      let owner = 
+             if self.owner = null
+            then ""
+            else self.owner.path()
+            end;
+          tag = 
+            if self.owner <> null and self.owner.isKindOf(Class)
+            then "ClassOperation"
+            elseif self.owner <> null and self.owner.isKindOf(DataType)
+            then "DataTypeOperation"
+            else "Operation"
+            end
+      in 
+        format(out,"\\~S{~S}{~S}~%",Seq{tag,owner,self.name});
+        format(out,"~S~%",Seq{self.doc().doc})
+      end
+    end
+  end
+  
+  @Class ForeignOperation 
+    @Operation toLatex(out:OutputChannel):String
+      let underscore = "_"->at(0);
+          backslash = "\\"->at(0)
+      in let name = name->asSeq->iterate(c s = Seq{} | if c = underscore then s + Seq{backslash,underscore} else s + Seq{c} end)->asString
+         in format(out,"\\Operation{~S}{~S}~%",Seq{Root.path(),name})
+         end
+      end
+    end
+  end
+  
+  @Class Operation
+    @Operation toLatex(out:OutputChannel):String
+      let owner =
+            if owner = null
+            then ""
+            else owner.path()
+            end
+      in
+        format(out,"\\Operation{~S}{~S}~%",Seq{self.owner.path(),self.name});
+        format(out,"~S~%",Seq{self.doc().doc})
+      end
+    end
+  end
+end;

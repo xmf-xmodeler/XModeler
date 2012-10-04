@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Values;
+
+context Values
+
+  @Class Int extends Value
+  
+    @Operation binAdd(Int(n))
+      Int(value + n)
+    end
+  
+  end

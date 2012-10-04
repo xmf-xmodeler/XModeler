@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class ASTParent
+  
+    @Attribute current : ASTNode      (?) end
+    @Attribute left    : Seq(ASTNode) (?) end
+    @Attribute right   : Seq(ASTNode) (?) end
+    @Attribute parent  : ASTParent    (?) end
+    
+    @Constructor(current,left,right,parent) end
+    
+  end

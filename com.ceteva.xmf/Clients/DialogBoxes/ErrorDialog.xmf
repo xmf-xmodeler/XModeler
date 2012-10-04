@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Clients;
+
+context DialogBoxes
+  @Class ErrorDialog extends ContainedClientElement
+  
+    @Attribute message : String end
+    
+    @Constructor(message) end
+        
+    @Operation new()
+      self.commandInterpreter().newErrorDialog(self);
+      self.dispose()
+    end
+  
+  end

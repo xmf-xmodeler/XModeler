@@ -1,0 +1,10 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XML
+  @File Diagram end
+  @File DiagramXMLFormatter end
+  @File DiagramXMLInflater end
+end;

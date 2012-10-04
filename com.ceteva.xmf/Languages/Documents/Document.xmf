@@ -1,0 +1,100 @@
+parserImport XOCL;
+
+import IO;
+import MApProjects;
+import Documents;
+import DocTables;
+import Basic;
+import Forms;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  @Class Document metaclass BrowsedClass extends DocObject
+
+    @Attribute name : String (?,!) end
+    @Attribute author : String (?,!) end
+    @Attribute created : String (?,!) end
+    @Attribute elements : Seq(DocumentElement) (?,!,+,-,^)  end
+    // The object that is being documented (typically the root
+    // of a project tree
+    @Attribute rootObject : Object (?,!) end
+
+    @Constructor(name) ! end
+    
+    @Operation labelString()
+      // Just show the name in the browser...
+      name
+    end
+ 
+    @Operation generateHTML()
+      let dir = xmf.selectDirectory(xmf.projDir())
+      in if dir.fileExists() and dir <> ""
+         then
+           Documents::exportDir := dir;
+           let file = dir + "/" + name + ".html" in
+           @Busy("Generating HTML")
+             @WithOpenFile(fout -> file)
+                self.toHTML(fout)
+             end
+           end
+         end;
+         xmf.message("Written Document: " + self.name.toString() + " to " + dir + "/" + name + ".html")
+         else xmf.message("Deployment Cancelled")
+        end
+      end;
+      null
+    end
+      
+    @Operation rootObject():Object
+    
+      // The buck stops here...
+      
+      self.rootObject
+    end
+    
+    @Operation setRootObj(obj)
+      self.rootObject := obj
+    end
+    
+    @Operation setOwner()
+      @For e in elements do
+        e.owner := self
+      end
+    end
+    
+    @Operation showHTML()
+      let dir = Directory::tempDir("MAp",null)
+      in if dir <> null
+         then
+           Documents::exportDir := dir;
+           let file = dir + "/" + name + ".html" 
+           in
+             @Busy("Generating HTML")
+               @WithOpenFile(fout -> file)
+                  self.toHTML(fout)
+               end
+             end;
+             xmf.browse(file)    
+           end
+         else xmf.message("Show HTML failed")
+        end
+      end;
+      null
+    end
+    
+    @Operation toHTML(out)
+      let page = Page[title = name,
+        entries = Seq{Heading[text=name,level=1],
+          Heading[text=author,level=2]} +
+          elements->iterate(e s=Seq{} | s + e.toHTML())
+      ]
+      in
+        page.html(out)
+      end
+    end
+
+  end
+
+ context ! Documents
+   @Bind exportDir = "" end

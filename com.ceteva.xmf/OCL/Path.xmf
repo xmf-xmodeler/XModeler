@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Path extends OCL::OCL
+  
+    // A path expression corresponds to a root expression
+    // followed by a sequence of path names.
+    
+    @Attribute root : OCL::OCL end
+    @Attribute names : Seq(Element) end
+    
+    @Constructor(root,names) ! end
+  
+    @Operation pprint(out,indent)
+      root.pprint(out,indent);
+      format(out,"~{::~S~}",Seq{names})
+    end
+    
+    @Operation toPath(seq:Seq(String)):Path
+      // Turns a sequence of names into a path expression.
+      Path(Var(seq->head),seq->tail)
+    end
+    
+  end

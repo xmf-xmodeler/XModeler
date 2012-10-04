@@ -1,0 +1,80 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import Statements;
+import IO;
+
+context Structure
+
+  @Class Class extends UnitDef
+  
+    @Attribute isAbstract : Boolean end
+    @Attribute staticInit : Block end
+    @Attribute features   : Seq(Feature) (+,-) end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,isAbstract,implements,parent,features) 
+      @For feature in features do
+        feature.setOwner(self)
+      end
+    end
+    
+    @Operation add(feature)
+      feature.setOwner(self);
+      self.addToFeatures(feature)
+    end
+    
+    @Operation delete(feature)
+      self.deleteFromFeatures(feature)
+    end
+    
+    @Operation pprint(out,indent)
+      if isAbstract
+      then format(out,"public abstract class ")
+      else format(out,"public class ")
+      end;
+      if name.isKindOf(Performable)
+      then name.pprint(out,indent)
+      else format(out,"~S",Seq{name})
+      end;
+      if parent <> null
+      then 
+        format(out," extends ");
+        if parent.isKindOf(Performable)
+        then parent.pprint(out,indent)
+        else format(out,"~{.~;~S~}",Seq{parent})
+        end
+      else 
+        format(out," extends Value")
+      end;
+      if not implements->isEmpty
+      then 
+        format(out," implements ");
+        @For i in implements do
+          format(out,"~{.~;~S~}",Seq{i});
+          if not isLast then format(out,",") end
+        end
+      end;
+      format(out," {");
+      if not staticInit = null
+      then
+        format(out,"~%~%~Vstatic ",Seq{indent + 2});
+        staticInit.pprint(out,indent + 2);
+        format(out,"~%~V",Seq{indent})
+      end;
+      if features.isKindOf(Seq(Element))
+      then
+        @For f in features do
+          format(out,"~%~%~V",Seq{indent+2});
+          f.pprint(out,indent+2)
+        end
+      else features.pprint(out,indent)
+      end;
+      format(out,"~%~V}",Seq{indent})
+    end
+    
+  end

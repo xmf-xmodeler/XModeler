@@ -1,0 +1,31 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler VarUpdate in Eval(aVarUpdate,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aVarUpdate.value,
+       @Operation(next,result,call,return)
+         self.eval(aVarUpdate.value,env,target,imports,next,result,call,return,
+           @Operation(value)
+             if env.binds(aVarUpdate.name)
+             then env.setValue(aVarUpdate.name,value)
+             else 
+               @Find(nameSpace,imports)
+                 when nameSpace.hasElement(aVarUpdate.name)
+                 do nameSpace.putElement(aVarUpdate.name,value)
+                 else Root.putElement(aVarUpdate.name,value)
+               end
+             end;
+             result(aVarUpdate,value,cont)
+           end)
+       end)
+   end
+end;

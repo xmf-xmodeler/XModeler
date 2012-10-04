@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+
+context Structure
+
+  @Class Void extends Type
+  
+    @Operation pprint(out)
+      format(out,"void")
+    end
+  
+  end

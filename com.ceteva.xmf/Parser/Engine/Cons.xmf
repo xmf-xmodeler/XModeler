@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Cons extends Recognizer
+  
+    @Attribute headIndex : Integer (?,!) end
+    @Attribute tailIndex : Integer (?,!) end
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Cons ")
+    end
+    
+    @Operation FV()
+      Set{"$head","$tail"}
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Cons() |]
+    end
+    
+  end

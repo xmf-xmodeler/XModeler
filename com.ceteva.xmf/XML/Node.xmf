@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+context XML
+
+  @Class Node isabstract
+  
+    @Doc
+      An XML node can occur as the root of a document or the child of an
+      element.
+    end
+    
+    @AbstractOp isWhiteSpace():Boolean
+    end
+    
+    @AbstractOp pprint(out,indent)
+      @Doc
+        Prints the XML node to the supplied output channel
+        using newlines and indentation to show nesting.
+      end
+    end
+  
+    @AbstractOp print(out) 
+      @Doc
+        Prints the XML node to the output channel. The output
+        occurs on a single line.
+      end
+    end
+    
+    @AbstractOp stripWhiteSpace():Node
+    end
+  
+  end
+  
+    

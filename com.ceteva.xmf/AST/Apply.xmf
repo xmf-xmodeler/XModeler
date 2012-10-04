@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Apply in AST(aApply,arg,seen)
+  let args = aApply.args->collect(x | self.dispatch(x,arg));
+      operator = self.dispatch(aApply.operator,arg)
+  in ASTNode(aApply,Seq{operator} + args)
+  end
+end;

@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Arrays;
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class Array2DEditor extends CollectionForm
+
+    @Attribute tableDisplay : Array2DEditorTable end
+
+    @Operation addContents()
+      self.tableDisplay := Array2DEditorTable(element,0,0);
+      self.addElement(tableDisplay)
+    end
+    
+    @Operation addTableItem()
+      let keyExp = xmf.getExp("Enter Key","Enter an expression to evaluate for the key.");
+          key = null;
+          valueExp = null;
+          value = null
+      in
+        if keyExp <> null
+        then
+          key := keyExp.eval(self,Env::NullEnv(),Seq{XCore,Root});
+          valueExp := xmf.getExp("Enter Value","Enter an expression to evaluate for the value.");
+          if valueExp <> null
+          then
+            value := valueExp.eval(self,Env::NullEnv(),Seq{XCore,Root});
+            element.put(key,value)
+          end
+        end
+      end
+    end
+
+    @Operation formHistoryType()
+      Clients::CollectionViewer::CollectionForm
+    end
+
+    @Operation initForm()
+      super();
+      self.typeName := "Collection";
+      self.itemName := "<Array>";
+      self.initialize();
+      //self.layoutManager := CollectionFormLayoutManager(self);
+      self.collection := element
+    end
+
+  end

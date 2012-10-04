@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class TextBox extends Clients::Forms::FormTextBox, FormElement
+  
+    @Operation actualHeight():Integer
+      // Pad for the scroll bars....
+      (text.splitBy("\n",0,0)->size * self.getTextDimension(" ")->at(1)) + 50
+    end
+    
+    @Operation actualWidth():Integer
+      // Pad for the scroll bars...
+      (text.splitBy("\n",0,0)->iterate(s w = 0 | w.max(self.getTextDimension(s)->at(0)))) + 50
+    end
+  
+  end

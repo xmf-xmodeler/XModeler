@@ -1,0 +1,14 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF; 
+
+context Count
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      Count ::=  var = Name 'from' lower = Exp 'to' upper = Exp 'do' body = Exp { Count(var,lower,upper,body) }.
+      
+    end 
+   

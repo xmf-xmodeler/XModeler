@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Parser::BNF;
+
+context Doc
+  
+  @Grammar
+    
+    Doc ::= doc = (Not('end') Char)* { [| XCore::Doc(<StrExp(doc->asString)>) |] }.
+      
+  end
+  
+    

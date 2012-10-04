@@ -1,0 +1,6 @@
+parserImport Manifests;
+
+@Manifest XBNFExceptions
+  @File ParseError end
+  @File TokenExpected end
+end;

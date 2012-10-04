@@ -1,0 +1,105 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+import Env;
+import Menus;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class FormElement extends NamedElement
+
+  @Attribute layout    : String = "ALIGN" (!,?) end
+  @Attribute minWidth  : Integer          (!,?) end
+  @Attribute minHeight : Integer          (!,?) end
+  @Attribute maxWidth  : Integer = 9999   (!,?) end
+  @Attribute maxHeight : Integer = 9999   (!,?) end
+  @Attribute padLeft   : Integer          (?,!) end
+  @Attribute padRight  : Integer          (?,!) end
+  @Attribute padTop    : Integer          (?,!) end
+  @Attribute padBottom : Integer          (?,!) end
+  @Attribute menu      : Menu = Menu()    (?,!) end
+  
+  @Grammar extends OCL::OCL.grammar
+  
+    // Define general attribute parsing rules. Attributes are either
+    // names in parentheses after the form element name or are named
+    // attributes in the body of the element before any sub-elements.
+    
+    PosAtts ::= '(' names = PosAttNames ')' { names } | { Seq{} }.
+    
+    PosAttNames ::= name = Name names = (',' Name)* { Seq{name | names} } | { Seq{} }.
+    
+    NamedAtts ::= envs = NamedAtt* { envs->iterate(env atts = NullEnv() | atts + env) }.
+    
+    NamedAtt ::= name = Name '=' value = NamedAttValue { NullEnv().bind(name,value) }.
+    
+    NamedAttValue ::= Int | Str.
+    
+    EName ::= n = Name { OCL::StrExp(n) } | '<' e = Exp '>' { e }.
+    
+  end
+  
+  @Operation add(element)
+    @TypeCase(element)
+      Menu do
+        self.setMenu(element)
+      end
+      Seq(Element) do
+        @For e in element do
+          self.add(e)
+        end;
+        self
+      end
+      else self.error("Unknown type of element: " + element.toString())
+    end
+  end
+  
+  @Operation bind(env)
+    env.bind(name.toString(),self)
+  end
+  
+  @Operation filterLayout(atts:Seq(String)):String
+    
+    // Given a sequence of attributes in a display definition
+    // find the layout string and return it or return ALIGN.
+      
+    if atts->includes("LEFT")
+    then "LEFT"
+    elseif atts->includes("RIGHT")
+    then "RIGHT"
+    elseif atts->includes("TOP")
+    then "TOP"
+    elseif atts->includes("BOTTOM")
+    then "BOTTOM"
+    elseif atts->includes("CENTRE")
+    then "CENTRE"
+    else "ALIGN"
+    end
+      
+  end
+  
+  @Operation lookup(env,name,default)
+  
+    // Returns the value of the named attribute in the supplied env
+    // or the default if no attribute exists.
+    
+    if env.binds(name)
+    then env.lookup(name)
+    else default
+    end
+  end
+  
+  @Operation merge(inherited)
+    
+    // Containers will merge their contents. Individual elements merge 
+    // their menus.
+    
+    self.menu().merge(inherited.menu())
+  end
+  
+end

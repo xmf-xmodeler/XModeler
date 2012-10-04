@@ -1,0 +1,115 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+//import XRules;
+import Tools;
+import XMatch;
+import Events;
+
+context Events
+
+  @Class EventHandler
+  
+    @Doc
+      An event handler has a pattern, some args and a body. If the pattern
+      matches a raised event name then the args are bound from the pattern
+      match and the body is performed. In addition to the args, the body is
+      supplied with the event.
+    end
+  
+    @Attribute pattern : Pattern         end // Matches the event's raised name.
+    @Attribute args    : Seq(String) (?) end // Selected from the match (is this used?).
+    @Attribute handler : Operation       end // Operation with event parameter.
+    
+    @Constructor(pattern) ! 
+      self.handler := @Operation(event . args) null end
+    end
+    
+    @Constructor(pattern,args,handler) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      EventHandler ::= sig = EventSig args = EventArgs handler = Exp {
+        EventHandler::expand(sig,args,handler)
+      }.
+      
+      EventSig ::= n = EventSigName ns = ('::' EventSigName)* { Seq{n | ns} }.
+      
+      EventSigName ::= Name | Str.
+      
+      EventArgs ::= '(' (name = Name names = (',' Name)* ')' { Seq {name | names} } | ')' { Seq{} }).
+      
+    end
+    
+    @Operation expand(sig,args,handler)
+    
+      // An event handler (for legacy reasons) may be within a context definition.
+      // Otherwise it should specify its own context as part of the signature.
+      // Expand in two ways depending on whether the signature is supplied or
+      // not.
+      
+      let handlerArgs = Seq{OCL::Varp("event") | args->collect(a | OCL::Varp(a))};
+          type = OCL::NamedType() then
+          body = [| Tools::Events::EventHandler(
+                      <Pattern::parse(sig->last + " EOI")>,
+                      <OCL::SetExp("Seq",args->collect(a | OCL::StrExp(a)))>,
+                      <OCL::Operation("Handler",handlerArgs,type,handler)>)
+                 |];
+          path = 
+            if sig->size = 1 
+            then null 
+            else 
+              let sig = sig->butLast then
+                  managerName = sig->last then
+                  sig = sig->butLast then
+                  toolType = OCL::StrExp(sig->last) then
+                  sig = sig->butLast then
+                  class = OCL::Path::toPath(sig)
+              in OCL::Path([| xmf.toolManager().toolDescriptor(<class>,<toolType>) |],Seq{managerName})
+              end
+            end
+      in if sig->size = 1
+         then body
+         else OCL::ContextDef(path,body)
+         end
+      end
+    end
+    
+    @Operation handleEvent(event,env)
+    
+      // Invoke the handler, supplying it with the event and any arguments
+      // that were declared and bound by the pattern matching process.
+    
+      let handlerArgs = Seq{event | args->collect(a | env.lookup(a))}
+      in handler.invoke(self,handlerArgs)
+      end
+      
+    end
+    
+    @Operation importNameSpace(nameSpace)
+      handler.importNameSpace(nameSpace)
+    end
+    
+    @Operation match(eventType:String)
+    
+      // Matches an event type from an event with the handler pattern.
+      // If the match succeeds then an environment binding any variables
+      // is returned. Otherwise null is returned.
+      
+      pattern.match(eventType)
+      
+    end
+    
+    @Operation new(newManager,oldManager)
+      let newHandler = self.copy();
+          newOp = handler.copy()
+      in newHandler.handler := newOp;
+         newOp.removeNameSpace(oldManager);
+         newOp.importNameSpace(newManager);
+         newHandler
+      end
+    end
+    
+  end
+    
+    

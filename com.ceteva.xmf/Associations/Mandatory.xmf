@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Associations;
+
+context Associations
+
+  @Class Mandatory extends Multiplicity
+  
+    @Doc
+      An en-d with multiplicity 1..* requires that the attribute
+      is associated with 1 or more instances of the appropriate 
+      class.
+    end
+    
+    @Constructor() end
+
+    @Operation convertToStandardMult() : XCore::Multiplicity
+      XCore::CollectionMult(false,false,1,0)
+    end
+    
+    @Operation typeExp(type)
+      [| Set(<type>) |]
+    end
+
+    @Operation multString():String
+      "1..*"
+    end
+
+  end

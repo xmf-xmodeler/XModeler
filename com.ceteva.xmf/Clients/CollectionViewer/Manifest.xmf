@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest CollectionViewer
+  CollectionViewer = @File CollectionViewer end
+  @File CollectionFormLayoutManager end
+  @File CollectionForm end
+  @File TableFormLayoutManager end
+  @File TableForm end
+  @File TableEditorTable end
+  @File TableEditor end
+  @File Array2DEditorTable end
+  @File Array2DEditor end
+do Project(CollectionViewer,dir,self)
+end;

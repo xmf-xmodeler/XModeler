@@ -1,0 +1,36 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Star extends FormContainer
+
+  @Grammar extends OCL::OCL.grammar 
+  
+    Star ::= types = Exp* {
+      types->iterate(t e = [| Tools::FormTools::Types::Star() |] | 
+        [| <e>.add(<t>) |])
+    }.
+    
+  end
+  
+  @Operation new(parent,path,env,tool)
+    @For type in self.elements() do
+      parent.defStarHandler(type.name().toString(),
+        @Operation(container)
+          let new = type.new(container,path,env,tool)
+          in new.new(container);
+             tool.form().layout(0,0);
+             new
+          end
+        end)
+    end
+  end
+  
+end

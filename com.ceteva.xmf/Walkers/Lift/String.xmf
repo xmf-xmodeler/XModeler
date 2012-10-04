@@ -1,0 +1,22 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler String in Lift(s,arg,encountered)
+  if s.isKindOf(Symbol)
+  then [| XCore::Symbol(<StrExp(s.toString())>) |] 
+  else StrExp(s)
+  end
+end;
+
+context XCore::String
+  @Operation lift():Performable
+    StrExp(self)
+  end
+  
+context XCore::Symbol
+  @Operation lift():Performable
+    [| Symbol(<StrExp(self.toString())>) |]
+  end
+  

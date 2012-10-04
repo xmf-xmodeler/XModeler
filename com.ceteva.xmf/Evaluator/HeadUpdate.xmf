@@ -1,0 +1,29 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler HeadUpdate in Eval(aHeadUpdate,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aHeadUpdate.seq,
+       @Operation(next,result,call,return)
+         self.eval(aHeadUpdate.seq,env,target,imports,next,result,call,return,
+           @Operation(seq)
+             next(aHeadUpdate.value,
+               @Operation(next,result,call,return)
+                 self.eval(aHeadUpdate.value,env,target,imports,next,result,call,return,
+                   @Operation(value)
+                     let x = seq->head := value
+                     in result(aHeadUpdate,x,cont)
+                     end
+                   end)
+               end)
+           end)
+        end)
+   end
+end;

@@ -1,0 +1,16 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+
+context TypeCase
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      TypeCase ::= '(' value = Exp ')' arms = TypeCaseArm* default = TypeCaseDefault { TypeCase(value,arms,default) }.
+      TypeCaseArm ::= type = Exp 'do' body = Exp 'end' { TypeCaseArm(type,body) }.
+      TypeCaseDefault ::= 'else' Exp | { [| self.error("TypeCase: no type matched and no default specified: " + typeCaseValue.toString()) |] }.
+      
+    end 
+    
+    

@@ -1,0 +1,45 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Wizard
+  Wizard = @File Wizard end
+  @File Layout end
+  @File Button end
+  @File CheckBox end
+  @File Option end
+  @File DropDownOption end
+  @File TableDropDownOption end
+  @File DropDown end
+  @File Layout end
+  @File Label end
+  @File PullDownMenuDivider end
+  @File PullDownMenuItem end
+  @File RadioButton end
+  @File Row end
+  @File TableColumnCell end
+  @File TableColumn end
+  @File Table end
+  @File TableDropDownRows end
+  @File TableDropDown end
+  @File TableTextBoxRows end
+  @File TableTextBox end
+  @File TextBox end
+  @File ToolBarDivider end
+  @File ToolBarItem end
+  @File ToolBar end
+  @File TreeNode end
+  @File Tree end
+  @File PullDownMenu end
+  @File Form end
+  @File ChoiceForm end
+  @File InfoForm end
+  @File TableForm end
+  @File TextForm end
+  @File GUI end
+  @File GenericGUISchema end
+  @File Client end
+  @File XMLToWizard end
+do Project(Wizard,dir,self)
+end;

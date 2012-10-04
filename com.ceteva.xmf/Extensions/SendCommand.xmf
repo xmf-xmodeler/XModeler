@@ -1,0 +1,45 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class SendCommand extends Sugar
+  
+    @Doc
+      Use this form to sen-d messages to a command interpreter. It allows a variable
+      number of arguments to be sent as part of the command without allocating any
+      storage for them.
+    end
+    
+    @Attribute commandInterpreter : Performable      end
+    @Attribute name               : String           end
+    @Attribute args               : Seq(Performable) end
+    
+    @Constructor(commandInterpreter,name,args) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      SendCommand ::= '(' commandInterpreter = Exp ')'
+        name = Name '(' args = CommandArgs ')' { 
+          SendCommand(commandInterpreter,name,args)
+      }.
+      
+      CommandArgs ::= arg = Exp args = (',' Exp)* { Seq{ arg | args } } | { Seq{} }.
+      
+    end
+    
+    @Operation desugar():Performable
+      [| let scci = <commandInterpreter>
+         in if scci.debug
+            then format(stdout,"COMMAND ~S(~{,~;~S~})~%",Seq{<StrExp(name)>, <SetExp("Seq",args)>})
+            end;
+            // <Apply([|Kernel_writeCommand|],Seq{[|scci.owner.name|],StrExp(name),IntExp(args->size)} + args)>
+            scci.writeCommand(<StrExp(name)>,<SetExp("Seq",args)>)
+         end
+      |]
+    end
+    
+  end

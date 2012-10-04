@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class DisplayRemoved extends Removed
+  
+    @Attribute root    : Node        (?) end
+    @Attribute path    : Seq(String) (?) end
+    @Attribute display : Display     (?) end
+    
+    @Constructor(root,path,display) ! end
+    
+    @Operation raisedName():String
+      path->separateWith("_") + "_Removed"
+    end
+    
+  end

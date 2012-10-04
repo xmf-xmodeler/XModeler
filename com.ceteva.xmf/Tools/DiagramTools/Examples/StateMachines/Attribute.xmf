@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context StateMachines
+
+  @Class Attribute extends XCore::Attribute
+  
+    @Grammar 
+      
+      Attribute ::= n = Name ':' t = Type { 
+        [| StateMachines::Attribute(<StrExp(n)>,@Operation() <t> end) |]
+      }.
+      
+      Type ::= n = Name { Var(n) } | 'Seq' '(' t = Type ')' { [| Seq(<t>) |] }.
+        
+    end
+    
+    @Operation deployUpdaterHook(out:OutputChannel,package:Package)
+      format(out,"this.send(new messages.Message(\"\",new messages.Arg[0])); ")
+    end
+    
+  end

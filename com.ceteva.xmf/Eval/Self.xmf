@@ -1,0 +1,6 @@
+import OCL;
+
+context Self
+  @Operation eval(target,env,imports)
+    target
+  end

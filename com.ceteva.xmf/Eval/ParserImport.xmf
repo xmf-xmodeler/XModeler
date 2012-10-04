@@ -1,0 +1,7 @@
+import OCL;
+
+context ParserImport
+
+  @Operation eval(target,env,imports):Element
+    exp.eval(target,env,imports)
+  end

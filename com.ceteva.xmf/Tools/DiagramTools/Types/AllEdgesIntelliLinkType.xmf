@@ -1,0 +1,81 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients::Diagrams::Line;
+import Tools;
+import Menus;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context Types
+
+  @Class AllEdgesIntelliLinkType extends AbstractEdgeType
+
+    @Constructor(name)
+      self.setRecursive(true);
+      self.init(Seq{name})
+    end
+    
+    @Constructor()
+      self.setRecursive(true)
+    end
+
+    @Operation edgeLegal(tool,sourcePort,targetPort):Boolean
+    
+      // Return true when the ports are contained by nodes
+      // whose types match up.
+      
+      true
+    
+    end
+
+    @Operation newEdge(sourcePort,targetPort,tool)
+     
+       // The user has tried to create a link using the intelli-link
+       // edge option. Try to find an edge type that matches the types
+       // of the nodes. If there is nore than one, then offer them
+       // up for selection...
+       
+       let toolType = tool.type();
+           sourceType = sourcePort.owner().type();
+           targetType = targetPort.owner().type() then
+           forwardEdgeTypes = 
+             toolType.allEdgeTypes()->select(t | 
+               sourceType.inheritsFrom(t.source().name().toString(),tool) and
+               targetType.inheritsFrom(t.target().name().toString(),tool))->asSeq;
+           backwardEdgeTypes = 
+             toolType.allEdgeTypes()->select(t | 
+               sourceType.inheritsFrom(t.target().name().toString(),tool) and
+               targetType.inheritsFrom(t.source().name().toString(),tool))->asSeq
+       in if not(forwardEdgeTypes->isEmpty and backwardEdgeTypes->isEmpty)
+          then 
+            let types = forwardEdgeTypes + (backwardEdgeTypes - forwardEdgeTypes)
+            in if types->size = 1
+               then 
+                 let type = types->head
+                 in if forwardEdgeTypes->includes(type)
+                    then type.new(sourcePort,targetPort,tool)
+                    else type.new(targetPort,sourcePort,tool)
+                    end
+                 end
+               else
+                 let nameOp = @Operation(type) type.name().toString() end then
+                     type = xmf.select("Edge Type","Select Edge Type",types->asSeq->qsort(@Operation(x,y) x.name() < y.name() end),null,nameOp)
+                 in if type <> null
+                    then
+                      if forwardEdgeTypes->includes(type)
+                      then type.new(sourcePort,targetPort,tool)
+                      else type.new(targetPort,sourcePort,tool)
+                      end
+                    end
+                 end
+               end
+            end
+          end
+       end
+     end
+
+  end

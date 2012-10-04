@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @Or Container
+    @Image Horizontal(RIGHT) "Horizontal.gif" width = 16 height = 16
+      @Menu
+        @MenuAction Overlay self.owner().changeTo("Container","Overlay") end
+        @MenuAction Vertical self.owner().changeTo("Container","Vertical") end
+      end
+    end
+    @Image Vertical(RIGHT) "Vertical.gif" width = 16 height = 16
+       @Menu
+         @MenuAction Overlay self.owner().changeTo("Container","Overlay") end
+         @MenuAction Horizontal self.owner().changeTo("Container","Horizontal") end
+       end
+    end
+    @Image Overlay(RIGHT) "Overlay.gif" width = 16 height = 16
+      @Menu
+        @MenuAction Horizontal self.owner().changeTo("Container","Horizontal") end
+        @MenuAction Vertical self.owner().changeTo("Container","Vertical") end
+      end
+    end
+  end

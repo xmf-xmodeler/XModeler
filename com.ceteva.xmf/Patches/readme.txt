@@ -1,0 +1,1 @@
+Patches relating to XMF-Mosaic should be placed in this directory.

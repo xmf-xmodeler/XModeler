@@ -1,0 +1,96 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import MappingDiagrams;
+import MappingMapping;
+//import XSync;
+import Network;
+
+context MappingMapping
+
+  @Class SyncXNode extends DiagramsMapping::ElementXNode, RightClickableProxy
+  
+    @Attribute sync : Synchronizer end
+    @Attribute node : SyncNode (?) end
+    
+    @Constructor(sync,node,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{sync.of(),node.of()})
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = sync.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  SyncXNode::proxyElementTarget);
+        globalMenu.add(MenuAction("Delete from Diagram Only",RightClickableProxy::proxyTarget,Seq{},DiagramsMapping::ElementXNode::deleteNodeFromDiagram));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).sync
+    end
+
+    @Operation checkDaemons()
+      super();
+      self.checkNodeDaemons();
+      self.checkSyncDaemons()
+    end
+    
+    @Operation checkNodeDaemons()
+      @SlotValueChanged multi once   SyncXNode::syncTextChanged_MapXNode(node.name,"text") end
+    end
+    
+    @Operation checkSyncDaemons()
+      @SlotValueChanged multi once   SyncXNode::syncNameChanged_MapXNode(sync,"name") end;
+      @SlotValueChanged multi once + SyncXNode::scopeAdded_MapXNode(sync,"scopedTypes") end;
+      @SlotValueChanged multi once - SyncXNode::scopeRemoved_MapXNode(sync,"scopedTypes") end
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{sync.of(),node.of()},false)
+    end
+    
+    @Operation scopeAdded_MapXNode(attribute,slot,newType)
+      owner.scopeAdded(sync,newType)
+    end
+    
+    @Operation scopeRemoved_MapXNode(attribute,slot,removedType)
+      owner.scopeRemoved(sync,removedType)
+    end
+    
+    @Operation syncNameChanged_MapXNode(attribute,slot,newName,oldName)
+      if node.name() <> newName.toString()
+      then node.setName(newName.toString())
+      end
+    end
+    
+    @Operation syncTextChanged_MapXNode(attribute,slot,newName,oldName)
+      if sync.name.toString() <> newName
+      then sync.setName(newName)
+      end  
+    end
+
+    @Operation removeDaemons()
+      super();
+      sync.removeDaemonsWithTarget(self,true);
+      node.removeDaemonsWithTarget(self,true);
+      node.name.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation element()
+      sync
+    end
+
+  end  
+  

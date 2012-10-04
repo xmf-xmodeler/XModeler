@@ -1,0 +1,81 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import IO;
+
+context XOCL
+  @Class CondClause 
+    // A class that is used to represent the clauses
+    // in a conditional expression.
+    @Attribute guard : Performable (?) end
+    @Attribute body  : Performable (?) end
+    @Constructor(guard,body) end
+    @Operation pprint(out:OutputChannel,indent:Integer)
+      guard.pprint(out,indent);
+      format(out," do~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+  end
+
+context XOCL
+  @Class Cond extends Sugar
+    @Doc
+      This class defines conditional expression that consists
+      of a collection of guarded clauses. Each clause has a
+      boolean valued guard and a body. To evaluate we try each
+      clause in turn and perform the first body whose gaard is
+      satisfied.
+    end
+    @Attribute clauses   : Seq(CondClause) end
+    @Attribute otherwise : Performable end
+    
+    @Constructor(clauses,otherwise) end
+    
+    @Grammar extends OCL::OCL.grammar
+      Cond ::= clauses = Clause* otherwise = Otherwise {
+        Cond(clauses,otherwise)
+      }.
+      Clause ::= guard = Exp 'do' body = Exp 'end' {
+        CondClause(guard,body)
+      }.
+      Otherwise ::= 'else' Exp | 
+        { [| self.error("No else clause.") |] }.
+    end
+    
+    @Operation desugar():Performable
+      clauses->reverse->iterate(clause exp = otherwise |
+        [| if <clause.guard()>
+           then <clause.body()>
+           else <exp>
+           end
+        |])
+    end
+    
+    @Operation pprint(out:OutputChannel,indent:Integer)
+      format(out,"@Cond~%~V",Seq{indent+2});
+      @For clause in clauses do
+        clause.pprint(out,indent+2);
+        if not isLast 
+        then format(out,"~%~V",Seq{indent+2}) 
+        end
+      end;
+      format(out,"~%~Velse ",Seq{indent+2});
+      otherwise.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+  end
+  
+context Root
+  @Operation test(x)
+    @Cond
+      x > 10 do
+        100
+      end
+      x = 10 do
+        10
+      end
+      else 0
+    end
+  end

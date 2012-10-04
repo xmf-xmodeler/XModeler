@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable 
+
+  @Class Bool extends Condition
+ 
+     @Attribute exp : Exp end 
+     
+     @Constructor(exp) ! end
+     
+     @Operation perform(env,object,slot,new,old)
+       exp.perform(object,env,Seq{})
+     end
+     
+  end

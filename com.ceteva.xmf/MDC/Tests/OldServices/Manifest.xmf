@@ -1,0 +1,11 @@
+parserImport Manifests;
+
+@Manifest Services
+  @File Model end
+  @File Grammar end
+  //@File RegistryContributions end
+  @File Rules end
+  @File Tests end
+do xmf.toolManager().loadXTD(dir + "/ServicesDesktop.xtd");
+   xmf.toolManager().loadXTD(dir + "/Candidate.xtd")
+end;

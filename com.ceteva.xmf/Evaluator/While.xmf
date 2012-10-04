@@ -1,0 +1,37 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler XOCL::While in Eval(aWhile,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     loop = 
+       @Operation()
+         next(aWhile.test,
+           @Operation(next,result,call,return)
+             self.eval(aWhile.test,env,target,imports,next,result,call,return,
+               @Operation(bool)
+                 if bool
+                 then 
+                   next(aWhile.body,
+                     @Operation(next,result,call,return)
+                       self.eval(aWhile.body,env,target,imports,next,result,call,return,
+                         @Operation(ignore)
+                           loop()
+                         end)
+                     end)
+                 else result(aWhile,bool,cont)
+                 end
+               end)
+           end)
+        end
+   in loop()
+   end
+end;

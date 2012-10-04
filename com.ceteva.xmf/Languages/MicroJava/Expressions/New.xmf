@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class New extends JExp
+  
+    @Attribute class : Seq(String) (?) end
+    @Attribute args  : Seq(JExp)   (?) end
+    
+    @Constructor(class,args) ! end
+    
+    @Operation pprint(out)
+      format(out,"new ~{.~;~S~}(",Seq{class});
+      @For arg in args do
+        arg.pprint(out);
+        if not isLast then format(out,",") end
+      end;
+      format(out,")")
+    end
+    
+  end

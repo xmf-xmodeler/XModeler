@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Plus extends Pattern
+  
+    @Doc
+      Matches when 1 or more occurrences of pattern matches.
+    end
+  
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      Or(And(pattern,Plus(pattern)),pattern).match(chars,env,stack,succ,fail)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      // Cannot bind in a + pattern.
+      Set{}
+    end
+    
+  end

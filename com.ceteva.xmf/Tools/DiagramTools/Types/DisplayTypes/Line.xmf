@@ -1,0 +1,69 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import Layout;
+import DisplayType;
+import Clients::Diagrams::Line;
+
+context DisplayTypes
+
+  @Class Line extends DisplayType
+  
+    @Attribute x1    : Integer (?,!) end
+    @Attribute y1    : Integer (?,!) end
+    @Attribute x2    : Integer (?,!) end
+    @Attribute y2    : Integer (?,!) end
+    @Attribute color : String  (?,!) end
+    
+    @Constructor(name,x1,y1,x2,y2) 
+      self.setName(name)
+    end
+    
+    /*
+    
+    @Grammar extends DisplayType.grammar
+    
+      Line ::= name = Name '(' x1 = Int ',' y1 = Int ',' x2 = Int ',' y2 = Int atts = (',' Name)* ')'  lineStyle = LineStyle dsplAtts = Atts {
+      
+        [| let line = Tools::DiagramTools::Types::DisplayTypes::Line(<OCL::StrExp(name)>,<OCL::IntExp(x1)>,<OCL::IntExp(y1)>,<OCL::IntExp(x2)>,<OCL::IntExp(y2)>) 
+           in line.hasPort     := <OCL::BoolExp(atts->includes("hasport"))>;
+              line.layout      := <OCL::StrExp(filterLayout(atts))>;
+              //line.style       := <OCL::IntExp(lineStyle)>;
+              line.color       := <OCL::StrExp(dsplAtts.lookup("color",""))>;
+              line
+           end
+        |] 
+        
+      }.
+      
+      LineStyle ::= 'lineStyle' '=' LineStyleType | { solidLine }.
+      
+      LineStyleType ::= 
+       'solidLine'      { 1 } |
+       'dashLine'       { 2 } |
+       'dottedLine'     { 3 } |
+       'dashDottedLine' { 4 } |
+       'dashDotDotLine' { 5 }.
+      
+    end
+
+*/
+    
+    @Operation new(root,parent,path,tool,env)
+      let line = Diagrams::Line(x1,y1,x2,y2)
+      in line.setType(self);
+         line.color := self.parseColor(color);
+         parent.add(line);
+         self.setGlobalMenu(line,tool,path + Seq{name.toString()});
+         if hasPort then root.addPortAssociation(line) end;
+         line
+      end
+    end
+    
+  end

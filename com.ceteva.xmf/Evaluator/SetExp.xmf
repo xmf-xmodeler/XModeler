@@ -1,0 +1,39 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler SetExp in Eval(aSetExp,arg,seen)
+  @Letrec
+     next = self.next;
+     result = self.result;
+     cont = self.cont;
+     env = self.env;
+     target = self.target;
+     imports = self.imports;
+     elements = aSetExp.elements;
+     evalElements =
+       @Operation(elements,values)
+         if elements->isEmpty
+         then 
+           let value = 
+             if aSetExp.collType = "Set"
+             then values->asSet
+             else values->asSeq
+             end
+           in result(aSetExp,value,cont)
+           end
+         else
+           next(elements->head,
+             @Operation(nextElement,resultElement,call,return)
+               self.eval(elements->head,env,target,imports,nextElement,resultElement,call,return,
+                 @Operation(value)
+                   evalElements(elements->tail,values + Seq{value})
+                 end)
+             end)
+         end
+       end
+  in evalElements(elements,Seq{})
+  end
+end;

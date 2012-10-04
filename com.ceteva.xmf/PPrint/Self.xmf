@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Self in PPrint(aSelf,out,seen)
+  format(out,"self")
+end;

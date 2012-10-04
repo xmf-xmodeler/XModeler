@@ -1,0 +1,41 @@
+parserImport Manifests;
+
+@Manifest XmfMosaic
+  @Ref Kernel end
+  @Ref Exceptions end
+  @Ref Channels end
+  @Ref Comms end
+  @Ref Lib end
+  @Ref Constraints end
+  @File Boot/Preference end
+  @File Boot/PreferenceManager end
+  @File Boot/XMF end
+  @Ref OCL end
+  @Ref Parser end
+  @Ref Instrs end
+  @Ref Assembler end
+  @Ref Compiler end
+  @Ref Grammar end
+  @Ref Extensions end
+  @Ref Aspects end
+  @Ref DocTables end
+  @Ref Doc end
+  @Ref Eval end
+  @Ref XMatch end
+  @Ref TopLevel end
+  @Ref Walkers end
+  @Ref XML end
+  @Ref XMap end
+  @Ref Manifests end
+  @Ref Languages end
+  @Ref Database end
+  @Ref Associations end
+  @Ref Deploy end
+  @Ref Debug end
+  @Ref Xrules end
+  @Ref Clients [ManifestTrue] end
+  @Ref DocTables/HTML/InternalBrowser end
+  @Ref DocTables/HTML/ExternalBrowser end
+  @Ref Tools end
+  @Ref MDC end
+end;

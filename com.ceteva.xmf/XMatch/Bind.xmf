@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Bind extends Pattern
+  
+    @Doc
+      Matches when the pattern matches. The name is then bound to the
+      value at the head of the stack.
+    end
+  
+    @Attribute name : String end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(name,pattern) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      pattern.match(chars,env,stack,
+        @Operation(chars,env,stack,fail)
+          succ(chars,env.bind(name,stack->at(0)),stack,fail)
+        end,
+        fail)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      pattern->vars()->including(name)
+    end
+    
+  end

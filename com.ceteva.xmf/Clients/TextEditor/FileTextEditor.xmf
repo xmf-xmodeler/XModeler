@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+
+context TextEditor
+
+  @Class FileTextEditor extends Editor, FileEditor
+  
+    @Attribute lastModified : Seq(Integer) end
+  
+    @Constructor(file,name,tooltip,editable)
+      self.init(Seq{name,tooltip,editable});
+      self.init(Seq{file});
+      self.lastModified := self.getFileModifiedDate()
+    end
+    
+    @Operation close()
+      super();
+      self.closeEvent()
+    end
+    
+    @Operation getFileModifiedDate()
+      file.fullPath().getLastModified()
+    end
+    
+    @Operation isModified(time,since)
+      if time.hours > since.hours
+      then true
+      elseif time.hours = since.hours
+      then
+       if time.minutes > since.minutes
+       then true
+       elseif time.minutes = since.minutes
+       then
+         if time.seconds > since.seconds
+         then true
+         else false
+         end
+       else false
+       end
+     else false
+     end
+    end
+    
+    @Operation renew()
+      super();
+      self.setText(file.fullPath().readFile());
+      self
+    end
+    
+    @Operation focusGained()
+      if self.getFileModifiedDate() <> false
+      then
+        if self.isModified(self.getFileModifiedDate(),lastModified)
+        then
+          if self.updateFileQuestion()
+          then
+            self.setText(file.fullPath().readFile());
+            self.setClean()
+          end
+        end
+      end;
+      super()
+    end
+    
+    @Operation setClean()
+      super();
+      self.lastModified := self.getFileModifiedDate()
+    end
+    
+    @Operation updateFileQuestion()
+      xmf.question("The file " + file.name() + " has been changed outside of the system,"
+        + " do you want to update the editor?")
+    end
+  
+  end

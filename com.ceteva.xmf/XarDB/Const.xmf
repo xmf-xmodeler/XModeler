@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+  @Class Const extends XarInstr
+    @Attribute value : Element end
+    @Constructor(value) ! end
+  end

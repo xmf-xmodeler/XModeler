@@ -1,0 +1,145 @@
+parserImport XOCL;
+parserImport XBNF::Scanning::Structure;
+
+import IO;
+import XBNF::Scanning::Structure;
+import Parser::Machine;
+
+context OCL
+
+  @Scanner Scanner
+  
+    Token("+")
+    Token("-")
+    Token("/")
+    Token("*")
+    Token("(")
+    Token(")")
+    Token(",")
+    Token("@")
+    Token("::")
+    Token(";")
+    Token(true)
+    Token(false)
+    Token("{")
+    Token("}")
+    Token("|")
+    Token("<")
+    Token("=")
+    Token(">")
+    Token(">=")
+    Token("<=")
+    Token(":")
+    Token("!")
+    Token("[")
+    Token("]")
+    Token("[|")
+    Token("|]")
+    Token("->")
+    Token("<-")
+    Token(".")
+    Token(":=")
+    Token("<>")
+    Token("<|")
+    Token("|>")
+    Token("<*")
+    Token("<*|")
+    Token("*>")
+    Token("|*>")
+    Token("?")
+    Token("#")
+ 
+    Token(if)
+    Token(then)
+    Token(else)
+    Token(elseif)
+    Token(end)
+    Token(let)
+    Token(try)
+    Token(catch)
+    Token(import)
+    Token(in)
+    Token(parserImport)
+    Token(and)
+    Token(or)
+    Token(andthen)
+    Token(orelse)
+    Token(implies)
+    Token(not)
+    Token(self)
+    Token(throw)
+    Token(iterate)
+    Token(when)
+    Token("do")
+    Token(context)
+    Token(of)
+    Token(where)
+    Token(to)
+    Token(metaclass)
+    Token(isabstract)
+    Token(metapackage)
+    Token("extends")
+    Token(classifiedBy) 
+    Token(inTableKeys)
+    Token(inTableValues)
+    Token(inSeq)
+    Token(from)
+    Token(until)
+    Token(once)
+    Token(produce)
+    
+    [a - z A - Z] [a - z A - Z 0 - 9 "_"] * { Name }
+    
+    "\""  { do Str }
+    
+    [0-9] * "\." [0-9] [0-9] * { Float }
+    
+    [0-9] [0-9] * { Int }
+
+    "//" { do CommentLine }
+
+    "/*" { do CommentBlock }
+
+    (" " | "\n" | "\t" | "\r")* { ignore }
+    
+  end
+  
+
+
+context Root
+  @Operation test()
+    let t = 0
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XBNF/Scanning/Structure/Data.xmf")
+         let scan = OCL::Scanner.scan(fin)
+         in @While not scan->at(1) = 0 do
+              scan := OCL::Scanner.scan(fin); //.println();
+              t := t + 1
+            end;
+            t
+         end
+       end
+    end
+  end
+  
+context Root
+
+  @Scanner scan
+  
+    Token("abc")
+    Token("abcd")
+    
+  end
+  
+context Root
+  @Operation testParse()
+    scan.reset();
+    let t = 0
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XBNF/Scanning/Test.xmf")
+         let inch = ScannerInputChannel(scan,fin) then
+             state = State(OCL::OCL.grammar,inch)
+         in state.run("CompilationUnit")
+         end
+       end
+    end
+  end
+  

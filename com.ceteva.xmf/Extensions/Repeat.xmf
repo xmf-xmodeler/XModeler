@@ -1,0 +1,46 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context XOCL
+
+  @Class Repeat extends Sugar
+  
+    @Doc
+      Implements a repeat command until test loop.
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       Repeat ::= body = Exp 'until' test = Exp {
+       
+         Repeat(body,test)
+         
+       }.
+       
+    end
+    
+    @Attribute test  : Performable end
+    @Attribute body  : Performable end
+    
+    @Constructor(body,test) end
+    
+    @Operation desugar():Peformable
+      [| <body>;
+         @While not <test> do <body> end
+      |] 
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Repeat~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vuntil ",Seq{indent});
+      test.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+     
+   end
+               
+    
+    

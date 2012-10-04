@@ -1,0 +1,79 @@
+<Layout>
+  <Node id='Withdraw' x='97' y='27' height='85' width='94' hidden='false'/>
+  <Node id='ProcessRequest' x='92' y='198' height='50' width='107' hidden='false'/>
+  <Node id='GetRequest' x='493' y='48' height='116' width='129' hidden='false'/>
+  <Node id='ProcessPIN' x='478' y='350' height='50' width='78' hidden='false'/>
+  <Node id='ReadPIN' x='265' y='382' height='50' width='60' hidden='false'/>
+  <Node id='Error' x='238' y='554' height='50' width='50' hidden='false'/>
+  <Node id='Idle' x='27' y='302' height='50' width='50' hidden='false'/>
+  <Edge id='' sourceId='ProcessRequest' targetId='Idle' hidden='false'>
+    <Label text='self.card := null;if Main.save(self)then  self.trace("Goodbye")else  self.trace("Problem in saving.")end' relx='5' rely='5'/>
+    <Label text='action.equals("3")' relx='16' rely='-14'/>
+    <Label text='processRequest(action : String)' relx='34' rely='25'/>
+  </Edge>
+  <Edge id='' sourceId='Withdraw' targetId='GetRequest' hidden='false'>
+    <Label text='bank.withdraw(amount,card.number());self.trace("Delivered " + amount);self.getRequest()' relx='5' rely='5'/>
+    <Label text='amount &lt; bank.balance(card.number())' relx='-132' rely='-30'/>
+    <Label text='withdraw(amount : Integer)' relx='10' rely='10'/>
+  </Edge>
+  <Edge id='' sourceId='Withdraw' targetId='GetRequest' hidden='false'>
+    <Label text='self.trace("Insufficient funds");self.getRequest()' relx='5' rely='5'/>
+    <Label text='amount &gt; bank.balance(card.number())' relx='-113' rely='-57'/>
+    <Label text='withdraw(amount : Integer)' relx='-229' rely='-47'/>
+  </Edge>
+  <Edge id='' sourceId='ProcessRequest' targetId='Withdraw' hidden='false'>
+    <Label text='self.withdraw(Main.readWithdrawal())' relx='290' rely='40'/>
+    <Label text='action.equals("2")' relx='-50' rely='8'/>
+    <Label text='processRequest(action : String)' relx='-43' rely='41'/>
+  </Edge>
+  <Edge id='' sourceId='ProcessRequest' targetId='GetRequest' hidden='false'>
+    <Label text='self.trace("Balance = " + bank.balance(card.number()));self.getRequest()' relx='5' rely='5'/>
+    <Label text='action.equals("1")' relx='-147' rely='23'/>
+    <Label text='processRequest(action : String)' relx='-110' rely='-31'/>
+  </Edge>
+  <Edge id='' sourceId='ProcessRequest' targetId='GetRequest' hidden='false'>
+    <WayPoint x='425' y='267'/>
+    <Label text='self.getRequest()' relx='5' rely='5'/>
+    <Label text='not (action.equals("1") or action.equals("2") or action.equals("3"))' relx='-149' rely='-19'/>
+    <Label text='processRequest(action : String)' relx='-101' rely='56'/>
+  </Edge>
+  <Edge id='' sourceId='GetRequest' targetId='ProcessRequest' hidden='false'>
+    <WayPoint x='304' y='126'/>
+    <Label text='self.trace("");self.trace("      ATM Services");self.trace("-------------------------");self.trace("1. Balance Enquiry");self.trace("2. Funds Withdrawal");self.trace("3. Quit");self.trace("");self.processRequest(Main.readRequest())' relx='5' rely='5'/>
+    <Label text='true' relx='-9' rely='-62'/>
+    <Label text='getRequest()' relx='10' rely='10'/>
+  </Edge>
+  <Edge id='' sourceId='ProcessPIN' targetId='GetRequest' hidden='false'>
+    <Label text='self.getRequest()' relx='5' rely='5'/>
+    <Label text='pin.equals(card.pin())' relx='19' rely='6'/>
+    <Label text='processPIN(pin : String)' relx='17' rely='53'/>
+  </Edge>
+  <Edge id='' sourceId='ProcessPIN' targetId='Error' hidden='false'>
+    <Label text='self.error("Incorrect PIN")' relx='5' rely='5'/>
+    <Label text='not pin.equals(card.pin())' relx='47' rely='-26'/>
+    <Label text='processPIN(pin : String)' relx='46' rely='29'/>
+  </Edge>
+  <Edge id='' sourceId='ReadPIN' targetId='ProcessPIN' hidden='false'>
+    <Label text='self.processPIN(Main.readPIN())' relx='5' rely='5'/>
+    <Label text='true' relx='-106' rely='-34'/>
+    <Label text='readPIN()' relx='-27' rely='44'/>
+  </Edge>
+  <Edge id='' sourceId='Error' targetId='Error' hidden='false'>
+    <WayPoint x='308' y='587'/>
+    <WayPoint x='308' y='624'/>
+    <WayPoint x='271' y='624'/>
+    <Label text='self.trace(errorMessage)' relx='5' rely='5'/>
+    <Label text='true' relx='-5' rely='48'/>
+    <Label text='error(errorMessage : String)' relx='23' rely='28'/>
+  </Edge>
+  <Edge id='' sourceId='Idle' targetId='Error' hidden='false'>
+    <Label text='self.error("Card invalid")' relx='5' rely='5'/>
+    <Label text='not bank.validate(c)' relx='-45' rely='-82'/>
+    <Label text='insert(c : Card)' relx='-123' rely='-34'/>
+  </Edge>
+  <Edge id='' sourceId='Idle' targetId='ReadPIN' hidden='false'>
+    <Label text='self.card := c;self.readPIN()' relx='5' rely='5'/>
+    <Label text='bank.validate(c)' relx='-120' rely='6'/>
+    <Label text='insert(c : Card)' relx='-83' rely='-53'/>
+  </Edge>
+</Layout>

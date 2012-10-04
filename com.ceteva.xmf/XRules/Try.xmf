@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class Try extends Root::XRules::Action
+  
+    // This class tries the goal action and specifies
+    // handlers that are tried if the goal action throws
+    // an exception. The alternative may be null.
+
+    @Attribute actions     : Seq(Action)(?) end
+    @Attribute handlers    : Seq(Catch) (?) end
+    @Attribute alternative : Action     (?) end
+    
+    @Constructor(actions,handlers,alternative) ! end
+    
+    @Constructor(actions,handlers) ! end
+    
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+      rules.performs(actions,vars,indent,env,succ,fail,cut,
+        @Operation(term)
+          self.tryHandlers(term,handlers,rules,vars,indent,env,succ,fail,cut,exception)
+        end)
+    end
+    
+    @Operation tryHandlers(term,handlers,rules,vars,indent,env,succ,fail,cut,exception)
+      if handlers->isEmpty
+      then 
+        if alternative = null
+        then fail()
+        else alternative.perform(rules,vars,indent,env,succ,fail,cut,exception)
+        end
+      else
+        handlers->head.perform(term,rules,vars,indent,env,succ,
+          @Operation fail()
+            self.tryHandlers(term,handlers->tail,rules,vars,indent,env,succ,fail,cut,exception)
+          end,
+          cut,
+          exception)
+      end
+    end
+    
+    @Operation vars(vars)
+      @For action in actions do 
+        vars := action.vars(vars)
+      end;
+      @For handler in handlers do 
+        vars := handler.vars(vars)
+      end;
+      if alternative <> null
+      then vars := alternative.vars(vars)
+      end;
+      vars
+    end
+
+  end

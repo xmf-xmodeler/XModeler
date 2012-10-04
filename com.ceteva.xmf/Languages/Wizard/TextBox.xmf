@@ -1,0 +1,30 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TextBox extends Layout
+  
+    @Attribute id          : String end
+    @Attribute style       : String end
+    @Attribute isReadOnly  : Boolean end
+    @Attribute tooltip     : String end
+    @Attribute givesReport : Boolean end
+    @Attribute value       : String end
+    
+    @Constructor(id,style,isReadOnly,tooltip,givesReport,value,x,y,width,height) end
+    
+    @ToXML(TEXTBOX)[Id=id,STYLE=style,Is_Readonly = isReadOnly,X_Position = x,Y_Position = y,X_Size = width,Y_Size = height,Tooltip=tooltip,Gives_Report = givesReport,Value=value]
+    end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end 

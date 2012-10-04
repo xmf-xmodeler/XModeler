@@ -1,0 +1,16 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+context ! Root::Activities
+
+// Class deployed by Tony Clark on Wed Feb 16 21:46:20 GMT 2005
+
+@Class Post metaclass Root::XCore::Class  extends Root::XOCL::Exp
+
+  @Grammar extends OCL::OCL.grammar
+  
+    Post ::= exp = Exp { Post(exp) }.
+    
+  end
+  
+end

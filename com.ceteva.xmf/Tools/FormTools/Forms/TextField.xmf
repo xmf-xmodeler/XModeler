@@ -1,0 +1,36 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class TextField extends Clients::Forms::FormTextField, FormElement
+  
+    @Attribute textChangedHandler : Operation (!) end
+  
+    @Operation actualHeight():Integer
+      self.getTextDimension(text)->at(1)
+    end
+    
+    @Operation actualWidth():Integer
+      self.getTextDimension(text)->at(0)
+    end
+    
+    @Operation init(args:Seq(Element))
+      super(args);
+      self.addDaemons();
+      self
+    end
+    
+    @Operation addDaemons()
+      @SlotValueChanged multi TextField::textChanged(self,"text") end
+    end
+    
+    @Operation textChanged(text,slot,new,old)
+      textChangedHandler(text,new,old)
+    end
+  
+  end

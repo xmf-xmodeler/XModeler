@@ -1,0 +1,95 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context ToolBuilderManager
+  @EventHandler "Add_To_NodeType_nodeBox_(x=(.*))BoxType"(x)
+    let boxType = Box("B")
+    in if x = ""
+       then find(event.root()).add(boxType)
+       else find(event.value().owner()).add(boxType)
+       end;
+       register(event.value(),boxType);
+       register(event.value().ref1(Seq{"boxAttribute","name"}),boxType)
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_name_Changed"()
+    let boxType = find(event.value())
+    in boxType.setName(event.new())
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Container_ChangedTo_Overlay"()
+    let boxType = find(event.container().owner())
+    in boxType.setContentLayout("OVERLAY")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Container_ChangedTo_Vertical"()
+    let boxType = find(event.container().owner())
+    in boxType.setContentLayout("VERTICAL")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Container_ChangedTo_Horizontal"()
+    let boxType = find(event.container().owner())
+    in boxType.setContentLayout("HORIZONTAL")
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Justification_ChangedTo_Align"()
+    let boxType = find(event.container().owner())
+    in boxType.setLayout("ALIGN")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Justification_ChangedTo_Left"()
+    let boxType = find(event.container().owner())
+    in boxType.setLayout("LEFT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Justification_ChangedTo_Right"()
+    let boxType = find(event.container().owner())
+    in boxType.setLayout("RIGHT")
+    end
+  end
+
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_Justification_ChangedTo_Centre"()
+    let boxType = find(event.container().owner())
+    in boxType.setLayout("CENTRE")
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_FilledOrUnfilled_ChangedTo_filledBoxImage"()
+    let boxType = find(event.container().owner())
+    in boxType.setFill(true)
+    end
+  end
+  
+context ToolBuilderManager
+  @EventHandler "NodeType_nodeBox_(.*)BoxType_boxAttribute_FilledOrUnfilled_ChangedTo_unfilledBoxImage"()
+    let boxType = find(event.container().owner())
+    in boxType.setFill(false)
+    end
+  end
+  
+  

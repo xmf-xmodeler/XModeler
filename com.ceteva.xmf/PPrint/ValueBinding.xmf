@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler ValueBinding in PPrint(aValueBinding,out,seen)
+  self.mark(
+    @Operation()
+      format(out,"~S = ",Seq{aValueBinding.name});
+      self.dispatch(aValueBinding.value,out)
+    end)
+end;

@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class UnorderedContainer extends Container
+  
+    @Doc
+      A container that wraps a collection of unordered elements. 
+    end
+    @Attribute contents : Set(Element) end
+    
+    @Operation add(element:Element):Container
+      self.contents := contents->including(element)
+    end
+    
+    @Operation addContentDaemon(actionSource,daemon:Operation):Container
+      let d = 
+        @Operation contentDaemon(slot,new,old)
+          if slot.toString() = "contents"
+          then daemon.invoke(actionSource,Seq{new,old})
+          end
+        end
+      in
+        self.addDaemon(d);
+        d
+      end
+    end
+  
+    @Operation contents():Collection(Element) 
+      contents
+    end
+    
+    @Operation contentDaemons():Seq(Operation)
+      self.daemons()->select(d | d.name().toString() = "contentDaemon")
+    end
+  
+    @Operation remove(element:Element):Container
+      if element.isKindOf(Contained)
+      then
+        element.removeFromOwner()
+      end;
+      self.contents := contents->excluding(element);
+      self
+    end
+    
+    @Operation removeContentDaemon(daemon:Operation):Container
+      self.removeDaemon(daemon)
+    end
+    
+  end
+  

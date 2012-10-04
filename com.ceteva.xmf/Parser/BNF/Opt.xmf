@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class Opt extends Recognizer 
+  
+    // Tries a given parser and allows it to fail.
+    
+    @Attribute parser : Recognizer end
+    
+    @Constructor(parser) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," [ ");
+      parser.code(outputChannel);
+      format(outputChannel," ]")
+    end
+    
+    @Operation FV():Set(String)
+      // An optional clause introduces no new free variables.
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      parser.nextSet(grammar)
+    end
+    
+    @Operation parse(machine)
+      machine.choice();
+      parser.parse(machine)
+    end
+    
+    @Operation setOwner(owner)
+      parser.setOwner(owner)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Opt(<parser.toExp(FV)>) |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self.parser := parser.transform(FV,grammar)
+    end
+    
+  end

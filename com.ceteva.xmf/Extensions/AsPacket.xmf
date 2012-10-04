@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context XOCL
+
+  @Class AsPacket extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       AsPacket ::= '(' command = Exp ',' size = Exp ')' body = Exp {
+       
+         AsPacket(command,size,body)
+         
+       }.
+       
+    end
+    
+    @Attribute command : Performable end
+    @Attribute size	   : Performable end
+    @Attribute body    : Performable end
+    
+    @Constructor(command,size,body) end
+    
+    @Operation desugar():Peformable
+      [| 
+         let oldSize = <command>.packetSize
+         in
+           <command>.setPacketSize(<size>);
+           let result = <body>
+           in 
+             <command>.setPacketSize(oldSize);
+             result
+           end
+         end
+      |]
+   end
+   
+end               
+    
+    

@@ -1,0 +1,62 @@
+parserImport XOCL;
+
+import IO;
+
+context IO
+
+   @Class StandardInputChannel extends InputChannel
+    
+      @Attribute channel : Element end
+      
+      @Constructor(channel) ! end
+      
+      @Operation asString():String
+          Kernel_readString(channel)
+      end
+      
+      @Operation channel()
+        channel
+      end
+        
+      @Operation close()
+        null //Kernel_close(channel)
+      end
+      
+      @Operation eof():Boolean
+        false //Kernel_eof(channel)
+      end 
+      
+      @Operation peek():Integer
+        Kernel_peek(channel)
+      end
+      
+      @Operation read():Integer
+         Kernel_read(channel)
+      end
+      
+      @Operation read(buffer):Integer
+        let char = 0;
+            chars = 0
+        in @Repeat 
+             char := self.read();
+             chars := chars + 1;
+             @TypeCase(buffer)
+               Vector do
+                 buffer.put(0,char)
+               end
+               Buffer do
+                 buffer.add(char)
+               end
+               else self.error("Unknown type of buffer for a StandardInput::read: " + buffer.toString())
+             end
+           until char = "\n"->at(0) orelse char = "\r"->at(0) 
+           end;
+           chars
+        end
+      end
+      
+      @Operation setChannel(channel)
+        self.channel := channel
+      end
+     
+    end

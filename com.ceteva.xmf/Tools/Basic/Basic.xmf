@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+context Tools
+
+  @Package Basic
+    
+    @Operation mkHandleStateChangedHandler(tool)
+      @Operation[closure="Tools::Basic::mkHandleStateChangedHandler"](object,slot,new,old) 
+        tool.handleObjectStateChange(object,slot,new,old)
+      end.setOwner(null)
+    end
+
+    @Operation showXToolsBrowser()
+      xmf.toolManager().toolBrowser().browse()
+    end
+
+  end

@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Parser::Machine;
+import OCL;
+
+context Parser::BNF
+
+  @Class TypeCheck extends Recognizer
+  
+    // Parses the input and checks that the return value is of a given type.
+    // If the value is not of the correct type then the parse fails. Expects
+    // a value at the head of the parse stack.
+ 
+    @Attribute type : Seq(String) end
+    
+    @Constructor(type) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," : ~{::~;~S~}",Seq{type})
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation toString():String
+      ":" + type->separateWith("::")
+    end
+
+    @Operation parse(machine:Machine)
+      machine.typeCheck(type)
+    end
+     
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::TypeCheck(<SetExp("Seq",type->collect(t | StrExp(t)))>) |]
+    end 
+     
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+     
+  end

@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler SlotUpdate in AST(aSlotUpdate,arg,seen)
+  let value = self.dispatch(aSlotUpdate.value,arg);
+      target = self.dispatch(aSlotUpdate.target,arg)
+  in ASTNode(aSlotUpdate,Seq{target,value})
+  end
+end;

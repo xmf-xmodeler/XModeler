@@ -1,0 +1,25 @@
+import OCL;
+import Instrs;
+
+context IntExp
+  @Operation FV():Element
+    Set{}
+  end
+
+context IntExp
+  @Operation maxLocals():Element
+    0
+  end
+
+context IntExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if value < 0
+    then [| 0 - <IntExp(value.abs())> |].compile(env,frame,isLast,saveSource)
+    else Seq{PushInteger(value)}
+    end
+  end
+  
+context IntExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{IntExp(value)})
+  end

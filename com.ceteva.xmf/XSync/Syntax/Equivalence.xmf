@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Equivalence extends Constraint
+  
+    @Attribute left  : Value (?) end
+    @Attribute right : Value (?) end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation code(varEnv:Env):Performable
+      [| Equivalence(<left.code(varEnv)>,<right.code(varEnv)>) |]
+    end
+    
+    @Operation freeVars():Set(String)
+      left.vars() + right.vars()
+    end
+    
+    @Operation relocate(direction:String)
+      self.left := left.relocate(direction);
+      self.right := right.relocate(direction)
+    end
+    
+  end

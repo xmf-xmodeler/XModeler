@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Tools;
+
+context Data
+
+  @Class XManagerData 
+  
+    // Serialization data for an XTool event manager.
+    // In particular, saves the association table and
+    // the edge table...
+    
+    @Attribute table : Table        (?)     end
+    @Attribute edges : Seq(Element) (?,+,-) end
+    
+    @Constructor(table,edges) end
+    
+  end

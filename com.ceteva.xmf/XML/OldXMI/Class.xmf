@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import IO;
+
+context Class
+  @Operation writeXMI11(out:outputChannel)
+    format(out,"<UML:Class xmi.id='~S' name='~S' visibility='public' isSpecification='false' isAbstract = '~S' isActive = 'false'>~%",Seq{self.path(),name,isAbstract});
+    self.writeXMI11Features(out);
+    format(out,"</UML:Class>~%")
+  end
+  
+context Class
+  @Operation writeXMI11Features(out:OutputChannel)
+    format(out,"<UML:Classifier.feature>~%");
+    @For attribute in attributes do
+      attribute.writeXMI11(out)
+    end;
+    format(out,"</UML:Classifier.feature>~%")
+  end

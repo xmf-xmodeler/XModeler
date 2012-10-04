@@ -1,0 +1,13 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/Boot",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/CollectionViewer",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/CollectionFormLayoutManager",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/CollectionForm",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/TableFormLayoutManager",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/TableForm",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/TableEditorTable",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/TableEditor",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/Array2DEditorTable",true,true);
+compileFile(xmf.homeDir() + "/Clients/CollectionViewer/Array2DEditor",true,true);

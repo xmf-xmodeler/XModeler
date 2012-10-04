@@ -1,0 +1,297 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+
+context DiagramsMapping
+
+  @Class ElementXDiagram extends ContainedClientElement, RightClickableProxy, DiagramListener
+  			
+    @Attribute theme	: String = ""  (?) end    // the theme currently applied to this mapping
+    @Attribute eventFilterTable : Table = Table(10) end
+    
+    @AbstractOp add(element)
+    end
+    
+    @Operation addEventFilter(eventName,handler)
+      self.eventFilterTable.put(eventName,handler)
+    end
+    
+    @Operation allSubMaps()
+      let C = Seq{self};
+          allSubMaps = Seq{}
+      in @While not C->isEmpty do
+           let parentMap = C->head then
+               M = parentMap.subMaps()
+           in C := C->tail;
+              @For m in M do
+                allSubMaps := allSubMaps->prepend(m);
+                if m <> parentMap and m <> null
+                then C := Seq{m | C}
+                end
+              end
+           end
+         end;
+         allSubMaps
+      end
+    end
+
+    @Operation applyTheme()
+      let theme = self.chooseTheme()
+      in
+        if theme <> ""
+        then
+          @WithoutRendering(self.diagram())
+     	    self.removeTheme();
+            self.applyNewTheme(theme)
+          end
+        end
+      end
+    end
+    
+    @Operation applyNewTheme(theme)
+      self.theme := theme;
+      @For map in self.subMaps()
+      do
+        map.applyNewTheme(theme)
+      end
+    end
+    
+    @Operation buildGlobalMenu(rightClickable)      
+      let 
+        globalMenu = rightClickable.globalMenu(false) then
+        type = self.element().of();
+        clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,ElementXDiagram::proxyElementTarget);
+        self.buildGlobalMenuExtras(globalMenu);
+        globalMenu.new();
+        globalMenu
+      end
+    end
+    
+    @Operation buildGlobalMenuExtras(globalMenu)
+      let themeMenu = MenuItems("Themes");
+          syncMenu = MenuItems("Model-Diagram Synchronisation")
+      in
+        globalMenu.add(themeMenu);
+        globalMenu.add(syncMenu);
+        themeMenu.add(MenuAction("Apply Theme",RightClickableProxy::proxyTarget,Seq{},ElementXDiagram::applyTheme));
+        themeMenu.add(MenuAction("Remove Theme",RightClickableProxy::proxyTarget,Seq{},ElementXDiagram::removeTheme));
+        syncMenu.add(MenuAction("Get Current Sync Mode",RightClickableProxy::proxyTarget,Seq{},ElementXDiagram::getSyncModeMessage));
+        syncMenu.add(MenuAction("Set to Partial View Sync Mode",RightClickableProxy::proxyTarget,Seq{},ElementXDiagram::setToPartialSyncMode_client));
+        syncMenu.add(MenuAction("Set to Total View Sync Mode",RightClickableProxy::proxyTarget,Seq{},ElementXDiagram::setToTotalSyncMode_client))
+      end
+    end
+
+    @Operation checkDaemons()
+      self
+    end
+
+    @Operation chooseTheme()
+      let 
+        keys = DiagramsMapping::themeBindings.keys();
+        schemes = Seq{}
+      in
+        @For key in keys
+        do
+          let value = DiagramsMapping::themeBindings.get(key)
+          in
+            if value = self.of()
+            then
+              schemes := schemes->including(key)
+            end
+          end
+        end;
+        if not schemes.isEmpty()
+        then
+          xmf.select("Apply theme","Please choose a theme from the following:",schemes,null,null)
+        else
+          xmf.message("No themes are defined for this diagram type.");
+          ""
+        end
+      end
+    end
+
+    @Operation defaultEventFilterHandler()
+      true
+    end
+
+    // the diagram of the model element
+    
+    @AbstractOp diagram()
+    end
+
+    @Operation dispose()
+      let diagram = self.diagram()
+      in
+        self.deregisterFromDiagram(diagram);
+        self.removeDaemons();
+        diagram.dispose();
+        self.owner := null;
+        self.diagram := null
+      end
+    end
+    
+    // the model element being diagrammed
+    
+    @AbstractOp element()
+    end
+
+    @Operation eventFiltered(eventName)
+      if self.eventFilterTable.hasKey(eventName)
+      then
+        let handler = self.eventFilterTable.get(eventName)
+        in
+          handler()
+        end
+      else false
+      end
+    end
+
+    @Operation generateDiagram()
+      @WithoutDaemons(self.diagram())
+        self.generateNodes();
+        self.generateEdges()
+      end
+    end
+    
+    @AbstractOp generateEdges()
+    end
+    
+    @AbstractOp generateNodes()
+    end
+
+    @Operation getSyncModeMessage()
+      let message =
+        if self.total()
+        then self.totalSyncModeMessage()
+        else self.partialSyncModeMessage()
+        end
+      in
+        xmf.message(message);
+        self
+      end
+    end
+
+    @Operation handleDiagramCloseEvent(diagram)
+      //let diagram = self.diagram()
+      //in
+      //  diagram.removeFromIdManager();
+      //  diagram.clearRightClickMenu();
+      //  diagram.graph.dispose()
+      //end
+      self
+    end
+
+    @Operation handleDiagramDeleteEvent(diagram)
+      owner.removeDiagram(self.diagram())
+    end
+
+    @Operation handleDiagramEvent(diagram,event)
+      super(diagram,event);
+      let eventType = event->at(0)
+      in
+        @Case eventType of 
+          "apply theme"               do self.applyTheme() end
+          "remove theme"              do self.removeTheme() end
+          "get sync mode"             do self.getSyncModeMessage() end
+          "set to partial sync mode"  do self.setToPartialSyncMode_client() end
+          "set to total sync mode"    do self.setToTotalSyncMode_client() end
+        else self
+        end
+      end
+    end
+
+    @Operation handleDiagramRenewEvent(diagram)
+      self
+    end
+
+    @Operation partialSyncModeMessage()
+      "Model-diagram synchronisation is set to Partial View mode.\n\n" +
+      "This means that when elements are added to the model, new nodes will not be added to the " +
+      "diagram. All other model changes (including deletion and update events) will initiate " +
+      "equivalent changes to the diagram, and all changes to the diagram will initiate equivalent " +
+      "changes to the model.\n\n" +
+      "Typically this is used when you want the diagram to reflect a partial or filtered viewpoint of the model."
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).element()
+    end
+    
+    @Operation refreshTheme(elementMaps)
+      @WithoutRendering(self.diagram())
+        @For map in elementMaps
+        do
+          map.applyTheme()
+        end
+      end
+    end
+    
+    @Operation refreshThemeExcludingElementMap(map)
+      self.refreshTheme(self.subMaps()->excluding(map))
+    end
+
+    @AbstractOp remove(element)
+    end
+
+    @Operation removeDaemons()
+      self.diagram().removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation removeEventFilter(eventName)
+      if self.eventFilterTable.hasKey(eventName)
+      then self.eventFilterTable.remove(eventName)
+      end
+    end
+
+    @Operation removeTheme()
+      self.theme := "";
+      @WithoutRendering(self.diagram())
+        @For map in self.subMaps()
+        do
+          map.removeTheme()
+        end
+      end
+    end
+
+    @Operation setToPartialSyncMode()
+      // over-ride this in sub-classes to specify event filters to add
+      diagram.setTotal(false)
+    end
+
+    @Operation setToPartialSyncMode_client()
+      self.setToPartialSyncMode();
+      self.getSyncModeMessage()
+    end
+
+    @Operation setToTotalSyncMode()
+      // over-ride this in sub-classes to specify event filters to remove
+      diagram.setTotal(true)
+    end
+
+    @Operation setToTotalSyncMode_client()
+      self.setToTotalSyncMode();
+      self.getSyncModeMessage()
+    end
+
+    @Operation subMaps()
+      Seq{}
+    end
+
+    @Operation total()
+      diagram.total()
+    end
+
+    @Operation totalSyncModeMessage()
+      "Model-diagram synchronisation is set to Total View mode.\n\n" +
+      "This means that any changes to the model will initiate equivalent changes to the " +
+      "diagram and vice-versa.\n\n" +
+      "Typically this is used when you want the diagram to reflect a total viewpoint of the model."
+    end
+
+  end

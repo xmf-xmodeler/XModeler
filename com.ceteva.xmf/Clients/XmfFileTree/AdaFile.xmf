@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients;
+import SearchReport;
+import IO;
+import XmfFileTree;
+import XmfTextEditor;
+
+context XmfFileTree
+
+  @Class AdaFile extends File
+  
+    @Operation viewText()
+      let fullPath = self.fullPath() 
+      in if fullPath.fileExists() 
+         then
+           let file = fullPath.readFile() then
+               textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient) 
+           in if textEditorClient <> null 
+              then
+                let fileEditors = textEditorClient.editors->select(e | e.isKindOf(FileEditor))
+                in @Find(editor,fileEditors)
+                     when editor.element.fullPath() = fullPath
+                   do editor.setFocus();
+                      editor
+                   else
+                    let editor = Clients::TextEditor::Editor(self,fullPath,"",true)
+                    in textEditorClient.newTextEditor(editor);
+                       editor.setText(file);
+                       editor
+                    end
+                   end
+                end
+              end
+           end
+        else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+        end
+     end
+   end
+   
+ end

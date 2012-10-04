@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context XOCL
+
+  @Class Snapshot
+  
+    // A snapshot expression produces a snapshot that represents
+    // a collection of objects. The objects are named and may
+    // reference each other. A snapshot expression consists of a 
+    // collection of object bindings of the form NAME = PATH[SLOT=EXP*]
+    // and a collection of normal bindings after the keyword 'where'.
+    // The scoping is as follows: the where bindings are established in
+    // parallel for the local scope of the snapshot. The object
+    // bindings are mutually recursive and define the named objects in
+    // the snapshot.
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Snapshot ::= n = Name '(' p = Exp ')' bs = SnapshotBinding* ls = LocalBindings {
+      
+        Let(ls,
+        
+          // Each snapshot binding is of the form Seq{n,p | ss}
+          // where n is the name, p is a path (Seq(String)) and
+          // ss are slots. Each slot is Seq{n|e} where n is the
+          // name of the slot and e is the value.
+          
+          Let(bs->collect(b | ValueBinding(b->head,Apply(Path::toPath(b->tail->head),Seq{}))),
+          
+            [| let snapshot = Snapshot(<StrExp(n)>,<p>)
+               in <bs->iterate(b e = [| snapshot |] |
+                     b->tail->tail->iterate(s e = e |
+                       let slot = s->head;
+                           value = s->tail
+                       in [| <Var(b->head)>.<slot> := <value>; <e> |]
+                       end
+                     )
+                   )>;
+                  <bs->iterate(b e = [| snapshot |] |
+                    [| snapshot.add(<StrExp(b->head)>,<Var(b->head)>); <e> |]
+                  )>;
+                  snapshot
+                end
+             |]))
+       }.
+         
+       SnapshotBinding ::= n = Name '=' p = SPath '[' ss = SSlots ']' { Seq{n | Seq{p | ss}} }.
+       
+       SPath ::= n = Name ns = ('::' Name)* { Seq{n | ns} }.
+       
+       SSlots ::= s = SSlot ss = (';' SSlot)* { Seq{s|ss} } | { Seq{} }.
+       
+       SSlot ::= n = Name '=' e = LogicalExp { Seq{n|e} }.
+       
+       LocalBindings ::= 'where' BindingList | { Seq{} }.
+         
+     end
+       
+   end

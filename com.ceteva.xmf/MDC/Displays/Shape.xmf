@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class Shape extends Tools::DiagramTools::Types::DisplayTypes::Shape,EventHandler
+    
+  end

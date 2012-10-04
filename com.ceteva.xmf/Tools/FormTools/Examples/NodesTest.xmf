@@ -1,0 +1,80 @@
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools;
+import FormTools;
+import Types;
+import Structure;
+import Events;
+
+context Root
+  @Class X 
+    @ToolDescriptor OrTest 
+      @ToolType Type
+        @Tree Tree
+          minWidth = 300
+          minHeight = 200
+          @TreeNode Root "Root"
+            icon = "User/Circle1.gif"
+            @Nodes Children1
+              @TreeNode Child1 "Child Type 1"
+                icon = "User/Circle2.gif"
+                @Menu
+                  @MenuAction Delete
+                    self.delete()
+                  end
+                end
+              end
+            end
+            @Nodes Children2
+              @TreeNode Child2 "Child Type 2"
+                icon = "User/Circle3.gif"
+                @Menu
+                  @MenuAction Delete
+                    self.delete()
+                  end
+                end
+              end
+            end
+            @NodeChoice Choice
+              @TreeNode Child3 "Child3" 
+                @Menu
+                  @MenuAction Change4
+                    self.changeTo("Choice","Child4")
+                  end
+                end
+              end
+              @TreeNode Child4 "Child4" 
+              end
+              @Ref Root end
+            end
+            @Menu
+              @MenuItems New
+                @MenuAction Child1
+                  self.newNode("Children1")
+                end
+                @MenuAction Child2
+                  self.newNode("Children2")
+                end
+              end
+              @MenuAction Change4
+                self.changeTo("Choice","Child4")
+              end
+              @MenuAction Root
+                self.changeTo("Choice","Root")
+              end
+              @MenuAction Change3
+                self.changeTo("Choice","Child3")
+              end
+            end
+          end
+        end
+      end
+      @ElementManager Manager !
+      end  
+    end 
+  end
+  

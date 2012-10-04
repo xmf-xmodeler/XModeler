@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+
+context OleBridge
+
+  @Class OleTopLevel extends OleObject
+  
+    @Attribute target : String end
+    
+    @Constructor(target)
+      self.connect()
+    end
+    
+    @Operation connect()
+      let client = xmf.clientManager().findClient(OleBridgeClient)
+      in
+        self.setOwner(client);
+        self.commandInterpreter().newTopLevel(self,target)
+      end;
+      self
+    end
+  
+  end

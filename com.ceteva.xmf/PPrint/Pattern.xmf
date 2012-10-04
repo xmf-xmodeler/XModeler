@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Pattern in PPrint(aPattern,arg,seen)
+  if seen
+  then aPattern
+  else
+ aPattern
+  end
+end;

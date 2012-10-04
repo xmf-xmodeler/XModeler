@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser::BNF;
+import Compiler;
+import OCL; 
+
+context Walkers
+
+  @Class Handler 
+  
+    @Doc
+      A dispatch handler defines the code that is performed when a particular
+      type of value is walked. The form of a handler is:
+      @Handler <TYPE> in <DISP> (<VALUE>,<ARG>,<ENCOUNTER>) <EXP> en-d
+      here the handler is invoked when a value of the given type is
+      walked. The DISP expression defines the dispatcher object to which
+      the handler is added. The names VALUE ARG and ENCOUNTER are bound to
+      the walked object, the walker argument (often null) and whether this
+      is a subsequent encounter or not.
+    end
+  
+    @Attribute type : Classifier (?) end
+    @Attribute handler : Operation (?) end
+    
+    @Grammar extends OCL::OCL.grammar
+      Handler ::= type = Exp 'in' dispatcher = Exp '(' name = Name ',' arg = Name ',' encountered = Name ')' handler = Exp 
+        { [| <dispatcher>.add(Walkers::Handler(<type>,@Operation(<name>,<arg>,<encountered>) <handler> end)) |] }.
+    end
+    
+    @Constructor(type,handler) end
+    @Constructor(type) ! end
+    
+    @Operation inheritsFrom(h:Handler):Boolean
+      type.inheritsFrom(h.type())
+    end
+     
+  end

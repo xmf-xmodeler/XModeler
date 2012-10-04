@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import XOCL;
+import StateMachines;
+
+context StateMachines
+
+  @Class Arg extends Syntax
+  
+    @Attribute name : String (?) end
+    @Attribute type : Type   (?) end
+    
+    @Constructor(name,type) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S : ",Seq{name});
+      type.pprint(out,indent)
+    end
+    
+  end

@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Line extends Clients::Diagrams::Line, Display
+    
+  end

@@ -1,0 +1,821 @@
+parserImport XOCL;
+parserImport Clients::ModelClipboard;
+
+import Clients;
+import ExtensionPoints;
+import DiagramsMapping;
+
+// *** ICONS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(XCore::Element,Seq{"XCore/Object"}));
+  registry.addContribution(id,Contribution(XCore::Object,Seq{"XCore/Object"}));
+  registry.addContribution(id,Contribution(XCore::Package,Seq{"XCore/Package"}));
+  registry.addContribution(id,Contribution(XCore::Class,Seq{"XCore/Class"}));
+  registry.addContribution(id,Contribution(XCore::Attribute,Seq{"XCore/Attribute"}));
+  registry.addContribution(id,Contribution(XCore::Constraint,Seq{"XCore/Constraint"}));
+  registry.addContribution(id,Contribution(XCore::DataType,Seq{"XCore/DataType"}));
+  registry.addContribution(id,Contribution(XCore::NameSpace,Seq{"XCore/Namespace"}));
+  registry.addContribution(id,Contribution(XCore::Operation,Seq{"XCore/Operation"}));
+  registry.addContribution(id,Contribution(XCore::ForeignOperation,Seq{"XCore/ForeignOp"}));
+  registry.addContribution(id,Contribution(XCore::Constructor,Seq{"XCore/Constructor"}));
+  registry.addContribution(id,Contribution(XCore::Enum,Seq{"XCore/Enum"}));
+  registry.addContribution(id,Contribution(XCore::EnumChoice,Seq{"XCore/EnumChoice"}));
+  registry.addContribution(id,Contribution(Clients::Diagrams::Diagram,Seq{"Projects/Diagram"}));
+  registry.addContribution(id,Contribution(Clients::DiagramsMapping::DiagramStub,Seq{Clients::Diagrams::SyncableDiagram::iconOp}));
+  registry.addContribution(id,Contribution(Clients::Diagrams::SyncableDiagram,Seq{Clients::Diagrams::SyncableDiagram::iconOp}));
+  registry.addContribution(id,Contribution(Clients::ModelBrowsers::Dummy,Seq{"XCore/Empty"}));
+  self
+end;
+
+// *** NODE SORTING TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.sortOp";
+  op1 = Clients::ModelBrowsers::ModelBrowserNode::sortAlphaType;
+  op2 = Clients::ModelBrowsers::ModelBrowserNode::sortNone
+in
+  registry.addContribution(id,Contribution(XCore::Element,Seq{op1}))
+  // registry.addContribution(id,Contribution(XCore::SeqOfElement,Seq{op2}))
+end;
+
+
+// *** NODE SORTING ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.nodeSort"
+in
+  registry.addContribution(id,Contribution(XCore::Element,Seq{5000}));
+  registry.addContribution(id,Contribution(XCore::Object,Seq{5000}));
+  registry.addContribution(id,Contribution(XCore::Package,Seq{1200}));
+  registry.addContribution(id,Contribution(XCore::Class,Seq{2100}));
+  registry.addContribution(id,Contribution(XCore::Attribute,Seq{3100}));
+  registry.addContribution(id,Contribution(XCore::Constraint,Seq{3500}));
+  registry.addContribution(id,Contribution(XCore::DataType,Seq{2300}));
+  registry.addContribution(id,Contribution(XCore::NameSpace,Seq{1300}));
+  registry.addContribution(id,Contribution(XCore::Operation,Seq{3300}));
+  registry.addContribution(id,Contribution(XCore::ForeignOperation,Seq{3350}));
+  registry.addContribution(id,Contribution(XCore::Constructor,Seq{4300}));
+  registry.addContribution(id,Contribution(XCore::Enum,Seq{2350}));
+  registry.addContribution(id,Contribution(Clients::Diagrams::Diagram,Seq{1100}));
+  self
+end;
+
+
+// *** MODEL BROWSER MAPPINGS ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.mappings"
+in
+  registry.addContribution(id,Contribution(XCore::Class,Seq{
+                                           Clients::ModelBrowserXCore::ClassXNode}));
+  registry.addContribution(id,Contribution(XCore::Constructor,Seq{
+                                           Clients::ModelBrowserXCore::ConstructorXNode}));
+  registry.addContribution(id,Contribution(XCore::Snapshot,Seq{
+                                           Clients::ModelBrowserXCore::SnapshotXNode}));
+  registry.addContribution(id,Contribution(XCore::Container,Seq{
+                                           Clients::ModelBrowserXCore::ContainerXNode}));
+  registry.addContribution(id,Contribution(XCore::Table,Seq{
+                                           Clients::ModelBrowserXCore::TableXNode}));
+  registry.addContribution(id,Contribution(Clients::Diagrams::Diagram,Seq{
+                                           Clients::ModelBrowserXCore::DiagramXNode}));                                         
+  registry.addContribution(id,Contribution(Clients::Diagrams::SyncableDiagram,Seq{
+                                           Clients::ModelBrowserXCore::SyncableDiagramXNode}));
+  registry.addContribution(id,Contribution(XCore::Object,Seq{
+                                           Clients::ModelBrowserXCore::ObjectXNode}));
+  registry.addContribution(id,Contribution(XCore::Element,Seq{
+                                           Clients::ModelBrowserXCore::ElementXNode}));
+  self
+end;
+
+@Menu "Edit" on XCore::Element binds CTRL+E multi
+  XCore::Element::edit_redirect
+end;
+
+@Menu "Browse" on XCore::Element binds CTRL+B
+  XCore::Element::browse_redirect
+end;
+
+@Menu "Invoke Operation ..." on XCore::Element binds CTRL+I notUndoable
+  XCore::Element::invokeOp
+end;
+
+@Menu "Assign to Global Variable" on XCore::Element multi
+  XCore::Element::assignToGlobal
+end;
+
+@Menu "Evaluate Expression" on XCore::Element multi
+  XCore::Element::evaluateExpression
+end;
+
+@Menu "Delete" on XCore::Contained binds CTRL+D multi
+  XCore::Contained::delete_client_redirect
+end;
+
+@Menu "Live Documentation" on XCore::NameSpace
+  XCore::NameSpace::liveDoc
+end;
+
+@Menu "Generate HTML" on XCore::NameSpace
+  XCore::NameSpace::generateHTML
+end;
+
+@Menu "Add to Class Diagram" on XCore::Classifier multi
+  XCore::Classifier::dropInClassDiagram
+end;
+
+@Menu "Add Element":"Operation" on XCore::Classifier
+  XCore::Classifier::newOperation
+end;
+
+@Menu "Add Element":"Operation (other)" on XCore::Classifier
+  XCore::Classifier::newOtherOperation
+end;
+  
+@Menu "Add Element":"Constraint" on XCore::Classifier
+  XCore::Classifier::newConstraint
+end;
+
+@Menu "Add Element":"Constraint" on XCore::Classifier
+  XCore::Classifier::newConstraint
+end;
+
+@Menu "Set Parents" on XCore::Classifier
+  XCore::Classifier::setParents_client
+end;
+
+@Menu "Debug":"Trace All Operations" on XCore::Classifier multi
+  XCore::Container::traceAll
+end;
+
+@Menu "Debug":"Untrace All Operations" on XCore::Classifier multi
+  XCore::Container::untraceAll
+end;
+
+@Menu "Add Element":"Constructor" on XCore::Class
+  XCore::Class::newConstructor
+end;
+
+@Menu "Add Element":"Snapshot" on XCore::Class
+  XCore::NameSpace::createSnapshot
+end;
+
+@Menu "Remove Object ..." on XCore::Snapshot
+  XCore::Snapshot::removeObject
+end;
+
+@For dataType in Seq{Integer,String,Boolean,Float} do
+  
+  @Menu "Add Element":"Attribute":dataType.name.toString() on XCore::Class
+    XCore::Class::newAttributeHandler(dataType)
+  end;
+  
+  @Menu "Add Element":"Attribute":"Set":Set(dataType).name.toString() on XCore::Class
+    XCore::Class::newAttributeHandler(Set(dataType))
+  end;
+  
+  @Menu "Add Element":"Attribute":"Sequence":Seq(dataType).name.toString() on XCore::Class
+    XCore::Class::newAttributeHandler(Seq(dataType))
+  end
+  
+end;
+
+@Menu "Add Element":"Attribute":"Other" on XCore::Class
+  XCore::Class::newOtherAttributeHandler()
+end;
+
+@Menu "Create Snapshot" on XCore::Package
+  XCore::Package::createSelfSnapshot
+end;
+
+@Menu "Set Packages" on XCore::Snapshot
+  XCore::Snapshot::setPackages
+end;
+
+@Menu "Deploy":"XOCL" on XCore::Package
+  XCore::Package.getOperation("deployXOCL",0)
+end;
+
+@Menu "Deploy":"Walker" on XCore::Package
+  XCore::Package.getOperation("deployWalker",0)
+end;
+
+@Menu "Deploy":"Java" on XCore::Package
+  XCore::Package.getOperation("deployJava",0)
+end;
+
+@Menu "Deploy":"EMF XMI" on XCore::Package
+  XCore::Package.getOperation("exportEMFXMI",0)
+end;
+
+@Menu "Deploy":"XML":"Model" on XCore::Package
+  XCore::Element.getOperation("writeXMLFile",0)
+end;
+
+@Menu "Deploy":"XML":"Grammar" on XCore::Package
+  XCore::Package::deployXMLGrammar
+end;
+
+@Menu "Deploy":"XML":"Factory" on XCore::Package
+  XCore::Package.getOperation("deployXMLFactory",0)
+end;
+
+@Menu "To Project" on XCore::Package
+  XCore::Package::toProject
+end;
+
+@Menu "Add Element":"Package" on XCore::Package
+  XCore::Package::newPackage
+end;
+
+@Menu "Add Element":"Class" on XCore::Package
+  XCore::Package::newClass
+end;
+
+@Menu "Add Element":"Enumeration" on XCore::Package
+  XCore::Package::newEnum
+end;
+
+@Menu "Set Meta Package" on XCore::Package
+  XCore::Package::setMetaPackage_redirect
+end;
+
+@Menu "Add Element":"Choice" on XCore::Enum
+  XCore::Enum::addName_client
+end;
+
+@Menu "Create Getter" on XCore::Attribute
+  XCore::Attribute::addGetterOperation
+end;
+
+@Menu "Create Setter" on XCore::Attribute
+  XCore::Attribute::addSetterOperations
+end;
+
+@Menu "Set Multiplicity" on XCore::Attribute
+  XCore::Attribute::setMultString_client
+end;
+
+@Menu "Debug":"Trace" on XCore::CompiledOperation multi
+  XCore::CompiledOperation::trace
+end;
+
+@Menu "Debug":"Untrace" on XCore::CompiledOperation multi
+  XCore::CompiledOperation::untrace
+end;
+
+@Menu "Invoke" on XCore::Operation
+  @Operation() 
+    if self.arity() = 0 
+    then self() 
+    else xmf.message("This operation requires arguments.")
+    end
+  end
+end;
+
+@Menu "Delete" on Clients::Diagrams::Diagram
+  Clients::Diagrams::Diagram::delete_check
+end;
+
+@Menu "Show" on Clients::Diagrams::Diagram
+  Clients::Diagrams::Diagram::show
+end;
+
+@Menu "Edit" on Clients::Diagrams::Diagram multi
+  XCore::Element::edit_redirect
+end;
+
+@Menu "Invoke Operation ..." on Clients::Diagrams::Diagram binds CTRL+I notUndoable
+  XCore::Element::invokeOp
+end;
+
+@Menu "Invoke Operation ..." on Clients::DiagramsMapping::DiagramStub notUndoable multi
+  Clients::Diagrams::Diagram::delete_check
+end;
+
+@Menu "Show" on Clients::DiagramsMapping::DiagramStub
+  Clients::DiagramsMapping::DiagramStub::doubleClick
+end;
+
+@Menu "Model-Diagram Synchronisation":"Get Current Sync Mode" on Clients::Diagrams::SyncableDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"get sync mode"}
+end;
+
+@Menu "Model-Diagram Synchronisation":"Set to Partial View Sync Mode" on Clients::Diagrams::SyncableDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"set to partial sync mode"}
+end;
+
+@Menu "Model-Diagram Synchronisation":"Set to Total View Sync Mode" on Clients::Diagrams::SyncableDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"set to total sync mode"}
+end;
+
+@Menu "Themes":"Apply Theme" on Clients::Diagrams::ThemableDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"apply theme"}
+end;
+
+@Menu "Themes":"Remove Theme" on Clients::Diagrams::ThemableDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"remove theme"}
+end;
+
+@Menu "Add Missing Package Contents to Diagram" on Clients::ClassDiagrams::ClassDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"add missing contents"}
+end;
+
+@Menu "Add Missing Snapshot Objects to Diagram" on Clients::SnapshotDiagrams::SnapshotDiagram
+  Clients::Diagrams::Diagram::raiseEvent $ Seq{"add missing contents"}
+end;
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(Clients::Diagrams::Diagram,Seq{"Clients::Diagrams::Diagram"}));
+  registry.addContribution(id,Contribution(Clients::DiagramsMapping::DiagramStub,Seq{"Clients::DiagramsMapping::DiagramStub"}));
+  self
+end;
+
+
+// *** MENU MULTI HANDLER ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.multiHandler"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Element::edit_redirect,Seq{
+      @Operation(collection)
+        collection.edit()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Contained::delete_client_redirect,Seq{
+      @Operation(collection)
+        let stringOp = @Operation(e) e.labelString() end then
+            elements = xmf.selects("Delete Elements","Confirm which elements you want to delete",collection,collection,stringOp)
+        in if elements <> 0-1
+           then
+             @For e in elements do
+               e.delete_client()
+             end
+           end
+        end
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Element::assignToGlobal,Seq{
+      @Operation(collection)
+        collection.assignToGlobal()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Element::evaluateExpression,Seq{
+      @Operation(collection)
+        collection.evaluateExpression()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(ModelClipboard::CutCopyHandler::copyToClipboard_transaction,Seq{
+      @Operation(collection)
+        xmf.clipboard().clear();
+        xmf.clipboard().copys(collection->asSeq->collect(e | e.getClipboardSource()))
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(ModelClipboard::CutCopyHandler::cutToClipboard_transaction,Seq{
+      @Operation(collection)
+        xmf.clipboard().clear();      
+        xmf.clipboard().cuts(collection->asSeq->collect(e | e.getClipboardSource()))
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier::dropInClassDiagram,Seq{
+      @Operation(collection)
+        let mappingClient = xmf.findClient(Clients::MappingMapping::MappingClient) 
+        in if mappingClient <> null 
+           then
+             let mappings = mappingClient.mappings
+             in if not mappings->isEmpty 
+                then
+                  let stringOp = @Operation(mapping) mapping.package.path() + " [" + mapping.diagram.name + "]" end then
+                      sortOp = @Operation(m1,m2) stringOp(m1) < stringOp(m2) end then
+                      orderedMappings = mappings->asSeq.qsort(sortOp) then
+                      choice = xmf.select("Drop into Class Diagram",
+                                          "Please choose a class diagram to drop into.",
+                                          orderedMappings,
+                                          null,
+                                          stringOp)
+                  in if choice <> null 
+                     then
+                       @Find (map,mappings) when map = choice
+                       do 
+                         @For classifier in collection do
+                           map.addDropped(classifier)
+                         end
+                       end 
+                     end 
+                  end 
+                end 
+             end
+          else
+            format(stdout,"Class diagram client not available.~%")
+          end
+        end
+      end
+  }))
+end;
+
+// *** SLOT UPDATE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.slotUpdate"
+in
+  registry.addContribution(id,
+    Contribution(XCore::NamedElement,Seq{  // this is the class
+      "name",                                    // this is the name of the attribute
+      XCore::NamedElement::setName         // this is the operation to invoke
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::EnumChoice,Seq{
+      "name",
+      XCore::EnumChoice::setName
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Class,Seq{
+      "attributes",
+      XCore::Class::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "packages",
+      XCore::Package::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "classes",
+      XCore::Package::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "operations",
+      XCore::Classifier::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "constraints",
+      XCore::Classifier::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "parents",
+      XCore::Classifier::addParent
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Container,Seq{
+      "contents",
+      XCore::Container::add
+    }));
+  registry.addContribution(id,
+    Contribution(Clients::Diagrams::Diagram,Seq{
+      "name",
+      Clients::Diagrams::Diagram::setName
+    }));
+  self
+end;
+
+
+// *** COLLECTION SLOT ADDITION ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.collectionSlotAdd"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "classes",
+      XCore::Package::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "packages",
+      XCore::Package::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "operations",
+      XCore::Package::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Class,Seq{
+      "attributes",
+      XCore::Class::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Class,Seq{
+      "constructors",
+      XCore::Class::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "operations",
+      XCore::Classifier::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "constraints",
+      XCore::Classifier::add
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "parents",
+      XCore::Classifier::addParent
+    }));
+  self
+end;
+
+
+// *** COLLECTION SLOT REMOVAL ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.collectionSlotRemove"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "classes",
+      XCore::Package::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "packages",
+      XCore::Package::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Package,Seq{
+      "operations",
+      XCore::Package::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Class,Seq{
+      "attributes",
+      XCore::Class::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Class,Seq{
+      "constructors",
+      XCore::Class::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "operations",
+      XCore::Classifier::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "constraints",
+      XCore::Classifier::remove
+    }));
+  registry.addContribution(id,
+    Contribution(XCore::Classifier,Seq{
+      "parents",
+      XCore::Classifier::removeParent
+    }));
+  self
+end;
+
+
+// *** CLASS DIAGRAM LAYOUTS ***
+
+let registry = xmf.registry();
+    id = "com.ceteva.xmf.classDiagrams.layouts";
+    layoutDir = "$HOME$/Clients/Layouts"
+in
+  registry.addContribution(id,
+    Contribution(Assembler,Seq{
+      layoutDir + "/Assembler.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Compiler,Seq{
+      layoutDir + "/Compiler.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Instrs,Seq{
+      layoutDir + "/Instrs.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Comms,Seq{
+      layoutDir + "/Comms.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Debug,Seq{
+      layoutDir + "/Debug.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Graphs,Seq{
+      layoutDir + "/Graphs.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(Stacks,Seq{
+      layoutDir + "/Stacks.xml"
+    }));
+  registry.addContribution(id,
+    Contribution(XCore,Seq{
+      layoutDir + "/XCore.xml"
+    }));
+  self
+end;
+
+
+// *** MODEL BROWSER SLOTS ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.modelBrowsers.xcore.excludeSlots"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Contained,Seq{"owner"}));
+  self
+end;
+
+
+// *** LABELS EDITABLE ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.editable"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Element,Seq{
+      false}));
+  registry.addContribution(id,
+    Contribution(XCore::NamedElement,Seq{
+      true}));
+  registry.addContribution(id,
+    Contribution(XCore::ForeignOperation,Seq{
+      false}));
+  registry.addContribution(id,
+    Contribution(Projects::ProjectManager,Seq{
+      false}));
+  registry.addContribution(id,
+    Contribution(Clients::Diagrams::Diagram,Seq{
+      true}));
+  self
+end;
+
+
+// *** LABELS EDIT TEXT ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.editText"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Element,Seq{
+      @Operation(element)
+        element.toString()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::NamedElement,Seq{
+      @Operation(element)
+        element.name.toString()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::Constructor,Seq{
+      @Operation(element)
+        element.labelString()
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(Diagrams::Diagram,Seq{
+      @Operation(element)
+        element.name().toString()
+      end
+  }));
+  self
+end;
+
+
+// *** LABELS CHANGE GUARD ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.changeGuard"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Element,Seq{
+      @Operation(element,text)
+        true
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::NamedElement,Seq{
+      @Operation(element,text)
+        element.legalNameChangeCheck(text,element.name())
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(Diagrams::Diagram,Seq{
+      @Operation(element,text)
+        element.legalNameChangeCheck(text,element.name())
+      end
+  }));
+  self
+end;
+
+
+// *** LABELS CHANGE HANDLER ***
+
+let 
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.labels.changeHandler"
+in
+  registry.addContribution(id,
+    Contribution(XCore::Element,Seq{
+      @Operation(element,text)
+        element
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(XCore::NamedElement,Seq{
+      @Operation(element,text)
+        element.setName(text)
+      end
+  }));
+  registry.addContribution(id,
+    Contribution(Diagrams::Diagram,Seq{
+      @Operation(element,text)
+        element.setName(text)
+      end
+  }));
+  self
+end;
+
+
+// *** DIAGRAMS ***
+
+let dm = xmf.diagramManager();
+    classDiagramPartialHandler = 
+      @Operation (element,name) element.createClassDiagram_raw(name,false) end;
+    classDiagramTotalHandler = 
+      @Operation (element,name) element.createClassDiagram_raw(name,true) end;
+    snapshotDiagramPartialHandler = 
+      @Operation (element,name) element.createSnapshotDiagram_raw(name,false) end;
+    snapshotDiagramTotalHandler = 
+      @Operation (element,name) element.createSnapshotDiagram_raw(name,true) end
+in
+  dm.addContribution(DiagramContribution("Class Diagram",
+                                         XCore::Package,
+                                         classDiagramPartialHandler).setDropEnabled(true));
+  dm.addContribution(DiagramContribution("Class Diagram (Total View)",
+                                         XCore::Package,
+                                         classDiagramTotalHandler).setDropEnabled(true));
+  dm.addContribution(DiagramContribution("Snapshot Diagram",
+                                         XCore::Snapshot,
+                                         snapshotDiagramPartialHandler).setDropEnabled(true));
+  dm.addContribution(DiagramContribution("Snapshot Diagram (Total View)",
+                                         XCore::Snapshot,
+                                         snapshotDiagramTotalHandler).setDropEnabled(true))
+end;
+
+
+// *** CLIPBOARD CUT COPY & PASTE ***
+
+@ClipboardRule "Remove from container"
+  Cut(parent,element,widget)
+    from XCore::Container
+    do parent.containerCutHandler(element)
+end;
+
+@ClipboardRule "Add to contents"
+  Paste(parent,element,widget,isCopy)
+    to XCore::Container
+    when not isCopy
+    do before parent.containerPastePreHandler(element)
+    do after parent.containerPastePostHandler(element)
+end;
+  
+@ClipboardRule "Import into diagram"
+  Paste(parent,element,widget,isCopy)
+    to XCore::Container
+    when isCopy and widget.isKindOf(ClassDiagrams::ClassDiagram)
+    do
+      let mappingClient = xmf.findClient(Clients::MappingMapping::MappingClient) 
+      in if mappingClient <> null 
+         then
+           @Find(mapping,mappingClient.mappings)
+             when mapping.diagram = widget
+             do mapping.addDropped(element)
+           end
+         end
+      end
+end;

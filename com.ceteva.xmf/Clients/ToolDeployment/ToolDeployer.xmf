@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Clients;
+import ToolDeployment;
+
+context ToolDeployment
+
+  @Class ToolDeployer isabstract
+  
+    // A tool deployer takes a ToolDeployment specification and
+    // transforms it into a physical tool.
+    
+    @Attribute descriptor : DeployedToolDescriptor end
+    @Attribute properties : Seq(BrandingProperty) end
+    
+    @Constructor(descriptor)
+      if descriptor.isKindOf(DeployedToolDescriptor)
+      then
+        self.properties := descriptor.brandingProperties
+      else
+        format(stdout,"A tool deployer requires a descriptor of type ToolDeployment~%")
+      end;
+      self.deploy()
+    end
+    
+    @Operation lookupProperty(key:String)
+      @Find(property,properties)
+      when property.key() = key
+      do
+        property.value()
+      else 
+        null
+      end
+    end
+    
+    @Operation lookupAllProperty(key:String)
+      let values = Seq{}
+      in
+        @For property in properties
+        do
+          if property.key() = key
+          then values := values->prepend(property.value())
+          end
+        end;
+        values
+      end
+    end
+    
+    @AbstractOp deploy()
+    end
+  
+  end

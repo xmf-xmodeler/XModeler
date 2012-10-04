@@ -1,0 +1,12 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest Mosaic
+  @File Mosaic end
+  @File MosaicCommandInterpreter end
+  @File MosaicEventHandler end
+  @File GraphicalTool end
+  @File PlaceHolder end
+  @File Perspective end
+  @File MosaicClient end
+end;

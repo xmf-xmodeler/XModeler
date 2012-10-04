@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler IterExp in AST(aIterExp,arg,seen)
+  let body = self.dispatch(aIterExp.body,arg);
+      collection = self.dispatch(aIterExp.collection,arg)
+  in ASTNode(aIterExp,Seq{collection,body})
+  end
+end;

@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class DomainEdge extends Edge
+  
+    @Attribute name : Label end
+  
+    @Constructor(source,target)
+      self.sourceHead := Edge::noArrow;
+      self.targetHead := Edge::arrow; 
+      self.lineStyle := Line::dashLine;
+      // Calculate label position and add label
+      let y = if source.owner.y > target.owner.y then 15 else 0-30 end;
+          x = if source.owner.x > target.owner.x then 15 else 0-35 end in
+          self.name := Label("domain","end",x,y,true);
+          self.add(self.name)
+      end
+    end
+    
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Edge::delete));
+        globalMenu
+      end
+    end
+
+    @Operation dispose()
+      name.dispose();
+      super()
+    end
+
+    @Operation getName()
+      self.name.text
+    end
+  
+  end

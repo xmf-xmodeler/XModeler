@@ -1,0 +1,19 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+/*
+
+@Handler PathUpdate in Eval(aPathUpdate,arg,seen)
+  if seen
+  then aPathUpdate
+  else
+    let value = self.dispatch(aPathUpdate.value,arg);
+        path = self.dispatch(aPathUpdate.path,arg)
+    in aPathUpdate
+    end
+  end
+end;
+
+*/

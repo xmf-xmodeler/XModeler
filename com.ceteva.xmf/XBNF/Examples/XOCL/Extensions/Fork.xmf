@@ -1,0 +1,17 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF;
+
+context Fork
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      Fork ::= name = ForkName body = Exp { Fork(name,body) }.
+      
+      ForkName ::= '(' name = Name ')' { name } | { "" }.
+      
+    end 
+    
+   

@@ -1,0 +1,122 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import IO;
+
+context Structure
+  @Class PackageNameSpace extends XCore::NameSpace 
+    @Attribute package : Package end
+    @Constructor(name,package) 
+      self.setName(name)
+    end
+    @Operation edit()
+      package.edit()
+    end
+  end 
+
+context Structure
+  @Class ClassNameSpace extends XCore::NameSpace 
+    @Attribute class : Class end
+    @Constructor(name,class) 
+      self.setName(name)
+    end
+    @Operation edit()
+      class.edit()
+    end
+    @Operation source()
+      let sout = StringOutputChannel()
+      in class.pprint(sout,0);
+         sout.getString().edit()
+      end
+    end
+  end
+  
+context Structure
+  @Class FieldNamedElement extends XCore::NamedElement 
+    @Attribute field : Field end
+    @Constructor(name,field)
+      self.setName(name)
+    end
+    @Operation edit()
+      field.edit()
+    end
+  end
+  
+context Structure
+  @Class MethodNamedElement extends XCore::NamedElement 
+    @Attribute method : Method end
+    @Constructor(name,method)
+      self.setName(name)
+    end
+    @Operation edit()
+      method.edit()
+    end
+    @Operation source()
+      let sout = StringOutputChannel()
+      in method.pprint(sout,0);
+         sout.getString().edit()
+      end
+    end
+  end
+
+context Package
+  @Operation browse():XCore::Element
+    toBrowserElement(self).browse()
+  end
+  
+context Class
+  @Operation browse():XCore::Element
+    toBrowserElement(self).browse()
+  end
+  
+context CompilationUnit
+  @Operation browse():XCore::Element
+    def.browse()
+  end
+  
+context Structure
+  @Operation toBrowserElement(e)
+    @Case e of
+      Package(name) do
+        let n = PackageNameSpace(name,e)
+        in @For u in e.units do
+             n.add(toBrowserElement(u.def))
+           end;
+           n
+        end
+      end
+      Class(name) do
+        let n = ClassNameSpace(name,e)
+        in @For f in e.features do
+             n.add(toBrowserElement(f))
+           end;
+           n
+        end
+      end
+      Field(name) do 
+        FieldNamedElement(name,e) 
+      end
+      Method(name) do 
+        MethodNamedElement(name,e) 
+      end
+    end
+  end
+  
+context FieldNamedElement
+  @Operation labelString()
+    let sout = StringOutputChannel() then
+        types = (field.type.pprint(sout); sout.getString())
+    in types + " " + name
+    end
+  end
+  
+context MethodNamedElement
+  @Operation labelString()
+    let sout = StringOutputChannel() then
+        types = (method.type.pprint(sout); sout.getString())
+    in types + " " + name + "()"
+    end
+  end

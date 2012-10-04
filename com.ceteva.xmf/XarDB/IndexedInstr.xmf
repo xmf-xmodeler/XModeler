@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+
+  @Class IndexedInstr isabstract extends XarInstr
+  
+    @Attribute type  : Classifier end
+    @Attribute index : Integer    end
+    
+    @Constructor(type,index) end
+    
+    @Operation find(type,index)
+      if self.index = index and type = self.type
+      then self
+      else super(type,index)
+      end
+    end
+    
+    @Operation labelString()
+      "[" + index + "] " + self.of().name + "()"
+    end
+    
+  end

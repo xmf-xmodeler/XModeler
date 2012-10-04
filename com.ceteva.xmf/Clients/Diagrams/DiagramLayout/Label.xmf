@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context DiagramLayout
+
+  @Class Label 
+
+    @Attribute rely : Integer (?,!) end
+    @Attribute relx : Integer (?,!) end
+    @Attribute text : String (?,!) end
+
+    @Constructor(text,relx,rely) end
+
+  end

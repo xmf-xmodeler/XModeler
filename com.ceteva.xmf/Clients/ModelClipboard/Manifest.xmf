@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest ModelClipboard
+  @File ModelClipboard end
+  @Ref ClipboardDef end
+  @File CutCopyHandler end
+  @File PasteHandler end
+  @File DragHandler end
+  @File DropHandler end
+  @File ClipboardSource end
+  @File ClipboardTarget end
+  @File Clipboard end
+  @File DraggableClientElement end
+  @File DroppableClientElement end
+  @File DropEvent end
+  @File DroppableEventHandler end
+  @File XMF end
+  @File Extensions end
+do Project(ModelClipboard,dir,self)
+end;

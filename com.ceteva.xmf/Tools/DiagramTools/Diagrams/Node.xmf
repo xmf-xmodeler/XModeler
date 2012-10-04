@@ -1,0 +1,221 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Node extends Clients::Diagrams::Node, Selectable, Clickable, Movable, Resizable, Container
+  
+    @Attribute type      : Element (!,?)               end
+    @Attribute padLeft   : Integer (!,?)               end
+    @Attribute padRight  : Integer (?,!)               end
+    @Attribute padTop    : Integer (?,!)               end
+    @Attribute padBottom : Integer (?,!)               end
+    @Attribute minWidth  : Integer (!)                 end
+    @Attribute minHeight : Integer (!)                 end
+    @Attribute maxWidth  : Integer = 9999  (!)         end
+    @Attribute maxHeight : Integer = 9999  (!)         end
+    @Attribute portTable : Table = Table(10) (?)       end
+    @Attribute layoutId  : String  (!,?)               end
+    
+    @Constructor(x,y)
+      self.init(Seq{x,y,0,0})
+    end
+    
+    @Operation addPortAssociation(display)
+      let port = Clients::Diagrams::Port(0,0,display.width,display.height)
+      in self.add(port);
+         portTable.put(port,display)
+      end
+    end
+    
+    @Operation contents()
+      displays
+    end
+    
+    @Operation delete(layout:Boolean)
+      self.delete();
+      if layout then self.layout() end
+    end
+    
+    @Operation initDiagrams(tool)
+      // If any diagrams are contained then we
+      // need to initialise them...
+      @For display in displays do
+        display.initDiagrams(tool)
+      end
+    end
+    
+    @Operation layout()
+      if self.iconised()
+      then self.icon().resize(self.layoutWidth(),self.layoutHeight())
+      else self.type().layout(self,x,y,self.layoutWidth(),self.layoutHeight())
+      end;
+      @For port in portTable.keys() do
+        let display = portTable.get(port)
+        in if display <> self
+           then port.move(display.x,display.y)
+           end;
+           port.resize(display.width,display.height)
+        end
+      end
+    end
+    
+    @Operation layout(width,height)
+      if self.iconised()
+      then self.icon().resize(width,height)
+      else self.type().layout(self,x,y,width,height)
+      end;
+      @For port in portTable.keys() do
+        let display = portTable.get(port)
+        in if display <> self
+           then port.move(display.x,display.y)
+           end;
+           port.resize(display.width,display.height)
+        end
+      end
+    end
+    
+    @Operation layoutResize(width:Integer,height:Integer)
+    
+      // Called from a layout manager when the node is to be resized.
+      // We do not call resize directly so that we can capture whether
+      // layout should be performed or not.
+      
+      self.resize(width,height,false)
+    end
+    
+    @Operation move(x,y)
+      let oldx = self.x;
+          oldy = self.y
+      in super(x,y);
+         self.movement(x,y,oldx,oldy)
+      end
+    end
+    
+    @Operation pack()
+      // Use layout...
+      self
+    end
+    
+    @Operation padHeight():Integer
+      // Returns the padding used for height.
+      self.padTop() + self.padBottom()
+    end
+    
+    @Operation padWidth():Integer
+      // Returns the padding used for the width.
+      self.padLeft() + self.padRight()
+    end
+    
+    @Operation port():Clients::Diagrams::Port
+    
+      // Returns a port and expects one to exist. Really used to
+      // access the node port (i.e. when there is only one associated 
+      // with the node).
+      
+      if ports->isEmpty
+      then self.error("Requested port for node does not exist.")
+      else ports->head
+      end
+    end
+
+    @Operation renewGlobalMenu(tool,parentPath)
+      let path = parentPath + Seq{type.name.toString()}
+      in
+        type.setGlobalMenu(self,tool,path,false);
+        @For content in self.contents() do
+          content.renewGlobalMenu(tool,path)
+        end
+      end
+    end
+
+    @Operation resize(width:Integer,height:Integer)
+    
+      // The only way this operation should be called is by an
+      // external module (or via user interaction). Layout
+      // must not call this operation.
+      
+      let oldWidth = self.width;
+          oldHeight = self.height
+      in self.minWidth := width;
+         self.minHeight := height;
+         self.resize(width,height,true);
+         self.resized(width,height,oldWidth,oldHeight)
+      end
+    end
+    
+    @Operation resize(width:Integer,height:Integer,layout:Boolean)
+    
+      // Causes resize via the client and then optionally
+      // causes the receiver to be laid out. 
+      
+      Clients::Diagrams::Node::resize.invoke(self,Seq{width,height});
+      if layout then self.layout(width,height) end
+    end
+    
+    @Operation root()
+      self
+    end
+    
+    @Operation setIcon(filename:String)
+    
+      // Redefined here to pick up the Displays::Image
+      // class...
+      
+      if icon = null
+      then 
+        let ico = Image(filename,0,0,self.width,self.height);
+            type = Types::DisplayTypes::Image("Dummy Image Type")
+        in type.setFile(filename);
+           ico.setType(type);
+           self.icon := ico.new(self,true);
+           icon.hide()
+        end
+      else
+        self.add(icon);
+        icon.setImage(filename)
+      end
+    end
+    
+    @Operation setTextFocus()
+    
+      // Find any text components and select one if the focus
+      // is to be set to that text...
+      
+      @For d in self.contents() do
+        d.setTextFocus()
+      end
+    end
+    
+    @Operation types()
+      type.displays()->iterate(t T = Seq{} | T + t.underlyingTypes())
+    end
+    
+    @Operation toString()
+      self.type().name() + "(" + displays->map("toString")->separateWith(",") + ")"
+    end
+    
+    @Operation userOrderContents()
+    
+      // Offer up a dialog that allows the user to place the
+      // contents in order.
+      
+      let newDisplays = xmf.order("Order Contents","Select and order contents",displays)
+      in if newDisplays->size <> displays->size
+         then 
+           if xmf.question("Number of contents has changed. Proceed?")
+           then 
+             self.displays := newDisplays;
+             self.layout()
+           end
+         else 
+           self.displays := newDisplays;
+           self.layout()
+         end
+      end
+    end
+    
+  end

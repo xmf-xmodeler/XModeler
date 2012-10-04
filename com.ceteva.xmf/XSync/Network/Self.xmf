@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Self extends Location
+  
+    @Operation value(token:Token)
+      if token.isKindOf(ObjectToken)
+      then token.object()
+      else self.error("Self expects an object token : " + token.toString())
+      end
+    end
+  
+  end

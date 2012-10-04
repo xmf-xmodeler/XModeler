@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class StereotypeLabel extends Label
+  
+    @Constructor(text) !
+      self.init(Seq{"<<" + text + ">>","end",5,16 + 5,false})
+    end
+    
+  end
+    
+    

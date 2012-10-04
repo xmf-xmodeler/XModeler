@@ -1,0 +1,257 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Manifests;
+import IO;
+
+context Manifests
+
+  @Class Manifest extends ManifestAction, NamedElement
+  
+    // A manifest is a manifest action that specifies how to build and load a chunk
+    // of system functionality. Manifests contain manifest binding, each of which is 
+    // an optionally named manifest action. The order of the manifest entries is
+    // important. The bindings provide an environment for the load and else actions.
+  
+    @Attribute bindings : Seq(ManifestBinding)  end
+    @Attribute requires : Seq(String)           end
+    @Attribute stale    : Boolean = false (!)   end
+    
+    @Constructor(name,path,bindings,guard,loadAction) ! 
+      self.setName(name)
+    end
+    
+    @Grammar extends ManifestAction.grammar import Manifests
+    
+      Manifest ::= name = OptName path = OptPath guard = ActionGuard bindings = MBind* loadAction = LoadAction {
+        
+        Manifest(name,path,bindings,guard,loadAction)
+        
+      }.
+      
+      OptName ::= Name | { "Anon" }.
+      
+      OptPath ::= '[' MPath ']' | { "" }.
+      
+      MBind ::= n = Name '=' e = Exp:ManifestEntry { ManifestBinding(n,e) } | e = Exp:ManifestEntry { ManifestBinding("",e) }.
+      
+    end
+    
+    @Operation build(dir:String)
+    
+      // Causes the manifest to be built. For files this means that the XMF source
+      // is recompiled. 
+      
+      @For binding in bindings do
+        binding.build(dir)
+      end;
+      self
+    end
+    
+    @Operation buildAndLoad(dir:String)
+      self.build(dir);
+      self.load(dir)
+    end
+    
+    @Operation deleteBinary(dir:String)
+    
+      // Deletes the binaries for the files referenced
+      // in the manifest
+      
+      @For binding in bindings do
+        binding.deleteBinary(dir)
+      end
+    end
+    
+    @Operation deref(dir:String)
+      
+      // Return a new manifest with all refs
+      // translated to the underlying manifest...
+      
+      Manifest(name,path,bindings->collect(b | b.deref(dir)),guard,loadAction)
+      
+    end
+    
+    @Operation getChildren()
+    
+      // Browsable children...
+      
+      bindings->collect(b | b.entry())
+      
+    end
+    
+    @Operation labelString()
+    
+      // Browser label...
+      
+      name.toString()
+      
+    end
+    
+    @Operation load(dir:String)
+    
+      // The external API allows you to load a manifest.
+      // Recursive loads should go through load/2 and
+      // indicate that they are re-entrant. This allows
+      // special actions (e.g. initialisation) to take
+      // place on a top-level load.
+      
+      self.load(dir,false,false)
+      
+    end
+    
+    @Operation load(dir:String,loadSource:Boolean)
+      self.load(dir,false,loadSource)
+    end
+    
+    @Operation load(dir:String,reEnter:Boolean,loadSource:Boolean)
+    
+      // A manifest is loaded when its guard is true for the manifest. 
+      // Each individual manifest entry may also have their build 
+      // properties and guards. A top-level load should initialise any
+      // synthesized value.
+      
+      let dir = if path = "" then dir else dir + "/" + path end then
+          names = Seq{"dir"};
+          values = Seq{dir}
+      in if guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+         then 
+           @For binding in bindings do
+             let value = binding.load(dir,loadSource)
+             in if binding.name <> ""
+                then 
+                  names := names + Seq{binding.name};
+                  values := values + Seq{value} 
+                end
+             end
+           end;
+           if loadAction <> null
+           then 
+             let value = loadAction.perform(self,Exp::mkEnv(names,values),Seq{})
+             in if not reEnter then value.init() end;
+                if value.isReallyKindOf(Manifest)
+                then 
+                  value.build(dir);
+                  value.load(dir,loadSource)
+                else value
+                end
+             end
+           else null
+           end
+         end
+      end
+    end 
+    
+    @Operation performAction(dir:String,names,values,reEnter:Boolean,loadSource:Boolean)
+      if loadAction <> null
+      then 
+        let value = loadAction.perform(self,Exp::mkEnv(Seq{"dir"|names},Seq{dir|values}),Seq{})
+        in if not reEnter then value.init() end;
+           if value.isReallyKindOf(Manifest)
+           then 
+             value.build(dir);
+             value.load(dir,loadSource)
+           else value
+           end
+        end
+      else null
+      end
+    end
+    
+    @Operation refresh(dir)
+      @For b in bindings do
+        b.refresh(dir)
+      end
+    end
+    
+    @Operation stale():Boolean
+      self.setStale(bindings->exists(b | b.stale()));
+      stale
+    end
+    
+    @Operation syntaxInit()
+    
+      // When the manifest is created AT RUN TIME, it is added to
+      // the collection of manifests available via the xmf object.
+      // The system then knows all the manifests that are available.
+      
+      xmf.manifestManager().add(self.name(),self);
+      self
+    end 
+    
+    @Operation touch(dir:String,source:Boolean)
+    
+      // Touches the files in the manifest. The boolean
+      // flag determines whether or not the source or the
+      // binary files are touched.
+      
+      @For binding in bindings do
+        binding.touch(dir,source)
+      end
+    end
+    
+    @Operation unxipFile(file:String)
+    
+      // The supplied file is a zip file containing an archive
+      // of the manifest and its support system.
+      
+      let zipFile = ZipFile(file) 
+      in Manifest::unxipManifest(zipFile,".");
+         zipFile.close()
+      end
+    end
+    
+    @Operation unxipManifest(zipFile:ZipFile,prefix:String)
+      let inch = zipFile.inputChannel(prefix + "/Manifest") then
+          binch = BinaryInputChannel(inch) then
+          manifest = binch.readBinary()
+      in manifest.unxip(zipFile,prefix)
+      end
+    end
+    
+    @Operation unxip(zipFile:ZipFile,prefix:String)
+      let names = Seq{};
+          values = Seq{}
+      in @For binding in bindings do
+           let value = binding.unxip(zipFile,prefix)
+           in if binding.name <> ""
+              then 
+                names := names + Seq{binding.name};
+                values := values + Seq{value} 
+              end
+           end
+         end;
+         self.performAction(".",names,values,true,false)
+      end
+    end
+    
+    @Operation xip(dir:String,fileName:String)
+    
+      // Write out the binaries as a zip file.
+      // The supplied directory is the path to
+      // the root directory of the files.
+      
+      @WithOpenFile(fout -> fileName)
+        let zout = ZipOutputChannel(fout)
+        in self.xip(dir,".",zout);
+           zout.flush();
+           zout.close()
+        end
+      end
+      
+    end
+    
+    @Operation xip(dir:String,prefix:String,zout:ZipOutputChannel)
+      @For binding in bindings do
+        binding.xip(dir,prefix,zout)
+      end;
+      zout.newEntry(prefix + "/Manifest");
+      @WithOpenFile(fin <- dir + "/Manifest.o")
+        @While not fin.eof() do
+          zout.write(fin.read())
+        end
+      end
+    end
+                
+  end

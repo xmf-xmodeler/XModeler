@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+format(stdout,"When we encounter '@' this signifies a language extension.~%");
+format(stdout,"The parser gets the class referenced by the name after the '@'~%");
+format(stdout,"and uses its grammar to parse the input up to but not including~%");
+format(stdout,"the next 'end'. The following should produce a value.~%");
+
+context Root
+  @Operation f(x)
+    if x = 0
+    then 0
+    else
+      x.println();
+      f(x - 1)
+    end
+  end
+  
+f(100);
+
+context Root
+  @Package P
+    @Class C 
+      @Attribute a : String end
+      @Operation init(args)
+        self.a := args->at(0)
+      end
+      @Operation toString():String
+        "<A C with a = " + a + ">"
+      end
+    end
+  end
+  
+P::C("initial value").println();

@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class SetExp extends OCL::OCL
+  
+    @Attribute elements : Seq(OCL::OCL) end
+    @Attribute collType : String end
+    
+    @Constructor(collType,elements) ! end
+   
+    @Operation pprint(out,indent)
+      format(out,"~S{~{,~;~S~}}",Seq{collType,elements->collect(element | element.pprint(indent))})
+    end
+    
+  end

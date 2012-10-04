@@ -1,0 +1,106 @@
+parserImport XOCL;
+//parserImport Tools::Basic;
+
+import Tools::DiagramTools::Types::DisplayTypes;
+import MDC;
+import Types;
+
+context ! Types
+
+  @Class Root_x_Node extends Free_x_Node
+
+    @Attribute attribute : Attribute (?,!) end
+
+    @Constructor(attribute,type) end 
+    
+    @Operation attributeChanged(tool,node,display,new,old)
+      type.attributeChanged(tool,node,display,new,old)
+    end
+    
+    @Operation build(tool,value,display,nodes)
+    
+      // Called to populate the diagram from the value.
+      // At this stage the value should be an Object
+      // and we need to add in the value of the
+      // attribute...
+      
+      let object = value.element() then
+          slotValue = object.get(attribute.name())
+      in if slotValue = null
+         then value.addSlot(self,null)
+         elseif attribute.hasAtomicType()
+         then 
+           if self.isMostSpecific(nodes,slotValue)
+           then value.addSlot(self,type.build(tool,slotValue))
+           end
+         else 
+           let values = slotValue->select(value | self.isMostSpecific(nodes,value))
+           in value.addSlot(self,values->collect(v | type.build(tool,v)),display)
+           end
+         end
+      end
+    end
+    
+    @Operation new(tool,container)
+      let object = tool.element() then
+          value = object.get(attribute.name())
+      in if attribute.hasAtomicType() 
+         then 
+           if value <> null
+           then
+             let emap = type.new(tool,value) then
+                 map = Values::RootElement_x_Node(self,emap)
+             in container.add(map)
+             end
+           end
+         else
+           @For v in value do
+             let emap = type.new(tool,v) then
+                 map = Values::RootElement_x_Node(self,map)
+             in container.add(map)
+             end
+           end
+         end
+      end
+    end
+    
+    @Operation nodeRemoved(tool,oldNode)
+      if type.nodeType() = oldNode.type()
+      then 
+        let value = tool.find(oldNode);
+            name = attribute.name();
+            element = tool.element()
+        in type.nodeRemoved(tool,oldNode);
+           if attribute.hasAtomicType()
+           then
+             tool.slotChangedEvent(element,name,classifier().default(),element.get(name)); 
+             element.set(name,type.classifier().default())
+           else 
+             let old = element.get(name) then
+                 new = old->including(value)
+             in tool.slotChangedEvent(element,name,new,old);
+                MDCSetSlot(element,name,new)
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation reachable(object,rootType)
+      let name = attribute.name().toString()
+      in if object.hasStructuralFeature(name)
+         then 
+           let value = object.get(name) then
+               values = if not attribute.hasAtomicType() then value->asSet else Set{value} end
+           in values->excluding(null)->iterate(object O = Set{} | O + rootType.reachableFree(object))
+           end
+         else Set{}
+         end
+      end
+    end
+    
+    @Operation toString()
+      "Root(" + attribute.name() + ": " + type.classifier().name() + ")"
+    end
+
+  end

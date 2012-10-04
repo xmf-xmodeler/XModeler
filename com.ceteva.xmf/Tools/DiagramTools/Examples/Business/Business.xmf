@@ -1,0 +1,156 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs; 
+import DiagramEvents;
+import Graphs;
+
+context Root
+  @Package Business
+  
+    // Domain model...
+    
+    @Class Actor extends NamedElement end
+    @Class External extends Actor end
+    @Class Owner extends Actor end
+    @Class Event extends NamedElement
+      @Attribute index : Integer (!,?) end
+      @Attribute source : Actor (?,!) end
+      @Attribute target : Actor (?,!) end
+      @Constructor(name,index,source,target) !
+        self.setName(name)
+      end
+    end
+    @Class Optional extends Event end
+  end
+
+Root::type := 
+
+@ToolType Business
+  @EdgeType Event Actor -> Actor targetHead = arrow 
+    @Label name(end,10,10) "name" end
+    @Label index(end,0-10,0-10) "0" end 
+  end
+  @EdgeType Optional Actor -> Actor targetHead = arrow 
+    @Label name(end,10,10) "name" end
+    @Label index(end,0-10,0-10) "0" end 
+  end
+  @NodeType Actor
+  end
+  @NodeType Owner(OVERLAY,hasport) extends Actor
+    @Box box(ALIGN)
+      @Image image(ALIGN)
+        "Actor.gif"
+        width = 50
+        height = 50
+      end
+      @Text name (CENTRE) "name" end
+    end
+  end
+  @NodeType External(hasport) extends Actor
+    @Image image(ALIGN)
+      "Actor.gif"
+      width = 50
+      height = 50
+    end
+    @Text name (CENTRE) "name" end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Owner           icon = "Tools/Activity.gif" end
+      @ToolButton External        icon = "Tools/Actor.gif"    end
+      @ToolButton Event    isEdge icon = "Tools/Edge.gif"     end
+      @ToolButton Optional isEdge icon = "Tools/Edge.gif"     end
+    end
+  end
+  @Menu
+    @MenuAction Editor
+      let graph = tool.element() then
+          nodes = graph.nodes(); 
+          edges = graph.edges() then
+          owner = nodes->select(n | n.data().isKindOf(Business::Owner))->sel.data();
+          externals = nodes->select(n | n.data().isKindOf(Business::External))->map("data");
+          events = edges->select(e | e.data().isKindOf(Business::Event))->map("data");
+          optional = edges->select(e | e.data().isKindOf(Business::Optional))->map("data")
+      in toForm(owner,externals,events,optional)
+      end
+    end
+  end
+end;
+
+Root::manager :=
+@ElementManager BusinessManager
+  @EventHandler New_Owner()
+    let owner = Business::Owner("O")
+    in tool.element().add(Node(owner));
+       register(event.node(),owner);
+       register(owner,event.node());
+       register(event.node().ref1(Seq{"box","name"}),owner)
+    end
+  end
+  @EventHandler External_name_Changed()
+    find(event.value()).setName(event.new())
+  end
+  @EventHandler New_External()
+   let external = Business::External("O")
+   in tool.element().add(Node(external));
+      register(event.node(),external);
+      register(external,event.node());
+      register(event.node().ref1(Seq{"name"}),external)
+   end
+  end
+  @EventHandler Owner_box_name_Changed()
+    find(event.value()).setName(event.new())
+  end
+  @EventHandler New_Event()
+    let graph = tool.element();
+        edge = event.edge();
+        source = event.source();
+        target = event.target() then
+        name = edge.ref("name");
+        index = edge.ref("index");
+        be = Business::Event("E",0,find(source),find(target)) then
+        e = Edge(be,graph.nodeFor(find(event.source())),graph.nodeFor(find(event.target())))
+    in tool.element().add(e);
+       register(e,edge);
+       register(edge,e);
+       register(name,be);
+       register(index,be)
+    end
+  end
+  @EventHandler Event_index_Changed()
+    find(event.edge()).data().setIndex(event.new().asInt())
+  end
+  @EventHandler Event_name_Changed()
+    find(event.edge()).data().setName(event.new())
+  end
+  @EventHandler New_Optional()
+    let graph = tool.element();
+        edge = event.edge() then
+        name = edge.ref("name");
+        index = edge.ref("index");
+        be = Business::Optional("O",0) then
+        e = Edge(be,graph.nodeFor(find(event.source())),graph.nodeFor(find(event.target())))
+    in tool.element().add(e);
+       register(e,edge);
+       register(edge,e);
+       register(name,be);
+       register(index,be)
+    end
+  end
+  @EventHandler Event_index_Changed()
+    find(event.edge()).data().setIndex(event.new().asInt())
+  end
+  @EventHandler Event_name_Changed()
+    find(event.edge()).data().setName(event.new())
+  end
+end;
+
+Root::tool := Tool(type,"Business Editor",manager,Graph());

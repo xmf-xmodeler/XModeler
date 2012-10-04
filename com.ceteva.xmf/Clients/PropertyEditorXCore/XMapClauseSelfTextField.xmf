@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class XMapClauseSelfTextField extends SingletonTextField
+
+    @Operation setTextIn(text:String)
+      let
+        source = contex.source() then
+        modifiedSource = source.subst(text,contex.name(),false)
+      in
+        xmf.clientManager().setRecompilingClause(element);
+        element.setSource(modifiedSource);
+        xmf.clientManager().setRecompilingClause(null)
+      end
+    end
+
+  end

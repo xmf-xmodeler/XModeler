@@ -1,0 +1,32 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class MenuRoot extends InterfaceElement
+  
+    @Attribute rootPath : String end
+    
+    @Constructor(rootPath) ! end
+    
+    @Grammar 
+    
+      MenuRoot ::= rootPath = Path { MenuRoot(rootPath.separateWith("::")) }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus.rootType";
+          contrib = Contribution(class,Seq{rootPath})
+      in registry.addContribution(id,contrib)
+      end
+    end
+    
+  end

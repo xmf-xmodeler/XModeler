@@ -1,0 +1,28 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @EdgeType Source EdgeType -> NodeType
+    targetHead = arrow
+    @Label label(end,5,5) 
+      "source"
+    end
+    @Menu
+      @MenuAction Delete
+        self.delete()
+      end
+    end
+  end

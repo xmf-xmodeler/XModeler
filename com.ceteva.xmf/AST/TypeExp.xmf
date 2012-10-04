@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler TypeExp in AST(aTypeExp,arg,seen)
+  null
+end;

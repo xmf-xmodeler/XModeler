@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+ 
+   @Class At extends Recognizer
+   
+     @Operation code(out)
+       format(out,"At")
+     end
+   
+     @Operation FV():Set(String)
+       Set{}
+     end
+     
+     @Operation nextSet(grammar)
+       Set{self}
+     end
+   
+     @Operation parse(machine)
+       machine.at()
+     end
+     
+     @Operation toExp(FV:Set(String))
+       [| Root::Parser::BNF::At() |]
+     end
+     
+     @Operation transform(FV,grammar)
+       self
+     end
+     
+   end

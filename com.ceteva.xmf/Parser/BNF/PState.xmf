@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class PState extends Recognizer
+  
+    // Pushes the current machine state...
+    
+    @Operation code(outputChannel)
+      format(outputChannel," pState ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{}
+    end
+    
+    @Operation parse(machine)
+      machine.pushStack(machine)
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::PState() |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

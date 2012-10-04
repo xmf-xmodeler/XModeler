@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+import DocTables;
+import Basic;
+
+context ! Documents
+
+  @Class Section metaclass BrowsedClass extends DocumentElement
+
+    @Attribute name : String (?,!) end
+    @Attribute elements : Seq(DocumentElement) (?,!,+,-,^) end
+    @Attribute level : Integer = 1 (?,!) end
+
+    @Constructor(name) ! end
+    
+    @Operation labelString()
+      // Just show the name in the browser...
+      name
+    end
+    
+    @Operation setOwner() 
+      @For e in elements do
+        e.owner := self
+      end
+    end
+ 
+    
+    /*@Operation addForward()
+      let rootObj = self.rootObject()
+      in if rootObj <> null
+         then 
+           let o = rootObj.modelTree("Forward Reference",rootObj,@Operation(x) true end)
+           in if o <> ""
+              then self.addToElements(Forward(o))
+              end
+           end 
+         end
+      end
+    end*/
+    
+    @Operation addDiagram()
+      let rootObj = self.rootObject()
+      in if rootObj <> null
+         then 
+           let o = rootObj.modelTree("Diagram",rootObj,@Operation(x) true end)
+           in if o <> ""
+              then self.addToElements(Diagram(o))
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation addDefinition()
+      let rootObj = self.rootObject()
+      in 
+      if rootObj <> null
+         then 
+           let o = rootObj.modelTree("Definition",rootObj,@Operation(x) true end)
+           in if o <> ""
+              then self.addToElements(Definition(o))
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation toHTML()
+      Seq{Heading[text=name,level=level]} +
+      Seq{Basic::Section[
+        entries = elements->iterate(e s=Seq{} | s + e.toHTML())
+      ]}
+    end
+
+  end

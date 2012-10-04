@@ -1,0 +1,86 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolObject
+  
+    @Attribute type    : ToolComponentType   end
+    @Attribute element : Element             end
+    @Attribute slots   : Seq(ToolSlot) (+,-) end
+    
+    @Constructor(type,element) ! end
+    
+    @Operation addTo(object,slot)
+      @Find(s,slots)
+        when s.name() = slot
+        do s.add(object)
+      end
+    end
+    
+    @Operation containsObject(object)
+      //format(stdout,"trying ~S contains ~S~%",Seq{self,object});
+      slots->exists(s | s.containsObject(object))
+    end
+    
+    @Operation elements()
+      // Returns the sequence of elements in the object.
+      slots->iterate(s elements = Seq{} |
+        if s.type.isSeq
+        then elements + s.value()
+        else elements + Seq{s.value()}
+        end)
+    end
+    
+    @Operation height()
+      element.height
+    end
+    
+    @Operation layout()
+      self.type.layout(self,element.x,element.y,element.minWidth().max(100),element.minHeight().max(40))
+    end
+    
+    @Operation layout(x,y,width,height)
+      element.move(x,y);
+      element.resize(width,height)
+    end
+    
+    @Operation minHeight()
+      element.minHeight()
+    end
+    
+    @Operation minWidth()
+      element.minWidth()
+    end
+    
+    @Operation move(x,y)
+      element.move(x,y)
+    end
+    
+    @Operation resize(width,height)
+      element.resize(width,height)
+    end
+   
+    @Operation sendMessage(name . args)
+      type.sendMessage(self,name,args)
+    end
+    
+    @Operation slotValue(name)
+      @Find(slot,slots)
+        when slot.name() = name
+        do slot.value()
+        else self.error("Cannot find slot named " + name + " in " + self.toString() + " slots = " + slots->map("toString"))
+      end
+    end
+    
+    @Operation toolIsKindOf(t)
+      type.toolInheritsFrom(t)
+    end
+    
+    @Operation width()
+      element.width
+    end
+    
+  end

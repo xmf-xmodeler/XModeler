@@ -1,0 +1,378 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+import STM;
+
+context MyProjects
+
+  @Package Types
+    
+      @Class ClassModel metaclass BrowsedClass extends Contained
+      
+        @Attribute classes : Set(Class) (?,+,-,^) end
+        @Attribute packages : Set(Package) (+,-,^) end
+        @Attribute associations : Set(Association) (+,-,^) end
+        @Attribute generalizations : Set(Generalization) (+,-,^) end
+        
+        @Constructor() ! end
+        
+        @Constructor(owner) end
+        
+        @Interface
+          @Child classes end
+          @Child packages end
+          @Child associations end
+          @Child generalizations end
+          @MenuRoot MyProjects::Types::ClassModel end
+          @Menu New::Class newClass end
+          @Menu New::Package newPackage end
+          @Menu New::Association newAssociation end
+          @Menu New::Generalization newGeneralization end
+        end
+        
+        UniqueConstraint("AllClassesHaveUniqueNames","classes","name")
+        
+        UniqueConstraint("AllPackagesHaveUniqueNames","packages","name")
+        
+        UniqueConstraint("AllAssociationsHaveUniqueNames","associations","name")
+        
+        @Constraint NoGeneralizationCycles
+          self.cycles()->isEmpty
+        fail "Generalization cycles: " + self.cycles()->map("name")->asSeq->separateWith(" and ")
+        end
+        
+        @Operation associationNames()
+          associations->map("name")
+        end
+        
+        @Operation chooseClass(message:String)
+          if classes->isEmpty
+          then
+            xmf.message("No classes available");
+            null
+          else xmf.select(message,message,classes,null,null)
+          end
+        end
+        
+        @Operation classNames()
+          classes->map("name")
+        end
+        
+        @Operation cycles()
+          let cycles = Set{};    
+              C = classes
+          in @For class in C do
+               let G =  generalizations;
+                   c = class;
+                   cycle = false
+               in @While not cycle and not G->isEmpty do
+                    @Find(g,G)
+                      when g.child = c
+                      do c := g.parent;
+                         G := G->excluding(g);
+                         if c = class
+                         then cycle := true
+                         end
+                      else G := Set{}
+                    end
+                  end;
+                  if cycle 
+                  then cycles := cycles->including(class)
+                  end
+               end
+             end;
+             cycles
+          end
+        end
+        
+        @Operation getClass(name)
+          @Find(c,classes)
+            when c.name() = name
+            else null
+          end
+        end
+        
+        @Operation newClass()
+          self.addToClasses(Types::Class(xmf.getString("Class Name","Name","C" + classes->size)))
+        end
+        
+        @Operation newPackage()
+          self.addToPackages(Types::Package(xmf.getString("Package Name","Name","P" + packages->size)))
+        end
+        
+        @Operation newAssociation()
+          let type1 = self.chooseClass("End1")
+          in if type1 <> null
+             then 
+               let type2 = self.chooseClass("End2")
+               in if type2 <> null
+                  then
+                    let name = xmf.getString("Association Name","Name","A" + associations->size);
+                        source = Types::End(type1.name(),type1);
+                        target = Types::End(type2.name(),type2)
+                    in self.addToAssociations(Types::Association(name,source,target))
+                    end
+                  end
+               end
+             end
+          end
+        end
+        
+        @Operation newGeneralization()
+          let parent = self.chooseClass("Parent")
+          in if parent <> null
+             then 
+               let child = self.chooseClass("Child")
+               in if child <> null
+                  then self.addToGeneralizations(Types::Generalization(parent,child))
+                  end
+               end
+             end
+          end
+        end
+        
+      end
+      
+      @Class Named metaclass BrowsedClass extends Contained
+        @Attribute name : String (?) end
+        @Constructor(name) ! end
+      end
+      
+      @Class Package metaclass BrowsedClass extends Contained,Named
+      
+        @Attribute model : ClassModel = Types::ClassModel(self) (?) end
+        
+        @Interface
+          @Image "XCore/Package" end
+          @Child model end
+          @MenuRoot MyProjects::Types::Package end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromPackages(self)
+          end
+        end
+        
+        @Operation getClass(name)
+          model.getClass(name)
+        end
+        
+      end
+      
+      @Class Generalization metaclass BrowsedClass extends Contained
+      
+        @Attribute parent : Class end
+        @Attribute child : Class end
+        
+        @Interface
+          @Image "User/Arrow1Up" end
+          @MenuRoot MyProjects::Types::Generalization end
+          @Menu Delete delete end
+        end
+        
+        @Constructor(parent,child) ! end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromGeneralizations(self)
+          end
+        end
+        
+      end
+      
+      @Class Class metaclass BrowsedClass extends Contained, Named
+      
+        @Attribute attributes : Set(Attribute) (+,-,^) end
+        @Attribute ops : Set(Op) (?,+,-,^) end
+        @Attribute stateMachine : StateMachine = StateMachine("",self) end
+        
+        @Interface
+          @Image "XCore/Class" end
+          @Child attributes end 
+          @Child ops end
+          @Child stateMachine end
+          @MenuRoot MyProjects::Types::Class end
+          @Menu Delete delete end
+          @Menu New::Attribute newAttribute end
+          @Menu New::Operation newOp end
+        end
+        
+        UniqueConstraint("AllAttributesHaveUniqueNames","attributes","name")
+        
+        UniqueConstraint("AllOperationsHaveUniqueNames","ops","name")
+        
+        @Operation convertValue(name,value:String)
+          @Find(a,attributes)
+            when a.name() = name
+            do a.convertValue(value)
+            else value
+          end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromClasses(self)
+          end
+        end
+        
+        @Operation newAttribute()
+          self.addToAttributes(Types::Attribute(xmf.getString("Attribute Name","Name","<NAME>")))
+        end
+        
+        @Operation newOp()
+          self.addToOps(Types::Op(xmf.getString("Operation Name","Name","<NAME>")))
+        end
+        
+        @Operation processMessage(message,target)
+          stateMachine.processMessage(message,target)
+        end
+        
+      end
+      
+      @Class Typed 
+        
+        @Attribute type : Type (?,!) end
+        
+        @Operation setType()
+          let type = xmf.select("Type","Select type",Type.contents()->asSeq,null,null)
+          in if type <> null
+             then self.setType(type)
+             end
+          end
+        end
+        
+      end
+      
+      @Class Op metaclass BrowsedClass extends Contained, Named, Typed
+      
+        @Attribute args : Seq(Arg) (?,+,-,^) end
+        
+        @Interface
+          @Image "XCore/Operation" end
+          @Child args end
+          @MenuRoot MyProjects::Types::Op end
+          @Menu Delete delete end
+          @Menu New::Arg newArg end
+          @Menu SetType setType end
+        end
+        
+        UniqueConstraint("AllArgsHaveUniqueNames","args","name")
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromOps(self)
+          end
+        end
+        
+        @Operation newArg()
+          let name = xmf.getString("Arg Name","Name","<NAME>")
+          in self.addToArgs(Types::Arg(name))
+          end
+        end
+        
+        @Operation toString()
+          name + "(" + args.name.separateWith(",") + "):" + type.name()
+        end
+        
+      end
+      
+     @Class Arg metaclass BrowsedClass extends Contained, Named, Typed
+        
+        @Interface
+          @MenuRoot MyProjects::Types::Arg end
+          @Menu Delete delete end
+          @Menu SetType setType end
+        end
+            
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromArgs(self)
+          end
+        end
+        
+        @Operation toString()
+          name + ":" + type.name()
+        end
+        
+      end
+      
+      @Class Attribute metaclass BrowsedClass extends Contained,Named,Typed
+        
+        @Constructor(name) end
+        
+        @Constructor(name,type) ! end
+        
+        @Interface
+          @MenuRoot MyProjects::Types::Attribute end
+          @Menu Delete delete end
+          @Menu SetType setType end
+        end
+        
+        @Operation convertValue(value:String)
+          @Case type of
+            [Type::String] do
+              value
+            end
+            [Type::Int] do
+              value.asInt()
+            end
+            [Type::Bool] do
+              value.asBool()
+            end
+            [Type::Float] do
+              value.asFloat()
+            end
+            else value
+          end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromAttributes(self)
+          end
+        end
+        
+      end
+      
+      @Class Association metaclass BrowsedClass extends Contained,Named
+      
+        @Attribute source : End end
+        @Attribute target : End end
+        
+        @Constructor(name,source,target) end
+        
+        @Interface
+          @MenuRoot MyProjects::Types::Association end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromAssociations(self)
+          end
+        end
+        
+        @Operation toString()
+          name + ":(" + source.type().name() + "," + target.type().name() + ")"
+        end
+        
+      end
+      
+      @Class End metaclass BrowsedClass extends Named
+      
+        @Attribute type : Class (?,!) end
+        @Attribute multiplicity : Multiplicity (?,!) end
+        
+        @Constructor(name,type) end
+        
+        @Interface
+          @MenuRoot MyProjects::Types::End end
+        end
+        
+      end
+      
+    end

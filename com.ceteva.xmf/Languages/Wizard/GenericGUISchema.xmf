@@ -1,0 +1,27 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class GenericGUISchema
+  
+    @Attribute GUI : GUI end
+    @Attribute xmlns : String end
+    
+    @Constructor(GUI) ! 
+      self.xmlns := "http://tempuri.org/GenericGuiSchema.xsd"
+    end
+    
+    @ToXML(GenericGuiSchema)[xmlns]
+      GUI
+    end
+    
+    @Operation find(id)
+      GUI.find(id)
+    end
+    
+  end

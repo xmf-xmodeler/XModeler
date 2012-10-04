@@ -1,0 +1,84 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+
+context Iterate
+  @Operation desugar():Performable
+    [| <collection>.iter(@Operation(<name>,<accumulator>) <body> end,<value>) |]
+  end 
+
+context Iterate
+  @Operation compile(env,frame,isLast,saveSource)
+    // C->iterate(x a = M | N)
+    // compile(C)
+    // SETLOC c
+    // POP
+    // compile(M)
+    // SETLOC a
+    // POP
+    // LOCAL c
+    // ISEMPTY
+    // SKPF 1
+    // SKP length(compile(N)) + 12
+    // LOCAL c
+    // SEL
+    // SETLOC x
+    // POP
+    // LOCAL x
+    // LOCAL c
+    // EXCLUDING
+    // SETLOC c
+    // POP
+    // compile(e2)
+    // SETLOC i
+    // POP
+    // SKPB length(compile(e2)) + 15
+    // LOCAL i
+    let C = collection.compile(env,frame,false,saveSource);
+        valueEnv = env.allocateLocals(Seq{"$c$"},env.maxLocal()) then
+        iterEnv = valueEnv.allocateLocals(Seq{name,accumulator},valueEnv.maxLocal()) then
+        M = value.compile(valueEnv,frame,false,saveSource);
+        N = body.compile(iterEnv,frame,false,saveSource);
+        startLoop = Compiler::newLabel();
+        startBody = Compiler::newLabel();
+        endLoop = Compiler::newLabel()
+    in C +
+       iterEnv.setLocalCode("$c$") +
+       M +
+       iterEnv.setLocalCode(accumulator) +
+       Compiler::labelInstrs(iterEnv.ref("$c$"),startLoop) +
+       Seq{IsEmpty(),
+           SkipFalse(startBody),
+           Skip(endLoop)} +
+       Compiler::labelInstrs(iterEnv.ref("$c$"),startBody) +
+       Seq{Sel()} +
+       iterEnv.setLocalCode(name) +
+       iterEnv.ref(name) +
+       iterEnv.ref("$c$") +
+       Seq{Excluding()} +
+       iterEnv.setLocalCode("$c$") +
+       N +
+       iterEnv.setLocalCode(accumulator) +
+       Seq{SkipBack(startLoop)} +
+       Compiler::labelInstrs(iterEnv.ref(accumulator),endLoop)
+    end
+  end
+
+context Iterate 
+  @Operation FV():Set(String)
+    self.desugar().FV()
+  end
+  
+context Iterate
+  @Operation maxLocals():Integer
+    collection.maxLocals().max(value.maxLocals().max(body.maxLocals()) + 3)
+  end
+  
+context Iterate
+  @Operation lift()
+    let name = if name.isKindOf(Performable) then name.lift() else StrExp(name) end;
+        accumulator = if accumulator.isKindOf(Performable) then accumulator.lift() else StrExp(accumulator) end
+    in Apply(self.typeExp(),Seq{collection.lift(),name,accumulator,value.lift(),body.lift()})
+    end
+  end

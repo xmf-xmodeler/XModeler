@@ -1,0 +1,40 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+import Dialogs;
+
+context Dialogs
+
+  @Class Options extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar import Dialogs
+    
+      Options ::= options = (Exp:Option)* { Options(options) }.
+      
+    end 
+    
+    @Attribute options : Seq(Option) end
+    
+    @Constructor(options) end 
+    
+    @Operation desugar()  
+      [| @Operation(c) 
+           @Operation(d) 
+             <options->iterate(o e = [| d.reset() |] | [| <e>;<o> |])>;
+             d.choose(c,@Operation(d) c(d) end)
+           end 
+         end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Options~%~V",Seq{indent+2});
+      @For c in options do
+        c.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

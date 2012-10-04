@@ -1,0 +1,240 @@
+parserImport XOCL;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class AttributeEdge extends Edge
+
+    @Attribute name      : String          (?,!) end
+    @Attribute attribute : Attribute       (?,!) end
+    @Attribute showLabel : Boolean = true  (?,!) end 
+
+    @Constructor(name,source,target,attribute,color) ! end
+    
+    @Constructor(source,target,attribute,color) end
+    
+    @Operation defaultName():String
+  
+      // A name for an edge type for this attribute. Should
+      // be unique within the package.
+    
+      attribute.name() + "_" + attribute.owner().name() + "_To_" + attribute.underlyingType().name()
+    
+    end
+    
+    @Operation nameDialog()
+    
+      // Call this to set the name.
+      // Returns the receiver.
+      
+      let name = xmf.getString("Attribute edge name","Tool name for edge creation",self.defaultName())
+      in if name = null
+         then self.setName(self.defaultName())
+         else self.setName(name)
+         end
+      end
+    end
+    
+    @Operation writeHandlers(dir,toolDescriptorType,root,manifest)
+  
+      // Write handlers for the creation and deletion events...
+    
+      self.writeNewHandler(dir,toolDescriptorType,root,manifest);
+      self.writeRemovedHandler(dir,toolDescriptorType,root,manifest);
+      self.writeSourceChangedHandler(dir,toolDescriptorType,root,manifest);
+      self.writeTargetChangedHandler(dir,toolDescriptorType,root,manifest)
+    
+    end
+    
+    @Operation writeNewHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that tries to find elements registered for either
+      // end of the edge. If they exist then the underlying model is
+      // updated appropriately.
+    
+      let handlerName = "New_" + self.name()
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.source()) and event.tool().isRegistered(event.target())~%");
+           format(out,"  then~%");
+           format(out,"    let source = event.tool().find(event.source());~%");
+           format(out,"        target = event.tool().find(event.target());~%");
+           format(out,"        name = \"~S\"~%",Seq{attribute.name()});
+           format(out,"    in event.tool().register(event.edge(),Seq{source,target,name});~%");
+           format(out,"       event.tool().registerEdge(source,name,target,event.edge());~%");
+           @Case attribute.type of
+             Seq[ ] do
+               format(out,"       source.~S := source.~S->including(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             Set[ ] do
+               format(out,"       source.~S := source.~S->including(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             else format(out,"       source.~S := target~%",Seq{attribute.name()})
+           end;
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%")
+         end;
+         manifest.add("ElementManager/" + handlerName)
+      end
+     
+    end
+    
+    @Operation writeRemovedHandler(dir,toolDescriptorType,root,manifest)
+  
+      // Write a handler that tries to find elements registered for the edge. 
+      // If they exist then the underlying model is updated appropriately.
+    
+      let handlerName = self.name() + "_Removed"
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.edge())~%");
+           format(out,"  then~%");
+           format(out,"    let pair = event.tool.find(event.edge()) then~%");
+           format(out,"        source = pair->at(0);~%");
+           format(out,"        target = pair->at(1);~%");
+           format(out,"        name = \"~S\"~%",Seq{attribute.name()});
+           format(out,"    in event.tool().deregister(event.edge());~%");
+           format(out,"       event.tool().deregisterEdge(source,name,target);~%");
+           @Case attribute.type of
+             Seq[ ] do
+               format(out,"       source.~S := source.~S->excluding(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             Set[ ] do
+               format(out,"       source.~S := source.~S->excluding(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             else format(out,"       source.~S := ~S.default()~%",Seq{attribute.name(),attribute.type.path()})
+           end;
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%")
+         end;
+         manifest.add("ElementManager/" + handlerName)
+      end
+    end
+    
+    @Operation writeCreateDiagram(out,root,toolDescriptorType)
+      format(out,"       let A = A->select(a | a.isKindOf(~S))~%",Seq{attribute.owner().path()});
+      format(out,"       in @For source in A do~%");
+      if attribute.type.isKindOf(Class)
+      then format(out,"            let target = source.~S in ~%",Seq{attribute.name()})
+      else format(out,"            @For target in source.~S do~%",Seq{attribute.name()})
+      end;
+      format(out,"               if tool.isRegistered(source) and tool.isRegistered(target)~%");
+      format(out,"               then~%");
+      format(out,"                 let edge = (xmf.toolManager().toolDescriptor(~S::~S,\"~S\"))::Editor.edgeType(\"~S\").new(tool.find(source).port(),tool.find(target).port(),tool)~%",Seq{root.owner().path(),root.name(),toolDescriptorType,self.name()});
+      format(out,"                 in tool.register(edge,Seq{source,target})~%");
+      format(out,"                 end~%");
+      format(out,"               end~%");
+      format(out,"            end~%");
+      format(out,"          end~%");
+      format(out,"        end;~%")
+    end
+    
+    @Operation writeSourceChangedHandler(dir,toolDescriptorType,root,manifest)
+  
+      let handlerName = self.name() + "_Source_Changed"
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+           format(out,"  then~%");
+           format(out,"    let rec = event.tool().find(event.edge()) then~%");
+           format(out,"        source = rec->at(0);~%");
+           format(out,"        target = rec->at(1);~%");
+           format(out,"        name = \"~S\"~%",Seq{attribute.name()});
+           format(out,"    in event.tool().deregisterEdge(source,name,target);~%");
+           format(out,"       event.tool().registerEdge(event.tool().find(event.new()),name,target,event.edge());~%");
+           format(out,"       event.tool().register(event.edge(),Seq{event.tool().find(event.new()),target,name});~%");
+           @Case attribute.type of
+             Seq[ ] do
+               format(out,"       source.~S := source.~S->excluding(target);~%",Seq{attribute.name(),attribute.name()});
+               format(out,"       event.tool().find(event.new()).~S := event.tool().find(event.new()).~S->including(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             Set[ ] do
+               format(out,"       source.~S := source.~S->excluding(target);~%",Seq{attribute.name(),attribute.name()});
+               format(out,"       event.tool().find(event.new()).~S := event.tool().find(event.new()).~S->including(target)~%",Seq{attribute.name(),attribute.name()})
+             end
+             else 
+               format(out,"       source.~S := ~S.default();~%",Seq{attribute.name(),attribute.type.path()});
+               format(out,"       event.tool().find(event.new()).~S := target~%",Seq{attribute.name()})
+           end;
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%")
+         end;
+         manifest.add("ElementManager/" + handlerName)
+      end
+    end
+    
+    @Operation writeTargetChangedHandler(dir,toolDescriptorType,root,manifest)
+  
+      let handlerName = self.name() + "_Target_Changed";
+          update =
+            @Operation(out,object,name,new,old,type)
+              @Case type of
+                Seq[ ] do
+                  format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                  format(out,"       ~S.~S := ~S.~S->including(~S)~%",Seq{object,name,object,name,new})
+                end
+                Set[ ] do
+                  format(out,"       ~S.~S := ~S.~S->excluding(~S);~%",Seq{object,name,object,name,old});
+                  format(out,"       ~S.~S := ~S.~S->including(~S)~%",Seq{object,name,object,name,new})
+                end
+                else format(out,"       ~S.~S := ~S~%",Seq{object,name,new})
+              end
+            end
+      in @WithOpenFile(out -> dir + "/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@EventHandler ~S::~S::Manager::~S()~%",Seq{root.path(),toolDescriptorType,handlerName});
+           format(out,"  if event.tool().isRegistered(event.edge()) and event.tool().isRegistered(event.new())~%");
+           format(out,"  then~%");
+           format(out,"    let rec = event.tool().find(event.edge()) then~%");
+           format(out,"        source = rec->at(0);~%");
+           format(out,"         target = rec->at(1);~%");
+           format(out,"        name = \"~S\"~%",Seq{attribute.name()});
+           format(out,"    in event.tool().deregisterEdge(source,name,target);~%");
+           format(out,"       event.tool().registerEdge(source,name,event.tool().find(event.new()),event.edge());~%");
+           format(out,"       event.tool().register(event.edge(),Seq{source,event.tool().find(event.new()),name});~%");
+           update(out,"source",attribute.name(),"event.tool().find(event.new())","target",attribute.type);
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%")
+         end;
+         manifest.add("ElementManager/" + handlerName)
+      end
+    end
+    
+    @Operation writeType(out)
+      format(out,"    @EdgeType ~S ~S -> ~S~%",Seq{self.name(),attribute.owner().name(),attribute.underlyingType().name()});
+      format(out,"      targetHead = arrow~%");
+      format(out,"      lineColour = \"~S,~S,~S\"~%",Seq{color.red(),color.green(),color.blue()});
+      if showLabel
+      then
+        format(out,"      @Label label(middle,10,10,readOnly)~%");
+        format(out,"        \"~S\"~%",Seq{attribute.name()});
+        format(out,"      end~%")
+      end;
+      format(out,"      @Menu~%");
+      format(out,"        @MenuAction Delete self.delete() end~%");
+      format(out,"      end~%");
+      format(out,"    end~%")
+    end
+    
+  end

@@ -1,0 +1,99 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Map extends Class
+  
+    @Grammar extends Class.grammar
+    
+      Map ::= name = Name domains = Domains '->' range = Exp isAbstract = IsAbstract parents = Parents defs = Exp*
+      { Map(name,
+            [| XMap::Map |],
+            domains,
+            range,
+            isAbstract,
+            parents,
+            defs->reject(c | c.isKindOf(Clause)),
+            defs->select(c | c.isKindOf(Clause))) }.
+            
+      Domains ::= '(' d = Exp ds = (',' Exp)* ')' { Seq{d | ds} }.
+      
+    end
+    
+    @Attribute clauses : Seq(Clause) end
+    @Attribute domains : Seq(Performable) end
+    @Attribute range : Performable end
+    
+    @Constructor(name,metaClass,domains,range,isAbstract,parents,defs,clauses) end
+    
+    @Operation allDefs()
+      super() + Seq{self.invokeDef()}
+    end
+    
+    @Operation lift():Performable
+      let domainExps = SetExp("Seq",domains->collect(d | d.lift()));
+          parentExps = SetExp("Seq",parents->collect(p | p.lift()));
+          defExps = SetExp("Seq",defs->collect(d | d.lift()));
+          clauseExps = SetExp("Seq",clauses->collect(c | c.lift()));
+          metaExp = self.metaExp()
+      in [| XOCL::Map(<StrExp(name)>,<metaExp>,<domainExps>,<range.lift()>,<BoolExp(isAbstract)>,<parentExps>,<defExps>,<clauseExps>) |]
+      end
+    end
+    
+    @Operation initExp(newMap:Performable):Performable
+      [| let domains = @Operation() <SetExp("Seq",domains)> end;
+             range = @Operation () <range> end
+         in domains.setOwner(<newMap>);
+            range.setOwner(<newMap>);
+            <self.setClausesExp(newMap)>;
+            <newMap>.set("domains",domains);
+            <newMap>.set("range",range)
+         end
+      |]
+    end 
+    
+    @Operation invokeBody()
+      let values = 0.to(domains->size - 1)->collect(i | [| args->at(<IntExp(i)>) |]);
+          arms = clauses->collect(c | c.desugar())
+      in Case(values,arms,[| throw Exceptions::MapFailed(self,<SetExp("Seq",values)>) |])
+      end
+    end
+    
+    @Operation invokeDef()
+      [| @Operation invoke(target,args): <range> <self.invokeBody()> end |]
+    end
+    
+    @Operation metaExp():Performable
+      [| XMap::Map |]
+    end
+    
+    @Operation pprint(out,indent) 
+      format(out,"@Map ~S(",Seq{name});
+      @For domain in domains do
+        domain.pprint(out,indent);
+        if not isLast then format(out,",") end
+      end;
+      format(out,")->");
+      range.pprint(out,indent);
+      @For clause in clauses do
+        format(out,"~%~V",Seq{indent+2});
+        clause.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation setClausesExp(map:Performable)
+      // Produce an expression that sets the clauses
+      // in the mapping 'map'.
+      clauses->iterate(c e = map |
+        let nameExp = StrExp(c.name.toString());
+            sourceExp = StrExp(c.pprint())
+        in [| <e>.add(XMap::Clause(<nameExp>,<sourceExp>)) |]
+        end)
+    end
+    
+  end

@@ -1,0 +1,5 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XBNF/Tokens/Boot",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Tokens/Tokenizer",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Tokens/Tokens",true,true);

@@ -1,0 +1,49 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser::BNF;
+
+context Root
+
+@Package Components
+  @Class Component extends XCore::NamedElement
+    @Attribute components : Set(Component) (+) end
+    @Attribute interfaces : Set(Interface) (+) end
+    @Constructor(name) end
+
+    @Grammar extends OCL::OCL.grammar
+      Component ::= name = Name elements = Exp* {import OCL in
+       elements->iterate(element exp =  
+        [| import Components in Component(<StrExp(name)>) end |] |
+        [| <exp>.add(<element>) |]) end }.
+    end
+
+    @Operation add(element)
+      @TypeCase(element)
+        Component do
+          self.addToComponents(element)
+        end
+      end
+    end
+    @Operation allComponents():Set(Component)
+      self.components ->iterate(c s=self.components |
+        s->union(c.allComponents()))
+    end
+  end
+  
+  @Class Interface
+    @Attribute name : String end
+    @Constructor(name) end
+  end
+  
+  @Class Provides extends Interface
+  end
+  
+  @Class Requires extends Interface
+  end
+  
+  @Class Connector extends NamedElement
+    @Attribute provides : Provides end
+    @Attribute requires : Requires end
+  end
+end

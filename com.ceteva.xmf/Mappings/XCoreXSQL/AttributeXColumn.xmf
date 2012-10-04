@@ -1,0 +1,17 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Languages;
+import MicroSQL;
+import Mappings;
+import XCoreXSQL;
+ 
+context XCoreXSQL
+ 
+  @Map AttributeXColumn(Attribute)->Column
+    @Clause AttributeXColumn
+      a = Attribute [name = N, type = T] do
+        Column(N,SQLT)
+          where SQLT = TypeXType()(T)
+    end
+  end

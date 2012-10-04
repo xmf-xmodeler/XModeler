@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Try extends OCL::OCL
+  
+    @Doc
+       A try expression is used to capture exceptional events that occur during
+       evaluation. The body of the try expression is performed and, if no exceptions
+       are thrown during its evaluation, the body produces the value of the try.
+       Otherwise a value is thrown by the body in which case the value is bound
+       to the catch variable and a catch handler is performed. The catch handler
+       may attempt to resolve the reason for the exception being raised in 
+       which case it evaluates normally and produces tghe value of the try 
+       expression. Otherwise the catch handler throws an exception value which is
+       passed to the next most recently performed try.
+    end
+     
+     @Attribute body : Performable end
+     @Attribute name : String end
+     @Attribute handler : Performable end
+     
+     @Constructor(body,name,handler) ! end
+  
+     @Operation pprint(out,indent)
+       format(out,"try~%~V",Seq{indent + 2});
+       body.pprint(out,indent+2);
+       format(out,"~%~Vcatch(~S)~%~V",Seq{indent,name,indent+2});
+       handler.pprint(out,indent+2);
+       format(out,"~%~Vend",Seq{indent})
+     end
+     
+   end

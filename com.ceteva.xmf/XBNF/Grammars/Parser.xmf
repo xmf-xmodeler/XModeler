@@ -1,0 +1,683 @@
+parserImport XOCL;
+
+import IO;
+import XBNF;
+import Grammars;
+import Tokens;
+import Scanning::Structure; 
+import Exceptions;
+
+context Grammar 
+
+  @Operation parse(inch:InputChannel,nonTerminal:String,args:Seq(Element),scanner:Scanner,scan:Seq(Element),imports:Seq(NameSpace))
+  
+    // Parsing is table driven. The table associates nonterminals (clause names)
+    // and terminals (tokens) with sequences of actions. The parsing machine is in a
+    // state consisting of a current token, a sequence of actions, some synthesized
+    // values and some local variables. If the action is a CALL then the table is
+    // used to find the sequence of actions given the next token and the state is
+    // updated. The state also contains fail states which are copies of the machine
+    // state to be used to backtrack if the table indicates that no further actions
+    // can be taken on a CALL. The fail states are created (pushed) if the grammar
+    // is not LL(1); multiple action sequences occur at ambiguous points in the table.
+    
+    @WithoutSourcePos
+    let clauseTable = clauseTable;
+        EndOfFile = 0;
+        STR = scanner.tokenIndex("Str");
+        NAME = scanner.tokenIndex("Name");
+        INT = scanner.tokenIndex("Int");
+        stack = Vector(500);
+        tos = 0;
+        frame = null;
+        fail = null;
+        type = scan->at(1);
+        token = scan->at(0);
+        locals = args->asVector;
+        indent = 0;
+        parsers = Seq{Call(nonTerminal,args)};
+        
+        // The parser is a stack machine that maintains two stacks: the fail stack
+        // represented as a linked list of fail frames and the call stack which is
+        // represented as a vector of call frames. The fields in the fail and call
+        // frames are defined with respect to the following constant offsets:
+        
+        FAIL_FRAME = 0;
+        FAIL_CHARPOS = 1;
+        FAIL_TOKEN = 2;
+        FAIL_TYPE = 3;
+        FAIL_LOCALS = 4;
+        FAIL_INDENT = 5;
+        FAIL_PARSERS = 6;
+        FAIL_PREV = 7;
+        FAIL_STACK = 8;
+        FAIL_TOS = 9;
+        FAIL_SIZE = 10;
+        
+        FRAME_PREV = 0;
+        FRAME_INDENT = 1;
+        FRAME_LOCALS = 2;
+        FRAME_PARSERS = 3;
+        FRAME_TOS = 4;
+        FRAME_SIZE = 5 then
+        
+        result = null;
+        
+        // It is more efficient to reference locals than globals in the
+        // body of the parse loop...
+        
+        Call = Call;
+        Terminal = Terminal;
+        Builtin = Builtin;
+        Name = Name;
+        Int = Int;
+        Str = Str;
+        BindVar = BindVar;
+        OCLAction = OCLAction;
+        Empty = Empty;
+        ConsAction = ConsAction;
+        NilAction = NilAction;
+        EOF = EOF; 
+        
+        finished = false;
+        failPosition = 0;
+        failToken = "";
+        failTokens = Seq{}
+        
+    in // Parse...
+       @While not finished do
+       
+         if parsers->isEmpty
+         then
+           // Pop the frame...
+           result := Kernel_arrayRef(stack,tos-1);
+           tos := tos - 1;
+           if frame = null
+           then 
+             finished := true
+           else
+             if debug then format(stdout,"~VReturn ~S~%",Seq{indent,result}) end;
+             parsers := Kernel_arrayRef(frame,FRAME_PARSERS);
+             indent := Kernel_arrayRef(frame,FRAME_INDENT);
+             locals := Kernel_arrayRef(frame,FRAME_LOCALS);
+             tos := Kernel_arrayRef(frame,FRAME_TOS);
+             frame := Kernel_arrayRef(frame,FRAME_PREV);
+             Kernel_arraySet(stack,tos,result);
+             tos := tos + 1
+           end
+         else 
+           @CaseObj parsers->head of
+         
+             Call[name,BOA] do
+           
+               // Look up the name and current token in the table to find a
+               // sequence of actions. If no actions are found then fail or
+               // backtrack. If 1 action sequence is found then push then on
+               // the current action list. Otherwise set up fail states and 
+               // push the first sequence.
+             
+               parsers := parsers->tail;
+             
+               // Use the lookup table to index a sequence of action sequences.
+               // This will result in 0, 1 or many action sequences.
+             
+               if token = null
+               then 
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               let clause = Kernel_tableGet(clauseTable,name) then
+                   bodies = Kernel_arrayRef(self.PPTCache(clause),type);
+                   newLocalsIndex = 0
+               in 
+                  // If no action sequences are available then, the non-terminal may
+                  // generate the empty sequence of terminals in which case this is
+                  // recorded as EOF.
+                
+                  if bodies->size = 0
+                  then bodies := Kernel_arrayRef(self.PPTCache(Kernel_tableGet(clauseTable,name)),EndOfFile)
+                  end;
+                
+                  if bodies->size = 0
+                  then 
+                    if scanner.charIndex() > failPosition
+                    then 
+                      failPosition := scanner.charIndex();
+                      failToken := "'" + token.toString() + "'";
+                      failTokens := self.PPTKeys(clauseTable.get(name))->asSeq
+                    end;
+                    @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                      fail := Kernel_arrayRef(fail,FAIL_PREV)
+                    end; 
+                    if fail = null
+                    then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                    else 
+                      if debug then format(stdout,"~VFail calling ~S~%",Seq{indent,name}) end;
+                      frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                      scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                      token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                      type := Kernel_arrayRef(fail,FAIL_TYPE);
+                      locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                      parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                      tos := Kernel_arrayRef(fail,FAIL_TOS);
+                      stack := Kernel_arrayRef(fail,FAIL_STACK);
+                      if Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty
+                      then fail := Kernel_arrayRef(fail,FAIL_PREV) 
+                      else Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                      end
+                    end
+                  else 
+                
+                    // Any arguments that are passed in are referenced using the
+                    // BOA map. This creates a new locals frame for the new call.
+                    
+                    if debug then format(stdout,"~VCall ~S(~{,~;~S~})~%",Seq{indent,name,BOA->collect(i | locals.ref(i))}) end;
+                    if bodies->size = 1 
+                    then 
+                      if parsers->isEmpty 
+                      then 
+                        // Tail call...
+                        let newLocals = Kernel_mkArray(clause.locals)
+                        in @For index in BOA do
+                             Kernel_arraySet(newLocals,newLocalsIndex,Kernel_arrayRef(locals,index));
+                             newLocalsIndex := newLocalsIndex + 1
+                           end;
+                           locals := newLocals;
+                           parsers := bodies->head
+                        end
+                      else 
+                        let newFrame = Kernel_mkArray(FRAME_SIZE);
+                            newLocals = Kernel_mkArray(clause.locals)
+                        in Kernel_arraySet(newFrame,FRAME_PREV,frame);
+                           Kernel_arraySet(newFrame,FRAME_PARSERS,parsers);
+                           Kernel_arraySet(newFrame,FRAME_INDENT,indent);
+                           Kernel_arraySet(newFrame,FRAME_LOCALS,locals);
+                           Kernel_arraySet(newFrame,FRAME_TOS,tos);
+                           @For index in BOA do
+                             Kernel_arraySet(newLocals,newLocalsIndex,Kernel_arrayRef(locals,index));
+                             newLocalsIndex := newLocalsIndex + 1
+                           end;
+                           frame := newFrame;
+                           locals := newLocals;
+                           indent := indent + 1;
+                           parsers := bodies->head 
+                        end
+                      end
+                    else 
+                      if scanner.charIndex() > failPosition
+                      then 
+                        failPosition := scanner.charIndex();
+                        failToken := "'" + token.toString() + "'";
+                        failTokens := self.PPTKeys(clauseTable.get(name))->asSeq
+                      end;
+                      let newFail = Kernel_mkArray(FAIL_SIZE);
+                          newFrame = Kernel_mkArray(FRAME_SIZE);
+                          newLocals = Kernel_mkArray(clause.locals)
+                      in Kernel_arraySet(newFrame,FRAME_PREV,frame);
+                         Kernel_arraySet(newFrame,FRAME_PARSERS,parsers);
+                         Kernel_arraySet(newFrame,FRAME_INDENT,indent);
+                         Kernel_arraySet(newFrame,FRAME_LOCALS,locals);
+                         Kernel_arraySet(newFrame,FRAME_TOS,tos);
+                         @For index in BOA do
+                           Kernel_arraySet(newLocals,newLocalsIndex,Kernel_arrayRef(locals,index));
+                           newLocalsIndex := newLocalsIndex + 1
+                         end;
+                         Kernel_arraySet(newFail,FAIL_FRAME,newFrame);
+                         Kernel_arraySet(newFail,FAIL_CHARPOS,scanner.charIndex());
+                         Kernel_arraySet(newFail,FAIL_TOKEN,Kernel_copy(token));
+                         Kernel_arraySet(newFail,FAIL_TYPE,type);
+                         Kernel_arraySet(newFail,FAIL_LOCALS,newLocals);
+                         Kernel_arraySet(newFail,FAIL_INDENT,indent);
+                         Kernel_arraySet(newFail,FAIL_PARSERS,bodies->tail);
+                         Kernel_arraySet(newFail,FAIL_PREV,fail);
+                         Kernel_arraySet(newFail,FAIL_STACK,Kernel_copy(stack));
+                         Kernel_arraySet(newFail,FAIL_TOS,tos);
+                         fail := newFail;
+                         frame := newFrame;
+                         locals := newLocals;
+                         indent := indent + 1;
+                         parsers := bodies->head
+                      end
+                    end
+                  end
+               end
+             end
+             
+             Terminal[terminal] do
+           
+               // Consume the current token. Fail if the current token does not
+               // match the expectation (although the table lookahead should never 
+               // allow this situation to occur).
+             
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               if not token.stringEqual(terminal)
+               then 
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{"'" + terminal + "'"}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting terminal ~S received ~S~%",Seq{indent,terminal,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               else
+                 if debug then format(stdout,"~VConsumed token ~S~%",Seq{indent,token}) end;
+                 token := null;
+                 parsers := parsers->tail
+               end
+             end
+           
+             Builtin[name] do
+           
+               // Consume the current token. Fail if the current token does not
+               // match the expectation (although the table lookahead should never 
+               // allow this situation to occur).
+             
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               if not type = self.terminalIndex(name)
+               then 
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{name}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting terminal ~S received ~S~%",Seq{indent,name,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               else
+                 if debug then format(stdout,"~VConsumed token ~S~%",Seq{indent,token}) end;
+                 Kernel_arraySet(stack,tos,Kernel_asString(token));
+                 tos := tos + 1;
+                 token := null;
+                 parsers := parsers->tail
+               end
+             end
+           
+             Name[ ] do
+           
+               // A builtin non-terminal.
+               
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               Kernel_arraySet(stack,tos,Kernel_asString(token));
+               tos := tos + 1;
+               if not type = NAME
+               then 
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{"Name"}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,tokenfailToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting a name received ~S~%",Seq{indent,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               else
+                 if debug then format(stdout,"~VConsumed name ~S~%",Seq{indent,token}) end;
+                 parsers := parsers->tail;
+                 token := null
+               end
+             end
+           
+             Int[ ] do
+           
+               // A builtin non-terminal.
+               
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               if not type = INT
+               then 
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{"Int"}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting an int received ~S~%",Seq{indent,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               else
+                 Kernel_arraySet(stack,tos,Kernel_asString(token).asInt());
+                 tos := tos + 1;
+                 if debug then format(stdout,"~VConsumed int ~S~%",Seq{indent,token}) end;
+                 parsers := parsers->tail;
+                 token := null
+               end
+             end
+           
+             Str[ ] do
+           
+               // A builtin non-terminal.
+             
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               Kernel_arraySet(stack,tos,Kernel_asString(token));
+               tos := tos + 1;
+               if not type = STR
+               then 
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{"Str"}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting a string received ~S~%",Seq{indent,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               else
+                 if debug then format(stdout,"~VConsumed str ~S~%",Seq{indent,token}) end;
+                 parsers := parsers->tail;
+                 token := null
+               end
+             end
+             
+             BindVar[name,index] do
+           
+               // Variables are positional. Pop the most recently syntheisized
+               // value and add it to the current locals frame. NB variables cannot 
+               // be bound more than once with this mechanism.
+             
+               parsers := parsers->tail;
+               Kernel_arraySet(locals,index,Kernel_arrayRef(stack,tos-1));
+               tos := tos - 1;
+               if debug then format(stdout,"~VBind ~S,~S = ~S~%",Seq{indent,name,index,Kernel_arrayRef(locals,index)}) end
+             end
+             
+             OCLAction[exp,BOA] do
+           
+               // The action is an operation show arguments are the currently bound 
+               // variables at this point in the clause (whether they are used or not
+               // in the body of the operation).
+               
+               let nameSpace = self.owner then
+                   value = Kernel_invoke(exp.op,nameSpace,BOA->iterate(i args = Seq{} | args + Seq{Kernel_arrayRef(locals,i)}),Seq{exp.op})
+               in parsers := parsers->tail;
+                  Kernel_arraySet(stack,tos,value);
+                  tos := tos + 1;
+                  if debug then format(stdout,"~VAction ~S = ~S~%",Seq{indent,exp.exp().pprint(),value}) end
+               end
+             end
+           
+             Empty[ ] do
+           
+               // Do nothing.
+             
+               parsers := parsers->tail
+             end
+           
+             NilAction[ ] do
+           
+               // A builtin action to push Seq{}.
+             
+               Kernel_arraySet(stack,tos,Seq{});
+               tos := tos + 1;
+               parsers := parsers->tail;
+               if debug then format(stdout,"~VNil~%",Seq{indent}) end
+             end
+
+             ConsAction[ ] do
+           
+               // A builtin action to pop the tail and head of a sequence from
+               // the values stack and push the cons of these values back to the
+               // values stack.
+               let tail = Kernel_arrayRef(stack,tos-1);
+                   head = Kernel_arrayRef(stack,tos-2)
+               in tos := tos-2;
+                  Kernel_arraySet(stack,tos,Seq{head|tail});
+                  tos := tos+1;
+                  parsers := parsers->tail;
+                  if debug then format(stdout,"~VCons{~S | ~S}~%",Seq{indent,head,tail}) end
+               end
+             end
+           
+             EOF[ ] do
+           
+               if token = null
+               then
+                 let scan = scanner.scan(inch)
+                 in token := scan->at(0);
+                    type := scan->at(1)
+                 end
+               end;
+               if type = EndOfFile
+               then 
+                 if debug then format(stdout,"~VEOF Succeeds~%",Seq{indent}) end;
+                 parsers := parsers->tail
+               else
+                 if debug then format(stdout,"~VFail EOF~%",Seq{indent}) end;
+                 if scanner.charIndex() > failPosition
+                 then 
+                   failPosition := scanner.charIndex();
+                   failToken := "'" + token.toString() + "'";
+                   failTokens := Seq{"EOF"}
+                 end;
+                 @While fail <> null andthen Kernel_arrayRef(fail,FAIL_PARSERS)->isEmpty do
+                   fail := Kernel_arrayRef(fail,FAIL_PREV)
+                 end;
+                 if fail = null
+                 then self.tokenExpected(scanner.processedInput(),failPosition,token,failToken,failTokens)
+                 else 
+                   if debug then format(stdout,"~VFail expecting EOF received ~S~%",Seq{indent,token}) end;
+                   frame := Kernel_arrayRef(fail,FAIL_FRAME);
+                   scanner.setCharIndex(Kernel_arrayRef(fail,FAIL_CHARPOS));
+                   stack := Kernel_arrayRef(fail,FAIL_STACK);
+                   tos := Kernel_arrayRef(fail,FAIL_TOS);
+                   token := Kernel_arrayRef(fail,FAIL_TOKEN);
+                   type := Kernel_arrayRef(fail,FAIL_TYPE);
+                   locals := Kernel_arrayRef(fail,FAIL_LOCALS);
+                   parsers := Kernel_arrayRef(fail,FAIL_PARSERS)->head;
+                   Kernel_arraySet(fail,FAIL_PARSERS,Kernel_arrayRef(fail,FAIL_PARSERS)->tail)
+                 end
+               end 
+             end
+             
+             At[ ] do
+             
+               // At means that that TOS should be a sequence of names that reference
+               // a grammar. Parsing continues with the grammar and will return to this
+               // point if the grammar succeeds. The current input source is passed
+               // to the grammar (which uses its own scanner). The value returned by
+               // the parse is pushed on the local stack and any choice points are
+               // discarded.
+               
+               tos := tos - 1;
+               let path = Kernel_arrayRef(stack,tos) then
+                   nameSpace = path->ref(imports)
+               in if nameSpace.isReallyKindOf(Classifier) andthen nameSpace.grammar() <> null
+                  then
+                    // Go ahead and parse, pass the input channel and the scanner. These
+                    // may be updated by the sub-parse...
+                    scan->head := token;
+                    scan->tail->head := type;
+                    let grammar = nameSpace.grammar()
+                    in if grammar.isKindOf(Parser::BNF::Grammar)
+                       then
+                         // Legacy grammar...
+                         format(stdout,"Enter ~S~%",Seq{path->last});
+                         let inch = ScannerInputChannel(scanner,inch) then
+                             state = Parser::Machine::State(grammar,inch)
+                         in scanner.charIndex := scanner.charIndex - token->size;
+                            Kernel_arraySet(stack,tos,state.run(path->last,imports));
+                            if state.failed then state.parseError("Syntax error.") end;
+                            tos := tos + 1
+                         end;
+                         format(stdout,"Exit ~S at ~S~%",Seq{path->last,scanner.legacyToken});
+                         
+                         // We expect that the parse has just terminated by
+                         // encountering the 'end'. Skip back over this token...
+                         if scanner.legacyToken.toString() = "end"
+                         then scanner.charIndex := scanner.charIndex - 3
+                         end;
+                         
+                         let scan = scanner.scan(inch)
+                         in token := scan->at(0);
+                            type := scan->at(1)
+                         end
+                       else
+                         // New grammar... 
+                         Kernel_arraySet(stack,tos,grammar.At(inch,path->last,self,scanner,scan,imports));
+                         token := scan->head;
+                         type := scan->tail->head;
+                         tos := tos + 1
+                       end
+                    end;
+                    failPosition := scanner.charIndex()
+                  else self.error(formats("Cannot find a grammar for ~{::~;~S~} in name spaces ~{,~;~S~}",Seq{path,imports}))
+                  end
+               end;
+               parsers := parsers->tail
+             end
+             
+             ImportAt[ ] do
+               
+               // The tos is a path that is globally imported for the scope of the current
+               // parse.
+               
+               tos := tos - 1;
+               let path = Kernel_arrayRef(stack,tos)
+               in imports := Seq{path->lookup | imports}
+               end;
+               parsers := parsers->tail
+               
+             end
+             
+             PState[ ] do
+               
+               // Push the current parse state onto the stack so
+               // that the parse can reference its current state.
+               // Do we need to push more than the scanner?
+               
+               let pState = parsers->head
+               in pState.setGrammar(self);
+                  pState.setInput(inch);
+                  pState.setScanner_(scanner);
+                  pState.setScan(scan);
+                  Kernel_arraySet(stack,tos,pState);
+                  tos := tos + 1;
+                  parsers := parsers->tail
+               end
+               
+             end
+             
+             else self.error("Unknown parser " + parsers->head)
+           end
+         end
+       end; 
+       // Return the current token in the supplied scan record in case
+       // it is needed by a parent parse...
+       scan->head := token;
+       scan->tail->head := type;
+       // Return the final result....
+       result
+      end
+  end
+  end
+  
+context Grammar
+  @Operation tokenExpected(input:String,pos:Integer,token:Buffer,failToken:String,failTokens:Seq(String))
+    if failToken = ""
+    then throw TokenExpected(input,pos,token.toString(),failTokens)
+    else throw TokenExpected(input,pos,failToken,failTokens)
+    end
+  end

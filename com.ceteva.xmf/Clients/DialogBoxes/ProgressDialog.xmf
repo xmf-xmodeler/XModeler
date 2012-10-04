@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Clients;
+
+context DialogBoxes
+
+  @Class ProgressDialog extends ContainedClientElement
+  
+    @Attribute workToBeDone : String end
+    
+    @Constructor(workToBeDone)
+    end
+        
+    @Operation new()
+      self.commandInterpreter().newProgressDialog(self)
+    end
+    
+    @Operation addWork(work,text)
+      self.commandInterpreter().addWork(self,work,text);
+      // The following loop appears to be necessary in order to delay
+      // the update of the progress bar....
+      @Count i from 0 to 10000 do i end
+    end
+    
+    @Operation finishWork(text)
+      self.commandInterpreter().finishWork(self,text);
+      let dialogs = xmf.property("progressDialogs") in
+        xmf.setProperty("progressDialogs",dialogs->excluding(self))
+      end;
+      self.dispose()
+    end
+    
+    @Operation finished()
+      self.finishWork("")
+    end
+  
+  end

@@ -1,0 +1,121 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import TextEditor;
+
+context TextEditor
+
+  @Class TextEditorClient extends Client
+  
+    @Attribute editors  : Seq(Editor) (+,-) end
+    @Attribute browsers : Seq(HTMLViewer) (+,-) end
+  
+    @Constructor(name)
+      self.setCommandInterpreter(TextCommandInterpreter());
+      self.setEventHandler(TextEventHandler())
+    end
+    
+    @Operation addEditor(editor)
+      self.editors := editors->prepend(editor);
+      editor.setOwner(self)
+    end
+    
+    @Operation removeEditor(editor)
+      if editor.isKindOf(Editor)
+      then self.editors := editors.excluding(editor)
+      else self.browsers := browsers.excluding(editor)
+      end;
+      editor.dispose()
+    end
+    
+    @Operation addBrowser(browser)
+      self.browsers := browsers->prepend(browser);
+      browser.setOwner(self)
+    end
+    
+    @Operation getBrowserForName(name:String)
+      @Find(browser,browsers)
+      when browser.name = name
+      do
+        browser
+      else
+        null
+      end
+    end
+    
+    @Operation getEditor(element)
+      let foundEditor = null
+      in
+        @For editor in editors do
+          if editor.element = element then
+            foundEditor := editor;
+            foundEditor.setFocus()
+          end
+        end;
+        @For browser in browsers do
+          if browser.name() = name then
+            foundEditor := browser;
+            foundEditor.setFocus()
+          end
+        end;
+        foundEditor
+      end
+    end
+    
+    @Operation getWelcomePage():String
+      self.commandInterpreter().getWelcomePage()
+    end
+    
+    @Operation hasBrowserForName(name:String)
+      self.getBrowserForName(name) <> null
+    end
+    
+    @Operation newBrowser(browser)
+      self.addBrowser(browser);
+      browser.new();
+      browser
+    end
+    
+    @Operation newTextEditor(editor)
+      self.addEditor(editor);
+      editor.new()
+    end
+    
+    @Operation preSave()
+      @For editor in editors do
+        editor.setOwner(null)
+      end;
+      @For browser in browsers do
+        browser.setOwner(null)
+      end
+    end
+    
+    @Operation postSave()
+      @For editor in editors do
+        editor.setOwner(self)
+      end;
+      @For browser in browsers do
+        browser.setOwner(self)
+      end
+    end
+    
+    @Operation showWelcomePage()
+      let
+        welcomePage = self.getWelcomePage() then
+        browser = HTMLViewer("Welcome",welcomePage)
+      in
+        self.newBrowser(browser)
+      end
+    end
+    
+    @Operation renew()
+      @For editor in editors do
+        editor.renew()
+      end;
+      @For browser in browsers do
+        browser.renew()
+      end
+    end
+  
+  end

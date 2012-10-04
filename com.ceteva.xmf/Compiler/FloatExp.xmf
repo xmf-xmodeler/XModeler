@@ -1,0 +1,22 @@
+import OCL;
+import Instrs;
+
+context FloatExp
+  @Operation FV():Element
+    Set{}
+  end
+
+context FloatExp
+  @Operation maxLocals():Element
+    0
+  end
+
+context FloatExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    [| Kernel_mkFloat(<StrExp(prePoint)>,<StrExp(postPoint)>) |].compile(env,frame,isLast,saveSource)
+  end
+  
+context FloatExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{StrExp(prePoint),StrExp(postPoint)})
+  end

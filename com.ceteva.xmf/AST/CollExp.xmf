@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler CollExp in AST(aCollExp,arg,seen)
+  let args = aCollExp.args->collect(x | self.dispatch(x,arg));
+      collection = self.dispatch(aCollExp.collection,arg)
+  in ASTNode(aCollExp,Seq{collection} + args)
+  end
+end;

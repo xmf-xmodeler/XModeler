@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Diagrams
+
+  @Class Movable isabstract 
+  
+    // A movable thing has a handler that is used to 
+    // detect moves...
+    
+    @Attribute moveHandler : Operation (?,!) end
+    
+    @Operation movement(newx:Integer,newy:Integer,oldx:Integer,oldy:Integer)
+      if moveHandler <> null
+      then moveHandler(newx,newy,oldx,oldy)
+      end
+    end
+    
+  end

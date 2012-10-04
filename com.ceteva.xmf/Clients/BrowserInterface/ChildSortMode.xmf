@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class ChildSortMode extends InterfaceElement
+  
+    @Attribute mode : String = "" (?) end
+    
+    @Constructor(mode) ! end
+    
+    @Grammar 
+    
+      ChildSortMode ::= mode = SortType { ChildSortMode(mode) }.
+      
+      SortType ::= 'none' { "none" } | 'alpha' { "alpha" } | 'type' { "type" } | 'alphaType' { "alphaType" }.
+      
+    end
+    
+    @Operation register(class)
+      if self.mode <> ""
+      then
+        let
+  	      registry = xmf.registry();
+  		  id = "com.ceteva.xmf.modelBrowsers.sortOp";
+          op = Clients::ModelBrowsers::ModelBrowserNode::sortNone
+        in
+          if mode = "alpha"
+          then op := Clients::ModelBrowsers::ModelBrowserNode::sortAlpha
+          elseif mode = "type"
+          then op := Clients::ModelBrowsers::ModelBrowserNode::sortType
+          elseif mode = "alphaType"
+          then op := Clients::ModelBrowsers::ModelBrowserNode::sortAlphaType
+          end;
+  		  registry.addContribution(id,Contribution(class,Seq{op}))
+  		end
+	  end
+    end
+    
+  end

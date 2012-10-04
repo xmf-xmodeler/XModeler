@@ -1,0 +1,125 @@
+parserImport XOCL;
+
+import Root::Undo;
+import Clients;
+
+context Clients
+
+  @Class ClientManager extends UndoExecutionListener
+  
+    @Attribute clients : Seq(Client) (+) end
+    @Attribute idManager : IdManager (?) end
+    //@Attribute changingNames : Boolean (?,!) end
+    @Attribute recompilingClause : Element (?,!) end
+    @Attribute saving : Boolean (?,!) end
+    @Attribute commandInterpreterCacheRegistry : SeqOfElement (+) end
+    
+    @Constructor()
+      self.idManager := IdManager();
+      //self.changingNames := false;
+      self.saving := false;
+      self.recompilingClause := null;
+      self.registerWithEngine();
+      self
+    end
+    
+    @Operation add(client)
+      self.clients := clients->prepend(client);
+      client.setOwner(self)
+    end
+    
+    @Operation allocateId(element:ClientElement)
+      idManager.allocateId(element)
+    end
+    
+    @Operation buffer()
+      @For client in clients do
+        client.buffer()
+      end
+    end
+
+    @Operation clearCommandInterpreterCacheRegistry()
+      @For element in commandInterpreterCacheRegistry do
+        element.commandInterpreter := null
+      end;
+      self.commandInterpreterCacheRegistry := Seq{}
+    end
+
+    @Operation connect()
+      @For client in clients do
+        client.connect() 
+      end
+    end
+
+    @Operation debug(debug)
+      @For client in clients do
+        client.debug(debug)
+      end
+    end
+
+    @Operation find(id)
+      idManager.find(id)
+    end
+    
+    @Operation findClient(type)
+      @Find(client,clients)
+        when client.isKindOf(type)
+        else null
+      end
+    end
+    
+    @Operation findClientByName(name)
+      @Find(client,clients)
+        when client.name = name
+        else null
+      end
+    end
+    
+    @Operation flush()
+      @For client in clients do
+        client.flush()
+      end
+    end
+    
+    @Operation preSave()
+      self.clearCommandInterpreterCacheRegistry();
+      @For client in clients do
+        client.preSave()
+      end;
+      xmf.diagramManager().preSave()
+    end
+    
+    @Operation postSave()
+      @For client in clients do
+        client.postSave()
+      end;
+      xmf.diagramManager().postSave()
+    end
+    
+    @Operation redoExecuted()
+      self.synchronise()
+    end
+
+    @Operation registerWithEngine()
+      let engine = xmf.undoEngine()
+      in
+        engine.addToExecutionlisteners(self)
+      end
+    end
+
+    @Operation removeFromCommandInterpreterCacheRegistry(element)
+      self.commandInterpreterCacheRegistry := commandInterpreterCacheRegistry->excluding(element)
+    end
+    
+    @Operation synchronise()
+      @For client in clients
+      do
+        client.synchronise()
+      end
+    end
+    
+    @Operation undoExecuted()
+      self.synchronise()
+    end
+
+  end

@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import SearchReport;
+
+context SearchReport
+
+  @Class ReportTree extends FormTree
+  
+    @Attribute result : SearchNode end
+    
+    @Constructor(x,y,width,height,result)
+      self.editable := false
+    end
+    
+    @Operation addContents()
+      self.addItem(result)
+    end
+  
+  end

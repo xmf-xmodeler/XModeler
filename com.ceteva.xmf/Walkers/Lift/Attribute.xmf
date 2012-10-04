@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Attribute in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::Attribute
+  @Operation lift():Performable
+    @TypeCase(type)
+      Seq do 
+        XOCL::Attribute(name,[| Seq(<Path::toPath(self.underlyingType().pathSeq())>) |]) 
+      end
+      Set do 
+        XOCL::Attribute(name,[| Set(<Path::toPath(self.underlyingType().pathSeq())>) |]) 
+      end
+      else XOCL::Attribute(name,Path::toPath(type.pathSeq()))
+    end
+  end

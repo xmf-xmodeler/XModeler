@@ -1,0 +1,364 @@
+// This file defines a default mapping from a package and a class in the package
+// to a complete XTool definition for a diagram editor. The intention is that
+// the source code that is produced is used as the first cut for a domain specific
+// language editor for the package. The editor will create an instance of the
+// supplied class and the associated classes in the package.
+
+parserImport XOCL;
+
+import IO;
+import Compiler;
+
+context Package
+  @Operation deployDiagramTool()
+    // Ask which class to deploy...
+    let class = xmf.select("Root Class","Select the diagram editor root class",classes->asSeq,null,null)
+    in if class <> null
+       then self.deployDiagramTool(class)
+       end
+    end
+  end
+
+context Package
+  @Operation deployDiagramTool(class:Class)
+    // Choose the directory and file name.
+    let dir = xmf.selectDirectory(xmf.projDir())
+    in if dir.fileExists()
+       then
+         let name = xmf.getString("Tool Name","Name of file and tool type.",class.name())
+         in if name <> null
+            then 
+              if self.deployDiagramTool(class,dir,name)
+              then 
+                if xmf.question("Build Tool?")
+                then
+                  compileFile(dir + "/" + name + "/Manifest",true,true);
+                  let manifest = (dir + "/" + name + "/Manifest.o").loadBin()
+                  in manifest.build(dir + "/" + name);
+                     manifest.load(dir + "/" + name);
+                     if xmf.question("Start a diagram editor?")
+                     then class().showDiagram()
+                     end;
+                     xmf.message("Deployed tool built from " + dir + "/" + name);
+                     true
+                  end
+                else 
+                  xmf.message("Tool deployed to " + dir + "/" + name);
+                  true
+                end
+              else
+                xmf.warning("Failed to deploy in directory " + dir + "/" + name);
+                false
+              end
+            else false
+            end
+         end
+       else false
+       end
+     end
+   end
+   
+context Package 
+  @Operation deployDiagramTool(class:Class,root:String,name:String)
+    let dir = root + "/" + name 
+    in if if dir.fileExists()
+          then xmf.question("Overwrite " + dir)
+          else true
+          end
+       then
+         if dir.mkDir()
+         then 
+           self.writeDiagramTool(dir,class,name);
+           true
+         else false
+         end
+       else false
+       end
+    end
+  end
+  
+context Package 
+  @Operation writeDiagramTool(dir:String,class:Class,name:String)
+  
+    // Write a diagram tool for editing instance of the supplied class 
+    // in the receiver. Only those classes reachable from the root class
+    // can be created and linked via the tool.
+    //
+    // All the main components of the XTool are written as separate
+    // files. This means that nothing gets too big causing compilation
+    // delays.
+    // 
+    // Keep the files created by the various actions in an ordered
+    // container of strings so that we can write them out as a
+    // manifest.
+    // 
+    
+    let manifest = OrderedContainer()
+    in // The tool descriptor is added to the class in the package...
+       self.writeDiagramToolDescriptor(dir,class,name,manifest);
+       // Write the tool type with node and edge types...
+       let visited = self.writeDiagramToolType(dir,class,name,manifest)
+       in // Write an event handler for the tool...
+          self.writeDiagramEventHandler(dir,class,name,visited,manifest);
+          // Write a manifest for building the XTool...
+          self.writeDiagramManifest(dir,manifest)
+       end
+    end
+  end
+  
+context Package
+  @Operation writeDiagramToolType(dir:String,class:Class,name:String,manifest:OrderedContainer)
+    
+    // A tool type defines a collection of node types and edge types. Each node and
+    // edge type must have an entry in the tool bar for the tool.
+    //
+    // A node type corresponds to a class in the package that can be reached from the
+    // root class via attributes, or is a sub-class of a reachable class. When a node
+    // immediately reachable from the root is created, the instance of the corresponding 
+    // class is added to the tool element. Otherwise instances are created and may be
+    // linked via edges.
+    //
+    // An edge type corresponds to an attribute that is traversed to arrive at reachable
+    // classes from the root class. when an edge is created the corresponding slot of 
+    // the source instance is updated to contain the target instance.
+    
+    @WithOpenFile(out -> dir + "/Type.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S::~S::~SDiagrams~%",Seq{self.path(),class.name(),name});
+      format(out,"  @ToolType Editor~%");
+      
+      // Write out the node types reachable from the supplied class. The extra argument
+      // is the set of classes that have been visited so that we do not visit the same
+      // class twice. The set of visited classes are returned so that we can write out
+      // the attributes as edges.
+      
+      let visited = self.writeNodeTypes(out,class,Set{})
+      in self.writeEdgeTypes(out,visited);
+         self.writeToolBar(out,class,visited);
+         self.writeToolMenu(out);
+         format(out,"  end~%");
+         manifest.add("Type");
+         visited
+      end
+    end
+  end
+  
+context Package 
+  @Operation writeToolMenu(out:OutputChannel)
+  
+    // Add any menu items here that should be shown when the background of the diagram
+    // is right-clicked...
+    
+    format(out,"    @Menu~%");
+    format(out,"      @MenuAction Edit tool.element().edit() end~%");
+    format(out,"    end~%")
+  end
+  
+context Package
+  @Operation writeNodeTypes(out:OutputChannel,class:Class,visited:Set(Class))
+  
+    // Write out node types for all classes reachable from the root class. The visited
+    // set ensures that we do not visit the same class twice. A class is reachable if it
+    // is a class of the package and can be reached via an attribute of the supplied
+    // root class or is a sub-class of a reachable class.
+    
+    let attributeTypes = class.allAttributes()->map("underlyingType") then
+        reachableClasses = classes->select(c | attributeTypes->exists(t | c.inheritsFrom(t)))
+    in @For c in reachableClasses do
+         // Write out the node type for the class...
+         if not visited->includes(c)
+         then 
+           c.writeNodeType(out,self);
+           // Write out nodes reachable from c...
+           visited := self.writeNodeTypes(out,c,visited->including(c))
+         end
+       end;
+       visited
+    end
+  end
+  
+context Package 
+  @Operation writeEdgeTypes(out:OutputChannel,visited:Set(Class))
+  
+    // Write out edge types for all the visited classes. Careful to filter out the
+    // attributes of each class so that the type of the attribute exists in the visited
+    // classes...
+    
+    @For source in visited do
+      @For target in visited do
+        @For attribute in source.attributes
+            when attribute.underlyingType() = target do
+          // Write out an edge type based on the attribute...
+          self.writeEdgeType(out,attribute,source,target)
+        end
+      end
+    end
+  end
+  
+context Package
+  @Operation writeEdgeType(out:OutputChannel,attribute:Attribute,source:Class,target:Class)
+    format(out,"    @EdgeType ~S ~S -> ~S targetHead = arrow~%",Seq{attribute.name(),source.name(),target.name()});
+    format(out,"      @Label label(end,10,10) \"~S\" end~%",Seq{attribute.name()});
+    format(out,"      @Menu @MenuAction Delete self.delete() end end~%");
+    format(out,"    end~%")
+  end
+  
+context Package 
+  @Operation writeToolBar(out:OutputChannel,class:Class,visited:Set(Class))
+    format(out,"    @ToolBar~%");
+    format(out,"      @ToolGroup Nodes~%");
+    self.writeNodeButtons(out,class,visited);
+    format(out,"      end~%");
+    format(out,"      @ToolGroup Edges~%");
+    self.writeEdgeButtons(out,visited);
+    format(out,"      end~%");
+    format(out,"    end~%")
+  end
+  
+context Package
+  @Operation writeNodeButtons(out:OutputChannel,class:Class,visited:Set(Class))
+    @For class in visited do
+      class.writeNodeButton(out,self)
+    end
+  end
+  
+context Package 
+  @Operation writeEdgeButtons(out:OutputChannel,visited:Set(Class))
+    @For source in visited do
+      @For target in visited do
+        @For attribute in source.attributes
+            when attribute.underlyingType() = target do
+          self.writeEdgeButton(out,attribute)
+        end
+      end
+    end
+  end
+  
+context Package
+  @Operation writeDiagramManifest(dir:String,manifest:OrderedContainer)
+    // Write the files in the order that should be loaded...
+    @WithOpenFile(out -> dir + "/Manifest.xmf")
+      format(out,"parserImport Manifests;~%~%");
+      format(out,"@Manifest Type~%");
+      @For file in manifest.contents() do
+        format(out,"  @File ~S end~%",Seq{file})
+      end;
+      format(out,"end;~%")
+    end
+  end
+  
+context Package
+  @Operation writeDiagramToolDescriptor(dir:String,class:Class,name:String,manifest:OrderedContainer)
+    @WithOpenFile(out -> dir + "/ToolDescriptor.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S~%",Seq{class.path()});
+      format(out,"  @ToolDescriptor ~SDiagrams~%",Seq{name});
+      format(out,"    @Menu
+                        @MenuAction New 
+                          ~S().showDiagram()
+                        end
+                        @MenuAction Load
+                          let file = xmf.openFile(xmf.projDir(),\"*.xml\")
+                          in if file.fileExists()
+                             then 
+                               let object = 
+                                     @WithOpenFile(fin <- file)
+                                       let xin = XMLInputChannel(fin,NameSpaceXMLInflater())
+                                       in xin.parse()
+                                       end
+                                     end
+                               in object.showDiagram()
+                               end
+                             end
+                          end
+                       end
+                     end",Seq{class.path()});
+      format(out,"  end~%");
+      manifest.add("ToolDescriptor")
+    end
+  end
+  
+context Package
+  @Operation writeDiagramEventHandler(dir:String,root:Class,name:String,visited:Set(Class),manifest:OrderedContainer)
+  
+    // Write an event handler for all the events that can occur on the diagram editor.
+    // Events include node and edge creation, and edge re-linking. Use the set of visited 
+    // classes to guide the event handler definitions...
+    
+    @WithOpenFile(out -> dir + "/ElementManager.xmf")
+      self.writeDiagramToolHeader(out);
+      format(out,"context ~S::~SDiagrams~%",Seq{root.path(),name});
+      format(out,"  @ElementManager Manager !~%");
+      format(out,"  end~%");
+      manifest.add("ElementManager")
+    end;
+    
+    // Write the handlers for the visited classes...
+    
+    self.writeDiagramHandlers(dir,root.path() + "::" + name + "Diagrams::Manager",root,visited,manifest)
+  end
+  
+context Package 
+  @Operation writeDiagramHandlers(dir:String,nameSpace:String,root:Class,visited:Set(Class),manifest:OrderedContainer)
+  
+    // Use the visited set to drive the generation of event handlers...
+    
+    @For class in visited do
+    
+      // Write a new node handler...
+      @Find(a,root.allAttributes())
+        // If this class inherits from a root attribute type
+        // then update the tool element when an instance is
+        // created via the new node event...
+        when class.inheritsFrom(a.underlyingType())
+        do class.writeNewNodeHandler(dir,nameSpace,a.name,a.type,manifest)
+        // Otherwise just create and record the new instance
+        // when the event occurs...
+        else class.writeNewNodeHandler(dir,nameSpace,"",null,manifest)
+      end;
+      
+      // Write a remove node handler...
+      @Find(a,root.allAttributes())
+        // If this class inherits from a root attribute type
+        // then update the tool element when an instance is
+        // created via the new node event...
+        when class.inheritsFrom(a.underlyingType())
+        do class.writeRemoveNodeHandler(dir,nameSpace,a.name,a.type,manifest)
+        // Otherwise just create and record the new instance
+        // when the event occurs...
+        else class.writeRemoveNodeHandler(dir,nameSpace,"",null,manifest)
+      end;
+      
+      // Write a new edge handler...
+      @For a in class.allAttributes()
+        // If the edge gives rise to a link between nodes on the
+        // diagram then write a new handler that will update the
+        // appropriate slots on the instance, and event handlers
+        // for changing the source and target nodes of the edge...
+        when classes->exists(c | c.inheritsFrom(a.underlyingType()))
+        do a.writeDiagramHandlers(dir,nameSpace,manifest)
+      end;
+      
+      // Write handlers for the basic attributes in the boxes...
+      @For a in class.attributes->select(a | a.type = String) do
+        class.writeBasicHandler(dir,nameSpace,a,manifest)
+      end
+      
+    end
+  end
+  
+context Package
+  @Operation writeDiagramToolHeader(out:OutputChannel)
+    format(out,"parserImport XOCL;~%");
+    format(out,"parserImport Tools::Basic;~%");
+    format(out,"parserImport Tools::DiagramTools::Types;~%");
+    format(out,"parserImport Tools::DiagramTools::Structure;~%");
+    format(out,"parserImport Tools::Menus;~%");
+    format(out,"parserImport Tools::Events;~%");
+    format(out,"parserImport Tools::DiagramTools::Types::DisplayTypes;~%~%");
+    format(out,"import Tools;~%");
+    format(out,"import DiagramTools;~%");
+    format(out,"import Structure;~%");
+    format(out,"import Graphs;~%");
+    format(out,"import DiagramEvents;~%~%")
+  end

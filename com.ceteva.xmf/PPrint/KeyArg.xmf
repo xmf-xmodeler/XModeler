@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler KeyArg in PPrint(aKeyArg,out,seen)
+  format(out,"~S = ",Seq{aKeyArg.name});
+  self.dispatch(aKeyArg.value,out)
+end;

@@ -1,0 +1,59 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Label extends InterfaceElement
+  
+    @Attribute isEditable : Boolean end
+    @Attribute editableTextOp : EditableTextOp end
+    @Attribute changeGuard : LabelChangeGuard end
+    @Attribute changeHandler : LabelChangeHandler end
+    
+    @Constructor() ! end
+    
+    @Grammar extends OCL::OCL.grammar import BrowserInterface
+    
+      Label ::= isEditable = IsEditable es = (Exp : Element)* {
+      
+        es->iterate(e lh = Label().isEditable := isEditable | lh.add(e))
+      
+      }.
+      
+      IsEditable ::= 'editable' {true} | 'not' 'editable' {false} | {true}.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        EditableTextOp do
+          self.editableTextOp := element
+        end
+        LabelChangeGuard do
+          self.changeGuard := element
+        end
+        LabelChangeHandler do
+          self.changeHandler := element
+        end
+      end
+    end
+    
+    @Operation register(class:Class)
+      xmf.registry().addContribution("com.ceteva.xmf.labels.editable",
+                                     Contribution(class,Seq{isEditable}));
+      if self.editableTextOp <> null
+      then editableTextOp.register(class)
+      end;
+      if self.changeGuard <> null
+      then changeGuard.register(class)
+      end;
+      if self.changeHandler <> null
+      then changeHandler.register(class)
+      end
+    end
+    
+  end

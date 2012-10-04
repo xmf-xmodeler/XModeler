@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Or extends Instr
+  
+    @Operation toString():String
+      "<Or>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+
+  end

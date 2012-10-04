@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Parser;
+import BNF;
+
+context BNF
+
+  @Class Chars extends Char
+	
+	@Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::Chars() |]
+	end
+	
+  end

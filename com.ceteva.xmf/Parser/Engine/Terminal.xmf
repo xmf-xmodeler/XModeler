@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Terminal
+    @Operation nullable(grammar):Boolean
+       false
+    end
+    
+context Terminal
+    @Operation first(grammar)
+      Set{terminal}
+    end

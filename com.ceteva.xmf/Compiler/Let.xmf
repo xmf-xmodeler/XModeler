@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+  
+context Let
+  @Operation FV():Set(String)
+    bindings->iterate(binding FV = body.FV()->reject(name | bindings->exists(b | b.name = name)) |
+      FV->union(binding.value.FV()))
+  end
+
+context Let
+  @Operation maxLocals():Element
+    let valueMaxLocals = bindings->collect(b | b.value.maxLocals())->max; 
+        bindingMaxLocals = bindings->size; 
+        bodyMaxLocals = body.maxLocals()
+    in valueMaxLocals.max(bindingMaxLocals + bodyMaxLocals)
+    end
+  end
+
+context Let
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let valueCode = bindings->reverse->collect(b |
+           b.value.compile(env,frame,false,saveSource))->flatten; 
+        letEnv = env.allocateLocals(bindings->collect(b |
+          b.name),env.maxLocal())
+    in valueCode + letEnv.setLocalsCode(bindings->collect(b | b.name)) + body.compile(letEnv,frame,isLast,saveSource)
+    end
+  end
+  
+context Let
+  @Operation lift()
+    Apply(self.typeExp(),Seq{bindings.lift(),body.lift()})
+  end

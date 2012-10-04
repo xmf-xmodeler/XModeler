@@ -1,0 +1,10 @@
+@Manifest 
+  @Project XCore Root::XCore XMFHOME ""    end
+  @Project Root::Exceptions  XMFHOME ""    end
+  @Project Channels Root::IO XMFHOME ""    end
+  @Project Root::Comms       XMFHOME ""    end
+  @Project Root::Lib         XMFHOME ""    end
+  @Project Root::Stacks      XMFHOME "Lib" end
+  @Project Root::Graphs      XMFHOME "Lib" end
+  @Project Root::Arrays      XMFHOME "Lib" end
+end

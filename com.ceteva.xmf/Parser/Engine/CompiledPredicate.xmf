@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class CompiledPredicate extends Predicate
+    
+    @Attribute op : Operation end
+    
+    @Constructor(predicate,op,source) end
+    
+    @Operation setOwner(owner)
+      super(owner);
+      op.owner := owner
+    end
+    
+  end
+    

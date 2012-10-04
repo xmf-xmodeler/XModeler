@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Client Plug-in
+Bundle-SymbolicName: com.ceteva.client;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-ClassPath: .
+Bundle-Activator: com.ceteva.client.ClientPlugin
+Bundle-Vendor: Ceteva
+Bundle-Localization: plugin
+Export-Package: com.ceteva.client,
+ com.ceteva.client.xml
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.ui,
+ com.ceteva.xmf
+Eclipse-BundleShape: dir
+Eclipse-AutoStart: true

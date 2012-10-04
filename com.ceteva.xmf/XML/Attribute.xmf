@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+context XML
+
+  @Class Attribute
+  
+    @Doc
+      An XML element attribute. The name and the value are both strings.
+    end
+  
+    @Attribute name : String end
+    @Attribute value : String (!) end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation print(out)
+      format(out,"~S='~X'",Seq{name,value})
+    end
+    
+  end

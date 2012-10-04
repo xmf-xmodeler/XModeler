@@ -1,0 +1,278 @@
+// This is an important file showing a reference implementation for diagram tools.
+// All diagram tools are based on graphs with nodes and edges. The graph is 
+// interpreted in terms of a domain model instance. Changes to the graph change the
+// domain model instance and vice versa. In order for all the various changes to
+// be handled correctly some key technical steps are required. This file provides
+// an annotated example that covers all the key technical steps that allow
+// diagrams (>= 1) over the same domain model instance to be consistent.
+//
+// The domain model is just graphs since the detail of the domain is not important
+// in understanding the key features. Note that there may be multiple diagrams
+// over the same graph. Changes to the diagram change the graph and vice versa.
+// Multiple diagrams are synchronized by raising an event that changes the graph
+// which raises n event in all tools that are observing the graph and therefore
+// changing the diagram managed by the tool.
+//
+// Domain model instances can be transformed fairly easily into populated tool
+// instances. This file provides an example of an operation added to graphs
+// that creates and populates a diagram tool. The basic showDiagram operation is
+// specialized to populate the diagram that is created.
+//
+// Use this file as a template when creating your own diagram tools. It is useful
+// in order to check off the main technical steps if you want the model and diagrams
+// to be consistent. Note that you may not require all of these features, for 
+// example you may use a diagram tool as a model constructor but not a model editor.
+// You may not need the diagram to change whenever the model changes or vice 
+// versa.
+// Copyright (c) Ceteva Ltd 2005,2006.
+
+parserImport XOCL;
+parserImport Tools::Basic;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs; 
+import DiagramEvents;
+
+@ToolDescriptor Graph::GraphEditor
+end;
+  
+  // Define a new tool type in the global name space...
+  @ToolType Graph::GraphEditor::Editor
+    // Nodes have ports (so they can be linked via edges)...
+    @NodeType Node(hasport)
+      // A node has a label attribute of type Text with default "label"...
+      @Text label "label" end
+      // A node has a delete menu action. Note that 'self' refers to the
+      // menu container (i.e. the node)...
+      @Menu
+        @MenuAction Delete self.delete() end
+      end
+    end
+    // Edges can be attached between nodes and have arrow at the target...
+    @EdgeType Edge Node -> Node targetHead = arrow 
+      // An edge has an attribute named label with default contents "label"...
+      @Label label(end,10,10) "label" end
+      // An edge can be deleted...
+      @Menu
+        @MenuAction Delete self.delete() end
+      end
+    end
+    // The tool bar allows nodes and edges to be created...
+    @ToolBar 
+      @ToolGroup Operations
+        @ToolButton Node          icon = "Tools/Node.gif" end
+        @ToolButton Edge   isEdge icon = "Tools/Edge.gif"     end
+      end
+    end
+end;
+
+@ElementManager Graph::GraphEditor::Manager
+  @EventHandler New_Node()
+    let node = Graphs::Node("label")
+    in register(event.node(),node);
+       register(node,event.node());
+       node.observeBy(event.tool());
+       event.tool().element().add(node)
+     end
+  end
+end;
+  
+@EventHandler Graph::GraphEditor::Manager::NewEdge()
+    let edge = Graphs::Edge("label",find(event.source()),find(event.target()))
+    in register(edge,event.edge());
+       register(event.edge(),edge);
+       edge.observeBy(event.tool());
+       event.tool().element().add(edge)
+    end
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Node_Removed()
+    event.tool().element().remove(find(event.node()))
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Edge_Removed()
+    event.tool().element().remove(find(event.edge()))
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Node_label_Changed()
+    let node = find(event.root())
+    in node.setData(event.new())
+    end
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Edge_label_Changed()
+    let edge = find(event.edge())
+    in edge.setData(event.new())
+    end
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Edge_Target_Changed()
+    let edge = find(event.edge());
+        target = find(event.new())
+    in edge.setTarget(target)
+    end
+  end;
+  
+@EventHandler Graph::GraphEditor::Manager::Edge_Source_Changed()
+    let edge = find(event.edge());
+        source = find(event.new())
+    in edge.setSource(source)
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Graph) nodes +
+    @WithoutEvents(tool)
+      @For newNode in new do
+        if find(newNode) = null
+        then 
+          let toolNode = tool.newNode("Node",10,10)
+          in register(newNode,toolNode);
+             register(toolNode,newNode);
+             newNode.observeBy(tool);
+             toolNode.ref1(Seq{"label"}).setText(newNode.data())
+          end
+        end
+      end
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Graph) nodes -
+    @WithoutEvents(tool)
+    format(stdout,"nodes - ~S ~S~%",Seq{new,old});
+      @For oldNode in old do
+        if find(oldNode) <> null
+        then
+          find(oldNode).delete(); 
+          deregister(find(oldNode));
+          deregister(oldNode)
+        end
+      end
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Graph) edges +
+    @WithoutEvents(tool)
+      @For newEdge in new do
+        if find(newEdge) = null
+        then 
+          let source = find(newEdge.source()).port();
+              target = find(newEdge.target()).port() then
+              toolEdge = tool.newEdge("Edge",source,target)
+          in register(newEdge,toolEdge);
+             register(toolEdge,newEdge);
+             newEdge.observeBy(tool);
+             toolEdge.ref("label").textChanged(newEdge.data())
+          end
+        end
+      end
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Graph) edges -
+    @WithoutEvents(tool)
+      @For oldEdge in old do
+        if find(oldEdge) <> null
+        then 
+          find(oldEdge).delete();
+          deregister(find(oldEdge));
+          deregister(oldEdge)
+        end
+      end
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Node) data !
+    @WithoutEvents(tool)
+      find(object).ref1(Seq{"label"}).setText(new)
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Edge) data !
+    @WithoutEvents(tool)
+      find(object).ref("label").textChanged(new)
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Edge) source !
+    @WithoutEvents(tool)
+      let toolEdge = find(object);
+          new = find(new);
+          old = find(old)
+      in toolEdge.sourceReconnected(new.port())
+      end
+    end
+  end;
+  
+@Observer Graph::GraphEditor::Manager(Edge) target !
+    @WithoutEvents(tool)
+      let toolEdge = find(object);
+          new = find(new);
+          old = find(old)
+      in toolEdge.targetReconnected(new.port())
+      end
+    end
+  end;
+  
+context Graph
+  @Operation showDiagram()
+    // A graph is transformed into a tool.
+    let tool = super()
+    in @Busy("Generating Tool")
+         // Don't bother drawing the diagram while the tool is under construction...
+         @WithoutRendering(tool.diagram())
+           // Suppress events while the tool is under construction...
+           tool.setHandleEvents(false);
+           // Add the nodes...
+           @For node in nodes do
+             node.toTool(tool)
+           end;
+           // Add the edges...
+           @For edge in edges do
+             edge.toTool(tool)
+           end;
+           // Restart events...
+           tool.setHandleEvents(true)
+         end
+       end
+    end
+  end
+  
+context Graphs::Node
+  @Operation toTool(tool:Tool)
+    // Create a new instance of the Node type in the tool...
+    let node = Graph::GraphEditor::Editor.nodeType("Node").new(10,10,tool);
+        // The env is used to pass in a context of types...
+        env = Env::NullEnv()
+    in // Set the node label...
+       node.ref1(Seq{"label"}).setText(data);
+       // Register the elements with the tool...
+       tool.register(node,self);
+       tool.register(self,node);
+       // Observe changes in the new node...
+       self.observeBy(tool)
+    end
+  end
+  
+context Graphs::Edge
+  @Operation toTool(tool:Tool)
+    // Create a new instance of the Edge edge type. The 'new' operation
+    // is supplied with a source and target port and the tool...
+    let source = tool.find(source).port();
+        target = tool.find(target).port() then
+        edge = Graph::GraphEditor::Editor.edgeType("Edge").new(source,target,tool)
+    in // Set the label on the edge...
+       edge.ref("label").textChanged(data);
+       // Register the elemnts with the tool...
+       tool.register(self,edge);
+       tool.register(edge,self);
+       // Observe changes to the edge...
+       self.observeBy(tool)
+    end
+  end

@@ -1,0 +1,84 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XSync;
+import Syntax;
+
+context Syntax
+
+  @Class Rule
+  
+    @Attribute name       : String       (?) end
+    @Attribute precedence : Integer      (?) end
+    @Attribute patterns   : Seq(Pattern) (?,+) end
+    @Attribute body       : Performable  (?) end
+    
+    @Constructor(name,precedence,body) ! end
+    
+    @Constructor(name,precedence,patterns,body) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Rule ::= name = Name precedence = Int patterns = SyncPatterns 'do' body = Exp {
+        Rule(name,precedence,patterns,body)
+      }.
+      
+      SyncPatterns ::= p = SyncPattern ps = (';' SyncPattern)* { Seq{p | ps} }.
+      
+      SyncPattern ::= o = ObjectPattern ('when' c = LogicalExp { GuardedPattern(c,o) } | { o } ).
+      
+      ObjectPattern ::= BindingObjectPattern | BasicObjectPattern | NegatedObjectPattern.
+      
+      BindingObjectPattern ::= n = Name '=' p = ObjectPath '[' s = Slots ']' { ObjectPattern(false,n,p,s) }.
+      
+      BasicObjectPattern ::= p = ObjectPath '[' s = Slots ']' { ObjectPattern(false,"",p,s) }.
+      
+      NegatedObjectPattern ::= '~' p = ObjectPath '[' s = Slots ']' { ObjectPattern(true,"",p,s) }.
+      
+      ObjectPath ::= n = Name ns = ('::' Name)* { Seq{n | ns} }.
+      
+      Slots ::= s = Slot ss = (',' Slot)* { Seq{s | ss} } | { Seq{} }.
+      
+      Slot ::= n = Name '=' v = Value { SlotPattern(n,v) }.
+      
+      Value ::= n = Name { Var(n) } | s = Str { Const(s) } | i = Int { Const(i) } | b = Bool { Const(b) }.
+      
+    end
+    
+    @Operation add(e:Element):Rule
+      if e.isKindOf(Pattern)
+      then self.addToPatterns(e)
+      else self
+      end
+    end
+    
+    @Operation network():Gamma
+      Gamma(name,precedence,body,self.patternsToNode(patterns))
+    end
+    
+    @Operation patternsToNode(patterns:Seq(Pattern)):Node
+      @Case patterns of
+        Seq{} do
+          self.error("There must be at least one pattern in a rule: " + name)
+        end
+        Seq{pattern} do
+          pattern.createNode()
+        end
+        else 
+          let pattern = patterns->last
+          in Beta(pattern.negated(),self.patternsToNode(patterns->butLast),Alpha(pattern))
+          end
+      end
+    end
+    
+    @Operation source()
+      let nameExp = StrExp(name);
+          precExp = IntExp(precedence);
+          patExps = SetExp("Seq",patterns->collect(p | StrExp(p.source())));
+          bodyExp = StrExp(body.pprint())
+      in [| RuleSource(<nameExp>,<precExp>,<patExps>,<bodyExp>) |]
+      end
+    end
+    
+  end

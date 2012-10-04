@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class RightClickableWithElement isabstract extends RightClickable, ElementViewer
+
+    @Operation buildGlobalMenu()
+      // over-ride this in sub-classes if necessary
+      let newMenu = super();
+          type = element.of();
+          clientType = self.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(newMenu,type,clientType,
+                                                  RightClickableWithElement::elementTarget);
+        newMenu
+      end
+    end
+    
+    @Operation elementTarget()
+      element
+    end
+
+    @Operation globalMenu()
+      let type = element.of();
+          clientType = self.of()
+      in
+        self.menuKey := Set{type,clientType};
+        super()
+      end
+    end
+
+  end

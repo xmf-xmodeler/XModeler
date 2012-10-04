@@ -1,0 +1,50 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+
+context Diagrams
+
+  @Class Selectable isabstract 
+  
+    // A selectable thing has a selection handler and a deselection
+    // handler.
+    
+    @Attribute selectionHandler   : Operation (?,!) end
+    @Attribute deselectionHandler : Operation (?,!) end
+    
+    @Operation deselect()
+    
+      // Only fire an event if the state changes
+      
+      if self.selected()
+      then 
+        super();
+        self.handleDeselection()
+      end
+    end
+    
+    @Operation handleSelection()
+      if selectionHandler <> null
+      then selectionHandler()
+      end
+    end
+    
+    @Operation handleDeselection()
+      if deselectionHandler <> null
+      then deselectionHandler()
+      end
+    end
+    
+    @Operation select()
+    
+      // Only fire an event if the state changes
+      
+      if not self.selected()
+      then 
+        super();
+        self.handleSelection()
+      end
+    end
+    
+  end

@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+import Clients;
+import SearchReport;
+import IO;
+import XmfFileTree;
+import XmfTextEditor;
+
+context XmfFileTree
+
+  // these two methods need factoring out into Extensions
+
+  @Class XmfFile extends File
+  
+    // check to see if the file is being edited, if so focus is given to the file and the user
+    // is warned that the editor will be closed and unsaved changes lost
+  
+    @Operation checkOpenAndUnsaved()
+      if xmf.fileEditorManager().showEditorForFile(self)
+      then
+        xmf.question("Moving the file will involve closing the editor and any unsaved changes lost\nAre you sure?")
+      else
+        true
+      end
+    end
+  
+    @Operation moveFile()
+      if self.checkOpenAndUnsaved() then
+        let target = xmf.selectDirectory(self.owner.fullPath())
+        in
+          if target <> "" then
+            self.move(target)
+          end
+        end
+      end
+    end
+    
+    @Operation renameActualFile(newName)
+      let exists = self.fullPath().renameFile(self.path() + "/" + newName) in
+        if exists then
+        
+          // the filename change may result in a new file type therefore we
+          // fool the browser into thinking the file has been deleted and then
+          // force a refresh which will ensure the file type reflects the
+          // underlying type.  This sould be generalised in any rewrite of
+          // browsers to be a more efficent mechanism.
+          
+          let owner = self.owner
+          in
+            owner.remove(self);
+            owner.refreshFileTree()
+          end
+        end
+      end;
+      self
+    end
+  
+    @Operation search()
+      let pattern = xmf.getString("Search File","Type a literal string","")
+      in if pattern <> null
+         then 
+           let dialog = xmf.busy("Searching") then
+               position = self.search(pattern)
+           in if position <> null
+              then 
+                mapResourcePosition(position).edit(pattern);
+                dialog.finished()
+              else 
+                dialog.finished();
+                xmf.message("No results found for \"" + pattern + "\"")
+              end
+           end
+         end
+      end
+    end
+    
+  end

@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class ClipboardSource
+
+    @Attribute element : Element (?,!) end
+    @Attribute parent : Element (?,!) end
+    @Attribute cutCopyHandler : CutCopyHandler (?,!) end
+    @Attribute validContributions : Seq(ExtensionPoints::Contribution) (?,!,+,-) end
+
+    @Constructor(element,parent,cutCopyHandler)
+    end
+
+    @Operation acceptCut()
+      CutCopyHandler::acceptCut(self)
+    end
+    
+    @Operation cut()
+      CutCopyHandler::handleCut(self)
+    end
+    
+  end

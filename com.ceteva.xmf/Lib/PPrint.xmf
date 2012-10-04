@@ -1,0 +1,196 @@
+parserImport XOCL;
+parserImport Aspects;
+
+import IO;
+
+@Aspect PPrint
+
+  @Class Element
+  
+    @Operation pprint()
+      self.pprint(stdout)
+    end
+  
+    @Operation pprint(out):Integer
+      self.pprint(out,0,0,Table(100),0)
+    end
+    
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      self.pprintElement(out,depth,width,circle,indent)
+    end
+  
+    @Operation pprintElement(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      if depth > xmf.preference("pprintDepth")
+      then
+        format(out,"...");
+        width + 3
+      elseif circle.hasKey(self)
+      then 
+        format(out,"###");
+        width + 3
+      else 
+        let string = self.toString()
+        in format(out,"~S",Seq{string});
+           width + string->size
+        end
+      end
+    end
+    
+  end
+  
+  @Class Classifier
+  
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      self.pprintElement(out,depth,width,circle,indent)
+    end
+    
+  end
+  
+  @Class Object
+  
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      if depth > xmf.preference("pprintDepth")
+      then
+        format(out,"...");
+        width + 3
+      elseif circle.hasKey(self)
+      then 
+        format(out,"###");
+        width + 3
+      else
+        circle.put(self,true);
+        let name = self.of().name() then
+            width = width + name->size + 1
+        in format(out,"~S[",Seq{name});
+           indent := width;
+           @For slot in self.getStructuralFeatureNames() do
+             let value = self.get(slot)
+             in format(out,"~S = ",Seq{slot});
+                width := width + slot->size + 3;
+                width := value.pprint(out,depth,width,circle,indent+xmf.preference("pprintIndent"));
+                if not isLast
+                then
+                  format(out,",");
+                  width := width + 1
+                end;
+                if width > xmf.preference("pprintWidth")
+                then 
+                  format(out,"~%~V",Seq{indent});
+                  width := indent
+                end
+             end
+           end;
+           format(out,"]");
+           width+1
+        end
+      end
+    end
+    
+  end
+  
+  @Class SeqOfElement
+  
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      if depth > xmf.preference("pprintDepth")
+      then
+        format(out,"...");
+        width + 3
+      elseif circle.hasKey(self)
+      then 
+        format(out,"###");
+        width + 3
+      elseif self.isProperSequence()
+      then self.pprintProperSequence(out,depth,width,circle,indent)
+      else self.pprintPair(out,depth,width,circle,indent)
+      end
+    end
+    
+    @Operation pprintProperSequence(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      circle.put(self,true);
+      format(out,"Seq{");
+      indent := width + 4;
+      width := width + 4;
+      @For value in self do
+        width := value.pprint(out,depth,width,circle,indent);
+        if not isLast
+        then
+          format(out,",");
+          width := width + 1
+        end;
+        if width > xmf.preference("pprintWidth")
+        then 
+          format(out,"~%~V",Seq{indent});
+          width := indent
+        end
+      end;
+      format(out,"}");
+      width+1
+    end
+        
+    @Operation pprintPair(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      circle.put(self,true);
+      format(out,"Seq{");
+      width := width + 4;
+      indent := width + 4;
+      width := self->head.pprint(out,depth,width,circle,indent);
+      format(out,"|");
+      width := width + 1;
+      width := self->head.pprint(out,depth,width,circle,indent);
+      format(out,"}");
+      width + 1
+    end
+    
+  end
+  
+  @Class SetOfElement
+  
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      if depth > xmf.preference("pprintDepth")
+      then
+        format(out,"...");
+        width + 3
+      elseif circle.hasKey(self)
+      then 
+        format(out,"###");
+        width + 3
+      end;
+      self.pprintElements(out,depth,width,circle,indent)
+    end
+    
+    @Operation pprintElements(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      format(out,"Set{");
+      indent := width + 4;
+      width := width + 4;
+      @For value in self do
+        width := value.pprint(out,depth,width,circle,indent);
+        if not isLast
+        then
+          format(out,",");
+          width := width + 1
+        end;
+        if width > xmf.preference("pprintWidth")
+        then 
+          format(out,"~%~V",Seq{indent});
+          width := indent
+        end
+      end;
+      format(out,"}");
+      width+1
+    end
+    
+  end
+  
+  @Class Operation
+  
+    @Operation pprint(out:OutputChannel,depth:Integer,width:Integer,circle:Table,indent:Integer):Integer
+      self.pprintElement(out,depth,width,circle,indent)
+    end
+    
+  end
+  
+  
+end;
+
+xmf.definePreference("pprintDepth",10,Integer,false);
+xmf.definePreference("pprintWidth",80,Integer,false);
+xmf.definePreference("pprintIndent",2,Integer,false);

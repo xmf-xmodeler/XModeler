@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+// Introduces an extension point for storing clipboard registry contributions
+
+let 
+  registry = xmf.registry();
+  
+  clipboardCutId      = "com.ceteva.xmf.clipboard.cut";
+  clipboardPasteId    = "com.ceteva.xmf.clipboard.paste";
+  clipboardDragId     = "com.ceteva.xmf.clipboard.drag";
+  clipboardDropId     = "com.ceteva.xmf.clipboard.drop"
+then
+  clipboardCutPoint   = MultipleExtensionPoint(clipboardCutId);
+  clipboardPastePoint = MultipleExtensionPoint(clipboardPasteId);
+  clipboardDragPoint  = MultipleExtensionPoint(clipboardDragId);
+  clipboardDropPoint  = MultipleExtensionPoint(clipboardDropId)
+in
+  registry.addExtensionPoint(clipboardCutPoint);
+  registry.addExtensionPoint(clipboardPastePoint);
+  registry.addExtensionPoint(clipboardDragPoint);
+  registry.addExtensionPoint(clipboardDropPoint)
+end;

@@ -1,0 +1,177 @@
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class For extends Sugar
+  
+    @Doc
+      A for loop selects elements from a sequence in turn and 
+      performs an action. The for directives can be used to indicate
+      looping through a collection or parts of a table. Using the
+      directives for tables can be much more efficient because an
+      intermediate collection is not constructed. 
+    end
+     
+     @Attribute name      : String end        // The controlled variable.
+     @Attribute directive : String end        // The type of for loop. 
+     @Attribute guard     : Performable end   // A guard on the bound element (null = true).
+     @Attribute coll      : Performable end   // The collection.
+     @Attribute body      : Performable end   // The body performed in the scope of 'name'.
+     
+     @Constructor(name,directive,coll,guard,body) ! 
+       @Doc
+         The name is a string and names each successive element in the collection.
+         The directive is a string and may be 'in', 'inTableKeys', 'inTableValues',
+         or 'classifiedBy'. The latter directive searches the XMF heap for objects
+         of the given type and performes the (possibly guarded) body for each object.
+         The directive is used to declare whether we are looping through a collection,
+         or some values in a table. Coll is a sequence values expression and body is 
+         an arbitrary expression that will be evaluated for its side effect. The
+         guard is used to filter the selected elements.
+       end
+     end
+     
+     @Constructor(name,directive,coll,body) end
+      
+     @Constructor(name,coll,body)
+       self.directive := "in"
+     end
+     
+     @Operation desugar() 
+       @Case directive of
+         "classifiedBy" do
+           self.desugarClassifiedBy()
+         end
+         "in" do 
+           self.desugarInSeq() 
+         end
+         "inTableKeys" do 
+           self.desugarInTableKeys() 
+         end
+         "inTableValues" do 
+           self.desugarInTableValues() 
+         end
+         "inSeq" do 
+           self.desugarInSeq() 
+         end
+         else self.error("Unknown for directive: " + directive)
+       end
+     end
+     
+     @Operation desugarClassifiedBy()
+     
+       let g = if guard = null then [| true |] else guard end
+       in [| let forWalker = Walkers::Find(@Operation(o) o.isReallyKindOf(<coll>) end)
+             in forWalker.walk(Root,null);
+                @For <name> in forWalker.results() when <g> do 
+                  <body> 
+                end
+             end 
+          |]
+       end
+       
+     end
+     
+     @Operation desugarIn()
+     
+       // Obsolete...
+       
+       [| let forColl = <coll>;
+              isFirst = true
+          in @While not forColl->isEmpty do
+               let <name> = forColl->sel
+               in forColl := forColl->excluding(<Var(name)>);
+                  let isLast = forColl->isEmpty
+                  in <body>;
+                     isFirst := false
+                  end
+               end
+             end
+          end
+        |]
+     end
+     
+     @Operation desugarInSeq()
+       [| let forColl = <coll>->asSeq;
+              isFirst = true
+          in @While not forColl->isEmpty do
+               let <name> = forColl->head
+               in forColl := forColl->tail;
+                  let isLast = forColl->isEmpty
+                  in <self.protect(body)>;
+                     isFirst := false
+                  end
+               end
+             end
+          end
+        |]
+     end
+     
+     @Operation desugarInTableKeys()
+       [| let forTable = <coll>
+          in @Count forIndex from 0 to forTable->size do
+               let forBucket = forTable.ref(forIndex)
+               in @For forCell in forBucket do
+                    let <name> = forCell->head;
+                        isFirst = isFirst and forIndex = 0;
+                        isLast = isLast and (forIndex = forTable->size - 1)
+                    in <self.protect(body)>;
+                       isFirst := false
+                    end
+                  end
+               end
+             end
+          end 
+        |]
+      end
+      
+      @Operation desugarInTableValues()
+       [| let forTable = <coll>
+          in @Count forIndex from 0 to forTable->size do
+               let forBucket = forTable.ref(forIndex)
+               in @For forCell in forBucket do
+                    let <name> = forCell->tail;
+                        isFirst = isFirst and forIndex = 0;
+                        isLast = isLast and (forIndex = forTable->size - 1)
+                    in <self.protect(body)>;
+                       isFirst := false
+                    end 
+                  end
+               end
+             end
+          end
+        |]
+      end 
+                    
+     @Operation lift():Performable
+       let nameExp = if name.isKindOf(Drop) then name.lift() else StrExp(name) end
+       in Apply(self.typeExp(),Seq{nameExp,StrExp(directive),coll.lift(),guard.lift(),body.lift()})
+       end
+     end
+     
+     @Operation pprint(out,indent)
+      format(out,"@For ~S ~S ",Seq{name,directive});
+      coll.pprint(out,indent);
+      if guard <> null
+      then 
+        format(out," when ");
+        guard.pprint(out,indent)
+      end;
+      format(out," do~%~V",Seq{indent + 2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation protect(exp:Performable)
+      // If the guard is defined then check it before performing
+      // the expression. Otherwise perform the expression.
+      if guard = null
+      then exp
+      else [| if <guard> then <exp> end |]
+      end
+    end
+     
+  end 

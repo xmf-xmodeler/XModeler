@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class Tail extends Instr
+  
+    @Operation toString():String
+      "<Tail>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+
+  end
+  

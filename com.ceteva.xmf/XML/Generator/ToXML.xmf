@@ -1,0 +1,121 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XML;
+import XOCL;
+import OCL;
+import Generator;
+import Root::Parser::BNF;
+
+context Generator
+
+  @Class ToXML extends Sugar
+  
+    @Attribute name        : String end
+    @Attribute id          : String end
+    @Attribute tag         : String end
+    @Attribute refTag      : String end
+    @Attribute attMaps     : Seq(AttributeMap) end
+    @Attribute elementMaps : Seq(ElementMap) end
+    
+    @Constructor(name,tag,refTag,id,attMaps,elementMaps) 
+      @For map in elementMaps do
+        map.setMapName(name)
+      end
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      ToXML ::= 
+      
+        name = OptionalName '(' tag = Name id = OptionalId refTag = OptRefTag ')' attMaps = AttMaps elementMaps = WrappedMap*
+      
+        { ToXML(name,tag,refTag,id,attMaps,elementMaps) }.
+        
+      AttMaps ::= 
+      
+        '[' attMap = AttMap attMaps = (',' AttMap)* { Seq{attMap | attMaps} }  ']' 
+        
+      | '[]' { Seq{} }.
+      
+      AttMap ::= 
+        
+        test = AttMapTest name = Name { AttributeMap(test,name,Var(name)) } |
+        test = AttMapTest XMLName = Name '=' exp = Exp { AttributeMap(test,XMLName,exp) }.
+      
+      AttMapTest ::= '?' Exp | { [| true |] }.
+      
+      OptionalName ::= 
+      
+        Name 
+        
+      | { "toXML" }.
+      
+      OptionalId ::=
+      
+        ',' Name
+        
+      | { "" }.
+      
+      OptRefTag ::= ',' Name | { "" }.
+      
+      WrappedMap ::= startTag = StartTag map = WrappedMap endTag = EndTag { WrappedMap(startTag,map,endTag) } | ElementMap.
+      
+      StartTag ::= '<' n = Name '>' { n }.
+      
+      EndTag ::= '</' n = Name '>' { n }.
+      
+      ElementMap ::= map = (Just | Ref) ('*' map = { Map(map) } ('*' map = { Join(map) })* { map } | { map }).
+      
+      Just ::= name = Name { Just(name) }.
+        
+      Ref ::= 'Ref' '(' tag = Name ',' ref = Name ',' att = Name ')' { Ref(tag,ref,att) }.
+      
+    end
+    
+    @Operation desugar()
+      if refTag = ""
+      then self.desugarNoRef()
+      else self.desugarRef()
+      end
+    end
+    
+    @Operation desugarNoRef()
+      [| @Operation <name>(idTable)
+           idTable.ref(self);
+           XML::Element(<StrExp(tag)>,<self.desugarAttributeMaps()>,<self.desugarElementMaps()>)
+         end
+      |]
+    end
+    
+    @Operation desugarRef()
+      [| @Operation <name>(idTable)
+           if idTable.hasId(self)
+           then XML::Element(<StrExp(refTag)>,Set{XML::Attribute("id",idTable.ref(self))})
+           else 
+             idTable.ref(self);
+             XML::Element(<StrExp(tag)>,<self.desugarAttributeMaps()>,<self.desugarElementMaps()>)
+           end
+         end
+      |]
+    end
+    
+    @Operation desugarAttributeMaps()
+      let initialExp =
+        if id = ""
+        then [| Set{} |]
+        else [| Set{idTable.idAttribute(self,<StrExp(id)>)} |]
+        end
+      in attMaps->iterate(map exp = initialExp | 
+           [| <exp> + <map.desugar()> |]) 
+      end
+    end
+    
+    @Operation desugarElementMaps()
+      elementMaps->iterate(map exp = [| Seq{} |] |
+        [| <exp> + <map.desugar()> |])
+    end
+    
+  end
+  
+    

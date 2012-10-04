@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+// *** FILE EDITOR HANDLERS ***
+
+// The following file types are handled by the default editor
+// for the time being, given time they will have their own editors
+// with syntax highlighting etc.
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.textEditors.handler"
+in
+  registry.addContribution(id,
+    StringContribution("txt",Seq{
+      Clients::TextEditor::FileTextEditor
+    }));
+  registry.addContribution(id,
+    StringContribution("java",Seq{
+      Clients::TextEditor::FileTextEditor
+    }));
+  registry.addContribution(id,
+    StringContribution("adb",Seq{
+      Clients::TextEditor::FileTextEditor
+    }));
+  registry.addContribution(id,
+    StringContribution("xml",Seq{
+      Clients::TextEditor::HTMLFileViewer
+    }));
+  registry.addContribution(id,
+    StringContribution("html",Seq{
+      Clients::TextEditor::HTMLFileViewer
+    }))       
+end;
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.xmf.modelBrowsers.icons"
+in
+  registry.addContribution(id,Contribution(Manifests::File,Seq{@Operation() if self.stale() then "FileBrowser/StaleFile" else "FileBrowser/File" end  end}));
+  registry.addContribution(id,Contribution(Manifests::Manifest,Seq{@Operation() if self.stale() then "FileBrowser/StaleFolder" else "FileBrowser/Manifest" end  end}))
+end;

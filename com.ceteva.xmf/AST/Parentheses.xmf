@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Parentheses in AST(aParentheses,arg,seen)
+  let exp = self.dispatch(aParentheses.exp,arg)
+  in ASTNode(aParentheses,Seq{exp})
+  end
+end;

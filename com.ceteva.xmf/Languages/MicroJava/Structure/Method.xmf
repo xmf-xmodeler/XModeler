@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+
+context Structure
+
+  @Class Method extends MethodSig
+  
+    @Attribute body : Block end
+    
+    @Constructor(name) end
+    
+    @Constructor(modifiers,type,name,formals,throws,body) ! end
+    
+    @Operation pprint(out,indent)
+      self.pprintPre(out,indent);
+      body.pprint(out,indent)
+    end
+    
+    @Operation setIsStatic(b:Boolean)
+      modifiers.setIsStatic(b);
+      self
+    end
+    
+  end

@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import Tools;
+
+context Events
+
+  @Class Event
+  
+    @Doc
+      The root class of the tools event hierarchy. Specific tool
+      types should specialize this class.
+    end
+    
+    @Attribute tool : Element (!,?) end
+    
+    @Operation invokeHandlers(handlers)
+      @For handler in handlers do
+        self.invokeHandler(handler)
+      end
+    end
+    
+    @Operation invokeHandler(handler)
+      if handler.args()->isEmpty
+      then handler.handleEvent(self,null)
+      else
+        let env = handler.match(self.raisedName())
+        in handler.handleEvent(self,env)
+        end
+      end
+    end
+    
+    @Operation match(handler):Boolean
+    
+      // Whether the handler matches the event.
+      
+      handler.match(self.raisedName()) <> null
+      
+    end
+    
+    @Operation matchHandlers(handlers)
+    
+      // Filter the supplied handlers to those that 
+      // should be used to handle this event.
+      
+      handlers->select(handler | self.match(handler))
+    end
+    
+    @Operation raisedName():String
+    
+      // Used to map the event to a name that can be used to index
+      // a named handler. Normally the event handler is the name 
+      // of the ype of the event. Specific types of event may redefine
+      // this.
+      
+      self.of().name()
+      
+    end
+    
+    @Operation toString():String
+      "<Event " + self.raisedName() + ">"
+    end
+  
+  end

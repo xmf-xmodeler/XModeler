@@ -1,0 +1,190 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+
+context IO
+
+  @Class TextEditorChannel extends InputChannel, OutputChannel, StatefulEditor
+  
+    // An editor that can be used as an input and output channel. 
+    // Read and write chars to the channel as normal. Extra
+    // functionality allows menu items to be added that have arbitrary
+    // handlers. A special case of menu items is a state changing
+    // menu item so that daemons can monitor the state of the
+    // channel and fire when it changes. A further specialization
+    // allows the current thread of control to wait for a state
+    // change arising from a menu selection. Therefore you can
+    // use this to hand over control to the user editing free format
+    // text which is termined with a menu selection.
+  
+    @Attribute inBuffer      : Buffer = Buffer(200,true) (?)   end  // Buffered input.
+    @Attribute inBufferIndex : Integer                   (?)   end  // Position in buffer.
+    @Attribute outputIndex   : Integer                   (?,!) end  // Where the next char is written.
+    @Attribute outBuffer     : Buffer = Buffer(200,true) (?)   end  // Where chars get sent.
+    @Attribute blocking      : Boolean                   (?)   end  // True when blocking a thread.
+    
+    @Operation channel()
+      // No underlying channel.
+      self.error("No underlying channel for a text editor channel")
+    end
+    
+    @Operation clearOutput()
+      // Set the output to be empty.
+      self.setText("");
+      outBuffer.setSize(0);
+      self.outputIndex := 0;
+      self
+    end
+    
+    @Operation close()
+      self.closeOpenEditor()
+    end
+    
+    @Operation close(text:String)
+    
+      // If a text editor channel is blocking then this means there
+      // is a thread waiting to start. An editor in such a state 
+      // must exit in a controlled way. Display a message and re-create
+      // the editor.
+      
+      if blocking
+      then 
+        xmf.warning(
+          "A thread is waiting for this editor to complete.\n" +
+          "Use an appropriate menu option to terminate this\n" +
+          "editor.");
+        let client = xmf.clientNamed("com.ceteva.text")
+        in super(text);
+           text.println();
+           client.addEditor(self);
+           self.renew();
+           self.setText(text)
+        end
+      else super(text)
+      end
+    end
+    
+    @Operation eof():Boolean
+      // We always read from the buffer.
+      inBufferIndex = inBuffer->size
+    end
+    
+    @Operation flush()
+      self.setTextAt(outBuffer->toString,outputIndex,0);
+      self.outputIndex := outputIndex + outBuffer->size;
+      outBuffer.setSize(0)
+    end
+    
+    @Operation init(args)
+    
+      // Construct a text editor channel by passing the label,
+      // the state and whether it is editable. 
+      // These are then passed on to the text editor.
+      
+      if args->size = 3
+      then
+        let channel = super(Seq{});
+            label = args->at(0);
+            state = args->at(1);
+            editable = args->at(2)
+        in super(Seq{null,label,"",editable});
+           self.state := state;
+           self
+        end
+      else self.error("Expecting init args (label,state,editable)")
+      end
+    end
+    
+    @Operation peek():Integer
+      if self.eof()
+      then self.error("EOF in peek.")
+      else inBuffer->at(inBufferIndex)
+      end
+    end
+    
+    @Operation read():Integer
+      if self.eof()
+      then self.error("EOF in read.")
+      else 
+        let char = inBuffer->at(inBufferIndex)
+        in self.inBufferIndex := inBufferIndex + 1;
+           char
+        end
+      end
+    end
+    
+    @Operation read(v:Vector):Integer
+      if self.eof()
+      then 0
+      else 
+        @TypeCase(v)
+          Vector do
+            if v->size = 0
+            then 0
+            else  
+              v.put(0,self.read());
+              1
+            end
+          end
+          Buffer do
+            v.add(self.read());
+            1
+          end
+        end
+      end
+    end
+    
+    @Operation resetInput()
+    
+      // Each time we want to get *all* the text currently displayed
+      // in the editor we must reset the input. This buffers all the
+      // displayed text and allows it to be read efficiently.
+      
+      let text = self.getText()
+      in inBuffer.setSize(0);
+         self.inBufferIndex := 0;
+         @Count i from 0 to text->size - 1 do
+           inBuffer.add(text->at(i))
+         end
+      end
+    end
+    
+    @Operation setChannel(channel)
+      self.error("setChannel not implemented in Text Editor Channel.")
+    end
+    
+    @Operation waitFor(states:Seq(String))
+    
+      // Called from a client that wants to wait until the editor
+      // changes to one of the supplied states. Create a continuation
+      // that will be invoked when the state changes.
+      
+      self.blocking := true;
+      Kernel_callcc(
+        @Operation(continuation)
+          @For state in states do
+            self.onChangeTo(state,
+              @Operation(state)
+                self.removeStateChangeHandler(state);
+                // For some reason 'self' in a @Fork is a compiled
+                // operation....
+                let editor = self
+                in @Fork
+                     editor.blocking := false;
+                     continuation(editor)
+                   end
+                end;
+                self.yield()
+              end)
+          end
+        end);
+      xmf.thread().kill()
+    end    
+    
+    @Operation write(char:Integer)
+      outBuffer.add(char)
+    end
+  end

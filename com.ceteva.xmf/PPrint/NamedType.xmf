@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler NamedType in PPrint(aNamedType,out,seen)
+  format(out,"~{::~;~S~}",Seq{aNamedType.path})
+end;

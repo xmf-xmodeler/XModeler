@@ -1,0 +1,6 @@
+parserImport XOCL;
+parserImport Manifests;
+
+@Manifest ExternalBrowser
+  @File ExternalDisplayEngine end
+end;

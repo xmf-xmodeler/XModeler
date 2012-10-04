@@ -1,0 +1,146 @@
+parserImport XOCL;
+
+import Tools::DiagramTools::Types;
+import Tools::DiagramTools::Types::DisplayTypes;
+import Tools::Menus;
+import MDC;
+import Types;
+import Displays;
+
+context ! Types
+
+  @Class Box_x_Box extends Display_x_Display 
+
+    @Attribute contents : Seq(Display_x_Display) (?,!,+,-) end
+    
+    @Constructor(displayType) end
+    
+    @Operation addAttribute(tool,classifier,treeNode)
+    
+      // Ask for the attribute to be displayed and then ask for the
+      // particular display type to be used.
+      
+      let A = classifier.allAttributes()->asSeq then
+          att = xmf.select("Attribute","Select an attribute",A,null,null)
+      in if att <> null
+         then 
+           let textType = Text(tool.newName("Text")) then 
+               displayMap = Display_x_Display(textType) then
+               map = Attribute_x_Display(att,Classifier_x_Display(att.underlyingType(),displayMap));
+               textNode = treeNode.newNode("Displays:Text") then
+               menuNode = textNode.ref1(Seq{"Menu"});
+               menu = textType.menu()
+           in self.addToContents(map);
+              displayType.add(map.displayType());
+              tool.register(map,treeNode);
+              tool.register(treeNode,map);
+              tool.register(menuNode,menu);
+              tool.register(menu,menuNode);
+              tool.register(textNode,displayMap);
+              tool.register(displayMap,textNode);
+              treeNode.setTextIn(att.name() + ":" + att.type.name());
+              textNode.setTextIn("Text")
+           end
+         else treeNode.delete()
+         end
+      end
+    end
+    
+    @Operation addElement(tool,node,attribute)
+    
+      // Called when the attribute is a collection and we want to add a menu
+      // action to the box to allow new elements to be added to the diagram
+      // element.
+      
+      let menu = displayType.menu();
+          menuNode = node.ref1(Seq{"Menu"}) then
+          addNode = menuNode.newNode("Items:Add");
+          handler = 
+            @Operation(tool,action,args)
+              @WithoutRendering(tool.diagram())
+                let object = tool.findElement(self)
+                in if object.of().allAttributes()->includes(attribute)
+                   then 
+                     let current = object.get(attribute.name());
+                         new = attribute.underlyingType().new(Seq{});
+                         name = attribute.name()
+                     in MDCExtendSlot(object,name,new);
+                        tool.slotChangedEvent(object,name,current->including(new),current);
+                        if new.isKindOf(Object) then new.observeBy(tool,true) end
+                     end
+                   else xmf.message("Object " + object.toString() + " does not have a slot for " + attribute.toString())
+                   end
+                end 
+              end
+            end then
+          action = MenuAction("Add " + attribute.name(),handler)
+      in menu.add(action);
+         addNode.setTextIn("Add " + attribute.name());
+         tool.register(addNode,action);
+         tool.register(action,addNode)
+      end
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For c in self.contents do
+          T := c.allMappingTypes(T)
+        end
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      contents->asSet->iterate(display N = Set{} | N + display.allNodes())
+    end
+    
+    @Operation build(tool,value,box)
+    
+      // Called to populate the diagram...
+      
+      @For map in contents do
+        @Find(display,box.contents())
+          when display.type() = map.displayType()
+          do map.build(tool,value,display)
+        end
+      end
+      
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      contents->iterate(c A = Seq{} | A + c.collectionAttributes())
+    end
+    
+    @Operation moved(displayMap,newIndex,oldIndex)
+      
+      // Called when a tree node has changed. The display
+      // in the node type must be moved from oldIndex to
+      // newIndex.
+      
+      let displays = displayType.contents() then
+          display = displays->at(oldIndex)
+      in displays := displays->excluding(display);
+         displays := displays->insertAt(display,newIndex);
+         displayType.setContents(displays);
+         self.setContents(contents->excluding(displayMap));
+         self.setContents(contents->insertAt(displayMap,newIndex))
+      end
+    end
+    
+    @Operation populate(tool,value,element)
+      @For display in contents do
+        display.populate(tool,value,element)
+      end
+    end
+    
+    @Operation setDisplay(tool,value,element)
+      null
+    end
+    
+    @Operation substDisplay(newDisplay,oldDisplay)
+      displayType.setContents(displayType.contents().subst(Seq{newDisplay},Seq{oldDisplay},true))
+    end
+      
+  end

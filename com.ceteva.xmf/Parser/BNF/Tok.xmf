@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Tok extends Recognizer 
+
+	// Pushes the most recently processed token onto the stack.
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Token ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+
+	@Operation parse(machine)
+	  machine.pushStack(Token.new(machine.token))
+	end
+	
+	@Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::Tok() |]
+	end
+	
+	@Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+  end

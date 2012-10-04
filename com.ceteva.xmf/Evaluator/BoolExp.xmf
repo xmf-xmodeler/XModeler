@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler BoolExp in Eval(aBoolExp,arg,seen)
+  result(aBoolExp,aBoolExp.value,cont)
+end;

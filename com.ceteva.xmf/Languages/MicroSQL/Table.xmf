@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import XOCL;
+import Languages;
+import MicroSQL;
+
+context MicroSQL
+
+  @Class Table
+  
+    @Attribute name           : String end
+    @Attribute ifNotExists    : Boolean end
+    @Attribute columnDecs     : Seq(Column) end
+    @Attribute constraintDecs : Seq(Constraint) end
+    
+    @Constructor(name,ifNotExists,columnDecs,constraintDecs) end
+    
+    @Operation toString()
+      let string = "CREATE_TABLE" in
+        string := string + " " + name.toString() + " ";
+        if ifNotExists then
+          string := string + "IF NOT EXISTS"
+        end;
+        string := string + " (";
+        string := self.toStringDecs(string);
+        string := string + ");";
+        string
+      end
+    end
+    
+    @Operation toStringDecs(string)
+      let first = true in
+        @For column in columnDecs do
+          if not first then
+            string := string + ","
+          else
+            first := false
+          end;
+          string := column.toString(string)
+        end;
+        first := true;
+        @For constraint in constraintDecs do
+          if not first then
+            string := string + ","
+          else
+            first := false
+          end;
+          string := constraint.toString(string)
+        end;
+        string
+      end
+    end
+    
+  end

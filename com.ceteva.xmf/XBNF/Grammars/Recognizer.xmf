@@ -1,0 +1,66 @@
+parserImport XOCL;
+
+import IO;
+import XOCL;
+import XBNF;
+import Grammars;
+import Tokens;
+import Tokenizer;
+
+context Grammars
+    
+    @Class Recognizer isabstract extends Syntax
+    
+      @Operation CNF(grammar,FV,handler)
+        // Return the receiver transformed into conjunctive normal
+        // form.
+        handler(Seq{self},FV,Seq{})
+      end
+      
+      @Operation first(grammar):Set(String)
+        Set{}
+      end
+      
+      @Operation follow(grammar):Set(String)
+        Set{}
+      end
+    
+      @AbstractOp FV():Set(String)
+        // Calculates the free variables used in the recognizer.
+      end
+      
+      @Operation nullable(grammar):Boolean
+        true
+      end
+      
+      @Operation pprint():String
+        let out = StringOutputChannel()
+        in self.pprint(out,0);
+           out.getString()
+        end
+      end
+      
+      @AbstractOp pprint(out,indent)
+        // Prints the recognizer rule out in human readable format.
+      end
+      
+      @Operation setFollow(grammar,follow)
+        null
+      end
+      
+      @Operation setLocals(locals:Seq(String),next:Operation)
+        next(locals)
+      end
+      
+      @Operation terminals():Set(String)
+        Set{}
+      end
+    
+      @Operation typeTag(r:Recognizer)
+        @TypeCase(r)
+          Int do INT end
+          else self.error("Unknown type of recognizer in typeTag: " + r.toString())
+        end
+      end  
+      
+    end

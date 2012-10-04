@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class XMapClauseCodeComboBox extends CodeComboBox
+
+    @Operation getCode(codedElement)
+      let
+        source = codedElement.source
+      then
+        modifiedCode =
+          if source.isKindOf(Null)
+          then ""
+          else source
+          end
+      in
+        modifiedCode
+      end
+    end
+
+    @Operation getCodedElement()
+      @Find(c,contex.clauses)
+        when c.name().toString() = selection
+      end
+    end
+
+  end

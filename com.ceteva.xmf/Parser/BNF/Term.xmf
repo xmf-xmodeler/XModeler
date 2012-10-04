@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Term extends Str
+  
+    // This non terminal represets a string delimited by
+    // ' and '.
+    
+    @Operation parse(machine)
+      if machine.eof()
+      then 
+        if machine.grammar.debug then machine.debug("Fail: EOF when expecting a terminal.") end;
+        machine.fail()
+      else
+        let token = machine.next()
+        in if token->at(0) = 13
+           then 
+             if machine.grammar.debug then machine.debug("Term succeeds: " + token->at(1)) end;
+             machine.pushStack(token->at(1));
+             machine.consumedChars := token->at(2)
+           else
+             if machine.grammar.debug then machine.debug("Fail: expected terminal, received " + token) end;
+             machine.fail()
+           end
+        end
+      end
+    end 
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Term() |]
+    end
+    
+  end 

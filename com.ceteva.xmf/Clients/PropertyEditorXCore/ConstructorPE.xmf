@@ -1,0 +1,128 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class ConstructorPE extends AbstractObjectEditor
+
+    @Attribute selfDisplay : SingletonDisplay end
+    @Attribute ofDisplay : SingletonDisplay end
+    @Attribute ownerDisplay : SingletonDisplay end
+    @Attribute namesDisplay : SingletonDisplay end
+    @Attribute sourceDisplay : CodeboxDisplay end
+    
+    @Operation new()
+      super();
+      self.addTextBoxRules()
+    end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+        layoutManager.add(self.selfDisplays());
+        //layoutManager.addSeparator();
+        layoutManager.add(Seq{self.namesDisplay()});
+        layoutManager.add(Seq{self.sourceDisplay()});
+        layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation selfDisplays()
+      self.selfDisplay := self.newSingletonDisplay(self.element,"self");
+      selfDisplay.field
+        .setContex(element)
+        .setSlotName("self");
+      self.ofDisplay := self.newSingletonDisplay(self.element.of(),"of");
+      ofDisplay.field
+        .setIsEditable(false)
+        .setContex(element)
+        .setSlotName("of");
+      self.ownerDisplay := self.newSingletonDisplay(self.element.owner,"owner");
+      ownerDisplay.field
+        .setContex(element)
+        .setSlotName("owner");
+      Seq{selfDisplay,ofDisplay,ownerDisplay}
+    end
+    
+    @Operation namesDisplay()
+      self.namesDisplay := self.newSingletonDisplay(ConstructorNamesTextField,self.element.names,"names");
+      namesDisplay.field
+        .setIsEditable(true)
+        .setContex(element)
+        .setSlotName("names");
+      namesDisplay
+    end
+    
+    @Operation refresh()
+      super();
+      self.addTextBoxRules()
+    end
+
+    @Operation sourceDisplay()
+      let
+        source = self.element.source
+      then
+        textbox = ConstructorSourceTextBox(0,0,0,0,source,true)
+          .setContex(element)
+          .setSlotName("source")
+      in
+        self.sourceDisplay := self.newCodeboxDisplay(textbox,"source");
+        sourceDisplay
+      end
+    end
+
+    @Operation setTextOut(slotName:String,value)
+      let valueLabel = value.labelString() in
+        if slotName = "source" then
+          let textbox = sourceDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        else
+          let displays = Seq{selfDisplay,ofDisplay,ownerDisplay,namesDisplay} in
+            @Find(display,displays)
+              when display.label.text.toString() = slotName
+              do
+                let textComponent = display.field in
+                  textComponent.element := value;
+                  textComponent.setText(valueLabel);
+                  self.commandInterpreter().setText(textComponent,valueLabel)
+                end
+            end
+          end
+        end;
+        self
+      end
+    end
+
+    @Operation addTextBoxRules()
+      let rules = OCL::OCL.grammar.terminals()->asSeq in
+        @For rule inSeq rules do
+          sourceDisplay.textbox.addWordRule(rule,FormTextBox::blue)
+        end
+      end;
+      self
+    end
+
+    @Operation strippedSource(op)
+      let
+        source = op.source() then
+        as = OCL::OCL.grammar.parseString(source,"Exp1",Seq{XOCL})
+      in
+        as.performable.pprint(3)
+      end
+    end
+
+    @Operation reassembleSource(op,newBody)
+      "@Operation " + op.name().toString() + "(classifier : Element):Element "
+        + newBody + " end"
+    end
+    
+
+
+  end

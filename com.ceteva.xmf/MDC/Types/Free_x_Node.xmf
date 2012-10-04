@@ -1,0 +1,141 @@
+parserImport XOCL;
+//parserImport Tools::Basic;
+
+import MDC;
+import Tools::Menus;
+import Types;
+
+context ! Types
+
+  @Class Free_x_Node extends AbstractMappingType
+
+    @Attribute type : Classifier_x_Node (?,!) end
+
+    @Constructor(type) end
+    
+    @Operation addElement(tool,node,attribute)
+    
+      // Called when the attribute is a collection and we want to add a menu
+      // action to the box to allow new elements to be added to the diagram
+      // element.
+      
+      let menu = type.nodeType().menu();
+          menuNode = node.ref1(Seq{"Menu"}) then
+          addNode = menuNode.newNode("Items:Add");
+          handler = 
+            @Operation(tool,action,args) 
+              @WithoutRendering(tool.diagram())
+                let object = tool.findElement(self)
+                in if object.of().allAttributes()->includes(attribute)
+                   then 
+                     let current = object.get(attribute.name());
+                         new = attribute.underlyingType().new(Seq{});
+                         name = attribute.name()
+                     in tool.slotChangedEvent(object,name,current->including(new),current);
+                        MDCExtendSlot(object,name,new);
+                        if new.isKindOf(Object) then new.observeBy(tool,true) end
+                     end
+                   else xmf.message("Object " + object.toString() + " does not have a slot for " + attribute.toString())
+                   end
+                end
+              end
+            end then
+          action = MenuAction("Add " + attribute.name(),handler)
+      in menu.add(action);
+         addNode.setTextIn("Add " + attribute.name());
+         tool.register(addNode,action);
+         tool.register(action,addNode)
+      end
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        T := type.allMappingTypes(T)
+      end;
+      T
+    end
+
+    @Operation allNodes()
+      type.allNodes()
+    end
+    
+    @Operation collectionAttributes():Seq(Attribute)
+      type.collectionAttributes()
+    end
+    
+    @Operation displayRemoved(tool,node,display)
+      type.displayRemoved(tool,node,display)
+    end
+    
+    @Operation build(tool,node,display)
+    
+      // Called to populate the free values of the tool
+      // given the newly created node.
+      
+      let element = type.classifier().new(Seq{}) then
+          value = type.newNode(tool,element,node)
+      in tool.addToFree(value);
+         tool.objectCreatedEvent(element)
+      end
+    end
+    
+    @Operation buildFree(tool,element)
+    
+      // Called when the value is to create a new node
+      // and to populate it...
+      
+      tool.addToFree(type.build(tool,element))
+    end
+    
+    @Operation handleStateChanged(tool,new,old)
+      if new <> null
+      then type.newValue(tool,new)
+      end
+    end
+
+    @Operation isMostSpecific(nodes,value)
+    
+      // Check that a value is actually of the given type and
+      // that there is no other node that describes it more
+      // specifically...
+      
+      value.isKindOf(type.classifier()) and
+      not nodes->exists(node |
+        node.type().classifier().inheritsFrom(type.classifier()) and 
+        node <> self and 
+        value.isKindOf(node.type().classifier()))
+    end
+
+    @Operation moved(displayMap,newIndex,oldIndex)
+      
+      // Called when a tree node has changed. The display
+      // in the node type must be moved from oldIndex to
+      // newIndex.
+      
+      let displays = type.nodeType().displays() then
+          display = displays->at(oldIndex);
+          maps = type.displays()
+      in displays := displays->excluding(display);
+         displays := displays->insertAt(display,newIndex);
+         type.nodeType().setDisplays(displays);
+         maps := maps->excluding(displayMap);
+         maps := maps->insertAt(displayMap,newIndex);
+         type.setDisplays(maps)
+      end
+    end
+    
+    @Operation reachable(object,rootType)
+      Set{}
+    end
+    
+    @Operation substDisplay(newDisplay,oldDisplay)
+      type.nodeType().setDisplays(type.nodeType().displays().subst(Seq{newDisplay},Seq{oldDisplay},true))
+    end
+    
+    @Operation toString()
+      "Free(" + type.classifier().name() + ")"
+    end
+
+  end

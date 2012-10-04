@@ -1,0 +1,29 @@
+parserImport XOCL;
+// parserImport Tools::Basic;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class Tree extends FormElement, Clients::Forms::FormTree, NewHandler, OrHandler, NodeContainer
+  
+    @Operation actualHeight():Integer
+      100
+    end
+    
+    @Operation actualWidth():Integer
+      100
+    end
+    
+    @Operation getEditableText(textComponent)
+      self.commandInterpreter().setEditableTextCommand(textComponent,textComponent.text.toString())
+    end
+    
+    @Operation new(parent)
+      super(parent);
+      self.setRightClickMenu()
+    end
+  
+  end

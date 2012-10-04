@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class TypeLessContribution extends Contribution
+    
+    @Constructor(values)
+    end
+    
+    @Operation contributesTo(type)
+      true
+    end
+    
+    @Operation getValue(index)
+      self.values->at(index)
+    end
+    
+  end

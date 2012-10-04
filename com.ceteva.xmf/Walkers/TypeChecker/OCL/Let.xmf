@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Let in TypeChecker(exp,env,encountered)
+  let nodes = exp.bindings->collect(b | self.dispatch(b.value,env)) then
+      env = nodes->iterate(n env = env | env.bind(exp.bindings->at(nodes->indexOf(n)).name,n.type())) then
+      bType = self.dispatch(exp.body,env)
+  in TypeCheckExp(exp,bType.type(),nodes + Seq{bType})
+  end
+end;

@@ -1,0 +1,58 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class EditableTextOp extends Syntax
+
+    @Attribute opRef : Seq(String) end
+    //@Attribute action : Operation end
+    
+    @Constructor(opRef) ! end
+    //@Constructor(action) end
+    
+    @Grammar //extends OCL::OCL.grammar
+
+      EditableTextOp ::= opRef = Path { EditableTextOp(opRef) }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+
+      //EditableTextOp ::= args = OpArgs body = Exp {
+      //  [| Clients::BrowserInterface::EditableTextOp(@Operation(<args.separateWith(",")>) <body> end) |]
+      //}.
+      
+      //OpArgs ::= '(' n = Name ns = (',' Name)* ')' { Seq{n|ns} }.
+      
+    end
+
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.labels.editText";
+          class = class;
+          opRef = opRef then
+          op = 
+            @Operation(element) 
+              if opRef->size = 1
+              then class.getOperation(opRef->head,1).invoke(self,Seq{element}) 
+              else opRef.lookup().invoke(self,Seq{element})
+              end
+            end
+      in registry.addContribution(id,
+           Contribution(class,Seq{op}))
+      end 
+    end
+
+    //@Operation register(class:Class)
+    //  let registry = xmf.registry() then
+    //      id = "com.ceteva.xmf.labels.editText"
+    //  in registry.addContribution(id,
+    //       Contribution(class,Seq{self.op}))
+    //  end 
+    //end
+
+  end

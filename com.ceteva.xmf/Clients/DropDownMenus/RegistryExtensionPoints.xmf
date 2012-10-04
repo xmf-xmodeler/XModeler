@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+let 
+  registry = xmf.registry() then
+  dropMenus = "com.ceteva.xmf.dropMenus"
+in
+  registry.addExtensionPoint(TypeLessExtensionPoint(dropMenus))
+end;

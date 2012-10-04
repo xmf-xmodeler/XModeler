@@ -1,0 +1,18 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+context XOCL
+  @Class ExtendClass
+  
+    // Used to locally extend a class. No name is generally
+    // required because the class is locally bound and then
+    // used. Typicaly used to override some operations in the
+    // sub-class...
+    
+    @Grammar extends OCL::OCL.grammar
+      ExtendClass ::= c = Exp ds = Exp* {
+        ds->iterate(def c = [| Class("Anon").addParent(<c>) |] | [| <c>.add(<def>) |])
+      }.
+    end
+  end
+              

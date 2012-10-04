@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context XOCL
+
+  @Class CaseIntValue isabstract
+  
+    @AbstractOp addLabel(label,jumpTable) end
+  
+    @AbstractOp pprint(out,indent) end
+  
+  end

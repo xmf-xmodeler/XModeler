@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class EOF extends Recognizer
+  
+    // Succeeds when we have reached eof.
+    
+    @Operation code(outputChannel)
+      format(outputChannel," EOF ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+    
+    @Operation parse(machine)
+      if not machine.eof()
+      then
+        if machine.grammar.debug then ("EOF fails.") end; 
+        machine.fail()
+      else
+        if machine.grammar.debug then machine.debug("EOF Succeeds.") end; 
+        self
+      end
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::EOF() |]
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

@@ -1,0 +1,404 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+
+context DiagramsMapping
+
+  @Class DiagramManager extends DiagramListener
+
+    @Attribute clients : Seq(DiagramMappingClient) = Seq{} (+,-) end
+    @Attribute contributionTable : Table = Table(10) end
+    @Attribute elementDiagramTable : Table = Table(10) end
+    @Attribute diagramElementTable : Table = Table(10) end
+
+    @Operation addContribution(contribution)
+      let type = contribution.contributesTo;
+          label = contribution.name then
+          labelSeq = Seq{"Create Diagram",label};
+          contributions =
+            if contributionTable.hasKey(type)
+            then contributionTable.get(type)
+            else Set{}
+            end
+      in
+        contributions := contributions->including(contribution);
+        contributionTable.put(type,contributions);
+        xmf.menuManager().setGlobalMenuItem(type,
+                                            Seq{label},
+                                            Element::createDiagramType,
+                                            labelSeq,
+                                            "",
+                                            false,
+                                            true)
+      end
+    end
+
+    @Operation addDiagram(element,diagram)
+      diagram.isOpen := false;
+      self.registerWithDiagram(diagram);
+      self.addModelDaemons(element);
+      if diagram <> null
+      then
+        let diagrams =
+              if elementDiagramTable.hasKey(element)
+              then elementDiagramTable.get(element)
+              else Seq{}
+              end
+        in
+          if not diagrams->includes(diagram)
+          then
+            diagrams := diagrams->prepend(diagram);
+            elementDiagramTable.put(element,diagrams)
+          end
+        end;
+        
+        let elements =
+              if diagramElementTable.hasKey(diagram)
+              then diagramElementTable.get(diagram)
+              else Seq{}
+              end
+        in
+          if not elements->includes(element)
+          then
+            elements := elements->prepend(element);
+            diagramElementTable.put(diagram,elements)
+          end
+        end;
+
+        @For map in self.modelBrowserMappingsFor(element) do
+          map.elementAdded(diagram)
+        end
+      end
+    end
+    
+    @Operation addModelDaemons(element)
+      
+      // Adds a daemon to the element so that when it state changes
+      // the diagram name is refreshed
+      
+      @SlotValueChanged multi once DiagramManager::daemons_elementStateChanged(element,"*") end
+      
+    end
+
+    @Operation contributionName(contribution:DiagramContribution)
+      contribution.name
+    end
+    
+    @Operation daemons_elementStateChanged(element,slot,newValue,oldValue)
+      let diagrams = self.diagramsFor(element)
+      in
+        @For diagram in diagrams
+        do
+          diagram.refreshName()
+        end
+      end
+    end
+    
+    @Operation diagramsFor(element)
+      if elementDiagramTable.hasKey(element)
+      then elementDiagramTable.get(element)
+      else Seq{}
+      end
+    end
+ 
+    @Operation diagramsIncluding(element)
+    
+      // note: this does not support XTools
+    
+      let diagrams = Set{}
+      in 
+        @For client in clients do
+          @For mapping in client.mappings do
+            if mapping.element() = element
+            then diagrams := diagrams->including(mapping.diagram())
+            else
+              @For subMap in mapping.allSubMaps() do
+                if subMap.element() = element
+                then diagrams := diagrams->including(mapping.diagram())
+                end
+              end
+            end
+          end
+        end;
+        diagrams
+      end
+    end
+    
+    @Operation elementsFor(diagram)
+      if diagramElementTable.hasKey(diagram)
+      then diagramElementTable.get(diagram)
+      else Seq{}
+      end
+    end
+
+    @Operation findContributions(elementType)
+      let
+        contributions = Set{}
+      in
+        @For type inTableKeys contributionTable do
+          if elementType.inheritsFrom(type)
+          then
+            contributions := contributions + contributionTable.get(type)
+          end
+        end;
+        contributions
+      end
+    end
+
+    @Operation handleDiagramCloseEvent(diagram)
+      // needed as this class extends the DiagramListener class
+      self
+    end
+
+    @Operation handleDiagramDeleteEvent(diagram)
+      self.removeDiagram(diagram)
+    end
+
+    @Operation handleDiagramRenewEvent(diagram)
+      // needed as this class extends the DiagramListener class
+      self
+    end
+
+    @Operation modelBrowserMappingsFor(element)
+      let mappings = Seq{}
+      in
+        @For mappingClient in Clients::ModelBrowsers::AbstractMappingClient::implementedClients do
+          if mappingClient <> null
+          then 
+            mappings := mappings + mappingClient.modelBrowserMappingsFor(element)
+          end
+        end;
+        mappings
+      end
+    end
+
+    @Operation newDiagram(element)
+      let name = self.newDiagramName(element);
+          contributions = self.findContributions(element.of())->asSeq
+      in
+        if contributions->isEmpty
+        then xmf.message("There are no available diagram types for this element.")
+        else
+          let choice = 
+            xmf.select("Create Diagram",
+                       "Select a diagram type to create for this element",
+                       contributions,
+                       DiagramManager::contributionName,
+                       null)
+          in
+            if choice <> null
+            then
+              choice.newDiagram(element,name)
+            end
+          end
+        end
+      end
+    end
+
+    @Operation newDiagram(element,name,contributionName,showDiagram)
+      let cons = self.findContributions(element.of())->select(c | c.name = contributionName)
+      in
+        if cons->isEmpty
+        then xmf.message("There is no diagram contribution matching the name '" + contributionName + "'")
+        else
+          if name = null
+          then name := self.newDiagramName(element)
+          end;
+          let con = cons->sel
+          in
+            con.newDiagram(element,name,showDiagram)
+          end
+        end
+      end
+    end
+
+    @Operation newDiagram(element,name,contributionName)
+      self.newDiagram(element,name,contributionName,true)
+    end
+
+    @Operation newDiagramName(element)
+      self.newDiagramName(element,false)
+    end
+
+    @Operation newDiagramName(element,useDialog):String
+  
+      // Generate a new diagram name that does not clash with any diagram name
+      // for the element. Names are suffixed with numbers.
+    
+      let name = 
+        let index = 0;
+            diagrams = self.diagramsFor(element)
+        in @While @Find(d,diagrams)
+                    when d.name = "diagram" + index.toString()
+                    do true else false
+                  end
+           do
+             index := index + 1
+           end;
+           "diagram" + index.toString()
+        end
+      in
+        if useDialog
+        then
+          name := xmf.input("New Diagram",
+                            "There are no diagrams currently available for this element." +
+                            "Enter a name for a new diagram.",
+                            name)
+        end;
+        name
+      end
+    end
+     
+    @Operation postSave()
+      @For diagram in diagramElementTable.keys()
+      do
+        self.registerWithDiagram(diagram)
+      end
+    end
+    
+    @Operation preSave()
+      @For diagram in diagramElementTable.keys()
+      do
+        self.deregisterFromDiagram(diagram)
+      end
+    end
+
+    @Operation removeContribution(contribution)
+      let type = contribution.contributesTo;
+          label = contribution.name then
+          labelSeq = Seq{"Create Diagram",label};
+          contributions =
+            if contributionTable.hasKey(type)
+            then contributionTable.get(type)
+            else Set{}
+            end
+      in
+        contributions := contributions->excluding(contribution);
+        contributionTable.put(type,contributions);
+        xmf.menuManager().removeGlobalMenuItem(type,labelSeq)
+      end
+    end
+
+
+    @Operation removeDiagram(diagram)
+      @For element in self.elementsFor(diagram) do
+        self.removeDiagram(element,diagram);
+        self.removeModelDaemons(element)
+      end
+    end
+
+    @Operation removeDiagram(element,diagram)
+      if elementDiagramTable.hasKey(element)
+      then
+        let diagrams = elementDiagramTable.get(element)
+        in
+          diagrams := diagrams->excluding(diagram);
+          if diagrams->isEmpty
+          then elementDiagramTable.remove(element)
+          else elementDiagramTable.put(element,diagrams)
+          end
+        end
+      end;
+      
+      if diagramElementTable.hasKey(diagram)
+      then
+        let elements = diagramElementTable.get(diagram)
+        in
+          elements := elements->excluding(element);
+          if elements->isEmpty
+          then diagramElementTable.remove(diagram)
+          else diagramElementTable.put(diagram,elements)
+          end
+        end
+      end;
+      
+      @For map in self.modelBrowserMappingsFor(element) do
+        map.elementRemoved(diagram)
+      end
+    end
+    
+    @Operation removeModelDaemons(element)
+      element.removeDaemonsWithTarget(self,true)
+    end
+    
+    @Operation closeNonDisplayedDiagrams()
+      let client = xmf.findClientByName("com.ceteva.diagram")
+      in
+        client.closeNonDisplayedDiagrams()
+      end
+    end
+
+  end
+
+context DiagramManager
+  @Operation renderDiagramsOff(packetSize)
+    self.renderDiagramsOff(packetSize,diagramElementTable.keys())
+  end
+  
+context DiagramManager
+  @Operation renderDiagramsOff(packetSize,diagrams)
+    let client = xmf.findClient(Clients::Diagrams::DiagramClient)
+    in
+      client.globalRenderOff()
+    end;
+    Seq{}
+  
+    /* let d = Seq{}
+    in
+      @For diagram in diagrams
+      do
+        if diagram.hasCommandInterpreter()
+        then
+          let command = diagram.commandInterpreter()
+          in
+            command.setPacketSize(packetSize);
+            command.stopRender(diagram);
+            d := d->including(diagram)
+          end
+        end
+      end;
+      d
+    end */
+  end
+  
+context DiagramManager
+  @Operation renderDiagramsOn(diagrams)
+    let client = xmf.findClient(Clients::Diagrams::DiagramClient)
+    in
+      client.globalRenderOn()
+    end;
+    Seq{}
+    
+    /* let d = Seq{}
+    in
+      @For diagram in diagrams
+      do
+        if diagram.hasCommandInterpreter()
+        then
+          let command = diagram.commandInterpreter()
+          in
+            command.startRender(diagram);
+            command.setPacketSize(1);
+            d := d->including(diagram)
+          end
+        end
+      end;
+      d
+    end */
+  end  
+
+context Diagram
+  @Operation toString()
+    let fullText = name;
+        elements = xmf.diagramManager().elementsFor(self)
+    in
+      if not elements->isEmpty
+      then
+        fullText := elements->first.nameString() + "(" + fullText + ")"
+      end;
+      fullText
+    end
+  end

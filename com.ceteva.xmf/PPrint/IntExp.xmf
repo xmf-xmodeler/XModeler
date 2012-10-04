@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler IntExp in PPrint(aIntExp,out,seen)
+  format(out,"~S",Seq{aIntExp.value})
+end;

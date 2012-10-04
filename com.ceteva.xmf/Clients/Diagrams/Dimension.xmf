@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+
+context Diagrams
+
+  @Class Dimension 
+  
+    @Attribute width : Float end
+    @Attribute height : Float end
+    
+    @Constructor(width,height) ! end
+    
+    @Operation length():Float
+      ((width * width) + (height * height)).sqrt()
+    end
+    
+  end

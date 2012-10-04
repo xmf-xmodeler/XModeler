@@ -1,0 +1,26 @@
+parserImport Manifests;
+
+@Manifest MetaTool
+
+  @File MetaTool      end
+  @File MenuType      end
+  @File Justification end
+  @File Container     end 
+  @File BoxType       end
+  @File EllipseType   end
+  @File ImageType     end
+  @File Inheritance   end
+  @File StarType      end
+  @File TextType      end
+  @File LabelType     end
+  @File EdgeType      end
+  @File NodeType      end
+  @File Source        end
+  @File Target        end
+  @File ToolBar       end
+  @File Type          end
+  @File MenuItemAdded end
+  @Ref  Manager       end
+  @File toTool        end
+  
+end;

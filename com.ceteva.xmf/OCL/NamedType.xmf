@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class NamedType extends TypeExp
+  
+    @Attribute path : Seq(String) end
+    
+    @Constructor(path) ! end
+    
+    @Constructor() 
+      self.path := Seq{"XCore","Element"}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~{::~;~S~}",Seq{path})
+    end
+    
+    @Operation toSig()
+      Seq{TypeExp::NAMED,path}
+    end
+    
+  end

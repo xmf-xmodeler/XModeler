@@ -1,0 +1,83 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+
+context IO
+
+  @Class StatefulEditor extends Editor
+  
+    // An editor with state that can be monitored and cause
+    // handlers to be invoked. Typically this will be used in
+    // conjnction with menu items that change the editor to
+    // the named state and therefore fire the handler.
+  
+    @Attribute state          : Element          (?,!) end  // Slot that can be monitored.
+    @Attribute changeHandlers : Table = Table(10)(?)   end  // Indexed by name of state.
+    
+    @Operation addStateChangeHandler(name:String,handler:Operation)
+      changeHandlers.put(name,handler)
+    end
+    
+    @Operation addStateChangeMenuItem(name:String,menu:Menu)
+    
+      // Adds a menu item that will cause the editor to change
+      // to the named state. If you are monitoring the state
+      // slot of the editor then this will cause any daemons
+      // to fire.
+      
+      menu.add(MenuAction(name,self,Seq{name},StatefulEditor::setState))
+    end
+    
+    @Operation buildGlobalMenu()
+    
+      // Build a new one and extend it...
+      
+      self.setMenuKey(self);
+      let menu = self.globalMenu(true,true)
+      in @For name inTableKeys changeHandlers do
+           self.addStateChangeMenuItem(name,menu)
+         end;
+         menu
+      end
+    end
+    
+    @Operation fireStateChange(channel:TextEditorChannel,slot:Symbol,new,old)
+      if slot.toString() = "state"
+      then
+        if changeHandlers.hasKey(new)
+        then changeHandlers.get(new).invoke(self,Seq{new})
+        end
+      end
+    end
+    
+    @Operation onChangeTo(state:String,handler:Operation)
+    
+      // When the state changes to the named state then 
+      // invoke the handler. Just need one daemon for any
+      // number of state change handlers.
+      
+      if not self.hasDaemonNamed(state)
+      then 
+        self.addDaemon(
+          Daemon(
+            state,           // id/name of the daemon.
+            Daemon::VALUE,   // monitor the value of the named slot.
+            "state",         // the state slot.
+            StatefulEditor::fireStateChange, // call this to handle the event.
+            false,           // persistent?
+            false,           // traced?
+            self))           // target for handler.
+      end;
+      self.addStateChangeHandler(state,handler)
+    end
+    
+    @Operation removeStateChangeHandler(name:String)
+      changeHandlers.remove(name)
+    end
+     
+  end
+    
+    

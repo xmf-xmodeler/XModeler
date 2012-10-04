@@ -1,0 +1,95 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+
+context ExtensionPoints
+
+  @Class ExtensionPoint
+  
+    @Attribute id            : String (?) end
+    @Attribute contributions : SeqOfElement = Seq{} (?) end
+    @Attribute listeners     : SeqOfElement = Seq{} end
+    @Attribute cacheTable    : Table = Table(10) end
+    
+    @Constructor(id) 
+    end
+    
+    @Operation addNotification(element)
+      self.listeners := self.listeners.including(element)
+    end
+    
+    @Operation cancelNotification(element)
+      self.listeners := self.listeners.excluding(element)
+    end
+    
+    @Operation contribute(contribution)
+      if not contributions->includes(contribution)
+      then
+        self.contributions := self.contributions->prepend(contribution);
+        @For listener in listeners do
+          listener.contributionAdded(id,contribution)
+        end
+      end;
+      self
+    end
+    
+    @Operation find(element)
+      if cacheTable.hasKey(element) then
+        cacheTable.get(element)
+      else
+        let newValue = self.findNew(element) in
+          if newValue <> null
+          then cacheTable.put(element,newValue)
+          end;
+          newValue
+        end
+      end
+    end
+    
+    @Operation find(element,listener)
+      if listener.isReallyKindOf(ExtensionPointListener) then
+        self.listeners := listeners->prepend(listener)
+      end;
+      self.find(element)
+    end
+
+    @Operation findNew(elementType)
+
+      // over-ride this operation in sub-classes of ExtensionPoint
+
+      @Find(con,contributions)
+        when con.contributesTo(elementType)
+        else null
+      end
+    end
+    
+    @Operation removeContribution(contribution)
+      self.contributions := self.contributions->excluding(contribution);
+      @For listener in listeners do
+        listener.contributionRemoved(id,contribution)
+      end;
+      self
+    end
+    
+    @Operation replace(contribution)
+      @Find(c,contributions)
+        when c.key() = contribution.key()
+        do
+          self.contributions := self.contributions->excluding(c)
+      end;
+      if cacheTable.hasKey(contribution.key()) then
+        cacheTable.remove(contribution.key())
+      end;
+      self.contribute(contribution)
+    end
+
+    @Operation toString()
+      "ExtensionPoint(" + id + ")"
+    end
+    
+    @Operation resetCacheTable()
+      self.cacheTable := Table(10)
+    end
+
+  end

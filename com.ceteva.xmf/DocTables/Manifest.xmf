@@ -1,0 +1,13 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony on Mon Jun 12 12:35:43 BST 2006
+
+@Manifest DocTables
+  p = @File DocTables end
+  @Ref Basic end
+  @Ref Forms end
+  @Ref EventHandlers end
+  @Ref HTML end
+do p
+end;

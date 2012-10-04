@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import MDC;
+
+context ! MDC
+
+  @Class SlotChanged extends Event 
+  
+    @Attribute object : Object (?,!) end
+    @Attribute slot   : String (?,!) end
+    @Attribute new    : Element (?,!) end
+    @Attribute old    : Element (?,!) end
+    
+    @Constructor(object,slot,new,old) end
+    
+    @Operation process(tool)
+      
+      // If a value has been registered for this
+      // element then fire any monitors defined 
+      // by the type...
+      
+      let value = tool.findElementValue(object)
+      in if value <> null
+         then tool.element().type().fireSlotMonitors(tool,value,slot,new,old)
+         end
+      end
+    end
+    
+  end

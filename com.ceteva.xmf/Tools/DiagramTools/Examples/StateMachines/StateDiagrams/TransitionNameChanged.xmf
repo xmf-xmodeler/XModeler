@@ -1,0 +1,15 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler Transition_name_Changed()
+    let transition = find(event.value());
+        newText = event.new() then
+        nameAndArgs = StateMachine::StateDiagrams::TransitionNames.parseString(newText,"TransitionName",Seq{}) then
+        name = nameAndArgs->head;
+        args = nameAndArgs->tail
+    in transition.setName(name);
+       transition.setArgs(args)
+    end
+  end

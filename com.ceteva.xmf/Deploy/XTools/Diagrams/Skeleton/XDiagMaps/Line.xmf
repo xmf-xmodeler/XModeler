@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+
+context ! Root::XDiagMaps
+
+  // Class deployed by Tony Clark on Sat Sep 17 16:25:38 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Line extends Root::XDiagMaps::Display
+
+    @Attribute x1     : Integer (?,!) end
+    @Attribute y1     : Integer (?,!) end
+    @Attribute x2     : Integer (?,!) end
+    @Attribute y2     : Integer (?,!) end
+    @Attribute colour : Color   (?,!) end
+    @Attribute layout : String  (?,!) end
+    
+    @Constructor(x1,y1,x2,y2,layout,colour) ! end
+    
+    @Operation writeType(out,indent)
+      format(out,"~V@Line line(~S,~S,~S,~S,~S) color = \"~S,~S,~S\" end~%",Seq{indent,x1,y1,x2,y2,layout,colour.red(),colour.green(),colour.blue()})
+    end
+
+  end

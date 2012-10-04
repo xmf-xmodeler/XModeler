@@ -1,0 +1,84 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Call extends Recognizer
+  
+    @Attribute name : String       (?) end
+    @Attribute args : Seq(String)  (?) end
+    @Attribute BOA  : Seq(Integer) (?) end
+    
+    @Constructor(name,args) end
+    
+    @Constructor(name,args,BOA) ! end
+    
+    @Operation CNF(grammar,FV,handler)
+      if grammar.hasBuiltin(name)
+      then handler(Seq{Builtin(name)},FV,Seq{})
+      else handler(Seq{self},FV,Seq{})
+      end
+    end
+      
+    @Operation first(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then grammar.first(clause)
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+    @Operation follow(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then grammar.follow(clause)
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+    @Operation FV():Set(String)
+      args->asSet
+    end
+    
+    @Operation nullable(grammar):Set(String)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then grammar.nullable(clause)
+         elseif grammar.hasBuiltin(name)
+         then false
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S",Seq{name});
+      if not args->isEmpty
+      then
+        format(out,"^(~{,~;~S~})",Seq{args})
+      end
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      self.BOA := args->collect(a | 
+       if locals->includes(a)
+       then locals->indexOf(a)
+       else self.error("Arg " + a.toString() + " is not in scope in " + self.toString())
+       end);
+      next(locals)
+    end
+    
+    @Operation setFollow(grammar,follow)
+      let clause = grammar.clauseNamed(name)
+      in if clause <> null
+         then grammar.setFollow(clause,follow)
+         else grammar.error("No clause named " + name)
+         end
+      end
+    end
+    
+  end

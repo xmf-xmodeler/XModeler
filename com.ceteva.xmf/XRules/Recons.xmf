@@ -1,0 +1,134 @@
+parserImport XOCL;
+
+import Walkers;
+import XRules;
+
+context XRules
+
+  @Class Recons extends Walker
+  
+    @Attribute consTable : Table = Table(10) end
+    
+    @Operation defaultWalk(value,env)
+      value
+    end
+    
+    @Operation reset()
+      consTable.clear();
+      super()
+    end
+    
+    @Operation reWalk(value,env)
+      consTable.get(value)
+    end
+  
+    @Operation walk(value,env)
+      if self.encountered(value)
+      then self.reWalk(value,env)
+      elseif env->assoc(value) <> null 
+      then self.walk(env->assoc(value)->head->tail,env)
+      else super(value,env)
+      end
+    end
+    
+    @Operation walkInteger(value,env)
+      value
+    end
+    
+    @Operation walkString(value,env)
+      value
+    end
+    
+    @Operation walkSymbol(value,env)
+      value
+    end
+    
+    @Operation walkBoolean(value,env)
+      value
+    end
+    
+    @Operation walkNull(env)
+      null
+    end
+    
+    @Operation walkFloat(value,env)
+      value
+    end
+    
+    @Operation walkSeq(value,env)
+      let seq = Seq{null|null}
+      in self.encounter(value,seq);
+         consTable.put(value,seq);
+         seq->head := self.walk(value->head,env);
+         seq->tail := self.walk(value->tail,env);
+         seq
+      end
+    end
+    
+    @Operation walkSet(value,env)
+      self.walk(value->asSeq,env)
+    end
+    
+    @Operation walkObject(value,env)
+      if value.isKindOf(Classifier) andthen 
+         not value.getStructuralFeatureNames()->exists(n | 
+               value.get(n).of() = XRules::Var)
+      then 
+        self.encounter(value,value);
+        consTable.put(value,value);
+        value
+      elseif value.of() = Var
+      then value
+      else
+        let class = value.of() then
+            object = Kernel_newObj(class)
+        in self.encounter(value,object);
+           consTable.put(value,object);
+           @For slot in value.getStructuralFeatureNames() do
+             Kernel_addAtt(object,slot,self.walk(value.get(slot),env))
+           end;
+           object
+        end
+      end
+    end
+    
+  end
+  
+context XRules
+  @Bind reconsWalker = Recons()
+  end
+  
+context XRules
+  @Operation recons(value,env)
+  /*
+    if env->assoc(value) <> null 
+    then recons(env->assoc(value)->head->tail,env)
+    elseif value.isKindOf(Integer) or
+           value.isKindOf(String) or
+           value.isKindOf(Boolean) or
+           value = Seq{} or
+           value = null
+    then value
+    elseif value.isKindOf(Seq(Element))
+    then Seq{recons(value->head,env) | recons(value->tail,env)}
+    elseif value.isKindOf(Classifier) andthen 
+           not value.getStructuralFeatureNames()->exists(n | 
+             value.get(n).of() = XRules::Var)
+    then value
+    elseif value.isKindOf(Object)
+    then
+      let class = value.of() then
+          object = Kernel_newObj(class)
+      in @For slot in value.getStructuralFeatureNames() do
+           Kernel_addAtt(object,slot,recons(value.get(slot),env))
+         end;
+         object
+      end
+    else value
+    end
+*/
+    reconsWalker.reset();
+    reconsWalker.walk(value,env)
+  end
+         
+  

@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import IO;
+
+context Comms
+
+   @Class Client
+   
+     @Doc
+       A class that implements a client interface. Use this class to
+       connect to a server either in blocking or non-blocking mode.
+       By default, a client is blocking.
+     end
+  
+    @Attribute input : InputChannel end     // The channel to read when connected.
+    @Attribute output : OutputChannel end   // The channel to write to when connected.
+    @Attribute block : Boolean end          // Determines blocking on connecting.
+    
+    @Constructor() !
+      self.block := true
+    end
+    
+    @Constructor(block) end
+    
+    @Operation connect(address:String,port:Integer):Boolean
+    
+      @Doc
+        Supply an address string and a port number to attempt to
+        connect to the server at the given address and port. If the
+        client is blocking then the call will only return when the
+        connection is successful; meanwhile other threads are
+        given a chance to run. If the client is non blocking then
+        it will return immediately with true or false depen-ding on
+        whether the connection was successful.
+      end
+       
+      let pair = Kernel_client_connect(address,port)
+      in if pair = Seq{}
+         then 
+           if block
+           then 
+             self.yield();
+             self.connect(address,port)
+           else false
+           end
+         else
+           self.input := StandardInputChannel(pair->head);
+           self.output := StandardOutputChannel(pair->tail);
+           true
+         end
+      end
+    end
+    
+  end

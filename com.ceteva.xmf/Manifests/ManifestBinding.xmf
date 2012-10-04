@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import XOCL;
+import Manifests;
+import IO;
+
+context Manifests
+
+  @Class ManifestBinding extends Syntax
+  
+    @Attribute name  : String        (?) end
+    @Attribute entry : ManifestEntry (?) end
+    
+    @Constructor(name,entry) ! end
+    
+    @Operation build(dir:String)
+      entry.build(dir)
+    end
+    
+    @Operation deleteBinary(dir:String)
+      entry.deleteBinary(dir)
+    end
+    
+    @Operation deref(dir:String) 
+      ManifestBinding(name,entry.deref(dir)) 
+    end
+    
+    @Operation load(dir:String,loadSource:Boolean)
+      entry.load(dir,loadSource)
+    end
+    
+    @Operation refresh(dir)
+      entry.refresh(dir)
+    end
+    
+    @Operation stale()
+      entry.stale()
+    end
+    
+    @Operation touch(dir:String,source:Boolean)
+      entry.touch(dir,source)
+    end
+    
+    @Operation unxip(zipFile:ZipFile,prefix:String)
+      entry.unxip(zipFile,prefix)
+    end
+    
+    @Operation xip(dir:String,prefix:String,zout:ZipOutputChannel)
+      entry.xip(dir,prefix,zout)
+    end
+    
+  end

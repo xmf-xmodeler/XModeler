@@ -1,0 +1,78 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class AbstractObjectEditor isabstract extends PropertyEditor
+
+    // This is used as the abstract supertype for all the object property editors,
+    //  as they do not all inherit from ObjectPE.
+
+    @Operation browseHistory()
+      let history = self.getHistory();
+          stringOp = 
+            @Operation(element)
+              element.toString() + if element = self.element then " [*]" else "" end
+            end then
+          chosenElement = xmf.select(self.historyDialogTitle(),
+                                  self.historyDialogMessage()  + " (current item shown by [*])",
+                                  history,
+                                  null,
+                                  stringOp)
+      in
+        if chosenElement <> null
+        then
+          self.handleFormUpdate(chosenElement)
+        end
+      end
+    end
+
+    @Operation clearAndRefresh()
+      xmf.findClient(MappingClient).addAndShowElement(element,self)
+    end
+
+    @Operation clearHistory()
+      if xmf.confirm("Are you sure you want to clear the history?")
+      then
+        client.clearHistory(self.element)
+      end;
+      self
+    end
+
+    @Operation close()
+      self.isOpen := false;
+      self
+    end
+
+    @Operation getCurrentHistoryIndex()
+      self.getHistory().indexOf(self.element)
+    end
+
+    @Operation getHistory()
+      client.refreshHistory();
+      client.history()
+    end
+
+    @Operation handleFormUpdate(element)
+      element.edit()
+    end
+
+    @Operation historyDialogMessage():String
+      "Select an element to open a property editor for"
+    end
+
+    @Operation historyDialogTitle():String
+      "Property Editor History"
+    end
+
+    @Operation initForm()
+      super();
+      self.client := xmf.findClient(Clients::PropertyEditorXCore::MappingClient);
+      self.name := "Properties - " + element.labelString()
+    end
+
+  end

@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Pattern isabstract 
+  
+    @AbstractOp code(net:Performable):Performable end
+  
+    @AbstractOp constraints(boundVars:Set(String)):Set(Constraint) end
+    
+    @AbstractOp negated():Boolean end
+    
+    @AbstractOp source():String end
+    
+    @AbstractOp varEnv(boundVars:Set(String),varEnv:Env):Env end
+  
+  end

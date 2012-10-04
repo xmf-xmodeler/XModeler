@@ -1,0 +1,77 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class StringMetaslotValue extends MetaslotValue
+  
+    // puts quotes around the string text displayed on the node
+    
+    @Operation addQuotes(text)
+      if not text.at(0) = "\"".at(0)
+      then
+        text := "\"" + text
+      end;
+      if not text.asSeq().last() = "\"".at(0) or text.size() = 1
+      then
+        text := text + "\""
+      end;
+      text
+    end
+    
+    // ensures the object text does not have quotes
+    
+    @Operation removeQuotes(text)
+      if text.size() > 0 then
+        if text.at(0) = "\"".at(0)
+        then
+          text := text.subString(1,text->size)
+        end;
+        if text.asSeq().last() = "\"".at(0)
+        then
+          text := text.subString(0,text->size-1)
+        end
+      end;
+      text
+    end
+    
+    @Operation new(parent) 
+      self.setOwner(parent);
+      self.commandInterpreter().newTextCommand(parent,self,self.addQuotes(self.text()));
+      self.setRightClickMenu();
+      self.calculateSize()
+    end
+    
+    @Operation renew(parent)
+      self.commandInterpreter().newTextCommand(parent,self,self.addQuotes(self.text()));
+      self.setRightClickMenu()
+    end
+  
+    @Operation textChanged(newText) 
+      let displayText = newText
+      in
+        newText := self.removeQuotes(newText);
+        displayText := self.addQuotes(displayText);
+        self.commandInterpreter().setTextCommand(self,displayText);
+        self.text := newText;
+        self.calculateSize();
+        owner.resized(self)
+      end
+    end
+    
+    @Operation setText(newText)
+      let displayText = newText
+      in
+        displayText := self.addQuotes(displayText);
+        self.commandInterpreter().setTextCommand(self,displayText);
+        self.text := newText;
+        self.calculateSize();
+        owner.resized(self)
+      end
+    end
+  
+  end

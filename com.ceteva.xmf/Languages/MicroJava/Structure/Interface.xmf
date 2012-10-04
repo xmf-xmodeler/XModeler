@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import IO;
+
+context Structure
+
+  @Class Interface extends UnitDef
+  
+    @Attribute features : Seq(Feature) end
+    
+    @Constructor(name) ! end
+    @Constructor(name,implements,parent,features) end
+    
+    @Operation pprint(out,indent)
+      format(out,"public interface ~S",Seq{name});
+      if parent <> null
+      then 
+        if parent.isKindOf(Performable)
+        then parent.pprint(out,indent)
+        else format(out," extends ~{.~;~S~}",Seq{parent})
+        end
+      end;
+      if not implements->isEmpty
+      then 
+        format(out," implements ");
+        @For i in implements do
+          format(out,"~{.~;~S~}",Seq{i});
+          if not isLast then format(out,",") end
+        end
+      end;
+      format(out," {");
+      if features.isKindOf(Seq(Element))
+      then
+        @For f in features do
+          format(out,"~%~%~V",Seq{indent+2});
+          f.pprint(out,indent+2)
+        end
+      else features.pprint(out,indent)
+      end;
+      format(out,"~%~V}",Seq{indent})
+    end
+    
+  end

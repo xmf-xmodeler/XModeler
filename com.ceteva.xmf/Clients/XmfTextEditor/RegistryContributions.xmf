@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Clients::ExtensionPoints;
+
+// *** XMF FILE HANDLER ***
+
+let
+  registry = xmf.registry() then
+  id = "com.ceteva.textEditors.handler"
+in
+  registry.addContribution(id,
+    StringContribution("xmf",Seq{
+      Clients::XmfTextEditor::FileEditor
+    }))
+end;
+
+// *** MENUS ***
+
+@Menu "Clear Highlighting" on Clients::XmfTextEditor::FileEditor
+  Clients::TextEditor::Editor::clearHighlights
+end;
+
+@Menu "Save, Compile and Load" on Clients::XmfTextEditor::FileEditor notUndoable
+  Clients::XmfTextEditor::FileEditor::compileSaveLoad
+end;
+
+@Menu "Save" on Clients::XmfTextEditor::FileEditor binds CTRL+S notUndoable
+  Clients::XmfTextEditor::FileEditor::textCommitted
+end;
+
+@Menu "Save As..." on Clients::XmfTextEditor::FileEditor notUndoable
+  Clients::XmfTextEditor::FileEditor::commitTextAs
+end;
+
+@Menu "Compile File" on Clients::XmfTextEditor::FileEditor notUndoable
+  Root::Clients::XmfTextEditor::FileEditor::compileFile
+end;
+
+@Menu "Load Binary" on Clients::XmfTextEditor::FileEditor notUndoable
+  Clients::XmfTextEditor::FileEditor::loadBinary
+end;
+
+
+// *** MENU ROOT TYPE ***
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.menus.rootType"
+in
+  registry.addContribution(id,Contribution(Root::Clients::TextEditor::Editor,Seq{"Root::Clients::TextEditor::Editor"}));
+  registry.addContribution(id,Contribution(Root::Clients::XmfTextEditor::FileEditor,Seq{"Root::Clients::TextEditor::Editor"}));
+  self
+end;

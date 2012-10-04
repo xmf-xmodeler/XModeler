@@ -1,0 +1,75 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Exceptions;
+import Env;
+import Compiler;
+import IO;
+import Manifests;
+
+context Manifests
+
+  @Class XML extends File
+  
+    // An XML file.
+  
+    @Grammar extends ManifestAction.grammar
+    
+      XML ::= guard = ActionGuard path = MPath loadAction = LoadAction {
+      
+        XML(path,guard,loadAction)
+        
+      }.
+       
+    end
+    
+    @Operation binFile(dir:String):String
+      dir->subst(xmf.homeDir(),"HOME",true) + "/" + path + ".xml" 
+    end
+    
+    @Operation build(dir:String)
+      null
+    end
+    
+    @Operation deleteBinary(dir:String)
+      null
+    end
+    
+    @Operation deref(dir) self end
+    
+    @Operation load(dir:String,loadSource:Boolean)
+      if guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+      then 
+        let binFile = self.binFile(dir)
+        in if binFile.fileExists()
+           then 
+             @WithOpenFile(fin <- binFile)
+               let xin = XMLInputChannel(fin,NameSpaceXMLInflater())
+               in xin.parse()
+               end
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation sourceFile(dir:String):String
+      self.binFile(dir)
+    end
+    
+    @Operation touch(dir:String,source:Boolean)
+      null
+    end
+    
+    @Operation unxip(zipFile:ZipFile,prefix:String)
+      if guard.perform(self,Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},Seq{})
+      then 
+        let inch = zipFile.inputChannel(prefix + "/" + path) then
+            xin = XMLInputChannel(inch,NameSpaceXMLInflater())
+        in xin.parse()
+        end
+      end
+    end
+    
+  end

@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Boolean in AST(aBoolean,arg,seen)
+  ASTNode(aBoolean)
+end;

@@ -1,0 +1,7 @@
+import OCL;
+
+context BoolExp
+
+  @Operation eval(target,env,imports):Element
+    value
+  end

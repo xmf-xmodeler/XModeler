@@ -1,0 +1,52 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Int extends Recognizer 
+
+	// Succeeds when the next sequence of input characters 
+	// constitutes an integer. Leaves the integer on the stack.
+	
+	@Operation code(outputChannel)
+      format(outputChannel," Int ")
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      Set{self}
+    end
+
+	@Operation parse(machine)
+	  if machine.eof()
+	  then 
+	    if machine.grammar.debug then machine.debug("EOF encountered when expecting an integer.") end;
+	    machine.fail()
+	  else 
+	    let token = machine.next()
+	    in if token->head = 7
+	       then 
+	         if machine.grammar.debug then machine.debug("Int succeeds: " + token->at(1)) end;
+	         machine.pushStack(token->at(1));
+	         machine.consumedChars := token->at(2)
+	       else 
+	         if machine.grammar.debug then machine.debug("expecting an integer, got " + token) end;
+	         machine.fail()
+	       end
+	    end
+	  end
+	end
+	
+	@Operation toExp(FV:Set(String))
+	  [| Root::Parser::BNF::Int() |]
+	end
+	
+	@Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+  end

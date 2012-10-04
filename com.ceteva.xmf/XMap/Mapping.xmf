@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+context XMap
+
+  @Class Mapping
+  
+    @Doc
+      All mappings inherit from this class.
+    end
+    
+    @Operation target()
+      @Doc
+        A mapping is invoked in order to transform domain elements.
+        The target is always the mapping.
+      end
+      self
+    end
+    
+  end

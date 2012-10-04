@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Parser;
+
+context BNF
+
+  @Class ParseError extends Exception
+  
+    @Attribute text     : String end
+    @Attribute consumed : String end
+    
+    @Constructor(text) !
+      self.setBacktrace();
+      self.message := "Failed to parse expression.\nThe following input was consumed: "
+    end
+    
+  end
+      

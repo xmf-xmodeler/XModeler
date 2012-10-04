@@ -1,0 +1,27 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Languages;
+import MicroSQL;
+import Mappings;
+import XCoreXSQL;
+ 
+context XCoreXSQL
+ 
+  @Map TypeXType(Element)->String
+    @Clause TypeXType
+      e = Element do
+        @TypeCase(e)
+          String do
+            "STRING"
+          end
+          Integer do
+            "INTEGER"
+          end
+          Boolean do
+            "BOOLEAN"
+          end 
+          else self.error("Don't know how to convert to SQL type:"+e)
+        end
+    end
+  end

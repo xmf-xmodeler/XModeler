@@ -1,0 +1,54 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Parser::BNF; 
+
+context XOCL
+
+  @Class Count extends Sugar
+  
+    @Doc
+      The count construct specifies a loop from a lower limit to an upper limit.
+      The lower limit is the initial value of a loop variable and the upper
+      limit is 1 greater than the final value of the variable.
+      
+      Constructor: Count(var,lower,upper,body)
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Count ::=  var = Name 'from' lower = Exp 'to' upper = Exp 'do' body = Exp { Count(var,lower,upper,body) }.
+      
+    end 
+    
+    @Attribute var : String end
+    @Attribute lower : Performable end
+    @Attribute upper : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(var,lower,upper,body) end
+    
+    @Operation desugar() 
+      [| let countLower = <lower>;
+             countUpper = <upper> then
+             <var> = countLower
+         in @While <OCL::Var(var)> < countUpper do 
+              <body>;
+              <OCL::Var(var)> := <OCL::Var(var)> + 1
+            end
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Count ~S from ",Seq{var});
+      lower.pprint(out,indent);
+      format(out," to ");
+      upper.pprint(out,indent);
+      format(out," do~%~V",Seq{indent + 2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

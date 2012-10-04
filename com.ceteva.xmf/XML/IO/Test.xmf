@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import IO;
+
+context Root
+  @Class Test extends NamedElement
+    @Attribute str : String end
+    @Attribute int : Integer end
+    @Attribute bool : Boolean end
+    @Attribute element : Element end
+    @Attribute list : Seq(Element) end
+    @Attribute cons : Seq(Element) end
+    @Constructor(name,str,int,bool,element,list,cons) !
+      self.setName(name)
+    end
+  end
+
+context Root
+  @Operation test()
+    let stack = Stacks::Stack();
+        list = 0.to(100)
+    in @Count i from 0 to 100 do
+         stack.push(Test("X",i.toString(),i,i < 5,stack,list->take(i),Seq{stack|stack}))
+       end;
+       stack.push(stack);
+       @WithOpenFile(fout -> "c:/tmp.xml")
+         let xout = XMLOutputChannel(fout)
+         in xout.writeValue(stack)
+         end
+       end;
+       @WithOpenFile(fin <- "c:/tmp.xml")
+         let xin = XMLInputChannel(fin)
+         in xin.parse()
+         end
+       end
+     end
+   end
+   
+context Root
+  @Operation test2()
+    @WithOpenFile(fout -> xmf.openFile(xmf.projDir(),"*.xml","tmp.xml"))
+      let N = Tools.allContentsOf(NameSpace)->asSeq + MDC.allContentsOf(NameSpace)->asSeq then
+          f = IO::ModelFormatter(N,Table(10)) then
+          o = IO::XMLOutputChannel(fout,f);
+          tt = xmf.toolManager().toolBrowser().definitionManager().getElement("JobShopDiagram").displayType()
+      in f.setRefPred(@Operation(o) not N->includes(o.of()) end);
+         o.writeValue(tt);
+         o.close()
+      end
+    end
+  end

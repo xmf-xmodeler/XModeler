@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler SetOfElement in Lift(s,arg,encountered)
+  s->iterate(e exp = [| Set{} |] | [| <exp> + Set{<self.dispatch(e,arg)>} |])
+end;
+
+context XCore::SetOfElement
+  @Operation lift():Performable
+    self->iterate(e exp = [| Set{} |] | [| <exp> + Set{<e.lift()>} |])
+  end

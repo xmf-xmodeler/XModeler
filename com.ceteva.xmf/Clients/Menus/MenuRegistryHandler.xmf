@@ -1,0 +1,72 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class MenuRegistryHandler
+
+    @Attribute menuManager : MenuManager end
+    @Attribute menuRegistryPoint : Element end
+    @Attribute menuRootRegistryPoint : Element end
+    
+    @Constructor(menuManager)
+      self.menuRegistryPoint := xmf.registry().getExtensionPoint("com.ceteva.xmf.menus");
+      self.menuRootRegistryPoint := xmf.registry().getExtensionPoint("com.ceteva.xmf.menus.rootType")
+    end
+
+    @Operation buildGlobalMenu(menu,type,clientType,target)
+      let key = Set{type,clientType}
+      in
+        self.buildMenuTreeFromRegistry(menu,type,target);
+        menu
+      end      
+    end
+
+    @Operation buildMenuTreeFromRegistry(menu,type,target)
+      try
+        let
+          contributions = menuRegistryPoint.find(type);
+          rootTypeCon = menuRootRegistryPoint.find(type)
+        in
+          if not contributions->isEmpty then
+            if rootTypeCon <> null then
+              let rootTypePath = rootTypeCon.getValue(0) then
+                  rootType = rootTypePath.lookupPath(Root)
+              in
+                contributions := contributions->select(c | c.type().inheritsFrom(rootType))
+              end
+            end;
+            @For contribution in contributions do
+              self.buildMenu(menu,contribution,target)
+            end
+          end;
+          menu
+        end
+      catch(exception)
+        exception.edit()
+      end
+    end
+
+    @Operation buildMenu(menu,contribution,target)
+      let
+        parameters = contribution.getValue(0);
+        op = contribution.getValue(1);
+        labelSeq = contribution.getValue(2);
+        keybinding = contribution.getValue(3);
+        multi = contribution.getValue(4);
+        undoable = contribution.getValue(5) then
+        action = Menus::MenuAction(labelSeq->last,keybinding,target,parameters,op,multi,undoable)
+      in
+        labelSeq := labelSeq->excluding(labelSeq->last);
+        let parent = menu in
+          @For label in labelSeq do
+            parent := parent.findOrAddMenuItems(label)
+          end;
+          parent.add(action)
+        end
+      end
+    end
+
+  end

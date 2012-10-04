@@ -1,0 +1,24 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler IterExp in TypeChecker(exp,env,encountered)
+  let cType = self.dispatch(exp.collection,env) then
+      collClass = cType.of()
+  in if cType.type().isKindOf(Seq) or cType.type().isKindOf(Set)
+     then 
+       @Case exp.iterOp of 
+         "collect" do
+           let env = env.bind(exp.name,cType.type().elementType) then
+               bType = self.dispatch(exp.body,env)
+           in TypeCheckExp(exp,collClass(bType.type()),Seq{cType,bType})
+           end
+         end
+         else TypeCheckFails("unknown iteration op",TypeCheckExp(exp,Element,Seq{cType}))
+       end
+     else TypeCheckFails("expecting a collection",TypeCheckExp(exp,Element,Seq{cType}))
+     end
+  end 
+end;

@@ -1,0 +1,280 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning;
+import Structure;
+import Automata;
+import Actions;
+import IO; 
+
+context Scanner
+  @Attribute legacyType : Integer end
+  
+context Scanner
+  @Attribute legacyToken : Buffer end
+
+context Scanner
+  @Attribute legacyValue : Integer end
+
+context Scanner
+
+  @Operation nextToken(input:InputChannel)
+    
+      // This is provided so that legacy parsing machinery can work
+      // alongside the new parsing machinery. This operation returns
+      // a token in the old format so that legacy grammars can be
+      // threaded into the parse when using XBNF.
+      
+    let EOF     = 1;
+        STRING  = 5;
+        NAME    = 6;
+        INT     = 7;
+        SPECIAL = 8;
+        SYMBOL  = 13
+    in self.skipWhiteSpace(input);
+       if legacyToken = null then self.legacyToken := Buffer(30,true) end;
+       self.legacyToken.setSize(0);
+       if self.eof(input)
+       then 
+         self.legacyType := EOF;
+         true
+       else 
+         let c = self.read(input)
+         in @CaseInt[256] c of
+              "("->at(0),
+              ")"->at(0),
+              "{"->at(0),
+              "}"->at(0),
+              "["->at(0),
+              "]"->at(0),
+              ";"->at(0),
+              "."->at(0),
+              ","->at(0) do
+                self.legacyType := SPECIAL;
+                self.legacyToken.add(c);
+                true
+              end
+              "\""->at(0) do //"
+                self.legacyType := STRING;
+                self.legacyString(input)
+              end
+              "'"->at(0) do
+                self.legacyType := SYMBOL;
+                self.legacyTerminal(input)
+              end
+              "/"->at(0) do
+                 if self.skipLegacyComment(input)
+                 then self.nextToken(input)
+                 else
+                   self.legacyType := SPECIAL;
+                   self.legacyToken.add(c);
+                   true
+                 end
+              end
+              " "->at(0),"\n"->at(0),"\r"->at(0),"\t"->at(0) do
+                self.nextToken(input)
+              end
+              "0"->at(0) to "9"->at(0) do
+                self.legacyType := INT;
+                self.legacyInteger(c - ("0"->at(0)),input)
+              end
+              "a"->at(0) to "z"->at(0),"A"->at(0) to "Z"->at(0) do
+                self.legacyType := NAME;
+                self.legacyToken.add(c);
+                self.legacyName(input)
+              end
+              else 
+                self.legacyType := SPECIAL;
+                self.legacyToken.add(c);
+                self.legacySpecial(input)
+            end
+          end
+        end
+     end
+  end
+
+context Scanner
+  @Operation skipWhiteSpace(input:InputChannel)
+    let whiteSpace = true
+    in @While not self.eof(input) and whiteSpace do
+         let c = self.read(input) 
+         in @CaseInt[255] c of
+              " "->at(0) do null end
+              "\n"->at(0) do null end
+              "\r"->at(0) do null end
+              "\t"->at(0) do null end
+              else whiteSpace := false
+            end
+         end
+       end;
+       if not whiteSpace
+       then self.charIndex := charIndex - 1
+       end
+    end
+  end
+  
+context Scanner
+  @Operation legacyString(input:InputChannel)
+    let doubleQuotes = false
+    in @While not(self.eof(input)) and not(doubleQuotes) do
+         let char = self.read(input)
+         in if char = "\""->at(0) //"
+            then doubleQuotes := true
+            else self.legacyToken.add(char)
+            end
+          end
+        end;
+        if self.eof(input)
+        then 
+          self.error := "Unterminated string " + token;
+          false
+        else true
+        end
+     end
+   end
+               
+context Scanner
+  @Operation legacyTerminal(input:InputChannel)
+    let singleQuotes = false
+    in @While not(self.eof(input)) and not(singleQuotes) do
+         let char = self.read(input)
+         in if char = "'"->at(0) 
+            then singleQuotes := true
+            else self.legacyToken.add(char)
+            end
+          end
+        end;
+        if self.eof(input)
+        then 
+          self.error := "Unterminated terminal " + token;
+          false
+        else true
+        end
+     end
+   end
+               
+context Scanner
+  @Operation skipLegacyComment(input):Boolean
+    if self.eof(input)
+    then 
+      self.legacyType := 8;
+      self.legacyToken.add("/");
+      true
+    else
+      let char = self.read(input)
+      in if char = "/"->at(0)
+         then
+           let EOLN = false
+           in @While not EOLN and not(self.eof(input)) do
+                char := self.read(input);
+                if char = "\n"->at(0)
+                then EOLN := true
+                end
+              end;
+              true
+           end
+         elseif char = "*"->at(0)
+         then 
+           let terminated = false
+           in @While not terminated and not(self.eof(input)) do
+                char := self.read(input);
+                if char = "*"->at(0)
+                then
+                 if self.eof(input)
+                 then false
+                 else 
+                  char := self.read(input);
+                  if char = "/"->at(0)
+                  then terminated := true
+                  end
+                 end
+               end
+            end;
+            if terminated
+            then true
+            else false
+            end
+          end      
+        else false
+        end    
+     end
+   end
+ end
+ 
+context Scanner
+  @Operation legacyInteger(n,input)
+    let isNum = true
+    in @While not self.eof(input) and isNum do
+         let c = self.read(input)
+         in @CaseInt[256] c of
+              "0"->at(0) to "9"->at(0) do
+                n := (n * 10) + (c - ("0"->at(0)))
+              end
+              else isNum := false
+            end
+         end;
+         if not isNum then self.charIndex := charIndex - 1 end;
+         self.legacyValue := n
+       end
+    end;
+    true
+  end
+  
+context Scanner
+  @Operation legacyName(input)
+    let terminated = false
+    in @While not terminated and not self.eof(input) do
+         let c = self.read(input)
+         in @CaseInt[256] c of
+              "0"->at(0) to "9"->at(0) do
+                self.legacyToken.add(c)
+              end
+              "A"->at(0) to "Z"->at(0),
+              "a"->at(0) to "z"->at(0) do
+                self.legacyToken.add(c)
+              end
+              "_"->at(0) do
+                self.legacyToken.add(c)
+              end
+              else terminated := true
+            end
+         end
+       end;
+       if terminated then self.charIndex := charIndex - 1 end;
+       true
+    end
+  end
+  
+context Scanner
+  @Operation legacySpecial(input)
+    let terminated = false
+    in @While not terminated and not self.eof(input) do
+         let c = self.read(input)
+         in @CaseInt[256] c of
+              "a"->at(0) to "z"->at(0),
+              "A"->at(0) to "Z"->at(0),
+              "0"->at(0) to "9"->at(0),
+              "("->at(0),
+              ")"->at(0),
+              "{"->at(0),
+              "}"->at(0),
+              "["->at(0),
+              "]"->at(0),
+              "."->at(0),
+              ","->at(0),
+              "\""->at(0), //"
+              " "->at(0),
+              "\n"->at(0),
+              "\r"->at(0),
+              "\t"->at(0) do 
+                terminated := true;
+                self.charIndex := charIndex - 1
+              end
+              else legacyToken.add(c)
+            end
+         end
+       end;
+       true
+    end
+  end
+              

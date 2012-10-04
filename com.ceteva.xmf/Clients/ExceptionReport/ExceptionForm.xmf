@@ -1,0 +1,66 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class ExceptionForm extends LockableFormWithHistory
+
+    @Attribute exception : Exception end
+    @Attribute tree      : ReportTree end
+    
+    @Constructor(exception)
+      self.typeName := "Exception";
+      let msg = exception.message
+      in
+        self.itemName :=
+        if msg.size()>75
+        then
+          msg.truncate(75) + "..."
+        else
+          msg
+        end
+      end;
+      self.initialize()
+/*      if exception.message = ""
+      then self.name := exception.toString()
+      else self.name := exception.message
+      end */
+    end
+  
+    @Operation addContents()
+      self.addElement(FormLabel(10,9,"Exception Trace : " + itemName));
+      let button = FormButton(560,6,100,18,"View As Text",self.toTextEditor())
+      in
+        self.addElement(button)
+      end;
+      self.tree := ReportTree(10,30,650,400,exception);
+      self.addElement(tree);
+      self.addElement(FormLabel(0,450," "))
+    end
+
+    @Operation historyDialogMessage():String
+      "Select an exception trace to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Exception Trace History"
+    end
+
+    @Operation toTextEditor()
+      @Operation()
+        let editor = Clients::TextEditor::Editor(self,"Exception Trace",exception.message,false) 
+        in 
+          xmf.findClient(Clients::TextEditor::TextEditorClient).newTextEditor(editor);
+          let out = IO::StringOutputChannel()
+          in
+            tree.pprint(out,0);
+            editor.setText(out.getString())
+          end
+        end
+      end
+    end
+    
+  end

@@ -1,0 +1,9 @@
+parserImport XOCL;
+
+import Airports;
+
+context Flight
+
+  @Constraint DontExceedCapacity
+    route.capacity >= passengers->size
+  end

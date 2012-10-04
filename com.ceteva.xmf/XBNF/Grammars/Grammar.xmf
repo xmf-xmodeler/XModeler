@@ -1,0 +1,579 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import IO;
+import OCL;
+import XOCL;
+import XCore;
+import XBNF;
+import Tokens;
+import Scanning;
+import Structure;
+import RegularExpressions;
+import Actions;
+import Stacks;
+import Env;
+import Grammars;
+
+context Grammars
+
+  @Class Grammar extends Syntax, Contained
+     
+    @Attribute parent         : Grammar                   end  // The parent grammar or null.
+    @Attribute clauses        : Set(Clause)       (?,+,-) end  // The clauses defining how to parse.
+    @Attribute clauseTable    : Table = Table(50)         end  // Index parsers by name.
+    @Attribute debug          : Boolean = false           end  // Whether we generate debug output or not.
+    @Attribute imports        : Seq(NameSpace)            end  // A sequence of imported namespaces.
+    @Attribute NTCount        : Integer                   end  // Used to generate new non-terminals.
+    @Attribute scanner        : Scanner           (?,!)   end  // Used to generate tokens from an input channel.
+    @Attribute builtins       : Seq(String)       (?,!)   end  // Names of builtin non-terminals.
+    @Attribute startingSymbol : String            (?,!)   end  // Where to start a parse by default.
+    @Attribute first          : Table = Table(10) (?,!)   end  // Mapping clauses to first sets.
+    @Attribute follow         : Table = Table(10) (?,!)   end  // Mapping clauses to follow sets.
+    @Attribute nullable       : Table = Table(10) (?,!)   end  // Mapping clauses to nullable property.
+    @Attribute PPT            : Table = Table(10) (?,!)   end  // Mapping clauses to PPT tables.
+    @Attribute PPTCache       : Table = Table(10) (?,!)   end  // Mapping clauses to PPTCache tables.
+    @Attribute PPTKeys        : Table = Table(10) (?,!)   end  // Mapping clauses to terminal sets for parser.
+    
+    @Constructor(clauses,builtins) end 
+    
+    @Constructor(parent,imports,builtins,clauses,scanner) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      XBNF_Action ::= 
+        '{' exp = Exp '}' 
+        { OCLAction(Exp(exp)) } |
+        '?' boolExp = Exp
+        { Predicate(boolExp) }.
+    
+      XBNF_Atom ::= 
+        XBNF_Action    | 
+        XBNF_Literal   | 
+        XBNF_Call      | 
+        XBNF_Not       | 
+        '(' d = XBNF_Disjunction ')' { Paren(d) }.
+  
+      XBNF_Binding ::= 
+        name = Name '=' atom = XBNF_Sequence { 
+          Bind(name,atom) 
+        }.
+    
+      XBNF_Call ::= 
+        name = Name args = XBNF_CallArgs { Call(name,args) }.
+        
+      XBNF_CallArgs ::=
+        '^' '(' a = Name as = (',' Name)* ')' { Seq{a | as} } | { Seq{} }.
+        
+      XBNF_Clause ::= 
+        name = Name args = XBNF_ClauseArgs '::=' body = XBNF_Disjunction '.' { 
+          Clause(name,args,Seq{Seq{body}})
+        }. 
+        
+      XBNF_ClauseArgs ::= 
+        '(' n = Name ns = (',' Name)* ')' { Seq{n | ns} } | { Seq{} }.
+  
+      XBNF_Conjunction ::= 
+        elements = XBNF_Element+ { 
+         elements->tail->iterate(e conj = elements->head | 
+           And(conj,e)) 
+        }. 
+    
+      XBNF_Disjunction ::= 
+        element = XBNF_Conjunction [ 
+          '|' rest = XBNF_Disjunction element = { Or(element,rest) } 
+        ] 
+        { element }.
+     
+      XBNF_Element ::= 
+        XBNF_Optional  | 
+        XBNF_Binding   | 
+        XBNF_Sequence.
+    
+      Grammar ::= 
+        parent = XBNF_GrammarParent
+        imports = XBNF_GrammarImports
+        builtins = XBNF_GrammarBuiltins
+        scanner = XBNF_Scanner
+        clauses = XBNF_Clause* { 
+          [| let grammar = <Grammar(clauses->asSet,builtins).setLocals()>
+             in grammar.scanner := <scanner>;
+                grammar.parent := <parent>;
+                grammar := grammar.compile();
+                grammar.imports := <imports> + Seq{XCore,Root};
+                grammar
+             end |]
+        }.
+        
+      XBNF_Scanner ::= 
+        'scanner' Exp | { [| null |] }.
+        
+      XBNF_GrammarBuiltins ::=
+        'builtin' n = Name ns = (',' Name)* { Seq{n | ns} } |
+        { Seq{} }.
+  
+      XBNF_GrammarImports ::= 
+        'import' class = Exp classes = (',' Exp)* { 
+          OCL::SetExp("Seq",Seq{class | classes}) 
+        } |
+        { OCL::SetExp("Seq",Seq{}) }.
+        
+      XBNF_GrammarParent ::= 
+        'extends' parent = Exp  { parent } | { [| null |] }.
+
+      XBNF_Literal ::= 
+        'Empty'      { (XBNF::Grammars.getElement("Empty"))() }    |
+        'Char'       { (XBNF::Grammars.getElement("Char"))() }     |
+        'Line'       { (XBNF::Grammars.getElement("Line"))() }     |
+        'Str'        { (XBNF::Grammars.getElement("Str"))() }      | 
+        //'Terminal'   { (XBNF::Grammars.getElement("Term"))() }     |
+        'Int'        { (XBNF::Grammars.getElement("Int"))() }      | 
+        'Name'       { (XBNF::Grammars.getElement("Name"))() }     | 
+        'EndOfFile'  { (XBNF::Grammars.getElement("EOF"))() }      | 
+        '@'          { (XBNF::Grammars.getElement("At"))() }       |
+        'ImportAt'   { (XBNF::Grammars.getElement("ImportAt"))() } |
+        'pState'     { (XBNF::Grammars.getElement("PState"))() }   |
+        terminal = Terminal
+         { (XBNF::Grammars.getElement("Terminal"))(terminal) }.
+       
+      XBNF_Not ::= 'Not' '(' parser = XBNF_Sequence ')' { (Parser::BNF.getElement("Not"))(parser) }.
+
+      XBNF_Optional ::= 
+        '[' opt = XBNF_Disjunction ']'
+        { Opt(opt) }.
+  
+      XBNF_Path ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+    
+      XBNF_TypeCheck ::=
+        element = XBNF_Atom [ ':' type = XBNF_Path element = { And(element,TypeCheck(type)) } ] { element }.
+  
+      XBNF_Sequence ::= 
+        element = XBNF_TypeCheck [ 
+          '*' element = { Star(element) } | 
+          '+' element = { Plus(element) } ] 
+         { element }.
+    
+      end
+      
+      @Operation addFirsts(clause,terminals:Set(String))
+        if first.hasKey(clause)
+        then first.put(clause,first.get(clause) + terminals)
+        else first.put(clause,terminals)
+        end
+      end
+      
+      @Operation allClauses():Set(Clause)
+        // Return all locally and inherited clauses. 
+        if parent = null
+        then self.clauses()
+        else self.clauses() + parent.allClauses()
+        end
+      end
+      
+      @Operation At(inch:InputChannel,startNT:String,sourceGrammar:Grammar,sourceScanner:Scanner,scan,imports:Seq(NameSpace))
+      
+        // Called when an At has occurred in the source grammar. The parse
+        // continues with the receiver but must pick up when the input 
+        // supplied by the input channel and the source scanner buffers.
+        // If successful the source scanner must be updated before returning
+        // the synthesized value.
+        
+        let newScanner = scanner.copy()
+        in newScanner.buffer := sourceScanner.buffer;
+           newScanner.charIndex := sourceScanner.charIndex;
+           let value = self.parse(inch,startNT,Seq{},newScanner,scan,imports)
+           in sourceScanner.charIndex := newScanner.charIndex;
+              value
+           end
+        end
+      end
+      
+      @Operation cacheClauses()
+        // Create entries in the clause table for each clause.
+        // Cache the PPT for each clause as a vector...
+        @For clause in clauses do
+          clauseTable.put(clause.name(),clause);
+          clause.cachePPT(self,scanner.lastToken())
+        end
+      end
+      
+      @Operation calculateSets()
+      
+        // Called to create the first and follow sets for  the
+        // non-terminals. On completion, each clause records
+        // the set of first and follow terminals and whether or
+        // not the clause derives the empty set of input tokens.
+        
+        let changed = false
+        in @Repeat
+             changed := false;
+             @For clause in clauses do
+               // For each production N ::= Y1 ... Yk
+               @For body in clause.bodies do
+                 // If Y1 .. Yk are nullable then N is nullable...
+                 if body->forAll(p | p.nullable(self))
+                 then 
+                   if not self.nullable(clause) then changed := true end;
+                   self.setNullable(clause,true)
+                 end;
+                 @Count i from 0 to body->size do
+                   // If 0 to (i-1) are all nullable then add
+                   // the first of Yi to N...
+                   if body->take(i)->forAll(b | b.nullable(self))
+                   then 
+                     let first = body->at(i).first(self)
+                     in if not first->forAll(n | self.first(clause)->includes(n))
+                        then changed := true
+                        end;
+                        self.addFirsts(clause,first)
+                     end
+                   end;
+                   if body->at(i).isKindOf(Call)
+                   then
+                     if body->drop(i + 1)->forAll(b | b.nullable(self))
+                     then 
+                       let follow = body->at(i).follow(self)
+                       in if not self.follow(clause)->forAll(n | follow->includes(n))
+                          then changed := true
+                          end;
+                          body->at(i).setFollow(self,follow + self.follow(clause))
+                       end
+                     end;
+                     let rest = body->drop(i+1)
+                     in @Count j from 0 to rest->size - 1 do
+                          if rest->take(j)->forAll(b | b.nullable(self))
+                          then let follow = body->at(i).follow(self);
+                                   first = rest->at(j + 1).first(self)
+                               in if not first->forAll(n | follow->includes(n))
+                                  then changed := true
+                                  end;
+                                  body->at(i).setFollow(self,follow + first)
+                               end
+                          end
+                        end
+                      end
+                    end
+                 end
+               end
+             end
+           until not changed
+           end
+         end
+       end
+       
+      @Operation calculatePPT()
+        @For clause in clauses do
+          clause.calculatePPT(self)
+        end
+      end  
+      
+      @Operation checkScanner()
+      
+        // If the scanner is not supplied and there is a
+        // parent grammar then set the scanner to be the 
+        // same as the parent...
+        
+        if scanner = null and not parent = null
+        then self.scanner := parent.scanner()
+        end
+      end 
+      
+      @Operation checkTerminals()
+      
+        // Calculates the set of terminals for the
+        // grammar and checks that the scanner defines an
+        // entry for each terminal. If this is not the case
+        // then create a new scanner that extends the
+        // supplied scanner with the extra terminals.
+        
+        let usedTerminals = self.terminalNames();
+            suppliedTerminals = scanner.allTokenNames()
+        in if not usedTerminals->forAll(t | suppliedTerminals->includes(t))
+           then
+             // Extend and update the scanner...
+             format(stdout,"[ Extending scanner with ~{,~;~S~} ]~%",Seq{(usedTerminals-suppliedTerminals)->asSeq});
+             let extraTerminals = usedTerminals - suppliedTerminals then
+                 rules = 
+                   extraTerminals->collect(token | 
+                     Rule(Range::translateString(token),Token(token))) then
+                 extension = Scanner("ExtendedScanner",rules->asSeq)
+             in extension.inherit(scanner);
+                extension.compile();
+                self.scanner := extension
+             end
+           end
+        end
+      end
+      
+      @Operation clauseNamed(name:String):Clause
+        @Find(clause,clauses)
+          when clause.name = name
+          else null
+        end
+      end
+      
+      @Operation clear()
+      
+        // Clean up the grammar so that compilation data is deleted....
+        
+        first.clear();
+        follow.clear();
+        nullable.clear();
+        @For clause inTableKeys PPT do
+          PPTKeys.put(clause,PPT.get(clause).keys())
+        end;
+        PPT.clear()
+        
+      end
+      
+      @Operation CNF()
+      
+        // Transform to conjunctive normal form. Remove all disjunction.
+        
+        Grammar(parent,imports,builtins,self.CNFClauses(),scanner)
+        
+      end
+      
+      @Operation CNFClauses()
+      
+        // Ensure that the NTCount is set correctly for generating new
+        // clause names. Don't want them clashing...
+        
+        let inheritedClauses = self.inheritedClauses()
+        in self.NTCount := clauses->size + inheritedClauses->size;
+           clauses->collect(c | c.CNF(self))->flatten + inheritedClauses
+        end
+        
+      end
+      
+      @Operation compile()
+      
+        // Transforms to a normal form and calculates the sets and tables
+        // required for parsing...
+        
+        format(stdout,"~%[ XBNF Compiling Grammar ]~%");
+        self.checkScanner();
+        self.checkTerminals();
+        let G = self.CNF();
+            t = Time()
+        in self.setOwnership();
+           G.calculateSets();
+           format(stdout,"  Calculating Lookhead Table...~%");
+           G.calculatePPT();
+           format(stdout,"  Caching Clauses...~%");
+           G.cacheClauses();
+           format(stdout,"  Checking Lookahead Requirements...~%");
+           G.printWarnings();
+           format(stdout,"[ XBNF Compilation Complete in ~S ]~%",Seq{(Time() - t).pprint()});
+           //G.clear();
+           G
+        end
+      end
+      
+      @Operation compile(env,frame,isLast,saveSource)
+      
+        // Each operation (i.e. action) may refer to names that are name space
+        // references. When a grammar is initialised, each action operation will
+        // be updated so that the operation is owned by the grammar. The grammar
+        // will have an owner and therefore name space references are reconciled
+        // through the enclosing grammar.
+        
+        super(env.incNameSpaceRefs(),frame,isLast,saveSource)
+      end
+      
+      @Operation first(clause):Set(String)
+        if first.hasKey(clause)
+        then first.get(clause)
+        else Set{}
+        end
+      end
+      
+      @Operation follow(clause)
+        if follow.hasKey(clause)
+        then follow.get(clause)
+        else Set{}
+        end
+      end
+      
+      @Operation hasBuiltin(name:String):Boolean
+        builtins->includes(name) orelse self.inheritedHasBuiltin(name)
+      end
+      
+      @Operation inheritedClauses():Set(Clause)
+        // Return all inherited clauses. 
+        if parent = null
+        then Set{}
+        else parent.allClauses()
+        end
+      end
+      
+      @Operation inheritedHasBuiltin(name)
+        if parent = null
+        then false
+        else parent.hasBuiltin(name)
+        end
+      end
+      
+      @Operation name(type:Integer):String
+        scanner.tokenName(type)
+      end
+    
+      @Operation names(types:Set(Integer)):Set(String)
+        types->collect(type | self.name(type))
+      end
+    
+      @Operation newNT():String
+        let i = NTCount
+        in self.NTCount := NTCount + 1;
+           "NT" + i
+        end
+      end
+      
+      @Operation nullable(clause):Boolean
+        if nullable.hasKey(clause)
+        then nullable.get(clause)
+        else false
+        end
+      end
+      
+      @Operation parse(input:InputChannel,nonTerminal:String,args:Seq(Element))
+        self.parse(input,nonTerminal,args,scanner,scanner.scan(input),imports)
+      end
+      
+      @Operation parseFile(nonTerminal:String,args:Seq(Element))
+        let file = xmf.openFile(xmf.projDir(),Seq{})
+        in if file.fileExists()
+           then self.parseFile(file,nonTerminal,args)
+           end
+        end
+      end
+      
+      @Operation parseFile(file:String,nonTerminal:String,args:Seq(Element))
+        @WithOpenFile(fin <- file)
+          self.parse(fin,nonTerminal,args,scanner,scanner.scan(fin),imports)
+        end
+      end
+    
+      @Operation pprint(out,indent)
+        format(out,"@Grammar");
+        format(out,"~%~V",Seq{indent+2});
+        @For clause in clauses->asSeq->qsort(@Operation(c1,c2) c1.name() < c2.name() end) do
+          clause.pprint(out,indent+2);
+          if not isLast
+          then format(out,"~%~V",Seq{indent+2})
+          end
+        end;
+        format(out,"~%~Vend",Seq{indent})
+      end
+      
+      @Operation pprintPPT()
+        self.pprintPPT(stdout)
+      end
+      
+      @Operation pprintPPT(out)
+        @For clause in clauses do
+          clause.pprintPPT(self,out);
+          if not isLast then format(out,"~%") end
+        end
+      end
+      
+      @Operation PPT(clause)
+        if PPT.hasKey(clause)
+        then PPT.get(clause)
+        else 
+          let table = Table(10)
+          in PPT.put(clause,table);
+             table
+          end
+        end
+      end
+      
+      @Operation PPTCache(clause)
+        if PPTCache.hasKey(clause)
+        then PPTCache.get(clause)
+        else self.error("No PPTCache for clause " + clause.toString())
+        end
+      end
+      
+      @Operation PPTKeys(clause)
+      
+        // Predication terminal names...
+        
+        if PPTKeys.hasKey(clause)
+        then PPTKeys.get(clause)
+        else Set{}
+        end
+      end
+      
+      @Operation printWarnings()
+      
+        // The grammar need not be LL(1), but it helps. A grammar
+        // is not LL(1) when the prediction table contains multiple
+        // entries for a given non-terminal. This is handled by
+        // backtracking and makes the parsing machine run slower.
+        // Print warnings.
+        
+        let warningCount = 0
+        in @For clause in clauses do
+             warningCount := clause.printWarnings(self,warningCount)
+           end
+        end
+      end
+      
+      @Operation predict(nonTerminal:String,type:Integer)
+        let clause = clauseTable.get(nonTerminal)
+        in if clause <> null
+           then clause.predict(type,self)
+           else self.error("Cannot find clause named " + nonTerminal)
+           end
+        end
+      end
+      
+      @Operation reset()
+      
+        // Reset the scanner
+        
+        scanner.reset()
+      end
+      
+      @Operation setFollow(clause,terminals:Set(String))
+        follow.put(clause,terminals)
+      end
+      
+      @Operation setLocals()
+      
+        // Set the locals in the actions.
+        
+        @For clause in clauses do
+          clause.setLocals()
+        end;
+        self
+      end
+      
+      @Operation setNullable(clause,isNullable)
+        nullable.put(clause,isNullable)
+      end
+      
+      @Operation setOwnership()
+      
+        // Set the owner for actions.
+        
+        @For clause in clauses do
+          clause.setOwnership(self)
+        end;
+        self
+      end
+      
+      @Operation setPPTCache(clause,cache)
+        PPTCache.put(clause,cache)
+      end
+      
+      @Operation terminalIndex(name:String)
+        scanner.tokenIndex(name)
+      end
+      
+      @Operation terminalNames():Set(String)
+        clauses->iterate(c T = Set{} | T + c.terminals())
+      end
+     
+  end

@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Var in AST(aVar,arg,seen)
+  ASTNode(aVar)
+end;

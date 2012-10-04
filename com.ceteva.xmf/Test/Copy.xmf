@@ -1,0 +1,45 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a Copy expression within the context of the namespace Frames
+context Frames
+
+	// the class Copy provides the Frame import service
+    @Class Copy extends CompositeExpression
+		// create a Copy object and bind to the frame to copied
+		// note that Copy instances don't require the 'ref' attribute!
+		@Constructor(theSubframe) end
+		
+		// grammar describing CS of a Copy expression
+		@Grammar extends OCL::OCL.grammar
+			Copy ::= theSubframe=Exp
+				{
+				import OCL
+				in [| import Frames in Copy(Set{ <theSubframe> }) end |]
+				end
+				}.
+		end
+
+		// a Break may or may not be provided (hence it will be of type Set{Break} with
+		// a cardinality of 0..1) - this attribute is only required by the subclasses, but
+		// we provide it here as an expediency (rather than provide explicitly in all subclasses)
+		@Attribute ref : Set(Break) end
+
+		// there may or may not be a subframe to copy
+		@Attribute theSubframe : Set(Frame) end
+		
+		// query operation
+		@Operation isCopy():Boolean
+			true
+		end
+		
+		// return the string representation of the subframe to copy
+		@Operation asStringSequence():Seq(String)
+			self.theSubframe->iterate(item elements=Seq{} | elements + item.asStringSequence())
+		end
+    end
+

@@ -1,0 +1,28 @@
+parserImport OCL;
+parserImport Parser::BNF;
+
+import Services;
+
+context Constraint
+
+  @Grammar
+  
+    Constraint ::= And.
+    
+    And ::= l = Or ('and' r = And { And[left=l,right=r] } | { l }).
+    
+    Or ::= l = Neg ('or' r = Or { Or[left=l,right=r] } | { l }).
+    
+    Neg ::= Rel.
+    
+    Rel ::= Eql | 'true' { True() }.
+    
+    Eql ::= l = Exp ('=' r = Exp { Equals[left=l,right=r] } | { l }).
+    
+    Exp ::= Att | Const.
+    
+    Att ::= n = Name { Attribute[name=n] }.
+    
+    Const ::= n = Int { Const[value=n] } | s = Str { Const[value=s] }.
+    
+  end

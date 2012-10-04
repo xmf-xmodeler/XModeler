@@ -1,0 +1,30 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Iterate in PPrint(aIterate,out,seen)
+  self.mark(
+    @Operation()
+      self.dispatch(aIterate.collection,out);
+      format(out,"->iterate(");
+      if aIterate.name.isKindOf(Drop)
+      then self.dispatch(aIterate.name,out)
+      else format(out,"~S",Seq{aIterate.name})
+      end;
+      format(out," ");
+      if aIterate.accumulator.isKindOf(Drop)
+      then self.dispatch(aIterate.accumulator,out)
+      else format(out,"~S",Seq{aIterate.accumulator})
+      end;
+      format(out," = ");
+      self.dispatch(aIterate.value,out);
+      format(out," |");
+      self.indent(
+        @Operation()
+          self.newLine();
+          self.dispatch(aIterate.body,out)
+        end);
+      self.newLine();
+      format(out,")")
+    end)
+end;

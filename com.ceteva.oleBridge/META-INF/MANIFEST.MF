@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: OleBridge Plug-in
+Bundle-SymbolicName: com.ceteva.oleBridge;singleton:=true
+Bundle-Version: 2.0.0
+Bundle-Activator: com.ceteva.oleBridge.OleBridgePlugin
+Bundle-Vendor: Xmodeler.org
+Bundle-Localization: plugin
+Require-Bundle: 
+ org.eclipse.core.runtime,
+ org.eclipse.ui,
+ com.ceteva.client,
+ com.ceteva.xmf
+Eclipse-AutoStart: true
+Bundle-ClassPath: .,
+ lib/jacob.jar
+Export-Package: com.ceteva.oleBridge
+Eclipse-BundleShape: dir

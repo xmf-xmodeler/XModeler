@@ -1,0 +1,31 @@
+import OCL;
+
+context Try
+  @Operation compile(env,frame,isLast,saveSource)
+    let op = [| @Operation(<name>) <handler> end |].compile(env,frame,isLast,saveSource);
+        freeVars = body.FV(); 
+        localVars = env.locals();
+        globalVars = env.globals() then
+        freeVars = freeVars->intersection(localVars+globalVars)->asSeq then
+        funEnv = env.deleteLocals().newFrame().newGlobals(freeVars) then
+        globalRefs = env.refs(freeVars); 
+        bodyCode = body.compile(funEnv,frame + 1,false,saveSource);
+        source = if saveSource then self.pprint(4) else "No Source Available" end
+    in globalRefs + op + Seq{Instrs::Try(freeVars->size,body.maxLocals(),source,bodyCode + Seq{Instrs::Return()})}
+    end
+  end
+  
+context Try
+  @Operation FV():Set(String)
+    body.FV() + handler.FV()->excluding(name)
+  end
+  
+context Try
+  @Operation lift()
+    Apply(self.typeExp(),Seq{body.lift(),StrExp(name),handler.lift()})
+  end
+  
+context Try
+  @Operation maxLocals():Integer
+    0
+  end 

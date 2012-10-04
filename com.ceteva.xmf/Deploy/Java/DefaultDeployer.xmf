@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import JavaDeployer;
+
+context JavaDeployer
+  @Operation defaultDeployer()
+    let deployer = PackageDeployer(ClassDeployer(AttributeDeployer(),OperationDeployer()))
+    in
+      deployer.deploy(self)
+    end
+  end

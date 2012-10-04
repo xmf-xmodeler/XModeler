@@ -1,0 +1,8 @@
+import OCL;
+
+context Apply
+  @Operation eval(target,env,imports)
+    let op = operator.eval(target,env,imports)
+    in op.invoke(op.target(),args->collect(arg | arg.eval(target,env,imports)))
+    end
+  end

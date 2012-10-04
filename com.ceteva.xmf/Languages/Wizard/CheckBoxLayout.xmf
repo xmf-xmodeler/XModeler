@@ -1,0 +1,13 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class CheckBoxLayout extends Layout
+    
+    @ToXML(CheckBoxLayout)[x,y,width,height] end 
+    
+  end

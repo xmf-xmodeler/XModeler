@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class Dispatcher extends Class
+  
+    @Doc
+       A dispatcher, like a walker, passes over an element performing a
+       task. The difference between a dispatcher and a walker is that 
+       the dispatcher can be programmed on a type-by-type basis and then
+       dispatches to handlers whereas the types in a walker are fixed.
+       A walker may be slightly more efficient, but less extensible and
+       modular.
+    end
+     
+    @Attribute handlers : Seq(Handler) end
+    @Attribute cache : Table  = Table(100) end
+    
+    @Operation add(element)
+      if element.isKindOf(Handler)
+      then self.addHandler(element)
+      else super(element)
+      end
+    end
+     
+    @Operation addHandler(handler)
+      self.handlers := Seq{handler | handlers->reject(h | h.type() = handler.type())};
+      self.orderHandlers()
+    end
+    
+    @Operation defaultParents():Set(Classifier)
+      Set{Walkers::DispatchingObject}
+    end
+     
+    @Operation dispatch(element:Element,arg:Element,d:DispatchingObject,encountered:Boolean):Element
+      let type = element.of() then
+          cached = Kernel_tableHasKey(cache,type)
+      in if cached
+         then Kernel_tableGet(cache,type).handler.invoke(d,Seq{element,arg,encountered})
+         else 
+           let handler = self.getHandler(element)
+           in if handler = null
+              then d.dispatchFails(element,arg)
+              else 
+                cache.put(type,handler);
+                handler.handler().invoke(d,Seq{element,arg,encountered})
+              end 
+           end
+         end
+      end
+    end
+     
+    @Operation getHandler(element)
+      let handler = null;
+          handlers = handlers
+      in @While handler = null and not handlers->isEmpty do
+           if element.isKindOf(handlers->head.type()) and
+              (element = null implies handlers->head.type() = Null)
+           then handler := handlers->head
+           else handlers := handlers->tail
+           end
+         end;
+         handler
+      end
+    end
+     
+    @Operation orderHandlers()
+      self.handlers := handlers.qsort(@Operation(sub,sup) sub.inheritsFrom(sup) and sub <> sup end)
+    end
+    
+  end

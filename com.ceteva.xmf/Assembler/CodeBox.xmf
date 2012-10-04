@@ -1,0 +1,423 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Assembler
+
+    @Class CodeBox extends Resource
+    
+      @Doc
+         A code box is a modelled eqivalent of the machine data structure
+         that contains executable machine instructions. A code box can be
+         serialized to a file which will cause the machine data structure to
+         be constructed when the file is loaded or can be transformed directly
+         into a machine function of 0 arguments.
+      end
+
+      @Attribute name : String            end  // Code boxes are named ('anonymous' by default).
+      @Attribute locals : Integer         end  // Stack space required to execute the code.
+      @Attribute constants : Seq(Element) end  // Sequence of values referenced by the code in the box.
+      @Attribute code : Seq(Element)      end  // Binary code in reverse order.
+      @Attribute source : String          end  // Source code for the code box.
+      
+      @Constructor(name) ! end
+      
+      @Operation addInstr(instr):Element
+        
+        @Doc
+          Instructions are added to the head of the code stream which
+          must be reversed before use.
+          Parameter: instr:Instr
+            The instruction to add to the code box.
+        end
+          
+        self.code := Seq{instr | code}
+      end
+
+      @Operation codeBoxes():Set(CodeBox)
+      
+        @Doc
+          A code box may contain sub-code-boxes as part of its constants area.
+          typically the sub-code-boxes contain instructions for functions that
+          are created when the parent is executed. This operation returns all
+          the code boxes in a parent.
+        end
+         
+        constants
+          ->select(c | c.isKindOf(CodeBox))
+          ->collect(cb | cb.codeBoxes())
+          ->asSet
+          ->flatten
+          ->including(self)
+      end
+       
+      @Operation constOffset(value:Element):Element
+      
+        @Doc
+          Find the offset in the constants are of the code box for a
+          given value. A given value should not occur more than once
+          in the constants area of a code box.
+        end
+        
+        if constants->includes(value)
+        then constants->indexOf(value)
+        elseif value.isKindOf(Compiler::Symbol)
+        then self.symbolOffset(value)
+        else 
+          self.constants := constants + Seq{value};
+          constants->size - 1
+        end
+      end  
+      
+      @Operation offset(label:String,instrs)
+        let offset = 0;
+            found = false
+        in @While not(found or instrs->isEmpty) do
+             if instrs->head.label() = label
+             then found := true
+             else 
+               offset := offset + 1;
+               instrs := instrs->tail
+             end
+           end;
+           if found
+           then offset
+           else 
+             format(stdout,"source = ~S~%",Seq{source});
+             format(stdout,"code = ~S~%",Seq{code}); 
+             self.error("Cannot calculate offset to non-existent label: " + label)
+           end
+        end
+      end
+      
+      @Operation ppCode(out):Element
+        
+        @Doc
+          The instructions of a code box written to an output channel.
+        end
+         
+         format(out,"Instructions:~%");
+         @For i in code->reverse do
+            if i.label() = ""  
+            then format(out,"~V ~S~%",Seq{10,i})
+            else format(out,"~<10>S ~S~%",Seq{i.label(),i})
+            end
+         end
+      end 
+      
+      @Operation ppConstants(out):Element
+       
+        @Doc
+          The constants of a code box pretty printed to an output channel. 
+          Constants live at particular offets in the constants area.
+        end
+          
+        if constants->isEmpty
+        then self
+        else 
+          format(out,"  Constants:~%    ");
+          @Count i from 0 to constants->size do
+            let constant = constants->at(i)
+            in if constant.isKindOf(CodeBox)
+               then format(out,"~S: [~S]~%",Seq{i,constant.name})
+               else
+                 @TypeCase(constant)
+                   Symbol do format(out,"~S: '~S'~%",Seq{i,constant.toString()}) end
+                   String do format(out,"~S: \"~S\"~%",Seq{i,constant.toString()}) end
+                   else format(out,"~S: ~S : ~S~%",Seq{i,constant.toString(),constant.of().path()})
+                 end
+               end;
+               if (i + 1) < constants->size
+               then format(out,"    ")
+               else self
+               end
+            end
+          end
+        end
+      end
+      
+      @Operation ppSource(out):Element
+      
+        @Doc
+          Code boxes contains source code strings. The string may be empty
+          if the compiler has not dumped source code into the code box.
+          You can request the compiler save source code which will be used
+          in displaying diagnostics.
+        end
+         
+         format(out,"  Source Code:~%    ~S~%",Seq{source})
+      end
+      
+      @Operation pprint(out)
+        self.setCodeBoxNames();
+        @For codeBox in self.codeBoxes() do
+          format(out,"Code Box: ~S(~S)~%",Seq{codeBox.name,codeBox.locals});
+          codeBox.ppConstants(out);
+          codeBox.ppSource(out);
+          codeBox.ppCode(out);
+          format(out,"~%~%")
+        end
+      end
+      
+      @Operation resolveLabels()
+        @Doc
+          This operation is called in order to transform symbolic labels
+          to relative instruction offsets in SKIP instructions.
+        end
+        self.resolveLabelsForward();
+        self.resolveLabelsBackward()
+      end 
+      
+      @Operation resolveLabelsBackward()
+        let is = code
+        in @While not is->isEmpty do
+             let i = is->head
+             in @TypeCase(i)
+                  SkipBack do   
+                    i.setOffset(self.offset(i.targetLabel(),is)) 
+                    //format(stdout,"SKIPBACK ~S -> ~S (~S)~%",Seq{i.targetLabel(),self.offset(i.targetLabel(),is),i.offset()})
+                  end
+                  else self
+                end;
+                is := is->tail
+             end
+           end
+        end
+      end
+      
+      @Operation resolveLabelsForward()
+        let is = code->reverse
+        in @While not is->isEmpty do
+             let i = is->head
+             in is := is->tail;
+                @TypeCase(i)
+                  Skip      do 
+                    i.setOffset(self.offset(i.targetLabel(),is)) 
+                    //format(stdout,"SKIP ~S -> ~S (~S)~%",Seq{i.targetLabel(),self.offset(i.targetLabel(),is),i.offset()})
+                  end
+                  SkipFalse do 
+                    i.setOffset(self.offset(i.targetLabel(),is)) 
+                    //format(stdout,"SKIPFALSE ~S -> ~S (~S)~%",Seq{i.targetLabel(),self.offset(i.targetLabel(),is),i.offset()})
+                  end
+                  Dispatch do
+                    @Count index from 0 to i.jumpTable.size() do
+                      let jumpTable = i.jumpTable then
+                          label = jumpTable.ref(index) then
+                          offset = self.offset(label,is)
+                      in i.jumpTable.put(index,offset)
+                      end
+                    end
+                  end
+                  else self
+                end
+             end
+           end
+        end
+      end
+     
+      @Operation setCodeBoxNames():Element
+      
+        @Doc
+          Some code boxes are named. For example because they correspond to 
+          named class operations. If a code box is not given a name then 
+          it it is allocated a unique name here.
+        end
+         
+        let codeBoxes = self.codeBoxes()->asSeq
+        in @Count i from 0 to codeBoxes->size do
+              let cb = codeBoxes->at(i)
+              in if cb.name = ""
+                 then cb.name := ("Code Box " + i)
+                 else cb
+                 end
+              end
+           end
+        end
+      end
+      
+      @Operation setResourceName(resourceName:String)
+        @For codeBox in self.codeBoxes() do
+          codeBox.resourceName := resourceName
+        end
+      end
+
+      @Operation symbolOffset(symbol):Element
+      
+         @Doc
+           Symbols are objects are are therefore not = to each other even
+           if they have the same name. This operation finds symbols in the
+           constants area based on the equality of their names.
+           Parameter: symbol:Symbol
+             The symbol that is to be added to the constants area of the code
+             box.
+         end
+         
+         @Find(c,constants)
+           when c.isKindOf(Compiler::Symbol) andthen c.name = symbol.name
+           do constants->indexOf(c)
+           else
+             self.constants := constants + Seq{symbol};
+             constants->size - 1
+         end
+      end
+      
+      @Operation toMachineArray(values:Seq(Element)):Element
+        
+        @Doc
+          Translates a sequence of values to an array. This is necessary to
+          represent code box constants (for example) as a machine data structure.
+          Parameter: values:Seq(Element)
+            A sequence of values to be translated to an array.
+        end
+         
+        let array = Kernel_mkArray(values->size)
+        in if values->isEmpty
+           then array
+           else 
+             @Count i from 0 to values->size do
+               Kernel_arraySet(array,i,self.toMachineValue(values->at(i)))
+             end;
+             array
+           end
+        end
+      end 
+      
+      @Operation toMachineValue(element:Element)
+        if element.isKindOf(Compiler::Symbol)
+        then Kernel_mkSymbol(element.name)
+        else 
+          if element.isKindOf(CodeBox)
+          then element.toMachineCodeBox()
+          else element
+          end
+        end
+      end
+      
+      @Operation toMachineCode(instrs:Seq(Instr)):Element
+        let code = Kernel_mkCode(instrs->size)
+        in @Count i from 0 to instrs->size do
+             Kernel_codeSet(code,i,instrs->at(i).code(),instrs->at(i).operands())
+           end;
+           code
+        end   
+      end
+      
+      @Operation toMachineCodeBox():Element
+        // Translates the receiver to a machine code box and
+        // returns the result.
+        self.resolveLabels();
+        let codeBox = Kernel_mkCodeBox(locals);
+            array = self.toMachineArray(constants);
+            code = self.toMachineCode(code->reverse + Seq{Return()})
+        in Kernel_codeBoxSetName(codeBox,name);
+           Kernel_codeBoxSetConstants(codeBox,array);
+           Kernel_codeBoxSetCode(codeBox,code);
+           Kernel_codeBoxSetSource(codeBox,source);
+           Kernel_codeBoxSetResourceName(codeBox,resourceName);
+           codeBox
+        end
+      end
+      
+      @Operation toMachineFun(arity:Integer,dynamics:Seq(Element)):Operator
+      
+        @Doc
+          Translates a code box to a machine function suitable for applying to 
+          the appropriate number of arguments. The function can then be called
+          or serialized as appropriate. It is assumed that the correct number of
+          locals has been set in the code box to support at least the required number
+          arguments. 
+          Parameter: arity:Integer
+            The number of arguments required by the function.
+          Parameter: dynamics:Seq(Element)
+            The dynamics of the function. The dynamics define the non-local variables
+            that can be referenced by the function body. The dynamics are supplied as
+            a sequence of pairs of the form: Seq{<INTEGER> | <ELEMENT>}
+            where the first element is a type code and the second is a dynamic value.
+            If the first element is 1 then the second element should be a pair containing
+            a symbol and a value. If the first element is 2 then the second element should
+            be a hashtable that associates symbols (the names) with values.
+        end
+         
+        Kernel_codeBoxToFun(self.toMachineCodeBox(),arity,dynamics)
+      end
+      
+      @Operation writeArray(constants,codeStream)
+        // Serialize an array to an output stream.
+        // Arrays may be cyclic therefore the array is created,
+        // the elements are serialized and then the elements of the 
+        // array are set.
+        codeStream.writeMKARRAY();
+        codeStream.write16(constants->size);
+        constants->collect(constant |
+          self.writeValue(constant,codeStream)
+        );
+        codeStream.writeSETARRAY();
+        codeStream.write16(constants->size)
+      end
+      
+      @Operation writeCode(codeStream)
+        // Serialize the code box.
+        codeStream.writeMKCODEBOX();
+        codeStream.write24(locals);
+        self.writeArray(constants,codeStream);
+        self.writeInstrs(codeStream);
+        self.writeValue(name,codeStream);
+        codeStream.writeMKSYMBOL();
+        self.writeString(source,codeStream);
+        codeStream.writeSETCODEBOX()
+      end
+
+      @Operation writeFile(fileName:String)
+        // Serialize the code box to an output stream.
+        let codeStream = "PlugIns.Compiler.CodeOutputStream".javaClass().new()
+        in codeStream.setFile(fileName);
+           self.writeCode(codeStream);
+           codeStream.close()
+        end
+      end
+      
+      @Operation writeInstrs(codeStream)
+        // Serialize the executable part of a code box to an output stream.
+        codeStream.writeMKCODE();
+        codeStream.write24(code->size);
+        code->reverse->collect(instr |
+          instr.write(codeStream)
+        )
+      end
+      
+      @Operation writeInteger(int,codeStream)
+        // Serialize an integer to an output stream.
+        codeStream.writeMKINT();
+        codeStream.write24(int)
+      end
+      
+      @Operation writeString(string,codeStream)
+        // Serialize a string to an output stream.
+        codeStream.writeMKSTRING();
+        codeStream.write16(string->size);
+        string->asSeq->collect(char |
+          codeStream.write8(char)
+        )
+      end
+
+      @Operation writeSymbol(symbol,codeStream)
+        // Serialize a string to an output stream.
+        self.writeValue(symbol.name,codeStream);
+        codeStream.writeMKSYMBOL()
+      end
+
+      @Operation writeValue(element,codeStream)
+        // A general purpose value serializer.
+        if element.isKindOf(String)
+        then self.writeString(element,codeStream)
+        elseif element.isKindOf(Integer)
+        then self.writeInteger(element,codeStream)
+        elseif element.isKindOf(CodeBox)
+        then element.writeCode(codeStream)
+        elseif element.isKindOf(Compiler::Symbol)
+        then self.writeSymbol(element,codeStream)
+        else self.error("I don't know how to assemble the constant " + element)
+        end
+      end
+
+    end

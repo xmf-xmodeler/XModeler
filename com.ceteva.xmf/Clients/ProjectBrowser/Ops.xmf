@@ -1,0 +1,23 @@
+context Projects::Project
+  @Operation labelString()
+    self.name().toString()
+  end 
+  
+context Projects::ProjectStub
+  @Operation labelString()
+    self.name
+  end 
+  
+context Projects::Diagram
+  @Operation labelString()
+    "[" + resourceName + "/" + diagramName + "]"
+  end
+
+context Projects::Project
+  @Operation getChildren()
+    self.contents()->asSeq + 
+      if xmf.preference("ExpandableProjectBrowser")
+      then Seq{self.package}
+      else Seq{}
+      end
+  end

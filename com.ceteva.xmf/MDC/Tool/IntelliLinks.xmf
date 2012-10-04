@@ -1,0 +1,76 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import Displays;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Intellilink"()
+  let tool = event.tool() then
+      rootElementType = tool.find(event.parent()) then
+      toolType = rootElementType.displayType()
+  in
+    let intelliLinkType = IntelliLinkType()
+    in intelliLinkType.setEdgeTypes(toolType.edgeTypes());
+       intelliLinkType.setDefaultName(toolType);
+       event.value().setTextIn(intelliLinkType.name());
+       toolType.add(intelliLinkType);
+       event.tool().register(event.value(),intelliLinkType);
+       event.tool().register(intelliLinkType,event.value())
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Intellilink"()
+  if event.tool().isRegistered(event.value())
+  then
+    let intelliLinkType = event.tool().find(event.value());
+        rootElementType = event.tool().find(event.owner())
+    in rootElementType.displayType().remove(intelliLinkType);
+       event.tool().deregister(event.value());
+       event.tool().deregister(intelliLinkType)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Alledgesintellilink"()
+  let tool = event.tool() then
+      rootElementType = tool.find(event.parent()) then
+      toolType = rootElementType.displayType() then
+      existingAllEdges =
+        @Find(ilt,toolType.intelliLinkTypes())
+          when ilt.isKindOf(AllEdgesIntelliLinkType)
+          else null
+        end
+  in
+    if existingAllEdges <> null
+    then
+      xmf.message("Only one all edges intellilink type is allowed"); 
+      event.value().delete()
+    else
+      let intelliLinkType = AllEdgesIntelliLinkType()
+      in intelliLinkType.name := "IntelliLink(AllEdges)";
+         event.value().setTextIn(intelliLinkType.name());
+         toolType.add(intelliLinkType);
+         event.tool().register(event.value(),intelliLinkType);
+         event.tool().register(intelliLinkType,event.value())
+      end
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Alledgesintellilink"()
+  if event.tool().isRegistered(event.value())
+  then
+    let intelliLinkType = event.tool().find(event.value());
+        rootElementType = event.tool().find(event.owner())
+    in rootElementType.displayType().remove(intelliLinkType);
+       event.tool().deregister(event.value());
+       event.tool().deregister(intelliLinkType)
+    end
+  end
+end;

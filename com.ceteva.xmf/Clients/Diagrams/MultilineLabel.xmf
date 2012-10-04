@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class MultilineLabel extends Label
+    
+    @Operation new(parent,setMenu) 
+      self.setOwner(parent);
+      @Command(self) newMultilineLabelCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newMultilineLabelCommand(parent,self) end;
+      self.setRightClickMenu();
+      self
+    end
+  
+  end

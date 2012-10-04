@@ -1,0 +1,66 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class When extends ProcessBody
+
+    // Processes can be partial. The conditions determining whether they can
+    // perform an action are defined using a When action. These have the form:
+    // @When
+    //   <OCL> do <ACTION>;
+    //   <OCL> do <ACTION>;
+    //   ...
+    //   <OCL> do <ACTION>
+    // end
+    // Each clause is tried in turn. If the OCL exp returns true then the action
+    // is performed otherwise move on to the next clause. If no clauses evaluate
+    // then return "FAIL".
+
+    @Attribute clauses : Seq(Clause) end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      When ::= clauses = Clauses 
+      {
+        Languages::DFD::Syntax::When(clauses)
+      }.
+      
+      Clauses ::= Clause (';' Clause)*.
+      
+      Clause ::= test = Exp 'do' action = Exp
+      {
+        //Languages::DFD::Syntax::Clause(<test>,<action>)
+        Languages::DFD::Syntax::Clause()
+      }.
+      
+    end
+    
+    @Constructor(clauses) end
+    
+    @Operation eval(env)
+      self.tryClauses(clauses,env)
+    end
+
+    @Operation tryClauses(clauses,env)
+      if clauses->isEmpty
+      then "FAIL"
+      else let clause = clauses->at(0)
+           in if clause.test.eval(self,env)
+              then clause.action.eval(env)
+              else self.tryClauses(clauses->drop(1),env)
+              end
+           end
+      end
+    end
+      
+    @Operation code(indent:Integer):String
+      "@When\n" + " ".repeat(indent + 2) +
+        clauses->collect(clause | clause.code(indent + 2))->separateWith(";\n" + " ".repeat(indent + 2)) + "\n" +
+      " ".repeat(indent) + "end"
+    end
+  end

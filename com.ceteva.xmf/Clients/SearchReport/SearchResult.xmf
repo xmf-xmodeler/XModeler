@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import SearchReport;
+
+context SearchReport
+
+  @Class SearchResult extends SearchNode
+  
+    @Attribute element : Element   end  // Data produced by the search.
+    @Attribute action  : Operation end  // A double click action.
+    
+    @Constructor(text,element,icon,action)
+      self.isEditable := false
+    end
+  
+    @Operation addContents()
+      null
+    end
+    
+    @Operation doubleSelected()
+      action(self)
+    end 
+   
+  end

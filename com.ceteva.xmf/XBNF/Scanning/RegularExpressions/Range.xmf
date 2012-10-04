@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import XBNF::Scanning;
+import RegularExpressions;
+import Graphs;
+
+context ! RegularExpressions
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Range extends XBNF::Scanning::RegularExpressions::RegularExpression
+
+    @Attribute upper : Integer (?,!) end
+    @Attribute lower : Integer (?,!) end
+
+    @Constructor(lower,upper) ! end
+    
+    @Operation translateRange(lower:String,upper:String)
+      let l = lower->asSeq;
+          u = upper->asSeq
+      in l->butLast->iterate(c1 r = u->tail->iterate(c2 r = Range(l->last,u->head) | And(r,Range(c2,c2))) | And(Range(c1,c2),r))
+      end
+    end
+    
+    @Operation toTadpole()
+      let head = Node(Automata::NodeDecoration()) then
+          tail = Edge(Automata::CharRange(lower,upper),null,head)
+      in Automata::Tadpole(head,tail)
+      end
+    end
+    
+    @Operation translateString(s) 
+      let rest = s->asSeq->tail
+      in rest->iterate(c x = Range(s->at(0),s->at(0)) | And(x,Range(c,c)))
+      end
+    end
+  end

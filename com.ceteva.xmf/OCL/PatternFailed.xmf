@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import OCL;
+
+context Exceptions
+
+  @Class PatternFailed extends Exception
+  
+    @Doc
+      This exception is raised when a pattern fails to bind.
+    end
+     
+    @Attribute pattern : Pattern end
+    @Attribute value : Element end
+    
+    @Constructor(pattern,value) !
+       self.setBacktrace();
+       self.message := 
+         "The pattern " + pattern.pprint() + 
+         " failed to match " + value.toString()
+    end
+    
+  end

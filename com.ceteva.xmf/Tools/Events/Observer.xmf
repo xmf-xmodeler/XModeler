@@ -1,0 +1,96 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Tools;
+import XMatch;
+import Events;
+
+context Events
+
+  @Class Observer
+  
+    @Doc
+      An observer handles events originating from state changes in objects.
+      Each observer has a type that defines the class of objects that it is
+      observing and has a slot name (or *). The most specific handler is
+      chosen when a state change occurs.
+    end
+  
+    @Attribute type     : Classifier (?) end // Matches the event's raised name.
+    @Attribute slot     : String     (?) end // Slot name or *.
+    @Attribute modifier : String     (?) end // !, + or -.
+    @Attribute handler  : Operation  (?) end // Operation with event parameter.
+    
+    @Constructor(type,slot,modifier,handler) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Observer ::= sig = EventSig '(' type = Exp ')' slot = ObserverSlot modifier = SlotModifier handler = Exp {
+        Observer::expand(sig,type,slot,modifier,handler)
+      }.
+      
+      EventSig ::= n = EventSigName ns = ('::' EventSigName)* { Seq{n | ns} }.
+      
+      EventSigName ::= Name | Str.
+      
+      ObserverSlot ::= Name | '*' { "*" }.
+      
+      SlotModifier ::= '!' { "!" } | '+' { "+" } | '-' { "-" }.
+      
+    end
+    
+    @Operation expand(sig,type,slot,modifier,handler)
+       let handlerArgs = Seq{Varp("tool"),Varp("object"),Varp("slot"),Varp("new"),Varp("old")} then
+           operation = Operation("Handler",handlerArgs,OCL::NamedType(),handler) then
+           body = [| Tools::Events::Observer(<type>,<StrExp(slot)>,<StrExp(modifier)>,<operation>) |];
+           path = 
+            if sig->size = 1 
+            then null 
+            else 
+              let managerName = sig->last then
+                  sig = sig->butLast then
+                  toolType = OCL::StrExp(sig->last) then
+                  sig = sig->butLast then
+                  class = OCL::Path::toPath(sig)
+              in OCL::Path([| xmf.toolManager().toolDescriptor(<class>,<toolType>) |],Seq{managerName})
+              end
+            end
+       in if sig->size = 1
+          then body
+          else OCL::ContextDef(path,body)
+         end
+      end
+    end
+    
+    @Operation importNameSpace(nameSpace)
+      handler.importNameSpace(nameSpace)
+    end
+    
+    @Operation invoke(tool,object,slot,new,old)
+      handler.invoke(self,Seq{tool,object,slot,new,old})
+    end
+    
+    @Operation new(newManager,oldManager)
+      let newHandler = self.copy();
+          newOp = handler.copy()
+      in newHandler.handler := newOp;
+         newOp.removeNameSpace(oldManager);
+         newOp.importNameSpace(newManager);
+         newHandler
+      end
+    end
+    
+    @Operation observes(object,slot,modifier):Boolean
+    
+      // Does the receiver observe state changes to the
+      // object with the supplied modifier?
+      
+      object.isKindOf(type) and
+      (slot.toString() = self.slot or self.slot = "*") and
+      modifier = self.modifier
+    end
+    
+  end
+    
+    

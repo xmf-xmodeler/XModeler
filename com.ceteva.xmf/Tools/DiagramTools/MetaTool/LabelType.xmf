@@ -1,0 +1,43 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @PaddedBox LabelType(ALIGN)
+    pad = 3
+    @Box labelAttribute(CENTRE,HORIZONTAL,hideLeft,hideRight,hideTop,hideBottom)
+      padLeft = 3
+      padRight = 3
+      padTop = 3
+      @Image labelImage(LEFT)
+        "Label.gif"
+        width = 16
+        height = 16
+      end
+      @PaddedText name(CENTRE)
+        "Label Attribute Name"
+        pad = 3
+        @Menu
+          @MenuAction Delete
+            self.owner().owner().delete()
+          end
+        end
+      end
+    end
+    @PaddedText text(CENTRE)
+      "Text"
+      pad = 3 
+    end
+  end

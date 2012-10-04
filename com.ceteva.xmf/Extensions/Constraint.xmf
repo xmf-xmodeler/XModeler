@@ -1,0 +1,51 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Constraint extends Sugar
+  
+    @Attribute name 	: String end
+    @Attribute body 	: Performable end
+    @Attribute fail 	: Performable end
+    @Attribute success  : Performable end
+    
+    @Constructor(name,body,success,fail) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Constraint ::= name = Name body = Exp success = Success fail = Fail { 
+        Constraint(name,body,success,fail) 
+      }.
+      
+      Fail ::= 'fail' Exp | { [| "Unspecified Reason" |] }.
+      
+      Success ::= 'success' Exp | { [| "" |] }.
+      
+    end
+    
+    @Operation desugar():Performable
+      [| let name = <StrExp(name)>;
+             body = @Operation <"body">(classifier) <body> end;
+             success = @Operation <"success">(classifier) <success> end;
+             fail = @Operation <"fail">(classifier) <fail> end
+         in XCore::Constraint(XCore::Symbol(name),body,success,fail)
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Constraint ~S~%~V",Seq{name,indent + 2});
+      body.pprint(out,indent+2);
+      format(out,"~%~V success ",Seq{indent});
+      success.pprint(out,indent+2);
+      format(out,"~%~V fail ",Seq{indent});
+      fail.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

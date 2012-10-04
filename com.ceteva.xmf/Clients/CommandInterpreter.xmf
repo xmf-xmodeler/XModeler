@@ -1,0 +1,71 @@
+parserImport XOCL;
+
+import IO;
+
+context Clients
+
+  @Class CommandInterpreter isabstract extends Contained, XMLOutput
+  
+    @Attribute output    : OutputChannel       end
+    @Attribute debug     : Boolean             end
+    @Attribute flush     : Boolean        (!)  end
+    
+    @Attribute packetSize : Integer = 1 				     end
+    @Attribute buffer	  : Buffer = Buffer(packetSize,true) end
+    @Attribute bufferPos  : Integer = 0					     end
+    
+    @Constructor(output) !  
+      self.debug := false;
+      self.flush := true
+    end
+    
+    @Operation allocateId(element:ClientElement)
+      if owner <> null
+      then owner.allocateId(element)
+      else self.error("Command interpreter has not owner!")
+      end
+    end
+    
+    @Operation call(message:String,args:Seq(Element))
+      self.debug("CALL ~S<,>~{<,>~;~S~}<!>~%",Seq{message,args});
+      let v = Vector(1 + args->size)
+      in v.put(0,message);
+         @Count x from 0 to args->size do
+           v.put(x + 1,args->at(x))
+         end;
+         Kernel_call(owner.name,v)
+      end
+    end
+    
+    @Operation debug(debug)
+      self.debug := debug
+    end
+    
+    @Operation debug(message:String,args:Seq(Element))
+      if debug
+      then 
+        format(stdout,message,args)
+      end
+    end
+    
+    @Operation flush()
+      // write the buffer
+      Kernel_writePacket(owner.name,buffer,bufferPos); 
+      self.bufferPos := 0
+    end
+    
+    @Operation setPacketSize(size:Integer)
+      self.flush();
+      self.packetSize := size
+    end
+    
+    @Operation writeCommand(message:String,args:Seq(Element))
+      buffer.put(bufferPos,Seq{message | args});
+      self.bufferPos := bufferPos + 1;
+      if bufferPos = packetSize
+      then
+        self.flush()
+      end
+    end
+    
+  end

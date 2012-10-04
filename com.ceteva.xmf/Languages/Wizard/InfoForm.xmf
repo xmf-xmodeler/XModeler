@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class InfoForm extends Form
+  
+    @Attribute label : String end
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    
+    @Constructor(label,x,y)
+      let button = Button("OK","OK","bigiconb.bmp","MIDDLE_LEFT",true,true,x,y+150,150,100);
+          label = Label("label",label,"","",x,y,1000,20)
+      in self.id := "ChoiceForm";
+         self.name := "Choice Form";
+         self.buttons := Seq{button};
+         self.labels := Seq{label}
+      end
+    end
+    
+  end       

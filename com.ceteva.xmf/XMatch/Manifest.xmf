@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XMatch
+  @File XMatch end
+  @File Pattern end
+  @File And end
+  @File Bind end
+  @File Dot end
+  @File Empty end
+  @File EOI end
+  @File Literal end
+  @File Negate end
+  @File Opt end
+  @File Or end
+  @File Plus end
+  @File Star end
+do
+  Project(XMatch,dir,self)
+end;

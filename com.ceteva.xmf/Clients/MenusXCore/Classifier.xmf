@@ -1,0 +1,157 @@
+parserImport XOCL;
+
+import XCore;
+import Clients::Menus;
+
+/*context Classifier
+  @Operation dropInClassDiagram()
+    let mappingClient = xmf.findClient(Clients::ClassMapping::MappingClient) 
+    in if mappingClient <> null 
+       then
+         let mappings = mappingClient.mappings then
+             packageNames = mappings->iterate(map S=Seq{} | S:=S->prepend(map.package.path())) then
+             sortedNames = packageNames->sort(@Operation(s1,s2) s1 < s2 end)
+         in if not sortedNames->isEmpty 
+            then
+              let diagramName = xmf.select("Drop into Class Diagram","Please choose a class diagram to drop into:",sortedNames,null,null) 
+              in if not diagramName = null 
+                 then
+                   @Find (map,mappings) when map.package.path() = diagramName
+                   do map.addDropped(self)
+                   end 
+                 end 
+              end 
+            end 
+         end
+      else
+        format(stdout,"Class diagram client not available.~%")
+      end
+    end
+  end
+*/
+context Classifier
+  @Operation dropInClassDiagram()
+    let mappingClient = xmf.findClient(Clients::MappingMapping::MappingClient) 
+    in if mappingClient <> null 
+       then
+         let mappings = mappingClient.mappings
+         in if not mappings->isEmpty 
+            then
+              let stringOp = @Operation(mapping) mapping.package.path() + " [" + mapping.diagram.name + "]" end then
+                  sortOp = @Operation(m1,m2) stringOp(m1) < stringOp(m2) end then
+                  orderedMappings = mappings->asSeq.qsort(sortOp) then
+                  choice = xmf.select("Drop into Class Diagram",
+                                      "Please choose a class diagram to drop into.",
+                                      orderedMappings,
+                                      null,
+                                      stringOp)
+              in if choice <> null 
+                 then
+                   @Find (map,mappings) when map = choice
+                   do map.addDropped(self)
+                   end 
+                 end 
+              end 
+            end 
+         end
+      else
+        format(stdout,"Class diagram client not available.~%")
+      end
+    end
+  end
+
+context NameSpace
+  @Operation liveDoc()
+    let textEditorClient = xmf.findClient(Clients::TextEditor::TextEditorClient) in
+      if textEditorClient <> null then
+        let viewer = Clients::LiveDocViewer::Viewer(self) in
+          textEditorClient.newBrowser(viewer)
+    end end end
+  end
+
+context Classifier
+  @Operation newConstraint()
+    let name = self.newName("con") then
+        constraintString = "@Constraint "+name+" true fail \"Unspecified Reason\" end" then
+        conAS = OCL::OCL.grammar.parseString(constraintString,"Exp1",Seq{XOCL}) then
+        conASfun = Compiler::compileToFun("",conAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+        constraint = conASfun()
+    in  constraint.setName(name);
+        self.add(constraint)
+    end
+  end
+
+context Classifier
+  @Operation newOperation()
+    let opName = self.newName("op") then
+        opString = "@Operation " + opName + "() null end" then
+        opAS = OCL::OCL.grammar.parseString(opString,"Exp1",Seq{XOCL}) then
+        opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+        operation = opASfun()
+    in  self.add(operation);
+        operation.init()
+    end
+  end
+  
+context Classifier
+  @Operation newOtherOperation()
+    let
+      metaClasses = 
+        if self.owner.isKindOf(Package)
+        then self.owner.metaPackage.allContents()->select(c | c.isKindOf(Class) and c <> null)
+        else Set{}
+        end then
+      operations = metaClasses->select(a | a.allParents()->includes(CompiledOperation))->asSeq then
+      operationof = xmf.select("Operation's class","Please choose a metaclass for the operations",operations,null,null)
+    in
+      if operationof <> null
+      then
+        let 
+          opName = self.newName("op") then
+          opString = "@Operation " + opName + "() null end" then
+          opAS = OCL::OCL.grammar.parseString(opString,"Exp1",Seq{XOCL}) then
+          opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+          operation = opASfun()
+        in
+          operation.setProperty("of",operationof);
+          self.add(operation);
+          operation.init()
+        end
+      end
+    end
+  end
+  
+context Classifier
+  @Operation setParents_client()
+    let 
+      available = (self.availableParents() + self.parents)->asSeq.sortNamedElements_CaseIndependent() then
+      current = self.parents->asSeq then
+      stringOp = 
+          @Operation(parent)
+            parent.name().toString() + " from " + parent.owner.toString()
+          end then
+      selected = xmf.selects("Set Parents","Choose parent classifier to add/remove:",available,current,stringOp)
+    in
+      if selected <> 0-1
+      then
+        let
+          added = selected - current;
+      	  removed = current - selected
+    	in
+      	  @For p in added
+      	  do 
+        	self.addParent(p)
+      	  end;
+      	  @For p in removed
+      	  do 
+        	self.removeParent(p)
+          end
+        end
+      end
+    end
+  end
+
+context Classifier
+  @Operation toHTML()
+    xmf.browse(xmf.docDir() + "/" + self.pathSeq()->separateWith("/") + "/index.html")
+  end

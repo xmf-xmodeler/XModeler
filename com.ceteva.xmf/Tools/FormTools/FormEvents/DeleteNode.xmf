@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import FormEvents;
+
+context FormEvents
+
+  @Class DeleteNode extends Delete
+  
+    @Attribute owner : Element (?) end
+    
+    @Constructor(path,value,owner) end
+    
+  end

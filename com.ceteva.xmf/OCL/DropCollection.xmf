@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class DropCollection extends OCL::OCL
+  
+    @Attribute exp : OCL::OCL end
+    
+    @Constructor(exp) end
+    
+  end

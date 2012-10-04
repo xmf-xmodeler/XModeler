@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class PathUpdate extends OCL::OCL
+  
+    // A path expression corresponds to a root expression
+    // followed by a sequence of path names.
+    
+    @Attribute path : Path end
+    @Attribute value : Performable end
+    
+    @Constructor(path,value) ! end
+    
+    @Operation desugar():Performable
+      let location = path.names->last;
+          nameSpace = Path(path.root,path.names->butLast)
+      in [| <nameSpace>.putElement(<StrExp(location)>,<value>) |]
+      end
+    end 
+    
+    @Operation pprint(out,indent)
+      path.pprint(out,indent);
+      format(out," :=");
+      value.pprint(out,indent)
+    end
+    
+  end

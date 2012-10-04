@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Undo
+  
+  @Class UndoStackListener
+  
+    @AbstractOp redoStackChanged(redoStack)
+    end
+  
+    @AbstractOp undoStackChanged(undoStack) 
+    end
+    
+  end

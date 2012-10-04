@@ -1,0 +1,532 @@
+parserImport XOCL; 
+
+context Classifier 
+  @Operation add(n:NamedElement):Classifier
+  
+    @Doc
+      Adds a named element to a classifier. If the named element
+      is an operation or constraint then it is added to the
+      appropriate attributes of the classifier. Sub-classes of
+      Classifier can exte-nd this as appropriate but should also call
+      thi via 'super'.
+    end 
+     
+    if n.isKindOf(Operation)
+    then 
+      self.addOperation(n); 
+      super(n)
+    elseif n.isKindOf(Constraint)
+    then 
+      self.addConstraint(n); 
+      super(n)
+    else 
+      n.setOwner(self); 
+      super(n)
+    end
+  end
+  
+context Classifier
+  @Operation addConstraint(c:Constraint):Classifier
+  
+    @Doc
+      Adds a constraint to a classifier. Use 'add/1' in preference
+      to this operation.
+    end
+     
+    self.resolveNameClash(c.name,constraints);
+    self.constraints := constraints->including(c);
+    c.setOwner(self);
+    self
+  end
+  
+context Classifier
+  @Operation addOperation(o):Constraint
+    @Doc
+      Adds an operation to a classifier. Use 'add/1' in preference
+      to this operation. Removes any existign operation with the
+      same name and arity.
+    end
+    @Find(oldO,operations)
+      when oldO.name = o.name and oldO.arity = o.arity
+      do // ideally the following action should simply be
+         // 'self.remove(oldO)' but this gives compilation problems
+         oldO.removeFromOwner();
+         contents.remove(oldO.name);
+         self.removeOperation(oldO)
+    end;
+    self.operations := operations->including(o);
+    o.setOwner(self);
+    resetOperatorTable();
+    self
+  end
+
+context Classifier
+  @Operation addParent(parent):Element
+  
+    @Doc
+      Add the parent to the receiver.
+      Only make the modification if the parent is
+      legal and not already present. Otherwise dont
+      change the receiver.
+    end
+    
+    if not self.inheritsFrom(parent) and
+       not parent.inheritsFrom(self)
+    then 
+    
+      // Remove any default parents that are
+      // duplicated. Not strictly necessary, but tidies
+      // things up.
+    
+      @For default in self.defaultParents() do
+        if parent.inheritsFrom(default)
+        then self.parents := parents->excluding(default)
+        end
+      end;
+      
+      // Add in the new parent...
+      
+      self.parents := parents->including(parent)
+      
+    else self
+    end
+  end
+  
+context Classifier
+  @Operation allConstraints():Set(Constraint)
+  
+    @Doc
+      Get all the constraints defined and inherited by 
+      the receiver.
+    end
+     
+    self.allParents()->iterate(parent all = constraints |
+      all->union(parent.allConstraints()))
+  end
+      
+context Classifier
+  @Operation allOperations():Seq(Operation)
+  
+    @Doc
+      Get All the operations defined and inherited by the
+      receiver. The order of the operations is very important
+      because this is the order in which message lookup occurs.
+      To calculate allOperations/0 we use an Operator
+      Precedence Ordering. This is a depth first left to right
+      traversal of the classification type lattice up to a join.
+      Stopping at join points means that operations that would
+      otherwise appear multiple times in the OPO are promoted to 
+      their last occurrence.
+    end
+    
+    Kernel_operatorPrecedenceList(self)
+  end
+  
+context Classifier
+  @Operation allParents():Set(Classifier)
+  
+    @Doc
+      The set of all parents of a  classifier.
+    end
+     
+    let P = parents;
+        allP = Seq{}
+    in @While not P->isEmpty do
+         let p = P->sel
+         in allP := Seq{p | allP->excluding(p)};
+            P := P->excluding(p)->union(p.parents)
+         end
+       end;
+       allP->reverse()->asSet
+    end
+  end
+ 
+context Classifier
+  @Operation availableParents():Set(Classifier)
+    let availableClassifiers =
+      if owner <> null andthen owner.isKindOf(Package)
+      then owner.availableContents(self.of()) + XOCL.availableContents(self.of())
+      else self.imports->iterate(i importedContents = Set{} | 
+             importedContents + i.contents()->select(i |
+               i <> null andthen i <> self andthen i.of() = self.of())
+           )
+      end;
+      allParents = self.allParents()
+    in
+      availableClassifiers->excluding(self)->select(c | not allParents->includes(c))
+    end
+  end
+  
+context Classifier
+  @Operation classify(e:Element):Set(ConstraintReport)
+  
+    @Doc
+      A classifier classifies its instances by running constraints
+      against them. The result of classification is a set of
+      constraint reports that describe whether the classification
+      succeeded and why the classification fails. To classify a
+      candidate supply it to 'classify/1' to produce the set of
+      reports.
+    end
+     
+    let C = self.allConstraints();
+        reports = Set{}
+    in @While not C->isEmpty do
+         let c = C->sel
+         in let report = 
+              try c(e,self)
+              catch(exception)
+                ConstraintReport(e,c,false,"Error while performing classification: " + exception.message)
+              end
+            in reports := reports->including(report);
+               C := C->excluding(c)
+            end
+         end
+       end; 
+       ConstraintReport(e,null,
+         reports->forAll(r | r.satisfied()),
+         "",
+         reports->asSeq)
+    end
+  end
+
+context Classifier
+  @Operation default():Element
+  
+    @Doc
+      When a classifier is used as an attribute type the corresponding
+      slot values are initialised to the default value returned by
+      this operation.
+    end
+     
+    default
+  end
+
+context Classifier
+  @Operation defaultParents():Set(Classifier)
+  
+    @Doc
+      When creating a classifier it is possible to state the
+      default parents so that if no parents are specified when
+      creating an instance of the classifier the set returned by
+      this operation is used. The default parent for a classifier
+      is Element.
+    end
+  
+    Set{Element}
+  end
+  
+context Classifier
+  @Operation dependencies():Set(Element)
+    imports->asSet +
+    operations->iterate(o D = Set{} | D + o.dependencies())
+  end
+  
+context Classifier
+  @Operation getConstraint(name:String):Constraint
+    
+    @Doc
+       ndex a constraint by name. 
+    end
+     
+    self.getNamedElement(self.allConstraints(),name)
+  end
+ 
+context Classifier
+  @Operation getOperation(name:String):Operation
+  
+    @Doc
+      Index an operation by name. 
+    end
+     
+    self.getNamedElement(self.allOperations(),name)
+  end 
+  
+context Classifier
+  @Operation getOperation(name:String,arity:Integer):Operation
+    @Doc
+      Index an operation by name and arity.
+    end
+    @Find(op,self.allOperations())
+      when
+        op.name.toString() = name.toString() and
+        op.arity() = arity
+      else null
+    end
+  end
+
+context Classifier
+  @Operation inheritsFrom(c:Classifier):Boolean
+  
+    @Doc
+      A classifier inherits from another if they are the same or
+      we can ue the 'parents' relation transitively to link the
+      two. Supply the super-classifier to this operation which
+      will return true when the receiver inherits from the argument.
+    end
+  
+    if not self.initialized() then self.init() end;
+    let classifier = self;
+        classifiers = parents
+    in @While (classifier <> c) and (not classifiers->isEmpty) do
+         classifier := classifiers->sel;
+         if not classifier.initialized() then classifier.init() end;
+         classifiers := classifiers->excluding(classifier)->union(classifier.parents)
+       end;
+       classifier = c
+    end
+  end
+  
+context Classifier
+  @Operation initialized():Boolean
+    parents.isKindOf(SetOfElement)
+  end
+  
+context Classifier 
+  @Operation init():Classifier
+  
+    @Doc
+      To initialise a classifier, initialise the operations, the parents
+      and run super.
+    end
+  
+    self.initOperations();
+    self.initParents();
+    self.initConstraints();
+    super()
+  end
+  
+context Classifier
+  @Operation initConstraints()
+    @For c in self.constraints do
+      c.init()
+    end
+  end
+  
+context Classifier
+ @Operation initOperations():Element
+ 
+   @Doc
+     Initialise all the operations.
+   end
+    
+    operations->iterate(o ignore = null | o.init());
+    self
+  end
+  
+context Classifier
+  @Operation initParents():Element
+     
+    @Doc
+      Initialise the parents of a classifier. When the compiler encounters
+      a package of definitions it turns references into operations that
+      return the references when they are called with no arguments. This is
+      the mechanism by which mutual recursion is implemented. The dereferencing
+      occurs by delaying the mutual recursion in the body of the operations;
+      the compiler will have compiled the references in the body of the operation
+      as an appropriate lookup in the containing namespace. It is therefore
+      important that namespaces such as classifiers and classes, and elements
+      that reference things in namespaces such as attributes and operations 
+      are initialised. The initialisation is fairly simple since the compiler 
+      has done all the work: initialisation just calls the operation which then
+      performs the delayed reference.
+    end
+     
+    if parents.isKindOf(Operation) and owner <> null
+    then self.parents := parents()
+    elseif parents = Set{}
+    then self.parents := self.defaultParents()
+    else self
+    end
+  end
+  
+context Classifier
+  @Operation invoke(target:Element,args:Seq(Element)):Element
+  
+    @Doc
+      A classifier is invoked to (by default) initialise itself
+      with respect to some arguments. This is the preferred way 
+      for classifiers to be instantiated.
+    end
+     
+    self.new(args)
+  end
+  
+context Classifier 
+  @Operation mapType(type,nameSpaces:Seq(NameSpace))
+    let tag = type->at(0) 
+    in @Case tag of
+          1 do 
+            // Parametric type...
+            let path = type->at(1) then
+                args = type->at(2) then
+                typeOp = path->ref(nameSpaces);
+                types = args->collect(arg | Classifier::mapType(arg,nameSpaces))
+            in if typeOp = null
+               then self.error("Cannot find the type operator " + path.toString())
+               else typeOp.invoke(typeOp,types)
+               end
+            end
+          end
+          2 do
+            // Named type...
+            let path = type->at(1) then
+                c = path->ref(nameSpaces)
+            in if c = null
+               then self.error("Cannot find type " + path.toString())
+               else c
+               end
+            end
+          end
+          3 do
+            // Operation type...
+            let domains = type->at(1);
+                range = type->at(2)
+            in OpType(domains->collect(d | 
+                 Classifier::mapType(d,nameSpaces)),
+                 Classifier::mapType(range,nameSpaces))
+            end
+          end
+          else self.error("unknown format for signature entry " + type.toString())
+        end
+     end
+   end
+
+context Classifier
+  @Operation new():Element
+  
+    @Doc
+      'new/0' is defined by classifiers to create  a new instance.
+      The default behaviour returns the default value.
+    end
+     
+    default
+  end
+  
+context Classifier
+  @Operation new(args:Seq(Element)):Element
+  
+    @Doc
+      'new/1' takes a sequence of initialisation arguments.
+      It calls 'new/0' to create the new instance and then calls
+      'init/1' with the initialisation arguments.
+    end
+  
+    self.new().init(args)
+  end
+  
+context Classifier
+  @Operation remove(n:NamedElement):Classifier
+  
+    @Doc
+      'remove/1' removes a named element from a classifier.
+      This is the preferred way of removing an element. It causes
+      the named element to be removed from the namespace of the element (i.e.
+      the contents table) and also removes operations and constraints from
+      the appropriate slots. Sub-classes of Classifier should exte-nd this as 
+      appropriate, but should call this via 'super'.
+    end
+     
+    if n.isKindOf(Operation)
+    then 
+      self.removeOperation(n); 
+      super(n)
+    elseif n.isKindOf(Constraint)
+    then 
+      self.removeConstraint(n); 
+      super(n)
+    else super(n)
+    end
+  end
+
+
+context Classifier
+  @Operation removeConstraint(c:Constraint):Classifier
+    //c.removeFromOwner();
+    self.constraints := constraints->excluding(c);
+    self
+  end
+  
+context Classifier
+  @Operation removeOperation(o):Classifier
+    //o.removeFromOwner();
+    self.operations := operations->excluding(o);
+    self
+  end
+  
+context Classifier
+  @Operation removeParent(parent)
+    let defaults = self.defaultParents()
+    in self.parents := parents->excluding(parent);
+       @For default in defaults do
+         if not parents->exists(parent | parent.inheritsFrom(default))
+         then self.parents := parents->including(default)
+         end
+       end
+    end
+  end
+  
+context Classifier
+  @Operation repopulate(namedElement):Boolean
+    if namedElement.isReallyKindOf(Classifier)
+    then
+      self.default := namedElement.default;
+      self.grammar := namedElement.grammar;
+      self.bindings := namedElement.bindings;
+      @For c in namedElement.constraints do
+        self.add(c)
+      end;
+      @For op in namedElement.operations do
+        self.add(op)
+      end;
+      self.parents := namedElement.parents; 
+      true
+    else false
+    end
+  end
+
+context Classifier
+  @Operation sendInstance(element,message,args)
+    @Doc
+      Part of the MOP. Redefine this in sub-classes to handle special
+      message passing protocols.
+    end
+    Kernel_setDefaultSendMOP(element.of(),true);
+    let name = if message.isKindOf(Symbol) then message else Symbol(message) end;
+        operations = element.of().allOperations()->asSeq
+    in let index = 0;
+           size = operations->size;
+           found = false;
+           op = null;
+           arity = args->size
+       in @While index < size and not found do
+            op := operations->at(index);
+            if op.name = name andthen (op.arity() = arity or (op.isVarArgs() and (arity >= (op.arity() - 1))))
+            then found := true
+            else index := index + 1
+            end
+          end;
+          if found
+          then
+            operations := operations->drop(index);
+            op.setSupers(operations);
+            op.invoke(element,args)
+          else element.noOperationFound(message,args)
+          end
+       end
+    end
+  end
+  
+context Classifier
+  @Operation shadowOperation(op)
+    self.operations := Seq{op | operations->asSeq}->asSet
+  end
+  
+context Classifier
+  @Operation target():Element
+    @Doc
+      Returns the target to be used when a classifier is
+      invoked.
+    end
+    self
+  end

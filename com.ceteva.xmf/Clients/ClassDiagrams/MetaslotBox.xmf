@@ -1,0 +1,79 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class MetaslotBox extends Box
+  
+    @Constructor(x,y,width)
+      self.init(Seq{x,y,width,16,0,Color(0-1,0-1,0-1),Color(0-1,0-1,0-1)})
+    end
+    
+    @Operation classNode()
+      owner.owner
+    end
+    
+    @Operation expandHeight()
+    
+      // Align all the values at the end of the slot names.
+
+      @For slotText in displays do
+        slotText.value.move(slotText.name.width() + slotText.separator(),slotText.value.y())
+      end;
+      super()
+    end
+    
+    @Operation maxHeight()
+      if not shown 
+      then 0
+      elseif displays->isEmpty
+      then 16
+      else super() + 3
+      end
+    end
+    
+    @Operation maxWidth()
+      if not shown
+      then 0
+      else
+      super() + 3
+      end
+    end
+    
+    @Operation newMetaslot(name,value)
+      let text = self.nextMetaslot(name,value)
+      in text.new(self);
+         self.add(text);
+         text
+      end
+    end
+    
+    @Operation nextMetaslot(name,value,type)
+      MetaslotText(name,value,type,0,self.displays->size * 16)
+    end
+    
+    @Operation packWidth()
+
+      // Align all the types at the end of the longest name.
+
+      @For slotText in displays do
+        slotText.value.move(slotText.name.width() + slotText.separator(),slotText.value.y())
+      end;
+      super()
+    end
+    
+    @Operation remove(metaslotText)
+      super(metaslotText);
+      @For display in displays do
+        if display.name.y > metaslotText.name.y
+        then display.moveDown()
+        end
+      end;
+      self.classNode().packHeight()
+    end
+       
+  end

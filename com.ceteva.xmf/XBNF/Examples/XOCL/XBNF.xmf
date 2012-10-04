@@ -1,0 +1,149 @@
+parserImport XBNF::Grammars;
+parserImport XBNF::Scanning::Structure;
+
+
+import XBNF;
+import Grammars;
+
+context Grammar
+
+  @Grammar extends G scanner
+  
+    @Scanner XBNFScanner extends Root::OCL::Scanner 
+    
+      Token("?")
+      Token("^")
+      Token("scanner")
+      Token("builtin")
+      Token("extends")
+      Token("Empty")
+      Token("Char")
+      Token("Line")
+      Token("Str")
+      Token("Terminal")
+      Token("Token")
+      Token("Int")
+      Token("Name")
+      Token("EOF")
+      Token("@")
+      Token("ImportAt")
+      Token("Not")
+      
+    end
+       
+      XBNF_Action ::= 
+        '{' exp = Exp '}' 
+        { OCLAction(Exp(exp)) } |
+        '?' boolExp = Exp
+        { Predicate(boolExp) }.
+    
+      XBNF_Atom ::= 
+        XBNF_Action    | 
+        XBNF_Literal   | 
+        XBNF_Call      | 
+        XBNF_Not       | 
+        '(' d = XBNF_Disjunction ')' { Paren(d) }.
+  
+      XBNF_Binding ::= 
+        name = Name '=' atom = XBNF_Sequence { 
+          Bind(name,atom) 
+        }.
+    
+      XBNF_Call ::= 
+        name = Name args = XBNF_CallArgs { Call(name,args) }.
+        
+      XBNF_CallArgs ::=
+        '^' '(' a = Name as = (',' Name)* ')' { Seq{a | as} } | { Seq{} }.
+        
+      XBNF_Clause ::= 
+        name = Name args = XBNF_ClauseArgs '::=' body = XBNF_Disjunction '.' { 
+          Clause(name,args,Seq{Seq{body}})
+        }. 
+        
+      XBNF_ClauseArgs ::= 
+        '(' n = Name ns = (',' Name)* ')' { Seq{n | ns} } | { Seq{} }.
+  
+      XBNF_Conjunction ::= 
+        elements = XBNF_Element+ { 
+         elements->tail->iterate(e conj = elements->head | 
+           And(conj,e)) 
+        }. 
+    
+      XBNF_Disjunction ::= 
+        element = XBNF_Conjunction [ 
+          '|' rest = XBNF_Disjunction element = { Or(element,rest) } 
+        ] 
+        { element }.
+     
+      XBNF_Element ::= 
+        XBNF_Optional  | 
+        XBNF_Binding   | 
+        XBNF_Sequence.
+    
+      Grammar ::= 
+        parents = XBNF_GrammarParents
+        imports = XBNF_GrammarImports
+        builtins = XBNF_GrammarBuiltins
+        scanner = XBNF_Scanner
+        clauses = XBNF_Clause* { 
+          [| let grammar = <Grammar(clauses->asSet,builtins).setLocals()>
+             in grammar.scanner := <scanner>;
+                grammar.parents := <parents>;
+                grammar := grammar.compile();
+                grammar.imports := <imports>;
+                grammar
+             end |]
+        }.
+        
+      XBNF_Scanner ::= 
+        'scanner' Exp | { [| OCL::Scanner |] }.
+        
+      XBNF_GrammarBuiltins ::=
+        'builtin' n = Name ns = (',' Name)* { Seq{n | ns} } |
+        { Seq{} }.
+  
+      XBNF_GrammarImports ::= 
+        'import' class = Exp classes = (',' Exp)* { 
+          OCL::SetExp("Seq",Seq{class | classes}) 
+        } |
+        { OCL::SetExp("Seq",Seq{}) }.
+        
+      XBNF_GrammarParents ::= 
+        'extends' parent = Exp parents = (',' Exp)* { 
+          OCL::SetExp("Set",parents->including(parent)) 
+        } |
+        { OCL::SetExp("Set",Seq{}) }.
+
+      XBNF_Literal ::= 
+        'Empty'      { (XBNF::Grammars.getElement("Empty"))() } |
+        'Char'       { (XBNF::Grammars.getElement("Char"))() }  |
+        'Line'       { (XBNF::Grammars.getElement("Line"))() }  |
+        'Str'        { (XBNF::Grammars.getElement("Str"))() }   | 
+        'Terminal'   { (XBNF::Grammars.getElement("Term"))() }  |
+        'Token'      { (Parser::BNF.getElement("Tok"))() }      |
+        'Int'        { (XBNF::Grammars.getElement("Int"))() }   | 
+        'Name'       { (XBNF::Grammars.getElement("Name"))() }  | 
+        'EOF'        { (XBNF::Grammars.getElement("EOF"))() }   | 
+        '@'          { (XBNF::Grammars.getElement("At"))() }       |
+        'ImportAt'   { (XBNF::Grammars.getElement("ImportAt"))() } |
+        terminal = Terminal
+         { (XBNF::Grammars.getElement("Terminal"))(terminal) }.
+       
+      XBNF_Not ::= 'Not' '(' parser = XBNF_Sequence ')' { (Parser::BNF.getElement("Not"))(parser) }.
+
+      XBNF_Optional ::= 
+        '[' opt = XBNF_Disjunction ']'
+        { Opt(opt) }.
+  
+      XBNF_Path ::= name = Name names = ('::' Name)* { Seq{name | names} }.
+    
+      XBNF_TypeCheck ::=
+        element = XBNF_Atom [ ':' type = XBNF_Path element = { And(element,TypeCheck(type)) } ] { element }.
+  
+      XBNF_Sequence ::= 
+        element = XBNF_TypeCheck [ 
+          '*' element = { Star(element) } | 
+          '+' element = { Plus(element) } ] 
+         { element }.
+    
+      end

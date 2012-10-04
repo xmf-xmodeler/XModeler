@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+
+context Features
+  @Class TransitionDef extends Sugar
+  
+    @Attribute source : String end
+    @Attribute target : String end
+    
+    @Constructor(source,target)
+    end
+    
+    @Operation desugar()
+      [| Features::Transition(<StrExp(source)>,<StrExp(target)>) |]
+    end
+  
+  end

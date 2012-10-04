@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class ChoiceForm extends Form
+  
+    @Attribute label : String end
+    @Attribute choices : Seq(Element) end
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    
+    @Constructor(label,x,y,choices)
+      let options = choices->collect(choice | DropDownOption(choice.toString(),choice.toString(),choice.toString())) then
+          dropDown = DropDown("CHOICE_VALUE","",false,"",false,x,y+50,300,50,options);
+          button = Button("CHOICE_DONE","DONE","bigiconb.bmp","MIDDLE_LEFT",true,true,x,y+150,150,100);
+          label = Label("label",label,"","",x,y,1000,20)
+      in self.id := "ChoiceForm";
+         self.name := "Choice Form";
+         self.dropDowns := Seq{dropDown};
+         self.buttons := Seq{button};
+         self.labels := Seq{label}
+      end
+    end
+    
+  end       

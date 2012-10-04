@@ -1,0 +1,14 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+
+context NameSpace
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      NameSpace ::= name = Name bindings = NameSpaceBindings { NameSpace(name,bindings) }.
+      NameSpaceBindings ::= Bindings | { Seq{} }.
+      
+    end 

@@ -1,0 +1,14 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context Imports
+
+  @Grammar extends O
+    
+      Imports ::= '(' name = Name ')' body = Exp 'end' { Imports(name,body) }.
+    
+    end
+    
+   

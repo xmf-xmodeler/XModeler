@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import Languages;
+import StateMachines;
+
+context StateMachines
+
+  @Class StateMachinableClass extends Class
+    @Attribute machine : StateMachine end
+    
+    @Operation add(n : Element):Classifier
+      if n.isKindOf(StateMachine)
+      then
+        self.addStateMachine(n)
+      else
+        super(n)
+      end
+    end
+    
+    @Operation addStateMachine(sm:StateMachine):Classifier
+  
+    @Doc
+       Adds a state machine to a class and sets the owner
+       of the attribute to be the class. Use StateMachinableClass::add
+       in preference to this since that will also add
+       the state machine to the contents table of the class.
+     end
+     
+    sm.setOwner(self);
+    self.machine := sm;
+    self
+  end
+    
+    @Operation defaultParents():Set(Classifier)
+      Set{StateMachinableObject}
+    end
+  end

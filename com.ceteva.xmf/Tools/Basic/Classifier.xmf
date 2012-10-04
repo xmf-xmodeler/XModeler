@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+import Events;
+
+context Classifier 
+  @Operation toolDescriptors():Set(ToolDescriptor)
+    self.contentsOf(ToolDescriptor)
+  end
+       

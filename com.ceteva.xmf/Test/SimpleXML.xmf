@@ -1,0 +1,24 @@
+parserImport Parser::BNF;
+
+import Parser::Machine;
+
+Root::Tree :=
+  @Grammar
+    Element ::= 
+      SingleElement | CompositeElement.
+    SingleElement ::= 
+      '<' tag = Name '/>' { Seq{tag} }.
+    CompositeElement ::= 
+      '<' tag1 = Name '>'
+        children = Element* 
+      '</' tag2 = Name '>' 
+      ? tag1 = tag2
+      { Seq{tag1 | children} }.
+   end;
+   
+context Root
+  @Operation tree()
+    let state = State(Tree,stdin)
+    in state.run("Element")
+    end
+  end 

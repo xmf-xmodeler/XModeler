@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import Clients;
+
+context ToolDeployment
+
+  @Class BrandingProperty
+  
+    @Grammar extends OCL::OCL.grammar
+  
+      BrandingProperty ::= '(' property = Exp ',' value = Exp ')' {
+        [| Clients::ToolDeployment::BrandingProperty(<property>,<value>) |] 
+      }.
+      
+    end
+  
+    @Attribute key		: String (?) end
+    @Attribute value 	: String (?) end
+    
+    @Constructor(key,value)
+    end
+  
+  end

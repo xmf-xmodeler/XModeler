@@ -1,0 +1,15 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler New_StateMachine()
+    let classNode = event.node() then
+        nameBox = classNode.ref1(Seq{"nodeBox","nameBox","name"});
+        className = event.tool().element().newName("Machine") then
+        class = StateMachine(className)
+    in register(classNode,class);
+       event.tool().element().add(class);
+       nameBox.setText(className)
+    end
+  end

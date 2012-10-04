@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class ContainsEdge extends Edge
+  
+    @Attribute label : Label end
+  
+    @Constructor(source,target) 
+      self.init(Seq{source,target,0,Edge::arrow,Color()});
+      self.lineStyle := Line::dottedLine;
+      self.add(Label("<<slot value>>","middle",5,16 + 5,false));
+      // Calculate position of slot label and add it
+      let y = if source.owner.y > target.owner.y then 15 else 0-30 end;
+          x = if source.owner.x > target.owner.x then 15 else 0-35 end in
+          self.label := Label("slot","end",x,y,false);
+          self.add(label)
+      end
+    end
+    
+    @Operation layoutId():String
+      label.text
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Edge::delete));
+        globalMenu
+      end
+    end
+
+  end
+  

@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class ConstructorSourceTextBox extends CodeboxDisplayTextBox, Parsable
+
+    @Operation codeboxEditorType()
+      ConstructorSourceEditor
+    end
+
+    @Operation setTextIn(text:String)
+	  let
+        newBodyInScope =
+          contex.names->iterate(
+            name exp = text.toString() | "let " + name + " = self." + name + " in " + exp + " end"
+          ) then
+        newBodySource = "@Operation anonymous():XCore::Element " + newBodyInScope + " end"
+      in
+        if Clients::checkParsable(contex.body,newBodySource)
+        then
+          Clients::setSourceConstructor(contex,newBodySource,newBodyInScope)
+        else
+          self.commandInterpreter().forceFocusCommand(self)
+        end
+      end
+    end
+    
+  end

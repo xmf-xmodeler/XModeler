@@ -1,0 +1,22 @@
+parserImport Manifests;
+
+@Manifest StateMachines
+  StateMachines = @File StateMachines end
+  @File ObjectWithState end
+  @File State end
+  @File InitialState end
+  @File Type end
+  @File NamedType end
+  @File SeqType end
+  @File Arg end
+  @File Transition end
+  @File StateMachine end
+  @File Clock end
+  @File Package end
+  @File Attribute end
+  @File Return end
+  @File For end
+  @Ref ClassDiagrams end
+  @Ref StateDiagrams end
+do StateMachines
+end;

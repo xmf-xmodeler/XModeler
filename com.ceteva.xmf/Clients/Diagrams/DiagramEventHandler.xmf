@@ -1,0 +1,419 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class DiagramEventHandler extends ModelClipboard::DroppableEventHandler
+  
+    @Doc
+      This class defines operations to handle the following incoming
+      events from the client. In each case the event is a sequence of strings
+      and integers. Each event has a fixed arity. Raising an event in the mapping
+      causes the appropriate diagram element (usually the containing element) to be
+      sent a message with the supplied arguments + the mapping. The diagram element
+      is then responsible for updating the diagram model and using the commands
+      listed above to update the client. Users of the mapping should always raise
+      events and not perform the commands directly. New types of diagram element can
+      handle the events in different ways. New types of diagram mapping can exten-d
+      the interface of events that can be raised.
+     end
+     
+    @Operation delete(elementId) 
+       self.debug("delete[~S]~%",Seq{elementId});
+       self.find(elementId).delete()
+    end
+
+    @Operation edgeDeselected(id)
+      self.debug("edgeDeselected[~S]~%",Seq{id});
+      self.find(id).deselect()
+    end
+    
+    @Operation edgeSelected(id)
+      self.debug("edgeSelected[~S]~%",Seq{id});
+      self.find(id).select()
+    end
+    
+    @Operation edgeSourceReconnected(edgeId,portId)
+      self.debug("edgeSourceReconnected[~S,~S]~%",Seq{edgeId,portId});
+      self.find(edgeId).sourceReconnected(self.find(portId))
+    end
+    
+    @Operation edgeTargetReconnected(edgeId,portId)
+      self.debug("edgeTargetReconnected[~S,~S]~%",Seq{edgeId,portId});
+      self.find(edgeId).targetReconnected(self.find(portId))
+    end
+
+    @Operation handleDragAndDrop(dropTarget:DropTarget,mode:String,dragSources:Seq(DragSource),args:Seq(Element))
+      let x = args.at(0);
+          y = args.at(1)
+      in
+        xmf.clipboard().dragAndDrop(DiagramDropEvent(dragSources,dropTarget,mode,x,y))
+      end
+    end
+
+    @Operation moveEdgeText(labelId,x,y) 
+      self.debug("moveEdgeText[~S,~S,~S]~%",Seq{labelId,x,y});
+      self.find(labelId).move(x,y)
+    end
+    
+    @Operation move(id,x,y) 
+      self.debug("move[~S,~S,~S]~%",Seq{id,x,y});
+      self.find(id).move(x,y)
+    end
+    
+    @Operation newEdge(edgeType,sourcePortId,targetPortId)
+      self.debug("newEdge[~S,~S,~S]~%",Seq{edgeType,sourcePortId,targetPortId});
+      let sourcePort = self.find(sourcePortId);
+          targetPort = self.find(targetPortId) then
+          sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in 
+        // calculate the nearest common ancestor of the source and
+        // target node
+        
+        let owner = sourceNode.owner
+        in
+          @While(not owner.deepContains(targetNode))
+          do
+            owner := owner.owner;
+            if owner.isKindOf(Node)
+            then
+              owner := owner.owner
+            end
+          end;
+          owner.newEdge(edgeType,sourcePort,targetPort)
+        end
+      end
+    end
+    
+    @Operation newNode(nodeType,parentId,x,y) 
+      self.debug("newNode[~S,~S,~S,~S]~%",Seq{nodeType,parentId,x,y});
+      self.find(parentId).newNode(nodeType,x,y)
+    end
+    
+    @Operation preferenceChange(diagramId)
+      self.debug("preferenceChange[~S]",Seq{diagramId});
+      self.find(diagramId).preferenceChange()
+    end
+    
+    @Operation newWayPoint(edgeId,index,x,y) 
+      self.debug("newWayPoint[~S,~S,~S,~S]~%",Seq{edgeId,index,x,y});
+      self.find(edgeId).newWayPoint(index,x,y)
+    end
+    
+    @Operation nodeDeselected(id)
+      self.debug("nodeDeselected[~S]~%",Seq{id});
+      if xmf.clientManager().idManager.hasId(id)
+      then     
+        self.find(id).deselect()  
+      else
+        self.debug("  id ~S disposed~%",Seq{id})
+      end
+    end
+
+    @Operation nodeSelected(id)
+      self.debug("nodeSelected[~S]~%",Seq{id});
+      self.find(id).select()
+    end
+
+    @Operation resizeNode(nodeId,width,height) 
+      self.debug("resizeNode[~S,~S,~S]~%",Seq{nodeId,width,height});
+      self.find(nodeId).resize(width,height)
+    end  
+    
+    @Operation rightClickMenuSelected(id) 
+      self.debug("rightClickMenuSelected[~S]~%",Seq{id});
+      self.find(id).select()
+    end  
+    
+    @Operation setReferencePoint(edgeId,refx,refy)
+      self.debug("setReferencePoint[~S,~S,~S]~%",Seq{edgeId,refx,refy});
+      if xmf.clientManager().idManager.hasId(edgeId)
+      then     
+        self.find(edgeId).setRefPoint(refx,refy)
+      else
+        self.debug("  id ~S disposed~%",Seq{edgeId})
+      end
+    end
+    
+    @Operation textChanged(textId,newText)
+      self.debug("textChanged[~S,~S]~%",Seq{textId,newText});
+      self.find(textId).textChanged(newText)
+    end
+    
+    @Operation diagramClosed(diagramId)
+      self.debug("diagramClosed[~S]~%",Seq{diagramId});
+      if xmf.clientManager().idManager.hasId(diagramId)
+      then     
+        self.find(diagramId).close()    
+      else
+        self.debug("  id ~S disposed~%",Seq{diagramId})
+      end
+    end
+    
+    @Operation focusGained(diagramId)
+      self.debug("focusGained[~S]~%",Seq{diagramId});
+      if xmf.clientManager().idManager.hasId(diagramId)
+      then self.find(diagramId).focusGained()
+      else self.debug("  id ~S disposed~%",Seq{diagramId})
+      end
+    end
+    
+    @Operation focusLost(diagramId)
+      self.debug("focusLost[~S]~%",Seq{diagramId});
+      if xmf.clientManager().idManager.hasId(diagramId)
+      then self.find(diagramId).focusLost()
+      else self.debug("  id ~S disposed~%",Seq{diagramId})
+      end
+    end
+    
+    @Operation textDimension(textId,width,height)
+      self.debug("textDimension[~S,~S,~S]~%",Seq{textId,width,height});
+      Seq{width,height}
+    end
+    
+    @Operation selected(displayId,clicks)
+      self.debug("selected[~S,~S]",Seq{displayId,clicks});
+      self.find(displayId).clicks(clicks)
+    end
+    
+    @Operation zoomChanged(diagramId,zoomValue)
+      self.debug("zoomChanged[~S,~S]",Seq{diagramId,zoomValue});
+      self.find(diagramId).zoomChanged(zoomValue)
+    end
+    
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "delete"                 do self.readDelete(parameters) end
+        "deleteWaypoint"         do self.readDelete(parameters) end
+        "diagramOpen"			 do self.readDiagramOpen(parameters) end
+        "acceptDrop"           do self.readAcceptDrop(parameters) end
+        "dragAndDrop"			 do self.readDragAndDrop(parameters) end
+        "edgeDeselected"         do self.readEdgeDeselected(parameters) end
+        "edgeSelected"           do self.readEdgeSelected(parameters) end
+        "edgeSourceReconnected"  do self.readEdgeSourceReconnected(parameters) end
+        "edgeTargetReconnected"  do self.readEdgeTargetReconnected(parameters) end
+        "moveEdgeText"           do self.readMoveEdgeText(parameters) end
+        "move"                   do self.readMove(parameters) end
+        "newEdge"                do self.readNewEdge(parameters) end
+        "newNode"                do self.readNewNode(parameters) end
+        "newWaypoint"            do self.readNewWayPoint(parameters) end
+        "nodeDeselected"         do self.readNodeDeselected(parameters) end
+        "nodeSelected"           do self.readNodeSelected(parameters) end
+        "preferenceChange"		 do self.readPreferenceChange(parameters) end
+        "resizeNode"             do self.readResizeNode(parameters) end
+        "rightClickMenuSelected" do self.readRightClickMenuSelected(parameters) end
+        "setReferencePoint"      do self.readSetReferencePoint(parameters) end
+        "textChanged"            do self.readTextChanged(parameters) end
+        "diagramClosed"		     do self.readDiagramClosed(parameters) end
+        "focusGained"			 do self.readFocusGained(parameters) end
+        "focusLost"			     do self.readFocusLost(parameters) end
+        "textDimension"          do self.readTextDimension(parameters) end
+        "selected"				 do self.readSelected(parameters) end
+        "zoomChanged"			 do self.readZoomChanged(parameters) end
+      end
+    end
+
+    @Operation readDelete(parameters)
+      let elementId = parameters.at(0) in
+        self.find(elementId).delete()
+      end
+    end
+    
+    @Operation readDiagramOpen(parameters)
+      let diagramId = parameters.at(0)
+      in
+        if xmf.clientManager().idManager.hasId(diagramId)
+        then self.find(diagramId).isOpen := true
+        end
+      end
+    end
+
+    @Operation readEdgeDeselected(parameters)
+      let id = parameters.at(0)
+      in
+        if xmf.clientManager().idManager.hasId(id)
+        then self.edgeDeselected(id)
+        end
+      end
+    end
+
+    @Operation readEdgeSelected(parameters)
+      let id = parameters.at(0)
+      in
+        if xmf.clientManager().idManager.hasId(id)
+        then self.edgeSelected(id)
+        end
+      end
+    end
+    
+    @Operation readEdgeSourceReconnected(parameters)
+      let edgeId = parameters.at(0)
+      in let portId = parameters.at(1)
+         in self.edgeSourceReconnected(edgeId,portId)
+         end
+      end
+    end
+    
+    @Operation readEdgeTargetReconnected(parameters)
+      let edgeId = parameters.at(0)
+      in let portId = parameters.at(1)
+         in self.edgeTargetReconnected(edgeId,portId)
+         end
+      end
+    end
+    
+    @Operation readMoveEdgeText(parameters)
+      let edgeId = parameters.at(0)
+      in let x = parameters.at(1)
+         in let y = parameters.at(2)
+            in self.moveEdgeText(edgeId,x,y)
+            end
+         end
+      end
+    end
+   
+    @Operation readMove(parameters)
+      let id = parameters.at(0)
+      in let x = parameters.at(1)
+         in let y = parameters.at(2)
+            in self.move(id,x,y)
+            end
+         end
+      end
+    end
+    
+    @Operation readNewNode(parameters)
+      let nodeType = parameters.at(0)
+      in let parentId = parameters.at(1)
+         in let x = parameters.at(2)
+            in let y = parameters.at(3)
+               in self.newNode(nodeType,parentId,x,y)
+               end
+            end
+         end
+      end
+    end
+    
+    @Operation readNewEdge(parameters)
+      let edgeType = parameters.at(0)
+      in let sourcePortId = parameters.at(1)
+         in let targetPortId = parameters.at(2)
+            in self.newEdge(edgeType,sourcePortId,targetPortId)
+            end
+         end
+      end
+    end
+    
+   @Operation readNewWayPoint(parameters)
+      let edgeId = parameters.at(0)
+      in let index = parameters.at(1)
+         in let x = parameters.at(2)
+            in let y = parameters.at(3)
+               in self.newWayPoint(edgeId,index,x,y)
+               end
+            end
+         end
+      end
+    end
+    
+   @Operation readNodeDeselected(parameters)
+     let id = parameters.at(0)
+     in self.nodeDeselected(id)
+     end
+   end
+
+   @Operation readNodeSelected(parameters)
+     let id = parameters.at(0)
+     in self.nodeSelected(id)
+     end
+   end
+   
+   @Operation readPreferenceChange(parameters)
+     let diagramId = parameters.at(0)
+     in self.preferenceChange(diagramId)
+     end
+   end
+    
+    @Operation readResizeNode(parameters)
+      let nodeId = parameters.at(0)
+      in let width = parameters.at(1)
+         in let height = parameters.at(2)
+            in self.resizeNode(nodeId,width,height)
+            end
+         end
+      end
+    end
+    
+    @Operation readRightClickMenuSelected(parameters)
+      let id = parameters.at(0)
+      in self.rightClickMenuSelected(id)
+      end
+    end
+    
+    @Operation readSetReferencePoint(parameters)
+      let edgeId = parameters.at(0)
+      in let refx = parameters.at(1)
+         in let refy = parameters.at(2)
+            in self.setReferencePoint(edgeId,refx,refy)
+            end
+         end
+      end
+    end
+    
+    @Operation readTextChanged(parameters)
+      let textId = parameters.at(0)
+      in let newText = parameters.at(1)
+         in self.textChanged(textId,newText)
+         end
+      end
+    end
+    
+    @Operation readDiagramClosed(parameters)
+      let diagramId = parameters.at(0)
+        in self.diagramClosed(diagramId)
+      end
+    end
+    
+    @Operation readFocusGained(parameters)
+      let diagramId = parameters.at(0)
+        in self.focusGained(diagramId)
+      end
+    end
+    
+    @Operation readFocusLost(parameters)
+      let diagramId = parameters.at(0)
+        in self.focusLost(diagramId)
+      end
+    end
+    
+    @Operation readTextDimension(parameters)
+      let textId = parameters.at(0) in
+        let width = parameters.at(1) in
+          let height = parameters.at(2) in
+            self.textDimension(textId,width,height)
+          end
+        end
+      end
+    end
+    
+    @Operation readSelected(parameters)
+      let displayId = parameters.at(0) in
+        let clicks = parameters.at(1) in
+          self.selected(displayId,clicks)
+        end
+      end
+    end
+    
+    @Operation readZoomChanged(parameters)
+      let 
+        diagramId = parameters.at(0);
+        zoomValue = parameters.at(1)
+      in
+        self.zoomChanged(diagramId,zoomValue)
+      end
+    end
+    
+  end

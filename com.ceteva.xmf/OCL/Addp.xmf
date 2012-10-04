@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context OCL
+
+  @Class Addp extends Pattern
+  
+    @Doc
+      An addition pattern has the form p1 + p2 and matches a collection when there
+      are two subsequences that match p1 and p2 respectively.
+    end
+    
+     @Attribute left  : Pattern end
+     @Attribute right : Pattern end
+     
+     @Constructor(left,right) end
+     
+     @Operation bind(value:Element,target:Element,env:Env::Env,imports:Seq(NameSpace)):Env::Env
+       self.error("bind is not implemented for Addp")
+     end
+     
+     @Operation lift():Performable
+       Apply(self.typeExp(),Seq{left.lift(),right.lift()})
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       let leftVar = left.newVar();
+           rightVar = right.newVar()
+       in [| if <value>.isKindOf(SeqOfElement)
+             then 
+               @Letrec
+                 tryPrefix =
+                   @Operation(prefixes)
+                     if prefixes->isEmpty
+                     then <fail>
+                     else 
+                       let <leftVar> = prefixes->head;
+                           <rightVar> = <value>->drop(prefixes->head->size)
+                       in <left.matchCode(
+                              Var(leftVar),
+                             right.matchCode(
+                               Var(rightVar),
+                               success,
+                               [| tryPrefix(prefixes->tail) |]),
+                             [| tryPrefix(prefixes->tail) |])>
+                       end
+                     end
+                   end
+                in tryPrefix(<value>->prefixes)
+                end
+              else <fail>
+              end
+          |]
+       end
+     end
+     
+     @Operation needsBacktrack():Boolean
+       true
+     end
+     
+     @Operation pprint(out)
+       left.pprint(out);
+       format(out," + ");
+       right.pprint(out)
+     end
+     
+     @Operation toSig()
+       ParametricType(Seq{"Seq"},Seq{NamedType()}).toSig()
+     end
+     
+   end

@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class Association
+  
+    @Doc 
+      Tools manage the association between model elements and tool objects. The tool
+      objects describe how the model element is ren-dered and managed in the tool.
+      When new objects are created they are associated in the tool with the appropriate
+      model element (and vice versa where appropriate).
+    end
+  
+    @Attribute model  : Element end
+    @Attribute object : ToolObject end
+    
+    @Constructor(model,object) ! end
+    
+  end

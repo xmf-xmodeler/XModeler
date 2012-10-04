@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class OrHandler
+  
+    @Attribute orHandlers : Table = Table(10) end 
+    
+    @Operation changeTo(choice:String,type:String)
+      if orHandlers.hasKey(choice)
+      then (orHandlers.get(choice))(type)
+      else self.error("Cannot find choice type " + choice + " available choices are: " + orHandlers.keys().toString())
+      end
+    end
+    
+    // There are two ways in which an or handler gets added to a tree node: on the
+    // node and on the node's parent. changeTo can be used on either of these
+    // to switch between instances of the associated node types that have been
+    // combined with NodeChoice. The following two handlers are used to deal with
+    // the node and the parent call of changeTo respectively.
+  
+    @Operation setOrHandler(choice,parent,path,env,tool)
+      orHandlers.put(choice.name().toString(),
+        @Operation(newTypeName)
+          if choice.hasTypeNamed(newTypeName)
+          then 
+            self.delete();
+            let new = choice.typeNamed(newTypeName).new(parent,path,env,tool)
+            in new.new(parent,env);
+               new.setOrHandler(choice,parent,path,env,tool);
+               parent.setOrHandler(choice,parent,path,env,tool,new);
+               new
+            end
+          else self.error("Cannot find a type named " + newTypeName)
+          end
+        end)
+     end
+     
+     @Operation setOrHandler(choice,parent,path,env,tool,current)
+      orHandlers.put(choice.name().toString(),
+        @Operation(newTypeName)
+          if choice.hasTypeNamed(newTypeName)
+          then 
+            current.delete();
+            let new = choice.typeNamed(newTypeName).new(parent,path,env,tool)
+            in new.new(parent,env);
+               parent.setOrHandler(choice,parent,path,env,tool,new);
+               new.setOrHandler(choice,parent,path,env,tool);
+               new
+            end
+          else self.error("Cannot find a type named " + newTypeName)
+          end
+        end)
+     end
+      
+  end
+    
+    
+    

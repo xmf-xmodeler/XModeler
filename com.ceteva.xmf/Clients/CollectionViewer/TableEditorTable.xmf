@@ -1,0 +1,109 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import CollectionViewer;
+
+context CollectionViewer
+
+  @Class TableEditorTable extends FormTable
+
+    @Attribute element : Table end
+
+    @Constructor(element,x,y)
+      self.init(Seq{x,y,(0-1),(0-1),3,self.tableSize()})
+    end
+
+    @Operation addContents()
+      let keys = element.keys()
+      in
+        @Count row from 0 to self.tableSize() do
+          let key = keys->at(row) then
+              value = element.get(key) then
+              keyField = SingletonTextField(0,0,0,0,key.toString(),false,key);
+              valueField = SingletonTextField(0,0,0,0,value.toString(),false,value);
+              deleteHandler =
+                @Operation()
+                  if xmf.question("Are you sure you want to remove this element from the table?")
+                  then
+                    element.remove(key)
+                  end
+                end then
+              deleteButton = FormButton(0,0,0,0,"Remove From Table",deleteHandler) 
+          in
+            self.put(0,row,keyField);
+            self.put(1,row,valueField);
+            self.put(2,row,deleteButton)
+          end
+        end
+      end
+    end
+
+    @Operation addToForm(form:Form,x:Integer,y:Integer)
+      self.x := x;
+      self.y := y;
+      form.addElement(self)
+    end
+    
+    @Operation elementAdded(key,value)
+      let keyField = SingletonTextField(0,0,0,0,key.toString(),false,key);
+          valueField = SingletonTextField(0,0,0,0,value.toString(),false,value);
+          deleteHandler =
+            @Operation()
+              if xmf.question("Are you sure you want to remove this element from the table?")
+              then
+                element.remove(key)
+              end
+            end then
+          deleteButton = FormButton(0,0,0,0,"Remove From Table",deleteHandler) 
+      in
+        // add row to en-d of table...
+        let row = rows
+        in
+          self.addRow(row);
+          self.setAndNewItem(0,row,keyField);
+          self.setAndNewItem(1,row,valueField);
+          self.setAndNewItem(2,row,deleteButton)
+        end
+      end
+    end
+
+    @Operation elementRemoved(key)
+      let match = false
+      in
+        @Count row from 0 to rows do
+          if not match
+          then
+            let rowKeyField = self.get(0,row)
+            in
+              if rowKeyField.element = key
+              then
+                self.deleteRow(row);
+                match := true
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation initialiseColumns()
+      // KEY COLUMN
+      self.setColumnWidth(0,180);
+      self.setColumnTitle(0,"Key");
+
+      // VALUE COLUMN
+      self.setColumnWidth(1,330);
+      self.setColumnTitle(1,"Value");
+      
+      // BUTTON COLUMN
+      self.setColumnWidth(2,120);
+      self.setColumnTitle(2,"")
+    end
+
+    @Operation tableSize()
+      element.keys().size()
+    end
+
+  end

@@ -1,0 +1,79 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Layout;
+
+context StandardLayoutManager
+
+  @Operation remainingWidth(container,display):Integer
+  
+    // Returns the remaining layout width after the display element
+    // in the contents of the container.
+    
+    let contents = container.contents()
+    in @While not contents->isEmpty andthen contents->head <> display do
+         contents := contents->tail
+       end; 
+       if contents->isEmpty 
+       then 0
+       else contents->tail->iterate(d h = 0 | h + d.layoutWidth())
+       end
+    end
+  end
+
+context StandardLayoutManager
+
+  @Operation horizontalLayout(type,container,width,height)
+  
+      // Layout elements in object from left to right. The layout annotations
+      // on the attributes are used to control how each of the elements is
+      // placed and sized within the container.
+      
+      let padding = 0;
+          point = Point(0,0) // Bug in closures prevents this from just being 'x'.
+      in @For value in container.contents() do
+           @Case value.type().layout() of
+             // New formatting...
+             "ALIGN" do
+               let width = ((width - point.x) - self.remainingWidth(container,value)).min(value.maxLayoutWidth())
+               in value.type().layout(value,point.x + value.padLeft(),point.y + value.padTop(),width - value.padWidth(),height - value.padHeight());
+                  point.x := point.x + value.width()
+               end
+             end
+             /*
+             "ALIGN" do
+               let width = value.layoutWidth() + padding
+               in value.type().layout(value,point.x + value.padLeft(),point.y + value.padTop(),width - value.padWidth(),height - value.padHeight());
+                  point.x := point.x + width
+               end
+             end
+             */
+             "CENTRE" do
+               let maxWidth = value.layoutWidth() + padding;
+                   maxHeight = value.layoutHeight() then
+                   y = if height > maxHeight then (height - maxHeight).div(2) else 0 end;
+                   padWidth = (width - (point.x + self.remainingWidth(container,value) + maxWidth)).div(2)
+               in value.type().layout(value,point.x + value.padLeft() + padWidth,y + value.padTop(),maxWidth - value.padWidth(),maxHeight - value.padHeight());
+                  point.x := point.x + maxWidth + padWidth
+               end
+             end
+             "LEFT" do
+               let width = value.layoutWidth() + padding;
+                   maxHeight = value.layoutHeight() 
+               in value.type().layout(value,point.x + value.padLeft(),point.y + value.padTop(),width - value.padWidth(),maxHeight - value.padHeight());
+                  point.x := point.x + width
+               end
+             end
+             "RIGHT" do
+               let maxWidth = value.layoutWidth() + padding;
+                   height = value.layoutHeight() then
+                   x = width - (self.remainingWidth(container,value) + maxWidth)
+               in value.type().layout(value,x + value.padRight(),point.y + value.padTop(),maxWidth - value.padWidth(),height - value.padHeight());
+                  point.x := x + maxWidth
+               end
+             end
+           end
+         end
+       end
+     end

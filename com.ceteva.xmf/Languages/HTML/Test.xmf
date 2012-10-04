@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import HTML;
+
+context Root
+  @Operation test()
+    let doc = HTMLDoc();
+        a = A();
+        abbr = Abbr();
+        acronym = Acronym();
+        area = Area();
+        map = Map();
+        bold = B();
+        t = Text("Some Example Text")
+    in a.add(t);
+       abbr.add(t);
+       acronym.add(t);
+       area.setCoords("1,0,10,19");
+       area.setShape("rect");
+       map.setName("mapName");
+       map.add(area);
+       bold.add(t);
+       doc.add(a);
+       doc.add(abbr);
+       doc.add(acronym);
+       doc.add(map);
+       doc.add(t);
+       doc.add(bold);
+       doc.view()
+    end
+  end

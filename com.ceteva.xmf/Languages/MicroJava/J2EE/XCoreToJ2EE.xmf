@@ -1,0 +1,105 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport Languages::MicroJava::Expressions;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import J2EE;
+
+context J2EE
+
+  @Operation XCoretoJ2EE(element)
+  
+    // Translates XCore element to a J2EE element in MicroJava.
+    
+    @Case element of
+    
+      XCore::Package[name=name,classes=C,operations=O] do packageToJ2EE(name,C,O) end
+      
+      XCore::Class[name=name,parents=P,operations=O,constraints=C,attributes=A] do 
+      
+        classToEntityBean(name,P,O,C,A) 
+        
+      end
+      
+      (o = XCore::Operation[ ]) do 
+      
+        [| @Java 
+             Value <o.name> <* A *> { 
+               Values locals = new Values(); 
+               { <* setLocalArgs + body *> }
+               return popStack();
+             } 
+           end 
+        |]
+        
+          where 
+          
+            setLocalArgs = o.paramNames()->collect(n | [| @Statement locals.set(<Int(o.paramNames()->indexOf(n))>,<Expressions::Var(n)>); end |]);
+          
+            A = o.paramNames()->collect(n | Formal(NamedType(Seq{"Value"}),n));
+            
+            body = OCLtoMicroJava(OCL::OCL.grammar.parseString(o.source(),"Exp",Seq{XOCL}).performable,o.paramNames())
+        
+      end 
+      
+      XCore::Attribute[name=name,type=type] do
+      
+        [| @Java <typeToSimpleMicroJava(type)> <name> = <typeToInitialValue(type)>; end |]
+          
+      end 
+
+    end
+    
+  end
+  
+context J2EE
+
+  @Operation typeToSimpleMicroJava(classifier)
+  
+    // Translate the supplied classifier to a MicroJava type name.
+     
+    @Case classifier of
+      [ XCore::Boolean ] do NamedType(Seq{"boolean"}) end 
+      [ XCore::Integer ] do NamedType(Seq{"int"}) end
+      [ XCore::String ]  do NamedType(Seq{"String"}) end
+      Seq[ ]            do NamedType(Seq{"Values"}) end
+      Set[ ]            do NamedType(Seq{"Values"}) end
+      else                 NamedType(Seq{classifier.name.toString()})
+      
+    end
+    
+  end
+  
+context XCore::Package
+
+  @Operation toJ2EE()
+    XCoretoJ2EE(self)
+  end
+  
+context XCore::Package
+
+  @Operation toJ2EESource()
+    XCoretoJ2EE(self).pprint()
+  end
+  
+context XCore::Package
+ 
+  @Operation exportJ2EE()
+    let dir = xmf.selectDirectory(xmf.homeDir());
+        java = self.toJ2EE()
+    in if dir.fileExists() and dir <> ""
+       then 
+         java.export(dir);
+         xmf.message("Package " + self.name.toString() + " exported to " + dir)
+       end;
+       java
+    end
+  end
+  
+    

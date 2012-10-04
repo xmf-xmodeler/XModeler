@@ -1,0 +1,481 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import ClassDiagrams;
+import ClassMapping;
+
+context ClassMapping
+
+  @Class ClassXNode extends DiagramsMapping::ElementXNode, RightClickableProxy
+  
+    @Attribute class : XCore::Class end
+    @Attribute node : ClassNode (?) end
+    @Attribute attributeMaps : Seq(AttributeXText) (+,-) end
+    @Attribute operationMaps : Seq(OperationXText) (+,-) end
+    @Attribute metaslotMaps : Seq(MetaslotXText) (+,-) end
+    @Attribute operationsCreated : Boolean = false end
+    @Attribute metaslotsCreated : Boolean = false end
+    
+    @Constructor(class,node,owner)
+      self.init(Seq{class,node})
+    end
+    
+    @Constructor(class,node) ! 
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(node,Set{class.of(),node.of()})
+    end
+
+    @Operation buildGlobalMenu(rightClickable)      
+      let globalMenu = rightClickable.globalMenu(false);
+          type = class.of();
+          clientType = rightClickable.of()
+      in
+        xmf.menuRegistryHandler().buildGlobalMenu(globalMenu,type,clientType,
+                                                  ClassXNode::proxyElementTarget);
+        globalMenu.add(MenuAction("Delete from Diagram Only",RightClickableProxy::proxyTarget,Seq{},DiagramsMapping::ElementXNode::deleteNodeFromDiagram));
+        globalMenu.new();
+        globalMenu
+      end
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).class
+    end
+
+    @Operation add(element)
+      @TypeCase(element)
+        AttributeXText do
+          self.addAttributeMap(element)
+        end
+        OperationXText do
+          self.addOperationMap(element)
+        end
+        MetaslotXText do
+          self.addMetaslotMap(element)
+        end
+        else self.error("ClassXNode::add: unknown type of element " + element.toString())
+      end
+    end
+    
+    @Operation addAttributeMap(attributeMap)
+      self.addToAttributeMaps(attributeMap);
+      attributeMap.setOwner(self)
+    end
+    
+    @Operation addOperationMap(operationMap)
+      self.addToOperationMaps(operationMap);
+      operationMap.setOwner(self)
+    end
+
+    @Operation addMetaslotMap(metaslotMap)
+      self.addToMetaslotMaps(metaslotMap);
+      metaslotMap.setOwner(self)
+    end
+
+    @Operation attributeAdded(attribute)
+      @WithoutRendering(node.owner)
+        if not attributeMaps->exists(map | map.attribute = attribute)
+        then
+          let metaclass_ = 
+                if attribute.of() = Attribute
+                then "" 
+                else attribute.of().name end 
+              then
+              text = node.nextAttribute(attribute.name.toString(),metaclass_,attribute.type) then
+              map = AttributeXText(attribute,text)
+          in self.add(map);
+             text.new(node.attBox);
+             node.add(text)
+          end
+        end
+      end
+    end    
+    
+    @Operation attributeAdded_classDiagramDaemon(class,slot,attribute)
+      if not attribute.underlyingType().isKindOf(Classifier)
+      then
+        @SlotValueChanged multi once ClassXNode::attributeTypeChangedDaemon(attribute,"type") end
+      elseif attribute.underlyingType().isKindOf(DataType)
+      then self.attributeAdded(attribute)
+      else owner.attributeAdded(attribute)
+      end
+    end
+    
+    @Operation attributeAddedDaemon(obj,slot,text)
+      self.attributeTextAdded(text)
+    end
+    
+    @Operation attributeRemoved(attribute)
+      @WithoutRendering(node.owner)
+        @Find(map,attributeMaps)
+          when map.attribute = attribute
+          do 
+            self.remove(map);
+            map.text.delete()
+          else
+            super.attributeRemoved(attribute)
+        end
+      end
+    end
+    
+    @Operation attributeRemoved_classDiagramDaemon(class,slot,attribute)
+      if attribute.underlyingType().isKindOf(DataType)
+      then self.attributeRemoved(attribute)
+      else owner.attributeRemoved(attribute)
+      end
+    end
+
+    @Operation attributeRemovedDaemon(obj,slot,text)
+      self.attributeTextRemoved(text)
+    end
+
+    @Operation attributesShownChangedDaemon(obj,slot,newVal,oldVal)
+      if newVal = true
+      then self.generateAttributes()
+      end
+    end
+
+    @Operation attributeTextAdded(text)
+      self
+    end
+    
+    @Operation attributeTextRemoved(text)
+      self
+    end
+
+    @Operation attributeTypeChangedDaemon(att,slot,newType,oldType)
+      att.removeDaemonsWithTarget(self,true);
+      self.attributeAdded_classDiagramDaemon(class,Symbol("attributes"),att)
+    end
+
+    @Operation checkDaemons()
+      super();
+      self.checkNodeDaemons();
+      self.checkClassDaemons()
+    end
+    
+    @Operation checkNodeDaemons()
+      @SlotValueChanged multi once   ClassXNode::nameChangedDaemon(node.name.name,"text")               end;
+      // @SlotValueChanged multi once + ClassXNode::attributeAddedDaemon(node.attBox,"displays")           end;
+      // @SlotValueChanged multi once - ClassXNode::attributeRemovedDaemon(node.attBox,"displays")         end;
+      // @SlotValueChanged multi once + ClassXNode::operationAddedDaemon(node.opsBox,"displays")           end;
+      // @SlotValueChanged multi once - ClassXNode::operationRemovedDaemon(node.opsBox,"displays")         end;
+      @SlotValueChanged multi once   ClassXNode::attributesShownChangedDaemon(node.attBox,"shown")      end;
+      @SlotValueChanged multi once   ClassXNode::opsShownChangedDaemon(node.opsBox,"shown")             end;
+      @SlotValueChanged multi once   ClassXNode::metaSlotsShownChangedDaemon(node.metaslotsBox,"shown") end
+    end
+    
+    @Operation checkClassDaemons()
+      @SlotValueChanged multi once   ClassXNode::nameChanged_classDiagramDaemon(class,"name")             end;
+      @SlotValueChanged multi once   ClassXNode::isAbstractChanged_classDiagramDaemon(class,"isAbstract") end;
+      @SlotValueChanged multi once + ClassXNode::parentAdded_classDiagramDaemon(class,"parents")          end;
+      @SlotValueChanged multi once - ClassXNode::parentRemoved_classDiagramDaemon(class,"parents")        end;
+      @SlotValueChanged multi once + ClassXNode::attributeAdded_classDiagramDaemon(class,"attributes")    end;
+      @SlotValueChanged multi once - ClassXNode::attributeRemoved_classDiagramDaemon(class,"attributes")  end;
+      @SlotValueChanged multi once + ClassXNode::operationAdded_classDiagramDaemon(class,"operations")    end;
+      @SlotValueChanged multi once - ClassXNode::operationRemoved_classDiagramDaemon(class,"operations")  end;
+      
+      // if this class is imported then we need to monitor its owner to see when it is removed
+      
+      if class.owner <> null
+      then
+        if class.owner <> self.owner.package 
+        then
+          @SlotValueChanged multi once - ClassXNode::importedRemovedFromOwner_classDiagramDaemon(class.owner,"classes") end
+        end
+      end
+    end
+    
+    @Operation clearMetaslots()
+      @For map in metaslotMaps do
+        map.removeDaemons();
+        map.text.delete()
+      end;
+      self.metaslotMaps := Set{}
+    end
+
+    @Operation generateAttributes()
+      @For attribute in class.attributes do
+        if attribute.underlyingType().isKindOf(DataType)
+        then self.attributeAdded(attribute)
+        end
+      end
+    end
+
+    @Operation generateDiagram()
+      if not class.isKindOf(DataType) then
+        self.generateAttributes()
+        
+        // The following causes problems when generating system diagrams
+        // that tend to have large numbers of operations. When creating
+        // diagrams interactively, providing the show operations option
+        // is set then the operations should be shown.
+        
+        // self.generateOperations()
+        
+      end
+    end
+    
+    @Operation generateMetaslots()
+      @For metaAttribute in class.of().allAttributes() do
+        if metaAttribute.underlyingType().isKindOf(DataType) and not XCore::Class.allAttributes().contains(metaAttribute) then
+        //if metaAttribute.underlyingType().isKindOf(DataType) then
+          @WithoutRendering(node.owner)
+            self.metaslotAdded(metaAttribute)
+          end
+        end
+      end
+    end
+    
+    @Operation generateOperations()
+      @For operation in class.operations do
+        @WithoutRendering(node.owner)
+          self.operationAdded(operation)
+        end
+      end
+    end
+    
+    @Operation hotLoaded()
+      if class.isKindOf(ForwardRef)
+      then class.addListener(@Operation(c) self.class := c; self.hotLoaded() end)
+      else
+        self.checkDaemons();
+        self.setGlobalMenu(node,Set{class.of(),node.of()},false)
+      end
+    end
+    
+    // Only ever called if the class is imported
+    
+    @Operation importedRemovedFromOwner_classDiagramDaemon(obj,slot,class)
+      self.owner.classRemoved(class)
+    end
+    
+    @Operation isAbstractChanged_classDiagramDaemon(obj,slot,newValue,oldValue)
+      if node.isAbstract() <> newValue
+      then node.setIsAbstract(newValue)
+      end
+    end
+    
+    @Operation metaslotAdded(metaAttribute)
+      if not metaslotMaps->exists(map | map.metaAttribute = metaAttribute)
+      then
+        let
+          attName = metaAttribute.name.toString() then
+          text = node.nextMetaslot(attName,class.get(attName).toString(),metaAttribute.type) then
+          map = MetaslotXText(class,metaAttribute,text)
+        in
+          self.add(map);
+          text.new(node.metaslotsBox);
+          node.add(text)
+        end
+      end
+    end    
+    
+    @Operation metaslotRemoved(metaAttribute)
+      @Find(map,metaslotMaps)
+        when map.metaAttribute = metaAttribute
+        do 
+          self.remove(map);
+          map.text.delete()
+      end
+    end
+    
+    @Operation metaSlotsShownChangedDaemon(obj,slot,newVal,oldVal)
+      if newVal = true and not metaslotsCreated 
+      then
+        self.generateMetaslots();
+        self.metaslotsCreated := true
+      end
+    end
+    
+    @Operation nameChanged_classDiagramDaemon(obj,slot,newName,oldName)
+      if node.name() <> newName.toString()
+      then node.setName(newName.toString())
+      end
+    end
+    
+    @Operation nameChangedDaemon(text,slot,newName,oldName)
+      if class.name.toString() <> newName
+      then 
+        class.setName(newName)
+      end
+    end
+     
+    @Operation newAttributeName():String
+      let i = 0
+      in @While class.allAttributes()->exists(a | a.name.toString() = ("att" + i.toString())) do
+           i := i + 1
+         end;
+         "att" + i.toString()
+      end
+    end
+    
+    @Operation newConstraint()
+      let name = class.newName("con") then
+          constraintString = "@Constraint "+name+" true fail \"Unspecified Reason\" end" then
+          conAS = OCL::OCL.grammar.parseString(constraintString,"Exp1",Seq{XOCL}) then
+          conASfun = Compiler::compileToFun("",conAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+          constraint = conASfun()
+      in constraint.setName(name);
+         class.add(constraint);
+         constraint.init()
+      end
+    end
+    
+    @Operation newConstructor()
+      let constructor = @Constructor() end
+      in
+        class.add(constructor)
+      end
+    end
+    
+    @Operation newOperation()
+      let
+        opName = class.newName("op") then
+        opString = "@Operation " + opName + "() null end" then
+        opAS = OCL::OCL.grammar.parseString(opString,"Exp1",Seq{XOCL}) then
+        opASfun = Compiler::compileToFun("",opAS,Seq{},Seq{Seq{2|Root.contents},Seq{2|XCore.contents}},true) then
+        operation = opASfun()
+      in
+        operation
+      end
+    end
+
+    @Operation operationAdded(operation)
+      @WithoutRendering(node.owner)
+        if not operationMaps->exists(map | map.operation = operation)
+        then
+          let metaclass_ = 
+              if operation.hasProperty("of")
+              then operation.property("of").name 
+              else "" end then
+            text = node.nextOperation(operation.name.toString(),metaclass_,XCore::String) then
+            map = OperationXText(operation,text)
+          in self.add(map);
+            text.new(node.opsBox);
+             node.add(text)
+          end
+        end
+      end
+    end
+    
+    @Operation operationAdded_classDiagramDaemon(class,slot,operation)
+      self.operationAdded(operation)
+    end
+    
+    @Operation operationAddedDaemon(obj,slot,text)
+      self.operationTextAdded(text)
+    end
+    
+    @Operation operationRemoved(operation)
+      @WithoutRendering(node.owner)
+        @Find(map,operationMaps)
+          when map.operation = operation
+          do self.remove(map);
+           map.text.delete()
+        end
+      end
+    end
+    
+    @Operation operationRemoved_classDiagramDaemon(class,slot,operation)
+      self.operationRemoved(operation)
+    end
+    
+    @Operation operationRemovedDaemon(obj,slot,text)
+      self.operationTextRemoved(text)
+    end
+  
+    @Operation operationTextAdded(text)
+      if not operationMaps->exists(map | map.text = text)
+      then
+        let operation = self.newOperation() in
+          let map = OperationXText(operation,text) in
+            self.add(map);
+            class.add(operation);
+            text.setName(operation.name.toString())
+          end
+        end
+      end
+    end
+  
+    @Operation operationTextRemoved(text)
+      @Find(map,operationMaps)
+        when map.text = text
+        do self.remove(map);
+           class.remove(map.operation)
+      end
+    end
+    
+    @Operation opsShownChangedDaemon(obj,slot,newVal,oldVal)
+      if newVal = true and not operationsCreated 
+      then
+        self.generateOperations();
+        self.operationsCreated := true
+      end
+    end
+    
+    @Operation parentAdded_classDiagramDaemon(class,slot,parent)
+      if parent <> XCore::Object
+      then
+        owner.dropIfNecessary(parent)
+      end;
+      owner.parentAdded(class,parent)
+    end
+    
+    @Operation parentRemoved_classDiagramDaemon(class,slot,parent)
+      owner.parentRemoved(class,parent)
+    end
+    
+    @Operation remove(element)
+      @TypeCase(element)
+        AttributeXText do
+          self.deleteFromAttributeMaps(element)
+        end
+        OperationXText do
+          self.deleteFromOperationMaps(element)
+        end
+        MetaslotXText do
+          self.deleteFromMetaslotMaps(element)
+        end
+        else self.error("ClassXNode::remove: unknown type of element " + element.toString())
+      end
+    end
+
+    @Operation removeDaemonCollection(seq:Seq(Element))
+      @For element in seq do
+        element.removeDaemons()
+      end
+    end
+
+    @Operation removeDaemons()
+    
+      // Called when the mapping is longer valid.
+      
+      super();
+      class.removeDaemonsWithTarget(self,true);
+      node.removeDaemonsWithTarget(self,true);
+      node.name.name.removeDaemonsWithTarget(self,true);
+      node.attBox.removeDaemonsWithTarget(self,true);
+      node.opsBox.removeDaemonsWithTarget(self,true);
+      node.metaslotsBox.removeDaemonsWithTarget(self,true);
+      self.removeDaemonCollection(attributeMaps);
+      self.removeDaemonCollection(operationMaps);
+      self.removeDaemonCollection(metaslotMaps)
+      
+    end
+
+    @Operation element()
+      class
+    end
+    
+    @Operation subMaps()
+      attributeMaps +
+      operationMaps
+    end
+
+  end

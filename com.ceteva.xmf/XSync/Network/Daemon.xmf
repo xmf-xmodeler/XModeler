@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Daemon
+  
+    @Attribute network : Net         (?) end
+    @Attribute slots   : Seq(Symbol) (?,+) end
+    
+    @Constructor(network,slots) end
+    
+    @Operation add(e:Element):Daemon
+      if e.isKindOf(Symbol)
+      then self.addToSlots(e)
+      else self
+      end
+    end
+    
+    @Operation name():String
+      "XSyncDaemon"
+    end
+    
+    @Operation invoke(target:Element,args:Seq(Element)):Element
+      let slot = args->at(0);
+          newValue = args->at(1);
+          oldValue = args->at(2)
+      in if slots->includes(slot)
+         then network.slotChanged(target,slot,newValue,oldValue)
+         end
+      end
+    end
+    
+  end

@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Paren extends Recognizer 
+  
+    @Attribute recognizer : Recognizer end
+  
+    @Constructor(recognizer) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      recognizer.CNF(grammar,BV,handler)
+    end
+  
+    @Operation FV():Set(String)
+      recognizer.FV()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"(");
+      recognizer.pprint(out,indent);
+      format(out,")")
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      recognizer.setLocals(locals,next)
+    end
+    
+    @Operation terminals():Set(String)
+      recognizer.terminals()
+    end
+   
+  end

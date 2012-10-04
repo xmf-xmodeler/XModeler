@@ -1,0 +1,40 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler Let in Eval(aLet,arg,seen)
+  @Letrec
+    next = self.next;
+    result = self.result;
+    cont = self.cont;
+    env = self.env;
+    target = self.target;
+    imports = self.imports;
+    evalBinds =
+       @Operation(bindings,newEnv)
+         if bindings->isEmpty
+         then 
+           self.env := newEnv;
+           next(aLet.body,
+             @Operation(next,result,call,return)
+               self.eval(aLet.body,newEnv,target,imports,next,result,call,return,
+                 @Operation(value)
+                   self.env := env;
+                   result(aLet,value,cont)
+                 end)
+             end)
+          else
+            next(bindings->head.value,
+              @Operation(next,result,call,return)
+                self.eval(bindings->head.value,env,target,imports,next,result,call,return,
+                  @Operation(value)
+                    evalBinds(bindings->tail,newEnv.bind(bindings->head.name,value))
+                  end)
+              end)
+          end
+        end
+  in evalBinds(aLet.bindings,env)
+  end
+end;

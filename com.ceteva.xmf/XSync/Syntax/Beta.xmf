@@ -1,0 +1,118 @@
+parserImport XOCL;
+
+import XSync;
+import Env;
+import OCL;
+import Syntax;
+
+context Syntax
+
+  @Class Beta extends Node
+  
+    @Attribute isNAND      : Boolean         (?) end
+    @Attribute left        : Node            (?) end
+    @Attribute right       : Node            (?) end
+    @Attribute boundVars   : Set(String)     (?,!,+,-) end
+    @Attribute constraints : Set(Constraint) (?,+,-) end
+    
+    @Constructor(isNAND,left,right) end
+    
+    @Constructor(isNAND,left,right,boundVars,constraints) ! end
+    
+    @Operation code(net:Performable):Performable
+      let code1 = left.code(net);
+          code2 = right.code(net);
+          constraintCode = constraints->collect(c | c.code(self.varEnv()))
+      in [| let left = <code1>;
+                right = <code2>;
+                beta = Beta(<BoolExp(isNAND)>)
+            in left.add(beta);
+               right.add(beta);
+               beta.setLeft(left);
+               beta.setRight(right);
+               <constraintCode->iterate(c code = [| beta |] | [| <code>.add(<c>) |])>
+            end
+          |]
+      end
+    end
+    
+    @Operation exportedVarEnv():Env
+      if isNAND
+      then
+        let leftEnv = left.exportedVarEnv();
+            env = NullEnv()
+        in @For v in leftEnv.dom() do
+             env := env.bind(v,Left(leftEnv.lookup(v)))
+           end;
+           env
+        end
+      else self.varEnv()
+      end
+    end
+    
+    @Operation moveConstraints(boundLater:Set(String))
+      left.moveConstraints(boundLater + boundVars);
+      right.moveConstraints(boundLater + boundVars);
+      self.moveConstraints(left,boundLater,"LEFT");
+      self.moveConstraints(right,boundLater + left.boundVars(),"RIGHT")
+    end
+    
+    @Operation moveConstraints(node:Node,boundLater:Set(String),direction:String)
+      @For c in node.constraints() do
+        let freeVars = c.freeVars()
+        in if freeVars->exists(var | boundLater->includes(var))
+           then 
+             node.deleteFromConstraints(c);
+             self.addToConstraints(c.relocate(direction))
+           end;
+           if node.isKindOf(Alpha) and c.isKindOf(GeneralConstraint)
+           then
+             node.deleteFromConstraints(c);
+             self.addToConstraints(c.relocate(direction))
+           end;
+           if node.isKindOf(Beta)
+           then 
+             if not node.isNAND()
+             then 
+               if c.isKindOf(GeneralConstraint)
+               then
+                 node.deleteFromConstraints(c);
+                 self.addToConstraints(c.relocate(direction))
+               end
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation setConstraints()
+      left.setConstraints();
+      right.setConstraints()
+    end
+    
+    @Operation setVars(preBound:Set(String))
+      left.setVars(preBound);
+      right.setVars(preBound + left.vars());
+      self.boundVars := (left.vars() + right.vars()) - preBound
+    end
+    
+    @Operation varEnv():Env
+      let leftEnv = left.exportedVarEnv();
+          rightEnv = right.exportedVarEnv();
+          env = NullEnv()
+      in @For v in leftEnv.dom() do
+           env := env.bind(v,Left(leftEnv.lookup(v)))
+         end;
+         @For v in rightEnv.dom() do
+           env := env.bind(v,Right(rightEnv.lookup(v)))
+         end;
+         env
+      end
+    end
+    
+    @Operation vars():Set(String)
+      left.vars() + right.vars()
+    end
+    
+  end
+    

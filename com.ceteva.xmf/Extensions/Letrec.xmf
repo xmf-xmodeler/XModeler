@@ -1,0 +1,52 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Letrec extends Sugar
+  
+    @Doc
+      A letrec construct allows bindings to be established for a local
+      scope. The bindings are mutually recursive. Since XMF has eager
+      evaluation, this means that the values of the bindings should be
+      operations.
+     
+      Constructor: Letrec(bindings,body)
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Letrec ::=  bindings = Bindings 'in' body = Exp { Letrec(bindings,body) }.
+      
+    end 
+    
+    @Attribute bindings : Seq(ValueBinding) end
+    @Attribute body : Performable end
+    
+    @Constructor(bindings,body) end
+    
+    @Operation desugar() 
+      Let(bindings->collect(b | ValueBinding(b.name,[| null |])),
+          [| @Operation()
+               <Let(bindings->collect(b | ValueBinding(b.name + "'",b.value)),
+                    bindings->iterate(b e = body | [| <VarUpdate(b.name,Var(b.name + "'"))>; <e> |]))>
+             end()
+          |])
+    end 
+    
+    @Operation pprint(out,indent)
+      format(out,"@Letrec ~%~V",Seq{indent + 2});
+      @For b in bindings do
+        if not isFirst then format(out,";~%~V",Seq{indent+2}) end;
+        b.pprint(out,indent)
+      end;
+      format(out,"~%~Vin ",Seq{indent});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+     
+  end

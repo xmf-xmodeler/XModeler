@@ -1,0 +1,222 @@
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+
+import Parser::BNF;
+import XML;
+import IO;
+
+context Root
+
+@Grammar Sequences
+
+  Pair ::= <Values:Pair> head = Value tail = List </Pair> { Seq{head | tail} }.
+  
+  Value ::= List | Atom.
+  
+  Atom ::= <Values:Atom value/> { value }.
+  
+  List ::= Pair | <Values:Sequence.Nil/> { Seq{} }.
+   
+end
+
+ 
+context Root
+
+// Basic parser for XMI 1.2 (Poseidon)
+@Grammar XMI
+
+  XMI ::= <XMI> [ Header ] model = Content </XMI>.
+  
+  Header ::= <XMI.header/>.
+  
+  Content ::= <XMI.content> defs = Def* </XMI.content>.
+  
+  Def ::= Model | ANY.
+  
+  Model ::= 
+    <UML:Model id = xmi.id
+      name = name> owned = Owned 
+    </UML:Model> id := {owned->select(o | 
+      o.isKindOf(XCore::Class) or o.isKindOf(XCore::Package) or 
+      o.isKindOf(Associations::Association))->
+        iterate(o p = XCore::Package(name) | p.add(o))}.
+   
+  Element ::= DataType | Class | Package | Association | Generalization | ANY.
+  
+  Package ::= 
+    <UML:Package id = xmi.id
+      name = name> 
+      owned = Owned 
+    </UML:Package> id := {owned->select(o | 
+      o.isKindOf(XCore::Class) or o.isKindOf(XCore::Package) or 
+      o.isKindOf(Associations::Association))->iterate(o p = XCore::Package(name) | p.add(o))}.
+   
+  Owned ::= 
+    <UML:Namespace.ownedElement> 
+      elements = Element* 
+    </UML:Namespace.ownedElement>.
+    
+  DataType ::= 
+    <UML:DataType id = xmi.id name = name> 
+    </DataType> id := { 
+    @Case name of
+      "boolean" do XCore::Boolean end
+      "int" do XCore::Integer end
+      "char[]" do XCore::String end
+      else XCore::Class(name)
+    end
+  }.
+  
+  Class ::= 
+    <UML:Class id = xmi.id name = name isAbstract = isAbstract> 
+      genElements = (GenElement | {Seq{}}) 
+      features = (ClassifierFeature | {Seq{}})
+    </UML:Class> id := { 
+      features->iterate(f c = 
+        XCore::Class[name = name, 
+                     parents = genElements->asSet, 
+                     isAbstract = if isAbstract = "true" 
+                                  then true 
+                                  else false end] | c.add(f))}.
+      
+  GenElement ::= 
+    <UML:GeneralizableElement.generalization> 
+      gen = Gen* 
+    </UML:GeneralizableElement.generalization> {gen}.
+
+  Gen ::= <UML:Generalization genid = xmi.idref/> {XML::Parser::Ref(genid)}.
+
+  ClassifierFeature ::= 
+    <UML:Classifier.feature> 
+      feature = Feature* 
+    </UML:Classifier.feature> {feature}.
+  
+  Generalization ::= 
+    <UML:Generalization id = xmi.id> 
+      childGen = ChildGen 
+      parentGen = ParentGen 
+    </UML:Generalization> id := {parentGen}.
+          
+  ChildGen ::= 
+    <UML:Generalization.child> 
+      childid = Classifier 
+    </UML:Generalization.child> {XML::Parser::Ref(childid)}.
+  
+  ParentGen ::= 
+  <UML:Generalization.parent> 
+    parentid = Classifier 
+  </UML:Generalization.parent>  {XML::Parser::Ref(parentid)}.
+  
+  Feature ::= Attribute | Operation.
+  
+  Attribute ::= 
+    <UML:Attribute id = xmi.id name = name> 
+      type = FeatureType  
+    </Attribute> 
+    {XCore::Attribute(name,XML::Parser::Ref(type))}.
+    
+  FeatureType ::= 
+    <UML:StructuralFeature.type> 
+      type = Type 
+    </UML:StructuralFeature.type> {type}.
+  
+  Type ::= <UML:DataType id = xmi.idref/> {id}.
+    
+  Operation ::= <Operation/> { @Operation() self end }.
+  
+  Association ::= 
+    <UML:Association id = xmi.id name = name> 
+      connection = Connection 
+    </UML:Association> id := { 
+      let a = Associations::Association(name) 
+      in a.setEnd1(connection->at(0)); 
+         a.setEnd2(connection->at(1))
+      end}.
+  
+  Connection ::= 
+    <UML:Association.connection> 
+      ends = End* 
+    </UML:Association.connection> {ends}.
+    
+  End ::= 
+    <UML:AssociationEnd id = xmi.id name = name> 
+      endmult = EndMultiplicity 
+      participant = Participant 
+    </UML:AssociationEnd> {
+      Associations::End(name,XML::Parser::Ref(participant),endmult)}.
+       
+  EndMultiplicity ::= 
+    <UML:AssociationEnd.multiplicity> 
+      mult = Multiplicity 
+    </UML:AssociationEnd.multiplicity> {mult}.
+    
+  Multiplicity ::= 
+    <UML:Multiplicity id = xmi.id>  
+      range1 = Range1 
+    </UML:Multiplicity> {range1}.
+    
+  Range1 ::= 
+    <UML:Multiplicity.range> 
+      range2 = Range2 
+    </UML:Multiplicity.range> {range2}.
+    
+  Range2 ::=  
+    <UML:MultiplicityRange id = xmi.id lower = lower upper = upper> 
+    </UML:MultiplicityRange> {
+      if lower = 1 and upper = 1 then 
+        Associations::One()
+      elseif lower = 0 and upper = 0-1 then 
+        Associations::Star() 
+      else
+        Associations::Star()  
+      end}.
+    
+  Participant ::= 
+    <UML:AssociationEnd.participant> 
+      classifier = Classifier 
+    </UML:AssociationEnd.participant> {classifier}.
+        
+  Classifier ::= <UML:Class id = xmi.idref/> {id}.  
+end
+
+XMI.debug := true;  
+
+context SeqOfElement
+  @Operation asXML()
+    if self->isEmpty
+    then Element("Values:Sequence.Nil")
+    else 
+      Element("Values:Pair",Seq{},Seq{Element("Values:Atom",Seq{Attribute("value",self->head.toString())}),self->tail->asXML})
+    end
+  end
+  
+context Root
+  @Operation test(s)
+    let xml = s->asXML
+    in //xml.pprint(stdout,0);
+       Sequences.parse(Seq{xml},"Value")
+    end
+  end
+
+context Root
+  @Operation xmi()
+    let i = XMLInputChannel(FileInputChannel("Test/test12.xmi"))
+    in XMI.parse(Seq{i.read().stripWhiteSpace().root},"XMI")
+    end
+  end
+  
+context Root
+  @Operation xmiToDiagram()
+    let i = XMLInputChannel(FileInputChannel(xmf.homeDir() + "/Test/test12.xmi")) then
+        modelWithDataTypes = XMI.parse(Seq{i.read().stripWhiteSpace().root},"XMI")->
+          select(e | e.isReallyKindOf(XCore::Package))->sel
+           in let model = modelWithDataTypes.contents()->select(c | c.name.toString() <> "java")->iterate(c p = XCore::Package(modelWithDataTypes.name) | p.add(c)) in
+              Root.add(model);
+              model.init();
+              model.browse()
+      end   
+    end
+  end

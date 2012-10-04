@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class NodeCreationButton extends CreationButton
+  
+    @Constructor(name,icon)
+      self.isEdge := false;
+      self.handler := 
+        let this = self
+        in @Operation nodeCreationHandler(tool,x,y)
+             tool.newNode(this.name,x,y)
+           end
+        end
+    end
+    
+  end
+  

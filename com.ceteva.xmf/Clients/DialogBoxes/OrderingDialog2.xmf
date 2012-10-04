@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class OrderingDialog2 extends ContainedClientElement
+  
+    @Attribute title   : String end
+    @Attribute options : Seq(String) end
+    
+    // An ordering dialog 2 provides a means of ordering a sequence
+    // and returns the whole sequence
+  
+    @Constructor(title,options) end
+    
+    @Operation new()
+      self.commandInterpreter().newOrderingDialog2(self)
+    end
+  
+  end

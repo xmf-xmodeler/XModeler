@@ -1,0 +1,181 @@
+// **************************************************************
+// The contents of this file are copyright Ceteva Limited and
+// should not be redistributed in any form whatsoever without the
+// express written consent of Ceteva Limited.
+// *************************************************************
+
+// A Parser for EMF XMI (.ecore) files
+parserImport XML::Parser;
+parserImport XOCL;
+import XML::Parser;
+
+context Root
+  @Operation grammar()
+    @Grammar EMFXMI 
+
+
+  EMFXMI ::= rootPackage = RootPackage { rootPackage }.
+  
+   RootPackage ::= 
+    <ecore:EPackage 
+      name = name> 
+      contents = Content
+    </ecore:EPackage> {contents->select(o | 
+      o.isReallyKindOf(XCore::Enum) or 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package)) ->
+        iterate(o p = XCore::Package(name.subst("_"," ",true)) | p.add(o))}.
+   
+   Content ::= (SubPackage | Classifier | Annotation)*.
+   
+   SubPackage ::= 
+    <eSubpackages 
+      name = name> 
+      contents = Content
+    </eSubpackages> {contents->select(o | 
+      o.isReallyKindOf(XCore::Enum) or 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package)) ->
+        iterate(o p = XCore::Package(name.subst("_"," ",true)) | p.add(o))}.
+      
+   Annotation ::=
+     <eAnnotations source=source>
+       ANY*
+     </eAnnotations>{null}.
+    
+  
+   Classifier ::= 
+    <eClassifiers type = xsi:type name = name abstract = abstract := false eSuperTypes = eSuperTypes := ""> 
+        features = Feature*
+        literals = Literal*
+    </eClassifiers> name := { 
+      @Case type of
+        ["ecore:EClass"] do
+          let class = XCore::Class[name = Symbol(name.subst("_"," ",true)),
+                                   isAbstract = if abstract = "true" then true else false end,
+                                   parents = eSuperTypes.splitBy(" ",0,0)->collect(p |Ref(p.subst("","#//",true)))->asSet ] in
+            features->select(f | f.isReallyKindOf(XCore::Attribute) or f.isReallyKindOf(XCore::CompiledOperation))->collect(f | 
+              class.add(f));
+            class
+          end
+        end
+        ["ecore:EDataType"] do
+          let class = XCore::Class[name = Symbol(name.subst("_"," ",true)),
+                                   parents = eSuperTypes.splitBy(" ",0,0)->collect(p |Ref(p.subst("","#//",true)))->asSet ] in
+            features->select(f | f.isReallyKindOf(XCore::Attribute) or f.isReallyKindOf(XCore::CompiledOperation))->collect(f | 
+              class.add(f));
+            class
+          end
+        end
+        ["ecore:EEnum"] do
+          let enum = XCore::Enum(name) in 
+            literals->collect(l | enum.addName(l));
+            enum 
+          end
+        end
+      end}.
+          
+   Literal ::=
+        <eLiterals name=name>
+        </eLiterals> {name}.   
+      
+   Feature ::= StructuralFeature | Operation | Annotation.
+      
+   StructuralFeature ::= 
+    <eStructuralFeatures type = xsi:type name = name eType = eType containment = containment := false ordered = ordered := true upperBound = upperBound := 1> 
+       ANY*
+    </eStructuralFeatures> { 
+      @Case type of
+        ["ecore:EAttribute"] do
+           let type = 
+              if eType = "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString" then 
+                XCore::String
+              elseif eType = "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt" then 
+                XCore::Integer
+              elseif eType = "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble" then 
+                XCore::Float
+              elseif eType = "ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" then 
+                XCore::Boolean
+              else XCore::String
+              end in
+                XCore::Attribute(name.subst("_"," ",true),type).set("isComposite",if containment = "true" then true else false end)
+           end
+        end
+        ["ecore:EReference"] do
+           let type = Ref(eType.subst("","#//",true))
+           in
+             let a = XCore::Attribute(name.subst("_"," ",true),type).set("isComposite",if containment = "true" then true else false end)
+             in  
+                // Note because of a current limitation of Set(Ref) in version 1.5
+                // this puts any attributes whose type is a Set into a table. This
+                // table is then run over later to change their type to a Set.
+                if upperBound = "-1" and ordered = "false" then
+                   EMFXMI::setTable.put(name.toString(),a)
+                elseif upperBound = "-1" and ordered = true then
+                   EMFXMI::seqTable.put(name.toString(),a)
+                end;
+                a
+             end
+           end
+        end
+      end}. 
+      
+      Operation ::=
+        <eOperations name = name eType = eType := "Element"> 
+           param = Parameter*
+          </eOperations> {@Operation() self end.setName(name.subst("_"," ",true))}.
+      
+      Parameter ::=
+        <eParameters name=name eType=eType/> {name}.
+  
+  end
+end
+
+context Root
+  @Package EMFXMI
+    // Bind a table for storing multiplicity information 
+    @Bind setTable = Table(1000) end 
+    @Bind seqTable = Table(1000) end 
+  end
+ 
+context Root
+  @Operation loadEMFXMI(file)
+    let g = grammar().compile()
+    in @WithOpenFile(fin <- file) 
+         let xin = ParserChannel(fin,g)
+         in 
+            Root::g := g;
+            // Set this to true if you want to
+            // get a debug trace in the console
+            xin.debug := false;
+            xmf.busy("Parsing XMI");
+            xin.parse("EMFXMI") 
+         end
+       end
+    end
+  end
+
+ 
+context Root
+  @Operation importEMFXMI(p)
+    let i = xmf.openFile(xmf.homeDir(),"*.ecore") in
+      if i <> "" then
+      let
+        model = loadEMFXMI(i) in
+              xmf.killProgressDialogs();
+              // Add the model to root and initialise it
+              Root.add(model);
+              model.init();
+              // Run over it replacing atts which should be sets and turn them into sets
+              @For a in EMFXMI::setTable.values() do
+                a.type := Set(a.type)
+              end;
+              // Run over it replacing atts which should be seqs and turn them into seqs
+              @For a in EMFXMI::seqTable.values() do
+                a.type := Seq(a.type)
+              end;
+              p.add(Projects::Project(model,model.name,null))
+          end
+       end
+    end   
+  end

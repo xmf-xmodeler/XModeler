@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class MkOpE extends Instr
+ 
+    @Doc
+      This machine instruction is an exten-ded version of MKOP.
+      The instruction expects the code box offset to be pushed
+      on the stack before the instruction is performed.
+    end
+ 
+    @Attribute name : String end            // The name of the operation.
+    @Attribute arity : Integer end          // The arity of the operation.
+    @Attribute isMultiArgs : Boolean end    // Can take multiple args.
+    @Attribute free : Integer end           // The number of free vars in the body.
+    @Attribute locals : Integer end         // The number of local vars required by the op (not including args).
+    @Attribute source : String end          // The source code (if recorded).
+    @Attribute code : Seq(Element) end      // A sequence of instructions.
+    @Attribute nameOffset : Integer end     
+    @Attribute codeBoxOffset : Integer end
+    
+    @Constructor(name,arity,isMultiArgs,free,locals,source,code) end
+     
+    @Operation toString():String
+      "<MkOpE " + name + "," + arity + "," + isMultiArgs + "," + free + "," + locals + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      let newBox = Assembler::assemble(code,locals,source)
+      in self.assemble(codeBox,newBox)
+      end
+    end
+    
+    @Operation assemble(codeBox,newBox)
+      self.codeBoxOffset := codeBox.constOffset(newBox);
+      self.nameOffset := codeBox.constOffset(name);
+      newBox.name := name;
+      codeBox.addInstr(PushInteger(codeBoxOffset));
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      let arityByte = if isMultiArgs then 1.lsh(7) or arity else arity end
+      in Kernel_mk24bit(arity,free,0)
+      end
+    end
+    
+  end

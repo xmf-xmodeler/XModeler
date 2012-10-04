@@ -1,0 +1,15 @@
+parserImport Manifests;
+
+@Manifest Layout
+  Layout = 
+    @File Layout                   end
+    @File Point                    end
+    @File LayoutManager            end
+    @File StandardLayoutManager    end
+    @File StandardHorizontalLayout end
+    @File StandardVerticalLayout   end
+    @File StandardOverlayLayout    end
+    @File Formatted                end
+do Layout
+end;
+           

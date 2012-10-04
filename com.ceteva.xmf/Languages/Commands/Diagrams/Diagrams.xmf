@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Languages;
+
+context Commands
+
+  @Package Diagrams
+  
+    @Operation test()
+      let c = xmf.findClient(Clients::Diagrams::DiagramClient);
+          d = Commands::Diagrams::CommandDiagram("Test")
+      in c.newDiagram(d)
+      end
+    end
+     
+  end

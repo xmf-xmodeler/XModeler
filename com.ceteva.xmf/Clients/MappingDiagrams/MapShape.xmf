@@ -1,0 +1,57 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context MappingDiagrams
+
+  @Class MapShape extends Shape
+  
+    @Attribute invert  : Boolean = false end
+  
+    @Constructor(x,y,width,height) 
+      self.outline := true;
+      self.calculatePoints()
+    end
+    
+    @Operation calculatePoints()
+      let w = self.width-1 in
+        let h = self.height-1 in
+          let points = Seq{} in
+            self.addPoint(Point(w,(h/2).round()));
+            self.addPoint(Point(((w/3)*2).round(),0));
+            self.addPoint(Point(0,0));
+            self.addPoint(Point(0,h));
+            self.addPoint(Point(((w/3)*2).round(),h))
+          end  
+        end
+      end
+    end
+    
+    @Operation resize(width,height)
+      super(width,height);
+      self.resetShape();
+      let w = width-1 in
+        let h = height-1 in
+          if not invert then
+            self.addPoint(Point(w,(h/2).round()));
+            self.addPoint(Point(((w/3)*2).round(),0));
+            self.addPoint(Point(0,0));
+            self.addPoint(Point(0,h));
+            self.addPoint(Point(((w/3)*2).round(),h))
+          else
+            self.addPoint(Point(0,(h/2).round()));
+            self.addPoint(Point((w/3).round(),0));
+            self.addPoint(Point(w,0));
+            self.addPoint(Point(w,h));
+            self.addPoint(Point((w/3).round(),h))
+          end;
+          self.redrawShape() 
+        end
+      end
+    end
+  
+  end

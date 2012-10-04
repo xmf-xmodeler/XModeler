@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import Menus;
+import Exceptions;
+import ExceptionReport;
+
+context ExceptionReport
+
+  @Class LocalNode extends TreeNode, RightClickableWithElement
+  
+    @Attribute index : Integer end
+    @Attribute value : Element end
+    
+    @Constructor(index,value)
+      self.setReportText();
+      self.setReportIcon();
+      self.isEditable := false;
+      self.element := value;
+      self
+    end
+  
+    @Operation addContents()
+      null
+    end
+    
+    @Operation doubleSelected()
+      value.edit()
+    end 
+    
+    @Operation setReportText()
+      self.text := ("local(" + index + ")")->padTo(30," "->at(0)) + " = " + value.toString()
+    end
+    
+    @Operation setReportIcon()
+      self.icon := "Exceptions/Local.gif"
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S~%",Seq{self.text});
+      @For node in nodes do
+        node.pprint(out,indent+2)
+      end
+    end
+
+  end

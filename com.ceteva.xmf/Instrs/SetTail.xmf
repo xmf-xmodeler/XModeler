@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SetTail extends Instr
+  
+    @Operation toString():String
+      "<SetTail>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+  
+  end

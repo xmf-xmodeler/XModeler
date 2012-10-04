@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class PushString extends Instr
+  
+    @Doc
+      A machine instruction that pushes a string onto the stack.
+      The string is indexed by the instruction word operand in the
+      currentstack frame constants array.
+    end
+  
+    @Attribute value : String end
+    @Attribute valueOffset : Integer end
+    
+    @Constructor(value) end
+    
+    @Operation toString():String
+      "<PushString " + value + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      self.valueOffset := codeBox.constOffset(value);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      valueOffset
+    end
+    
+  end
+  

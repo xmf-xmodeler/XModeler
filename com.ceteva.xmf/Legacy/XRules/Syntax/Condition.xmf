@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import XRules;
+import Syntax;
+
+context Syntax
+
+  @Class Condition isabstract
+  
+    @Doc 
+      A condition is a boolean expression in terms of object patterns.
+      A condition is satisfied when there exist a collection of objects
+      that match the given patterns.
+    end
+    
+  end

@@ -1,0 +1,181 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context Root
+
+  @Package StateMachines
+  
+    // A package of classes that implement an event driven
+    // collection of state machine classes.
+  
+    @Class ObjectWithState
+    
+      // An object with state must be an instance of a state
+      // machine. The object maintains the name of the state
+      // and monitors state changes via a daemon. When the
+      // daemon fires, the transitions of the state machine
+      // control the actions that take place.
+    
+      @Attribute state : String (?,!) end
+      
+      @Operation init(args)
+      
+        // Init is called when the object is initially created.
+        // Use super to do the default initialisation and and then
+        // add a daemon to fire the state transitions and set the
+        // initial state of the object.
+        
+        super(args);
+        let handler = StateMachines::ObjectWithState::slotChanged then
+            daemon = Daemon(self,Daemon::ANY,"",handler,true,false,self);
+            initialState = self.of().initialState()
+        in self.addDaemon(daemon);
+           if initialState = null
+           then self.error("No initial state defined for " + self.of())
+           else self.state := initialState.name()
+           end;
+           self
+        end
+      end
+      
+      @Operation slotChanged(object,slot,new,old)
+        // Installed as the handler of the object with state daemons.
+        // Changes to any user defined slots cause the transitions
+        // whose source is the current state to be selected. A
+        // transition whose guard is enabled is selected and its
+        // action is performed. The state of the object is updated.
+        if slot.toString() <> "state"
+        then
+          let machine = self.of() then
+              transitions = machine.transitionsFrom(state)
+          in @Find(transition,transitions)
+               when transition.pred().perform(object,Seq{})
+               do transition.action().perform(object,Seq{});
+                  self.state := transition.target()
+             end
+          end
+        end
+      end
+      
+    end
+  
+    @Class StateMachine extends Class
+    
+      // A state machine is a specialization of Class that manages
+      // a collection of states and transitions between them. A class
+      // is a container; the add operation is extended to allow
+      // states and transitions to be added. The grammar synthesizes
+      // a sequence of calls to the add operation.
+    
+      @Grammar extends OCL::OCL.grammar
+      
+        StateMachine ::= n = Name es = Exp* { 
+          es->iterate(e m = [| StateMachines::StateMachine(<StrExp(n)>) |] |
+               [| .add(<e>) |])
+        }.
+        
+      end
+      
+      @Attribute states      : Set(State)      (+,-,?) end
+      @Attribute transitions : Set(Transition) (+,-,?) end
+      
+      @Operation add(element)
+        // Extend Class::add to support the addition of states
+        // and transitions.
+        @TypeCase(element)
+          StateMachines::State do
+            self.addToStates(element)
+          end
+          StateMachines::Transition do
+            self.addToTransitions(element)
+          end
+          else super(element)
+        end
+      end
+      
+      @Operation init()
+        // All classes should be initialised. This occurs aurtomaticaly
+        // via a 'context' definition. Class::init is extended to
+        // ensure that a state machine class inherits from the class
+        // ObjectWithState.
+        super();
+        if  not self.allParents()->includes(StateMachines::ObjectWithState)
+        then self.addParent(StateMachines::ObjectWithState)
+        end;
+        self
+      end
+      
+      @Operation initialState():State
+        // Calculate the initial state of the receiver.
+        @Find(state,states)
+          when state.isKindOf(StateMachines::InitialState)
+          else null
+        end
+      end
+      
+      @Operation transitionsFrom(state:String):Set(Transition)
+        // Calculate the set of transitions from the supplied state.
+        transitions->select(t | t.source() = state)
+      end
+      
+    end
+    
+    @Class State
+    
+      @Attribute name : String (?) end
+      @Constructor(name) ! end
+      
+      @Grammar 
+        State ::= n = Name { 
+          [| StateMachines::State(<StrExp(n)>) |] 
+        }. 
+      end
+      
+    end
+    
+    
+    @Class InitialState extends State
+    
+      @Attribute name : String (?) end
+      @Constructor(name) ! end
+      
+      @Grammar 
+        InitialState ::= n = Name { 
+          [| StateMachines::InitialState(<StrExp(n)>) |] 
+        }.
+      end
+      
+    end
+    
+    
+    @Class Transition
+    
+      @Attribute name   : String (?) end    
+      @Attribute source : String (?) end    
+      @Attribute target : String (?) end    
+      @Attribute pred   : XOCL::Exp (?) end 
+      @Attribute action : XOCL::Exp (?) end 
+      
+      @Constructor(name,source,target,pred,action) ! end
+      
+      @Grammar extends OCL::OCL.grammar
+      
+        Transition ::= n = Name s = Name '->' t = Name 
+          
+          'when' c = Exp 'do' a = Exp {
+        
+          [| StateMachines::Transition(
+               <StrExp(n)>,
+               <StrExp(s)>,
+               <StrExp(t)>,
+               <XOCL::Exp(c)>,
+               <XOCL::Exp(a)>) |]      
+        }.
+        
+      end
+      
+    end
+    
+  end

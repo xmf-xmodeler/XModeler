@@ -1,0 +1,11 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Order in TypeChecker(exp,env,encountered)
+  let fType = self.dispatch(exp.first,env);
+      sType = self.dispatch(exp.second,env)
+  in TypeCheckExp(exp,sType.type(),Seq{fType,sType})
+  end
+end;

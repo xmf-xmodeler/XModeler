@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import IO;
+import Walkers;
+
+context IO
+
+  @Class XMLOutputChannel extends OutputChannel
+  
+    @Doc
+      An XML output channel writes an XML encoding of any element to a supplied
+      base output channel. The translation of sharing in the XMF element is
+      taken care of using id ref elements in the XML. In general the first
+      occurrence of an element is translated to the XML equivalent and then
+      subsequent occurrences will appear in the XML as id refs; all elements
+      that can be shared are allocated a unique id as part of the translation
+      process. The encoding conforms to XMF.dtd.
+    end
+    
+    @Attribute out        : OutputChannel end
+    @Attribute nameSpaces : Set(NameSpace) end
+    @Attribute walker     : XML end
+    
+    @Constructor(out) ! 
+      @Doc
+        The argument out is an output channel to which the XML characters are written
+        when an element is written to the XML output channel.
+      end
+      self.walker := XML()
+    end
+    
+    @Constructor(out,nameSpaces)
+      self.walker := XML(nameSpaces)
+    end
+    
+    @Operation close()
+      out.close()
+    end
+    
+    @Operation write(element:Element)
+      @Doc
+        Encodes the supplied element as an XML element and writes it
+        to the underlying output channel.
+      end
+      walker.walk(element,out)
+    end
+    
+  end 

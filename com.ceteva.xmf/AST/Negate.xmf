@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Negate in AST(aNegate,arg,seen)
+  let exp = self.dispatch(aNegate.exp,arg)
+  in ASTNode(aNegate,Seq{exp})
+  end
+end;

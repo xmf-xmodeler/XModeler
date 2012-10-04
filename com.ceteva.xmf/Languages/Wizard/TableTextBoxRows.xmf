@@ -1,0 +1,14 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+import XML;
+
+context Wizard
+
+  @Class TableTextBoxRows extends Row
+  
+    @ToXML(Table_Text_Box_Rows)[value] end
+    
+  end

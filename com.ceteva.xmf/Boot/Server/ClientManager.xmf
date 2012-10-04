@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provide the client
+// manager property and associated helper operations.
+
+xmf.setProperty("clientManager",Clients::ClientManager());
+
+context XMF
+  @Operation clientManager()
+    self.property("clientManager")
+  end
+
+context XMF
+  @Operation debug(debug)
+    self.clientManager().debug(debug)
+  end
+
+context XMF
+  @Operation monitorClientCommunications()
+    xmf.debug(true)
+  end
+
+context XMF
+  @Operation silentClientCommunications()
+    xmf.debug(false)
+  end
+
+context XMF
+  @Operation findClient(type)
+    self.clientManager().findClient(type)
+  end
+
+context XMF
+  @Operation findClientByName(name)
+    self.clientManager().findClientByName(name)
+  end
+
+context XMF
+  @Operation getAllClients()
+    self.clientManager().clients
+  end

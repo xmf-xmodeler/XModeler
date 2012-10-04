@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class Edge isabstract
+
+    @Attribute source : Root::XDiagMaps::Node (?,!) end
+    @Attribute target : Root::XDiagMaps::Node (?,!) end
+    @Attribute color  : Color = Color()       (?,!) end
+    @Attribute head   : String = "noArrow"    (?,!) end
+    @Attribute tail   : String = "noArrow"    (?,!) end
+    @Attribute line   : String = "solidLine"  (?,!) end
+    
+    @Constructor(source,target) ! end
+    
+    @Operation setEnd(edgeEnd:String,name:String)
+      let headStyles = Seq{"noArrow","arrow","blackDiamond","whiteDiamond","blackArrow","whiteArrow"} then
+          style = xmf.select("Arrow","Choose style for " + edgeEnd + " of " + name,headStyles,null,null)
+      in if style = null
+         then throw CancelDeploy()
+         elseif edgeEnd = "source"
+         then self.tail := style
+         else self.head := style
+         end
+      end
+    end
+    
+    @Operation setLineStyle(name:String)
+      let lineStyles = Seq{"solidLine","dashLine","dottedLine","dashDottedLine","dashDotDotLine"} then
+          style = xmf.select("Line Style","Choose line style for " + name,lineStyles,null,null)
+      in if style = null
+         then throw CancelDeploy()
+         else self.line := style
+         end
+      end
+    end
+
+  end

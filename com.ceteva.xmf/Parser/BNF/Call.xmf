@@ -1,0 +1,62 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import OCL;
+
+context Parser::BNF
+
+  @Class Call extends Recognizer 
+  
+    // Call a named clause in the currently executing grammar.
+    
+    @Attribute name : String end
+    @Attribute args : Seq(String) end
+    @Attribute argMap : Seq(Integer) end
+    @Attribute clause : Clause end
+    
+    @Constructor(name) end
+    
+    @Constructor(name,args) end
+    
+    @Constructor(name,args,argMap) end
+    
+    @Operation code(outputChannel)
+      format(outputChannel," ~S ",Seq{name})
+    end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation nextSet(grammar)
+      grammar.getClause(name).body.nextSet(grammar)
+    end
+    
+    @Operation parse(machine)
+      if clause = null
+      then
+        if machine.grammar.allClauses(name)->isEmpty
+        then
+          self.error("Grammar does not contain a clause named '" + name + "'")
+        else
+          self.clause := machine.getClause(name);
+          self.clause.call(machine)
+        end
+      else 
+        self.clause.call(machine)
+      end
+    end
+    
+    @Operation toExp(FV:Set(String))
+      [| Root::Parser::BNF::Call(<StrExp(name)>,<SetExp("Seq",args->collect(a | StrExp(a)))>) |]
+    end
+    
+    @Operation toString()
+      "Call(" + name + formats("(~{,~;~S~})",Seq{args}) + ")"
+    end
+    
+    @Operation transform(FV:Set(String),grammar):Recognizer
+      self
+    end
+    
+  end

@@ -1,0 +1,31 @@
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+
+context For
+
+  @Grammar extends OCL::OCL.grammar
+  
+    For ::= 
+    
+      name = AName 
+      dir = ForDirective 
+      coll = Exp 
+      guard = ('when' Exp | { null })
+      'do' 
+      body = Exp { 
+      
+        For(name,dir,coll,guard,body) 
+        
+    }.
+    
+    ForDirective ::= 
+    
+      'classifiedBy'  { "classifiedBy" }  |
+      'in'            { "in" }            | 
+      'inTableKeys'   { "inTableKeys" }   | 
+      'inTableValues' { "inTableValues" } | 
+      'inSeq'         { "inSeq" }.
+    
+  end  

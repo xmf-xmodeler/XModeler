@@ -1,0 +1,12 @@
+import Exceptions;
+import OCL;
+
+context ImportIn
+  @Operation eval(target,env,imports)
+    let value = nameSpace.eval(target,env,imports)
+    in if value.isKindOf(NameSpace)
+       then body.eval(target,env,Seq{value | imports})
+       else throw TypeError(value,NameSpace)
+       end
+    end
+  end

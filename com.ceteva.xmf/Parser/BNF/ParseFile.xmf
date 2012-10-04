@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import Parser;
+import Machine;
+import BNF; 
+import IO;
+
+context Grammar
+  @Operation parseFile(name:String,startNT:String,imports:Seq(NameSpace)):Element
+    let fin = FileInputChannel(name) then
+        state = State(self,fin) then
+        result = state.run(startNT,imports)
+    in fin.close();
+       if state.failed
+       then throw ParseError(name)
+       else result
+       end
+    end
+  end
+  
+context Grammar
+  @Operation parseFile(name:String):Element
+    self.parseFile(name,startingSymbol,Seq{})
+  end

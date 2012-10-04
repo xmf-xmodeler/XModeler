@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+@Handler ParametricType in Eval(aParametricType,arg,seen)
+  if seen
+  then aParametricType
+  else
+    let args = aParametricType.args->collect(x | self.dispatch(x,arg));
+        constructor = aParametricType.constructor->collect(x | self.dispatch(x,arg))
+    in aParametricType
+    end
+  end
+end;

@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class RightClickable isabstract
+  
+    @Attribute menuType : MenuType = MenuType() (!) end
+  
+  end

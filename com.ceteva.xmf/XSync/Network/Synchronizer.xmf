@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Synchronizer extends Net, NamedElement, DocumentedElement
+  
+    @Constructor(name,autorun) ! end
+    
+  end

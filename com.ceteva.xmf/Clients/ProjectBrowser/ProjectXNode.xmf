@@ -1,0 +1,75 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+import ProjectBrowser;
+import Projects;
+
+context ProjectBrowser
+
+  @Class ProjectXNode extends ContainerXNode
+
+    @Constructor(element,node,owner)
+      self.setHotLoad(true);
+      self.init(Seq{element,node})
+      //node.expand();
+      //if element.owner.expandedProjects->includes(element)
+      //then
+      //  self.elementAdded(element.package);
+      //  node.setSelected()
+      //end
+    end
+
+    @Operation daemons_packageChanged(element,slot,package,ignore)
+      if package <> null
+      then
+        node.setIcon(node.getIcon());
+        @SlotValueChanged multi once ObjectXNode::daemons_nameChanged(element.package,"name") end;
+        @SlotValueChanged multi once ProjectXNode::daemons_packageOwnerChanged(element.package,"owner") end
+      end
+    end
+
+/*    @Operation daemons_projectCollapsed(elementOwner,slot,project)
+      if element = project
+      then
+        self.elementRemoved(element.package);
+        node.setSelected()      
+      end
+    end
+
+    @Operation daemons_projectExpanded(elementOwner,slot,project)
+      if element = project
+      then
+        self.elementAdded(element.package);
+        node.setSelected()
+      end
+    end
+*/
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once   ObjectXNode::daemons_nameChanged(element,"resourceName") end;
+      //@SlotValueChanged multi once + ProjectXNode::daemons_projectExpanded(element.owner,"expandedProjects") end;
+      //@SlotValueChanged multi once - ProjectXNode::daemons_projectCollapsed(element.owner,"expandedProjects") end;
+
+      // Change the code below in different types of ProjectXNode...
+      if not element.loaded()
+      then
+        @SlotValueChanged multi once ProjectXNode::daemons_packageChanged(element,"package") end
+      end;
+
+      self
+    end
+
+    @Operation handleNodeCreation()
+      node.setSelected(false,true)
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.package.removeDaemonsWithTarget(self,true)
+    end
+
+  end

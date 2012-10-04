@@ -1,0 +1,32 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Manifests;
+
+context Manifests
+
+  @Class ManifestAction isabstract extends ManifestEntry
+  
+    // A manifest action is a general element occurring in a manifest.
+    // The action describes what to do when the manifest is built or
+    // loaded. An action has a guard that must be satisfied in order to
+    // load the underlying element. If the element is loaded then the 
+    // load action is performed.
+  
+    @Attribute guard      : Exp end
+    @Attribute loadAction : Exp end
+     
+    @Constructor(path,guard,loadAction) end
+    
+    @Constructor(path,guard,loadTime,loadAction) ! end
+    
+    @Grammar extends ManifestEntry.grammar 
+    
+      ActionGuard ::= '[' e = Exp ']' { Exp(e) } | { Exp([| true |]) }.
+    
+      LoadAction ::= 'do' e = Exp { Exp(e) } | { null }.
+      
+    end
+  
+  end

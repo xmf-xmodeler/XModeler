@@ -1,0 +1,29 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context StateMachines
+
+  @Class Package extends Package
+  
+    @Grammar extends OCL::OCL.grammar
+      
+      Package ::= n = Name es = Exp* { 
+        es->iterate(e m = [| StateMachines::Package(<StrExp(n)>) |] |
+             [| <m>.add(<e>) |])
+      }.
+        
+    end
+    
+    @Operation add(element)
+      if element.isKindOf(Container)
+      then 
+        @For op in element.allContentsOf(CompiledOperation) do
+          op.importNameSpace(self)
+        end
+      end;
+      super(element)
+    end
+    
+  end

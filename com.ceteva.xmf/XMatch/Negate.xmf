@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class Negate extends Pattern
+  
+    @Doc
+      Matches when the pattern fails. No stack values or bindings
+      occur as a result of this pattern.
+    end
+    
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      pattern.match(chars,env,stack,
+        @Operation(notChars,notEnv,notStack,notFail)
+          fail()
+        end,
+        @Operation()
+          succ(chars,env,Seq{Seq{} | stack},fail)
+        end)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      // Cannot bind in a netation.
+      Set{}
+    end
+    
+  end

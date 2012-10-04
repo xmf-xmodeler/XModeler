@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class Dot extends Instr
+  
+    @Doc
+      A machine instruction that performs object navigation.
+      The instruction has an operand in the machine word that 
+      is the offset in the constants array of the current
+      code box indexing a symbol. The instruction expects a
+      value at the head of the stack. The value is popped. If
+      the type of the element is known by the machine (typically
+      an object) then the slot value indexed by the symbol is
+      pushed onto the stack. Otherwise the instruction causes a
+      'dot/1' message to be sent to the element. A value is left 
+      at the head of the stack.
+    end
+  
+    @Attribute name : String end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      constOffset
+    end
+    
+    @Operation toString():String
+      "<Dot " + name.toString() + ">"
+    end
+    
+  end

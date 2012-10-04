@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+import DialogBoxes;
+
+context DialogBoxes
+
+  @Class FileDialog extends ContainedClientElement
+  
+    @Attribute type      : String end
+    @Attribute dir       : String end
+    @Attribute ext       : String end
+    @Attribute initName  : String end
+  
+    @Constructor(type,dir,ext)
+    end
+    
+    @Constructor(type,dir,ext,initName)
+    end    
+    
+    @Operation new()
+      self.commandInterpreter().newFileDialog(self)
+    end
+  
+  end

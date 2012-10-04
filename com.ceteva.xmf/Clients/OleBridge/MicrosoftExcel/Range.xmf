@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftExcel;
+
+context MicrosoftExcel
+
+  @Class Range extends OleObject
+  
+    @Attribute sheet  : Element end
+    @Attribute row 	  : String end
+    @Attribute column : String end
+    
+    @Constructor(sheet)
+    end
+    
+    @Operation new()
+      self
+    end
+  
+  end

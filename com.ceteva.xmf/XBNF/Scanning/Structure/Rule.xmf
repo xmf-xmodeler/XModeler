@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XBNF::Scanning;
+import Graphs;
+import RegularExpressions;
+import Automata;
+import Actions;
+
+context ! XBNF::Scanning::Structure
+
+  // Class deployed by Tony Clark on Tue May 24 11:45:20 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Rule extends XOCL::Syntax
+
+    @Attribute regularExpression : RegularExpression (?,!) end
+    @Attribute action            : Action            (?,!) end
+
+    @Constructor(regularExpression,action) ! end
+    
+    @Grammar extends RegularExpression.grammar,Action.grammar
+    
+      Rule ::= TokenDef | MatchingRule.
+      
+      MatchingRule ::= r = RegularExpression a = Action {
+      
+        Rule(r,a)
+        
+      }.
+      
+      TokenDef ::= 'Token' '(' token = (Name | Str) ')' {
+      
+        Rule(Range::translateString(token),(Actions.getElement("Token"))(token))
+        
+      }.
+      
+    end
+    
+    @Operation setOrder(o:Integer)
+      action.setOrder(o)
+    end
+    
+    @Operation setTokenIndex(index:Integer):Integer
+      action.setTokenIndex(index)
+    end
+    
+    @Operation toTadpole()
+      let first = regularExpression.toTadpole();
+          actionNode = Node(FinalNode(action)) then
+          second = Tadpole(actionNode,Edge(Epsilon(),null,actionNode))
+      in first.mergeAnd(second)
+      end
+    end
+
+  end

@@ -1,0 +1,24 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XML
+  @File XML          end
+  @File Attribute    end
+  @File NoAttribute  end
+  @File Node         end
+  @File Element      end
+  @File ExpectingTag end
+  @File Document     end
+  @File Text         end
+  @File UnknownTag   end
+  @Ref Parser        end
+  @Ref IO            end
+  @Ref Generator     end
+  @Ref PrintXML      end
+  @File DOMInputChannel end
+  @Ref XMI           end
+do
+  Project(XML,dir,self)
+end;

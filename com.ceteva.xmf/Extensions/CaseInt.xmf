@@ -1,0 +1,144 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Instrs;
+
+context XOCL
+
+  @Class CaseInt extends Performable 
+  
+    @Attribute limit     : Integer            end
+    @Attribute exp       : Performable        end
+    @Attribute clauses   : Seq(CaseIntClause) end
+    @Attribute otherwise : Performable        end
+    
+    @Constructor(limit,exp,clauses,otherwise) ! end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      CaseInt ::= '[' limit = Int ']' exp = Exp 'of' clauses = Clause* otherwise = OptOtherwise {
+        
+         CaseInt(limit,exp,clauses,otherwise)
+         
+      }.
+      
+      Clause ::= values = Values 'do' exp = Exp 'end' {
+      
+        CaseIntClause(values,exp)
+        
+      }.
+      
+      Values ::= v = Value vs = (',' Value)* {
+      
+        Seq{ v | vs }
+        
+      }.
+      
+      Value ::= Constant | Range.
+      
+      Constant ::= exp = Exp {
+      
+        CaseIntConst(exp)
+        
+      }.
+      
+      Range ::= lower = Exp 'to' upper = Exp {
+      
+        CaseIntRange(lower,upper)
+        
+      }.
+      
+      OptOtherwise ::= 'else' Exp | { null }.
+      
+    end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+    
+      // Compile the clauses into labelled instruction sequences.
+      // Each label is added to the jumpTable at the indices given
+      // in the clause head. The Dispatch instruction then uses
+      // the value produced by the exp of the CaseInt to index into
+      // the jump table and jumpt to the appropriate offset for
+      // the clause. Once the body of the clause is completed, the
+      // machine jumps to the end of the case.
+       
+     if limit < self.rangeSizeLimit()
+     then
+       let jumpTable = Vector(limit);
+           otherwiseLabel = Compiler::newLabel();
+           endLabel = Compiler::newLabel()
+       in @Count i from 0 to jumpTable.size() do
+            jumpTable.put(i,otherwiseLabel)
+          end;
+          let expInstrs = exp.compile(env,frame,false,saveSource);
+              taggedClauseInstrs = self.compileClauses(jumpTable,env,frame,isLast,saveSource);
+              otherwiseInstrs = self.compileOtherwise(env,frame,false,saveSource) then
+              taggedOtherwiseInstrs = Compiler::labelInstrs(otherwiseInstrs,otherwiseLabel);
+              taggedEndInstrs = Compiler::labelInstrs(Seq{NoOp()},endLabel)
+          in expInstrs +
+             Seq{Dispatch(jumpTable)} +
+             taggedClauseInstrs->iterate(tci is = Seq{} | is + tci + Seq{Skip(endLabel)}) +
+             taggedOtherwiseInstrs +
+             taggedEndInstrs
+          end
+        end
+     else self.error("CaseInt range size " + limit + " too big in " + self.pprint())
+     end
+    end
+    
+    @Operation compileClauses(jumpTable:Vector,env,frame,isLastExp,saveSource)
+      @For clause in clauses produce
+        // Should be OK to pass isLast in ???
+        clause.compile(jumpTable,env,frame,isLastExp,saveSource)
+      end
+    end
+    
+    @Operation compileOtherwise(env,frame,isLast,saveSource)
+      if otherwise = null
+      then [| self.error("CaseInt: out of clauses.") |].compile(env,frame,false,saveSource)
+      else otherwise.compile(env,frame,false,saveSource)
+      end
+    end
+    
+    @Operation eval(target,env,imports)
+      self.error("Eval not implemented for CaseInt.")
+    end
+    
+    @Operation FV():Set(String)
+      if otherwise = null
+      then clauses->iterate(c FV = exp.FV() | FV->union(c.FV()))
+      else clauses->iterate(c FV = otherwise.FV()->union(exp.FV()) | FV->union(c.FV()))
+      end
+    end
+    
+    @Operation maxLocals():Integer
+       if otherwise = null
+       then clauses->iterate(c maxLocals = exp.maxLocals() | maxLocals.max(c.maxLocals()))
+       else clauses->iterate(c maxLocals = exp.maxLocals().max(otherwise.maxLocals()) | maxLocals.max(c.maxLocals()))
+       end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@CaseInt[~S] ",Seq{limit});
+      exp.pprint(out,indent);
+      format(out," of~%~V",Seq{indent+2});
+      @For clause in clauses do
+        clause.pprint(out,indent+2);
+        if not isLast
+        then format(out,"~%~V",Seq{indent+2})
+        end
+      end;
+      if otherwise <> null
+      then 
+        format(out,"~%~Velse ",Seq{indent+2});
+        otherwise.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+    @Operation rangeSizeLimit():Integer
+      1024
+    end
+      
+  end

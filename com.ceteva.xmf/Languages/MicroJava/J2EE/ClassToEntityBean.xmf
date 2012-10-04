@@ -1,0 +1,144 @@
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import OCL;
+import Structure;
+import Statements;
+import Expressions;
+import J2EE;
+import Mappings;
+   
+context J2EE
+
+  @Operation classToEntityBean(name,P,O,C,A) 
+  
+    Seq{beanClass(name,P,A,O,C),homeInterface(name),remoteInterface(name,A)}
+    
+  end
+  
+context J2EE
+
+  @Operation beanClass(name,P,A,O,C)
+  
+    let parent = 
+          if P->forAll(c | c = XCore::Object) 
+          then "Value" 
+          else P->sel.name() + "_Entity"
+          end
+    in
+    [| @Java 
+    
+         import java.rmi.RemoteException;
+         import javax.ejb.CreateException;
+         import javax.ejb.EntityBean;
+         import javax.ejb.RemoveException;
+         
+         abstract class <name + "_Entity"> extends <Seq{parent}> implements EntityBean { 
+           <* beanAccessors(A) + 
+              beanUpdaters(A) + 
+              Seq{createBean()} + 
+              standardBean() +
+              constraintsToJ2EE(C) +
+              O->asSeq->collect(o | XCoretoMicroJava(o))
+           *> 
+         }
+       end
+     |]
+     end
+     
+   end
+   
+context J2EE
+
+  @Operation beanUpdaters(A)
+    A->asSeq->collect(a |
+      [| @Java public abstract void <"set" + a.name.toString().upperCaseInitialLetter()>(<typeToSimpleMicroJava(a.type)> <a.name>); end |])
+  end   
+  
+context J2EE
+
+  @Operation beanAccessors(A)
+    A->asSeq->collect(a |
+      [| @Java public abstract <typeToSimpleMicroJava(a.type)> <"get" + a.name.toString().upperCaseInitialLetter()>(); end |])
+  end   
+  
+context J2EE 
+  @Operation homeInterface(name:String)
+    [| 
+      @Java 
+        
+        import java.rmi.RemoteException;
+        import java.util.Collection;
+        import javax.ejb.CreateException;
+        import javax.ejb.EJBHome;
+        import javax.ejb.FinderException;
+        
+        interface <name + "_Home"> extends EJBHome {
+          public <NamedType(Seq{name + "_Remote"})> create(String id) throws CreateException, RemoteException;
+          public <NamedType(Seq{name + "_Remote"})> findByPrimaryKey(String id) throws FinderException, RemoteException;
+          public Collection findAll() throws FinderException, RemoteException;
+        } 
+      end 
+    |]
+  end
+  
+context J2EE
+  @Operation remoteInterface(name:String,A:Set(XCore::Attribute))
+    [| 
+      @Java 
+      
+        import javax.ejb.EJBObject;
+        import javax.ejb.FinderException;
+        import java.rmi.RemoteException;
+        
+        interface <name + "_Remote"> extends EJBObject { <* remoteInterfaceOperations(A) *> }
+      
+      end 
+    |]
+  end
+  
+context J2EE
+  @Operation remoteInterfaceOperations(A:Set(XCore::Attributes))
+    Seq{
+      [| @Java public String getId() throws RemoteException; end |],
+      [| @Java public String checkJ2EEConstraint() throws RemoteException; end |]} +
+    A->asSeq->collect(a |
+      [| @Java public <typeToSimpleMicroJava(a.type)> <"get" + a.name.toString().upperCaseInitialLetter()>() throws RemoteException; end |]) +
+    A->asSeq->collect(a |
+      [| @Java public void <"set" + a.name.toString().upperCaseInitialLetter()>(<typeToSimpleMicroJava(a.type)> x) throws RemoteException; end |])
+  end 
+  
+context J2EE
+  @Operation createBean()
+    [| 
+      @Java 
+        public String ejbCreate(String id) throws RemoteException, CreateException {
+          setId(id);
+          return null;
+        }
+      end 
+    |]
+  end
+  
+context J2EE
+  @Operation standardBean()
+    Seq{
+      [| @Java public abstract void setId(String id); end |],
+      [| @Java public abstract String getId(); end |],
+      [| @Java public void ejbPostCreate(String id) throws CreateException {} end |],
+      [| @Java public void setEntityContext(javax.ejb.EntityContext ctx) throws RemoteException {} end |],
+      [| @Java public void unsetEntityContext() throws RemoteException {} end |],
+      [| @Java public void ejbRemove() throws RemoteException {} end |],
+      [| @Java public void ejbActivate() throws RemoteException {} end |],
+      [| @Java public void ejbPassivate() throws RemoteException {} end |],
+      [| @Java public void ejbLoad() throws RemoteException {} end |],
+      [| @Java public void ejbStore() throws RemoteException {} end |]}
+  end
+      
+      
+        
+          
+      

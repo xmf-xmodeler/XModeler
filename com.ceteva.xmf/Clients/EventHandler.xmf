@@ -1,0 +1,142 @@
+parserImport XOCL;
+
+import IO;
+
+context Clients
+
+  @Class EventHandler isabstract extends Contained
+  
+    @Attribute input     : TokenInputChannel  end  // Produces events as tokens.
+    @Attribute debug     : Boolean            end  // Produces debug output.
+    @Attribute calls     : Seq(Element) (+,-) end  // Registered calls with this handler.
+    @Attribute thread    : Thread             end  // The handler's event processing thread.
+    
+    @Constructor(input) ! 
+      self.debug := false
+    end
+    
+    @Operation debug(message:String,args:Seq(Element))
+      if debug then
+        format(stdout,message,args)
+      end
+    end
+    
+    @Operation find(id)
+      if owner <> null
+      then owner.find(id)
+      else self.error("EventHandler::find: no owner.")
+      end
+    end
+    
+    @Operation debug(debug)
+      self.debug := debug
+    end
+    
+    @Operation start()
+      self.thread := xmf.thread();
+      @While true do
+        self.readEvent()
+      end
+    end
+    
+    @Operation call(predicate,action)
+      if xmf.thread() = thread
+      then self.callSelf(predicate,action)
+      else
+        let call = Seq{predicate,xmf.thread()}
+        in self.addToCalls(call);
+           action();
+           xmf.thread().sleep()
+        end
+      end
+    end
+    
+    @Operation callSelf(predicate,action)
+    
+      // A self call processes events until it gets a reply event.
+      // Any intervening events are queued.
+      
+      let completed = false;
+          queue = Seq{};
+          result = null
+      in action();
+         @While not completed do
+           let message = input.read()->at(1) then
+               parameters = Seq{};
+               parameter = input.read()->at(1)
+           in @While parameter <> "<!>" do
+                parameters := parameters.append(Seq{parameter});
+                parameter := input.read()->at(1)
+              end;
+              if predicate(message,parameters)
+              then 
+                result := self.dispatchEvent(message.asSymbol(),parameters);
+                completed := true;
+                @While not queue->isEmpty do
+                  let event = queue.head()
+                  in dispatchEvent(event.head,event.tail);
+                     queue := queue->tail
+                  end
+                end
+              else queue->append(Seq{Seq{message}->append(parameters)})
+              end
+           end
+         end;
+         result
+      end
+    end
+    
+    @Operation readEvent()
+    
+      // Now using an XOS token input channel that produces
+      // tokens as sequences. The second element of the token
+      // is the string (or integer). Process event expects event
+      // names to be symbols. All this will change when XOS
+      // handles messaging natively.
+      
+      try
+        /* let message = input.read()->at(1) then
+            parameters = Seq{};
+            parameter = input.read()->at(1)
+        in @While parameter <> "<!>" do
+             parameters := parameters.append(Seq{parameter});
+             parameter := input.read()->at(1)
+           end;
+           self.processEvent(message.asSymbol(),parameters)
+        end
+        */
+        let m = Kernel_read(owner.name) then
+            message = m->at(0).asSymbol();
+            args = Seq{}
+        in self.debug("Event ~S~%",Seq{m});
+           @Count i from 1 to m->size do
+             args := args + Seq{m->at(i)}
+           end;
+           self.processEvent(message,args)
+        end
+      catch(exception)
+        xmf.raise(exception)  
+      end
+    end
+    
+    @Operation processEvent(message,parameters)
+      @Find(call,calls)
+        when 
+          let predicate = call->at(0)
+          in predicate(message,parameters)
+          end
+        do 
+          let thread = call->at(1)
+          in self.deleteFromCalls(call);
+             thread.wake(self.dispatchEvent(message,parameters))
+          end
+        else self.dispatchEvent(message,parameters)
+      end
+    end
+    
+    @AbstractOp dispatchEvent(message,parameters)
+    end
+    
+  end
+    
+    

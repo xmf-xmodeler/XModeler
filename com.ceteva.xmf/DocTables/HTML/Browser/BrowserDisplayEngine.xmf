@@ -1,0 +1,17 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class BrowserDisplayEngine extends DisplayEngine
+  
+    @AbstractOp addFormHandler(handler)
+    end
+    
+    @AbstractOp addPageHandler(id,select)
+    end  
+  
+  end

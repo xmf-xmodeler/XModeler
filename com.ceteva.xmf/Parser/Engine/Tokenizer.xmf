@@ -1,0 +1,402 @@
+parserImport XOCL;
+
+import IO;
+
+context Parser
+
+  @Class Tokenizer
+  
+    @Attribute input   : InputChannel               (?,!) end
+    @Attribute buffer  : Buffer = Buffer(1024,true) (?,!) end
+    @Attribute charPos : Integer                    (?,!) end
+    @Attribute lastCharPos : Integer                (?,!) end
+    @Attribute token   : Buffer = Buffer(100,true)  (?,!) end
+    @Attribute type    : Integer                    (?,!) end
+    @Attribute message : String                     (?,!) end 
+    
+    @Constructor(input) end
+    
+    @Operation eof():Boolean
+      charPos = buffer->size and input.eof()
+    end
+    
+    @Operation nextToken()
+      self.lastCharPos := charPos;
+      self.skipWhiteSpace();
+      token.setSize(0);
+      let char    = self.readChar();
+          EOF     = 1;
+          TERM    = 2;
+          FLOAT   = 4;
+          STRING  = 5;
+          NAME    = 6;
+          INT     = 7;
+          SPECIAL = 8
+      in @CaseInt[257] char of
+           "\'"->at(0) do
+             let seenToken = false
+             in @While not seenToken do
+                  char := self.readChar();
+                  @CaseInt[257] char of
+                    "\'"->at(0) do
+                      seenToken := true
+                    end
+                    256 do
+                      self.error("EOF in token ")
+                    end
+                    else token.add(char)
+                  end
+                end
+             end;
+             self.type := TERM
+           end
+           "0"->at(0) to "9"->at(0) do 
+             token.add(char);
+             let isNumber = true
+             in @While isNumber do
+                  char := self.readChar();
+                  @CaseInt[257] char of
+                    "0"->at(0) to "9"->at(0) do
+                      token.add(char)
+                    end
+                    256 do
+                      isNumber := false;
+                      self.type := INT
+                    end
+                    "."->at(0) do
+                      let isFloat = false
+                      in @While isNumber do
+                           char := self.readChar();
+                           @CaseInt[257] char of
+                             "0"->at(0) to "9"->at(0) do
+                               if isFloat
+                               then token.add(char)
+                               else
+                                 isFloat := true;
+                                 token.add("."->at(0));
+                                 token.add(char)
+                               end
+                             end
+                             256 do
+                               isNumber := false;
+                               if not isFloat
+                               then 
+                                 self.charPos := charPos - 1;
+                                 self.type := INT
+                               else self.type := FLOAT
+                               end
+                             end
+                             else
+                               if isFloat
+                               then 
+                                 self.charPos := charPos - 1;
+                                 self.type := FLOAT
+                               else 
+                                 self.charPos := charPos - 2;
+                                 self.type := INT
+                               end;
+                               isNumber := false
+                           end
+                         end
+                      end
+                    end
+                    else 
+                      self.charPos := charPos - 1;
+                      isNumber := false;
+                      self.type := INT
+                  end
+                end
+             end
+           end
+           "a"->at(0) to "z"->at(0),
+           "A"->at(0) to "Z"->at(0) do
+             token.add(char);
+             let isName = true
+             in @While isName do
+                  char := self.readChar();
+                  @CaseInt[257] char of
+                    "a"->at(0) to "z"->at(0),
+                    "A"->at(0) to "Z"->at(0),
+                    "_"->at(0),
+                    "0"->at(0) to "9"->at(0) do
+                      token.add(char)
+                    end
+                    "{"->at(0) do
+                      if token.stringEqual("Set")
+                      then 
+                        token.add(char);
+                        isName := false;
+                        self.type := SPECIAL
+                      elseif token.stringEqual("Seq")
+                      then
+                        token.add(char);
+                        isName := false;
+                        self.type := SPECIAL
+                      else
+                        isName := false;
+                        self.charPos := charPos - 1;
+                        self.type := NAME
+                      end
+                    end
+                    256 do
+                      isName := false;
+                      self.type := NAME
+                    end
+                    else
+                      isName := false;
+                      self.charPos := charPos - 1;
+                      self.type := NAME
+                  end
+                end
+             end
+           end
+           "\""->at(0) do // "
+             let isString = true
+             in @While isString do
+                  char := self.readChar();
+                  @CaseInt[257] char of
+                    "\""->at(0) do // "
+                      isString := false
+                    end
+                    "\\"->at(0) do
+                      char := self.readChar();
+                      @CaseInt[257] char of
+                        "n"->at(0) do
+                          token.add("\n"->at(0))
+                        end
+                        "r"->at(0) do
+                          token.add("\r"->at(0))
+                        end
+                        "t"->at(0) do
+                          token.add("\t"->at(0))
+                        end
+                        256 do
+                          null
+                        end
+                        else token.add(char)
+                      end
+                    end
+                    else token.add(char)
+                  end
+                end;
+                self.type := STRING
+             end
+           end
+           "("->at(0),
+           ")"->at(0),
+           "{"->at(0),
+           "}"->at(0),
+           ";"->at(0),
+           "."->at(0),
+           ","->at(0) do
+             token.add(char);
+             self.type := SPECIAL
+           end
+           "/"->at(0) do
+             let char = self.readChar()
+             in @CaseInt[256] char of
+                  "/"->at(0) do
+                    self.readCommentLine();
+                    self.nextToken()
+                  end
+                  "*"->at(0) do
+                    self.readMultilineComment();
+                    self.nextToken()
+                  end
+                  else 
+                    token.add("/"->at(0));
+                    let isSpecial = true
+                    in @While isSpecial do
+                         @CaseInt[257] char of
+                           " "->at(0),"\n"->at(0),"\t"->at(0),"\r"->at(0) do
+                             isSpecial := false
+                           end
+                           256 do
+                             isSpecial := false
+                           end
+                           "A"->at(0) to "Z"->at(0),
+                           "a"->at(0) to "z"->at(0),
+                           "0"->at(0) to "9"->at(0),
+                           "\""->at(0), //"
+                           "("->at(0),
+                           ")"->at(0),
+                           "{"->at(0),
+                           "}"->at(0),
+                           ";"->at(0),
+                           "."->at(0),
+                           ","->at(0) do
+                             isSpecial := false;
+                             self.charPos := charPos - 1
+                           end
+                           else 
+                             token.add(char);
+                             char := self.readChar()
+                         end
+                       end;
+                       self.type := SPECIAL
+                    end
+                end
+             end
+           end
+           256 do 
+             self.type := EOF
+           end
+           else
+             token.add(char);
+             let isSpecial = true
+             in @While isSpecial do
+                  char := self.readChar();
+                  @CaseInt[257] char of
+                    " "->at(0),"\n"->at(0),"\t"->at(0),"\r"->at(0) do
+                      isSpecial := false
+                    end
+                    256 do
+                      isSpecial := false
+                    end
+                    "A"->at(0) to "Z"->at(0),
+                    "a"->at(0) to "z"->at(0),
+                    "0"->at(0) to "9"->at(0),
+                    "\""->at(0), //"
+                    "("->at(0),
+                    ")"->at(0),
+                    "{"->at(0),
+                    "}"->at(0),
+                    "["->at(0),
+                    ";"->at(0),
+                    "."->at(0),
+                    "\'"->at(0),
+                    ","->at(0) do
+                      isSpecial := false;
+                      self.charPos := charPos - 1
+                    end
+                    else token.add(char)
+                 end
+               end;
+               self.type := SPECIAL
+           end
+         end
+      end
+    end
+    
+    @Operation peek(chars:String):Boolean
+      let peeking = true;
+          i = 0;
+          pos = charPos
+      in @While (i < chars->size) and peeking do
+           let char = self.readChar()
+           in if char = chars->at(i)
+              then i := i + 1
+              else peeking := false
+              end
+           end
+         end;
+         self.charPos := pos;
+         peeking
+      end
+    end
+    
+    @Operation readChar()
+      if charPos >= buffer->size
+      then
+        let chars = input.read(buffer)
+        in if chars > 0
+           then
+             self.charPos := charPos + 1;
+             buffer->at(charPos-1)
+           else 256
+           end
+        end
+      else 
+        self.charPos := charPos + 1;
+        buffer->at(charPos-1)
+      end
+    end
+    
+    @Operation readCommentLine()
+      let isComment = true
+      in @While isComment do
+           @CaseInt[257] self.readChar() of
+             "\n"->at(0),"\t"->at(0),"\r"->at(0) do
+               isComment := false
+             end
+             256 do
+               isComment := false
+             end
+             else null
+           end
+         end
+      end
+    end
+    
+    @Operation readMultilineComment()
+      let isComment = true
+      in @While isComment do
+           @CaseInt[257] self.readChar() of
+             "*"->at(0) do
+               @CaseInt[257] self.readChar() of
+                 256 do
+                   self.error("EOF in comment")
+                 end
+                 "/"->at(0) do
+                   isComment := false
+                 end
+                 else null
+               end
+             end
+             256 do
+               self.error("EOF in comment")
+             end
+             else null
+           end
+         end
+      end
+    end
+    
+    @Operation skipWhiteSpace()
+      let whiteSpace = true
+      in @While whiteSpace do
+           let char = self.readChar()
+           in @CaseInt[257] char of
+                " "->at(0),"\n"->at(0),"\r"->at(0),"\t"->at(0) do
+                  null
+                end
+                256 do
+                  whiteSpace := false
+                end
+                else
+                  self.charPos := charPos - 1; 
+                  whiteSpace := false
+              end
+           end
+         end
+      end
+    end
+    
+    @Operation textTo(s:String)
+      let b = Buffer(100,true);
+          c = self.readChar();
+          terminatorIndex = 0;
+          reading = true
+      in @While reading do
+           if c = 256
+           then reading := false
+           else
+             if c = s->at(terminatorIndex)
+             then terminatorIndex := terminatorIndex + 1
+             end;
+             if terminatorIndex = s->size
+             then 
+               self.charIndex := charIndex - s->size;
+               reading := false
+             else b.add(c)
+             end;
+             c := self.readChar()
+           end
+         end;
+         b.toString()
+      end
+    end
+           
+    
+  end
+    

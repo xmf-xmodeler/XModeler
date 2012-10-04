@@ -1,0 +1,92 @@
+parserImport XOCL;
+
+import OCL;
+
+context XOCL
+
+  @Class CaseArm 
+  
+    @Attribute patterns : Seq(Pattern) end
+    @Attribute action : Performable end
+    
+    @Constructor(patterns,action) ! end
+    
+    @Operation arity()
+      patterns->size
+    end
+    
+    @Operation desugar(vars,fail)
+      self.desugarPatterns(patterns,vars,fail)
+    end
+    
+    @Operation desugarPatterns(patterns,vars,fail)
+      let isBacktracking = patterns->exists(pattern | pattern.needsBacktrack())
+      in if isBacktracking
+         then [| let backtrack = @Operation() <fail> end 
+                 in <self.desugarAll(patterns,vars,[| backtrack() |])>
+                 end 
+              |]
+         else self.desugarAll(patterns,vars,fail)
+         end
+      end
+    end
+    
+    @Operation desugarAll(patterns,vars,fail)
+      if patterns->isEmpty
+      then action
+      else 
+      
+        // Ensure that any pattern variable is bound to the appropriate
+        // value before the pattern matching code is generated. All patterns
+        // are bound to a new variable. The 'newVar/0' operation will generate
+        // a variable for a Varp with the same name. Other patterns just 
+        // generate dummy variables.
+        
+        let pattern = patterns->head then
+            newVarName = pattern.newVar() then
+            newVar = Var(newVarName)
+        in [| let <newVarName> = <vars->head>
+              in <pattern.matchCode(newVar,self.desugarAll(patterns->tail,vars->tail,fail),fail)>
+              end
+           |]
+        end
+      end
+    end
+    
+    @Operation desugarConst(vars,alt)
+    
+      // Turn into an if-expression...
+      
+      let tests = @For var,pattern in vars,patterns produce BinExp(var,"=",pattern.const) end then
+          test = tests->tail->iterate(test conj = tests->head | BinExp(test,"and",conj))
+      in If(test,action,alt)
+      end
+    end
+    
+    @Operation isConst():Boolean
+    
+      // Returns true when all the patterns are constants....
+      
+      patterns->forAll(pattern | pattern.isKindOf(Constp))
+      
+    end
+    
+    @Operation lift()
+      let patternExps = SetExp("Seq",patterns->collect(p | p.lift()))
+      in [| XOCL::CaseArm(<patternExps>,<action.lift()>) |]
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      @For pattern in patterns do
+        pattern.pprint(out);
+        if not isLast
+        then format(out,",")
+        end
+      end;
+      format(out," do~%~V",Seq{indent+2});
+      action.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end 

@@ -1,0 +1,15 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Var in TypeChecker(exp,env,encountered)
+  if env.binds(exp.name.toString())
+  then TypeCheckExp(exp,env.lookup(exp.name.toString()),Seq{})
+  else 
+    if self.binds(exp.name.toString())
+    then TypeCheckExp(exp,self.lookup(exp.name.toString()),Seq{})
+    else TypeCheckFails("unbound variable " + exp.name.toString(),TypeCheckExp(exp,Element,Seq{}))
+    end
+  end
+end;

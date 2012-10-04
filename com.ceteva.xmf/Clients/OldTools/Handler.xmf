@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Clients;
+
+context Tools
+
+  @Class Handler
+  
+    @Attribute event   : String (!) end
+    @Attribute handler : Operation  end
+    
+    @Constructor(event,handler) ! end
+    
+    @Operation raise(eventName,data,tool)
+      if event.toString() = eventName.toString()
+      then 
+        try 
+          handler.invoke(tool,data)
+        catch(exception)
+          format(stdout,"Error handling event ~S: ~S~%",Seq{event,exception})
+        end
+      end
+    end
+    
+  end

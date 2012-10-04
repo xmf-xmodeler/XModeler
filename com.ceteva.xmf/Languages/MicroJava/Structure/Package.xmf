@@ -1,0 +1,76 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+import IO;
+
+context Structure
+
+  @Class Package
+  
+    @Attribute name  : String end
+    @Attribute units : Seq(CompilationUnit) (-,+) end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,units) 
+      @For unit in units do
+        unit.setOwner(self)
+      end
+    end
+    
+    @Operation add(unit)
+      unit.setOwner(self);
+      self.addToUnits(unit)
+    end
+    
+    @Operation delete(unit)
+      self.deleteFromUnits(unit)
+    end
+    
+    @Operation export(dir:String)
+    
+      // The package is exported to the supplied directory.
+      // The package is created as a sub-directory. All 
+      // directories are creates as necessary. Each class in
+      // the directory is exported as a file in the package
+      // directory.
+      
+      if dir.mkDir()
+      then
+        if (dir + "/" + name.toString()).mkDir()
+        then
+          @For unit in units do
+            unit.export(dir + "/" + name.toString(),name.toString())
+          end
+        else self.error("Cannot create " + dir + "/" + name.toString())
+        end
+      else self.error("Cannot create " + dir)
+      end
+    end
+    
+    @Operation pprint()
+      let out = StringOutputChannel()
+      in self.pprint(out,0);
+         out.close();
+         out.getString()
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"package ~S",Seq{name});
+      format(out," {");
+      if units.isKindOf(Seq(Element))
+      then
+        @For c in units do
+          format(out,"~%~V",Seq{indent+2});
+          c.pprint(out,indent+2)
+        end
+      else units.pprint()
+      end;
+      format(out,"~%~V}",Seq{indent})
+    end
+    
+  end

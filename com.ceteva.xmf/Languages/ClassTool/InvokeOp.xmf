@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import Languages;
+import ClassTool;
+
+context XCore::Package
+  @Operation exportXMLTool()
+    self.exportXMLTool(xmf.selectDirectory(xmf.homeDir()))
+  end
+  
+context XCore::Package
+  @Operation exportXMLTool(dir:String)
+    let map = PackageXClassToolMapping::PackageXTool()
+    in if dir.fileExists() and dir <> ""
+       then
+         let value = map(self) 
+         in
+           self.showSnapshot(value); 
+           let xml = PackageXClassToolMapping::writeXML(dir,self.name.toString(),value)
+           in
+             xmf.message("XML for package " + self.name.toString() + " exported to " + dir);
+             xml
+           end
+         end
+       end
+    end
+  end
+
+context XCore::Package
+
+  @Operation showSnapshot(tool)
+    let mappingClient = xmf.findClient(Clients::SnapshotMapping::MappingClient) in
+      if mappingClient <> null
+      then
+        let snapshot = XCore::Snapshot(self.name.toString()+"Snapshot",self) in
+          self.owner.add(snapshot);
+          snapshot.add(tool);
+          snapshot.createSnapshotDiagram(false)
+        end
+      else
+        format(stdout,"Snapshot client not available.~%")
+      end
+    end
+  end

@@ -1,0 +1,8 @@
+parserImport Manifests;
+
+@Manifest Patterns
+  @File Patterns end
+do xmf.toolManager().loadXTD(dir + "/Patterns.xtd");
+   xmf.toolManager().loadXTD(dir + "/PatternDef.xtd");
+   Patterns::Models().browse()
+end;

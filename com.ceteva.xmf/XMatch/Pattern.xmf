@@ -1,0 +1,120 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import IO;
+import Env;
+import Parser::BNF;
+import Parser::Machine;
+import XMatch;
+
+context XMatch
+
+  @Class Pattern isabstract extends XOCL::SyntaxConstant
+  
+    @Doc
+      A string matching pattern has the following main constructs:
+      
+        o M N matches when M followed by N matches.
+        o M | N matches when M or N matches.
+        o not M matches when M fails to match.
+        o M* matches when M matches 0 or more times (greedily).
+        o M+ matches whem M matches 1 or more times (greedily).
+        o n = M matches and binds n to the result.
+        o . matches the next char in the input.
+        o E always matches.
+        o EOI matches when the input has been consumed.
+        o XYA or 'XYZ' matches when the next input chars are XYZ.
+        o [M] is the same as (M | E).
+        o (M) matches when M matches.
+        
+      Each construct produces a sequence of chars being that
+      portion of the input that it consumes. The result of a match
+      is either null of the match fails or an environment containing
+      the variable bindings from the match. 
+      
+      The pattern matching is fully backtracking through the search
+      space defined by a given pattern. You can controk this yourself
+      via the match/5 operation. Alternatively, the matchValue/2 operation
+      provides a convenient way of invoking the machinery and getting
+      back either null or an environment of bindings. Invoke matchValue/2
+      as an operation in the Pattern name space.
+    end
+  
+    @Grammar
+    
+      Pattern ::= Disjunction EOF.
+      
+      Disjunction ::= p = Conjunction ('|' q = Disjunction p = { Or(p,q) })* {p}.
+      
+      Conjunction ::= p = Negate (q = Conjunction p = { And(p,q) })* {p}.
+      
+      Negate ::= 'not' p = Bind { Negate(p) } | Bind.
+      
+      Repeat ::= p = Single ('*' { Star(p) } | '+' { Plus(p) } | {p}).
+      
+      Bind ::= n = Name '=' p = Repeat { Bind(n,p) } | Repeat.
+      
+      Single ::= Dot | Empty | EOI | Literal | Opt | '(' Disjunction ')'.
+      
+      Dot ::= '.' { Dot() }.
+      
+      Empty ::= 'E' { Empty() }.
+      
+      EOI ::= 'EOI' { EOI() }.
+      
+      Literal ::= t = Terminal { Literal(t) } | n = LiteralName { Literal(n) }.
+      
+      LiteralName ::= Name | '_' (l = LiteralName { "_" + l } | { "_" }).
+      
+      Opt ::= '[' p = Disjunction ']' { Opt(p) }.
+      
+    end
+  
+    @Operation match(value:String)
+      @Doc
+        Matches the receiver against the value. Returns an environment
+        of bindings or null.
+      end
+      let chars = value->asSeq;
+          succ = 
+            @Operation(chars,env,stack,fail) 
+              env.dom()->iterate(v e = NullEnv() |
+                e.bind(v,env.lookup(v)->asString))
+            end;
+          fail = @Operation() null end
+      in self.match(chars,NullEnv(),Seq{},succ,fail)
+      end
+    end
+    
+    @Operation matchValue(pattern:String,value:String)
+      @Doc
+        Use this operation to match a pattern (supplied as a string)
+        against a value (supplied as a string) to return an environment
+        of bindings or null.
+      end
+      Pattern::parse(pattern).match(value)
+    end
+  
+    @AbstractOp match(chars,env,stack,succ,fail) 
+    end
+    
+    @Operation parse(string)
+      let state = State(Pattern.grammar,StringInputChannel(string)) then
+          pattern = state.run("Pattern")
+      in if pattern = null
+         then state.parseError("Pattern failed to parse.")
+         else pattern
+         end
+      end
+    end
+    
+    @AbstractOp vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+    end
+    
+    @Operation varsIn(pattern:String):Set(String)
+      // Returns the bound vars in the pattern.
+      Pattern::parse(pattern).vars()
+    end
+    
+  end

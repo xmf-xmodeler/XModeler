@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+  
+  @Class RetDotSelf extends Instr
+  
+    @Doc
+      A machine instruction that performs object navigation
+      where the target is SELF and the value is to be returned.
+      Occurs in accessors.
+    end
+  
+    @Attribute name : String end
+    @Attribute constOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation assemble(codeBox)
+      self.constOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation operands():Integer
+      constOffset
+    end
+    
+    @Operation toString():String
+      "<RetDotSelf " + name.toString() + ">"
+    end
+    
+  end

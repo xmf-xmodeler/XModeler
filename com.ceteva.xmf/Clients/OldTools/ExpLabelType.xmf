@@ -1,0 +1,53 @@
+parserImport XOCL;
+
+import Compiler;
+import XOCL;
+import Clients;
+import Diagrams;
+import Tools;
+
+context Tools
+
+  @Class ExpLabelType extends LabelType
+  
+    @Attribute imports : Seq(XCore::NameSpace) = Seq{XCore,Root,XOCL} end
+    
+    @Operation exp(source:String):Exp
+      try
+        let name = "exp";
+            dynamics = imports->collect(i | Seq{2 | i.contents});
+            exp = OCL::OCL.grammar.parseString(source,"Exp1",imports) then
+            op = compileToFun(name,exp,Seq{},dynamics,true)
+        in Exp(source,Seq{},op)
+        end
+      catch(exception)
+        xmf.message("Error updating expression: " + exception.toString());
+        null
+      end
+    end
+    
+    @Operation new(tool,diagram,parent,name)
+      let label = Label(text,attachedTo,relx,rely,editable) then
+          object = ToolObject(self,label);
+          this = self then
+          daemon = 
+            @Operation textChanged(slot,new,old)
+              if slot.toString() = "text"
+              then 
+                let exp = this.exp(new)
+                in if exp <> null
+                   then 
+                     tool.raise("Changed(" + name + ")",object,exp,old)
+                   end
+                end
+              end
+            end
+      in parent.add(label);
+         label.new(parent);
+         label.addPersistentDaemon(daemon);
+         object
+      end
+    end
+    
+  end
+    

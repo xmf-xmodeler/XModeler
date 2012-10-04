@@ -1,0 +1,34 @@
+parserImport Walkers;
+parserImport XOCL;
+
+context Walkers
+
+  @Class TypeCheckReport isabstract
+  
+    @Operation children():Seq(TypeCheckReport)
+      Seq{}
+    end
+
+    @AbstractOp element():Element
+      // Returns the element that the type check report
+      // is checking.
+    end
+  
+    @AbstractOp label():String
+      // Returns a label used to display the report as an
+      // element in a tree.
+    end
+  
+    @Operation ok():Boolean
+      // Returns true when the report represents a successful
+      // type check for its elements.
+      true
+    end
+    
+    @Operation type()
+      // All reports return the type of the elements that
+      // they check. The default is Element.
+      Element
+    end
+    
+  end

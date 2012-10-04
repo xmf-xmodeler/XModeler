@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+import MDC;
+import Values;
+import Types;
+
+context ! Values
+
+  @Class RootElement
+  
+    @Attribute type    : RootElementType         (?,!)     end
+    @Attribute element : Element                 (?,!)     end
+    @Attribute nodes   : Set(RootElement_x_Node) (?,!,+,-) end    
+    
+    @Constructor(type,element)  
+    end
+
+    @Operation add(x)
+      @TypeCase(x)
+        FreeElement_x_Node do
+          self.addToNodes(x);
+          x.setOwner(self)
+        end
+      end
+    end
+    
+    @Operation nodeRemoved(tool,removedNode)
+      @For node in nodes do
+        node.nodeRemoved(tool,removedNode)
+      end
+    end
+    
+    @Operation populate(tool)
+      
+      // Called when the root element is created.
+      // Generates the rest of the structure for
+      // the rendered element. Generates the display
+      // elements and registers them where necessary.
+      
+      @For node in type.nodes() do
+        node.new(tool,self)
+      end
+      
+    end
+    
+  end

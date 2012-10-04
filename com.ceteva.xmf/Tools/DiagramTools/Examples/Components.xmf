@@ -1,0 +1,73 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+ 
+context Root
+@ToolType ComponentEditor extends PackageEditor
+  @NodeType Component(OVERLAY)
+    @Box PortBox(VERTICAL,nofill,hideLeft,hideRight,hideTop,hideBottom)
+      @Box Empty1(nofill,hideLeft,hideRight,hideTop,hideBottom)
+        minHeight = 30
+      end
+      @Box Port1(hasport)
+        minWidth = 120
+        minHeight = 20
+        maxWidth = 120
+        maxHeight = 20
+      end
+      @Box Empty2(nofill,hideLeft,hideRight,hideTop,hideBottom)
+        minHeight = 30
+      end
+      @Box Port2(hasport)
+        minWidth = 120
+        minHeight = 20
+        maxWidth = 120
+        maxHeight = 20
+      end
+      @Box Empty3(nofill,hideLeft,hideRight,hideTop,hideBottom)
+        minHeight = 30
+      end
+      @Box Port3(hasport)
+        minWidth = 120
+        minHeight = 20
+        maxWidth = 120
+        maxHeight = 20
+      end
+      @Box Empty4(nofill,hideLeft,hideRight,hideTop,hideBottom)
+        minHeight = 30
+      end
+    end
+    @Box Body
+      padLeft = 10
+      padRight = 10
+      minWidth = 100
+      minHeight = 180
+      maxWidth = 100
+      @Text Name(CENTRE)
+        "Name"
+        padLeft = 10
+        padRight = 10
+      end
+    end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Component         icon = "Tools/State.gif" end
+    end
+  end
+end
+
+context Root
+@ElementManager ComponentManager extends PackageManager
+end
+
+Root::tool := Tool(ComponentEditor,"Component Editor",ComponentManager,null);

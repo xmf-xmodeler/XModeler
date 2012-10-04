@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class ArraySet extends Instr
+  
+    @Doc
+      Expects an array above an index and a value on the stack. 
+      Pops the values and sets the array at the given index to
+      be the value. Returns the array. Causes any daemons defined
+      for the array to be fired.
+    end
+     
+    @Operation toString():String
+      "<ArraySet>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context EOF
+  @Operation nullable(grammar):Boolean
+     false
+  end
+  
+context EOF
+  @Operation first(grammar)
+    Set{"Builtin(EOF)"}
+  end

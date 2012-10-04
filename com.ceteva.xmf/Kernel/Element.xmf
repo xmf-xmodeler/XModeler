@@ -1,0 +1,299 @@
+context Element
+
+  @Operation checkConstraints()
+    @Doc
+      Classifies the receiver. Sub-classes of Element can
+      specialize this operation as appropriate.
+    end
+    self.of().classify(self)
+  end
+    
+context Element
+
+  @Operation copy():Element
+    @Doc
+      Returns a shallow copy of the receiver.
+    end
+    Kernel_copy(self)
+  end
+
+context Element
+  // Recursively delete self and all contents - over-ridden in Container & Contained
+  @Operation deleteRecursive()
+    self
+  end
+
+context Element
+  
+  @Operation die()
+  
+    @Doc
+      This operation causes the current thread to commit suicide.
+      If there are alternative threads currently available then
+      one will be selected at random as the new current thread.
+      Otherwise, XMF will halt.
+    end
+    
+    Kernel_die()
+  end
+  
+context Element
+
+  @Operation edit()
+    null
+  end
+  
+context Element
+  @Operation equals(other:Element):Boolean
+    @Doc
+      Compares two elements for structural equivalence as opposed
+      to physical identity (use =).
+    end
+    self = other
+  end
+  
+context Element
+
+  @Operation error(reason:String):Element
+  
+    @Doc
+      You should really throw something specific. As a last resort you can call error
+      and a general exception will be raised.
+    end
+    
+    throw Exception(reason)
+  end   
+  
+context Element
+
+  @Operation hashCode():Integer
+  
+    @Doc
+      All elements have a hash code. A hash code is used to index into
+      hash tables and may be used to uniquely identify objects. 
+    end
+    
+    Kernel_hashCode(self)
+    
+  end
+  
+context Element
+  
+  @Operation init():Element
+  
+    @Doc
+      All elements can be initialised. The default behaviour is to 
+      do nothing. Init always returns the receiver. All elements
+      should be initialised. 'init/0' is the operation where default
+      initialisation should take place. All other initialisation
+      operations should call 'init/0' where appropriate.
+    end
+     
+    self
+  end
+  
+context Element
+  
+  @Operation init(args:Seq(Element)):Element
+  
+    @Doc
+      Initialisation with respect to some arguments. Specialize this
+      operation as necessary. Note that 'init/1' is used only when
+      a class is instatiated directly with some initialisation args.
+      It must arrange for 'init/0' to be called in order to perform
+      any default initialisation.
+    end
+     
+    self.init()
+  end
+  
+context Element
+
+  @Operation isReallyKindOf(classifier:Classifier):Boolean
+  
+    @Doc
+      Since Null is a pseudo-sub-class of everything, IsKindOf
+      returns true for null in all cases. This operation gets round
+      the problem of checking that the receiver is not null.
+    end
+    
+    let isReallyNull = self = null and classifier = Null;
+        isNotNull = self.isKindOf(classifier) and self <> null
+    in isReallyNull or isNotNull
+    end
+  end
+  
+context Element
+
+  @Operation isTypeOf(classifier:Classifier):Boolean
+  
+    @Doc
+      Returns true if the elements type equals the classifier.
+    end
+    
+    self.of()=classifier
+  end
+  
+context Element
+  @Operation noOperationFound(message:Symbol,args:Seq(Element))
+    throw Exceptions::NoOperation(self,message,args)
+  end
+  
+context Element
+
+  @Operation oclIsTypeOf(classifier:Classifier):Boolean
+  
+    @Doc
+      Returns true if the elements type equals the classifier.
+    end
+    
+    self.isTypeOf(classifier)
+  end
+  
+context Element
+
+  @Operation oclIsKindOf(classifier:Classifier):Boolean
+  
+    @Doc
+      Returns true if the elements is an instance of classifier.
+    end
+    
+    self.isKindOf(classifier)
+  end
+  
+context Element
+  
+  @Operation print():Element
+  
+    @Doc
+      Any element can be printed (no newline). This uses 'toString/0'
+      to turn the receiver into a string.
+    end
+     
+    print(self.toString())
+  end
+  
+context Element
+  
+  @Operation println():Element
+  
+    @Doc
+      Any element can be printed (with newline). This uses 'toString/0'
+      to turn the receiver into a string.
+    end
+       
+    print(self.toString() + "\n");
+    self
+  end
+
+context Element
+
+  @Operation removeDaemon(d)
+    self.removeDaemon(d,null)
+  end
+
+context Element
+
+  @Operation removeDaemon(d,target)
+    self // over-ride in sub-classes
+  end
+
+context Element
+  
+  @Operation save(fileName:String):Element
+  
+    @Doc
+      Serialize any element to a file.
+    end
+     
+    Kernel_save(self,fileName)
+  end
+  
+context Element
+  
+  @Operation save2(fileName:String,nameSpaces:Seq(NameSpace)):Element
+  
+    @Doc
+      Serialize any element to a file.
+    end
+     
+    Kernel_save2(self,fileName,nameSpaces)
+  end
+  
+context Element
+
+  @Operation send(message,args):Element
+  
+    @Doc
+      Sen-d a message to the receiver. If no operation is defined
+      for the given message name then an error is signaled.
+    end
+    
+    if self.of().of() = XCore::Classifier
+    then
+      let name = if message.isKindOf(Symbol) then message else Symbol(message) end;
+          operations = self.of().allOperations()->asSeq
+      in let operations = operations->select(o | 
+               o.name = name and 
+               (o.arity() = args->size or 
+                (o.isVarArgs() and (args->size >= (o.arity() - 1)))))
+         in if operations->isEmpty
+            then self.noOperation(message,args)
+            else 
+              let op = operations->head
+              in op.invoke(self,args,operations)
+              end
+            end
+         end
+      end
+    else self.of().sendInstance(self,message,args)
+    end
+  end
+    
+context Element
+  
+  @Operation setOf(classifier:Classifier):Element
+  
+    @Doc
+      It is possible to dynamically change the classifier
+      of an element. This is not, however, recommen-ded.
+    end
+     
+    Kernel_setOf(self,classifier)
+  end
+
+context Element
+  
+  @Operation systemId():String
+  
+    @Doc
+      Every element has a unique system id. This operation returns a string form of that id.
+    end
+     
+    Kernel_value(self).toString(16)
+  end
+
+context Element
+  
+  @Operation toString():String
+  
+    @Doc
+      All elements can transform themselves into strings.
+      This is used to display the element. Subclasses of Element
+      should redefine this appropriately. The system uses 'toString/0'
+      to transform values into strings prior to printing them.
+    end
+     
+    "<" + self.of().name.toString() + " " + self.systemId() + ">"
+  end
+  
+context Element
+  @Operation yield():Element
+  
+    @Doc
+       Give up control to any pen-ding thread.
+    end
+    
+    Kernel_yield();
+    self
+  end

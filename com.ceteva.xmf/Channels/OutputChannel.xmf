@@ -1,0 +1,46 @@
+parserImport XOCL;
+
+context IO
+
+  @Class OutputChannel isabstract
+    
+    @Doc
+      An output channel is a sink of characters for output. 
+      Use output channels with an output formatter such as
+      'format'.
+    end
+     
+    @AbstractOp channel():Element
+      @Doc
+        Returns the machine output channel.
+      end
+    end
+      
+    @AbstractOp write(value:Element):Element
+      @Doc
+        Use the write operation to write values to an
+        output channel.
+      end
+    end
+      
+    @Operation writeString(string:String)
+      let i = 0
+      in @While i < string->size do
+           self.write(string->at(i));
+           i := i + 1
+         end
+      end
+    end
+      
+    @AbstractOp close():Element
+      @Doc
+        Call this operation when use of the channel is complete.
+      end
+    end
+    
+    @AbstractOp flush() end
+    
+    @AbstractOp setChannel(channel)
+    end
+      
+  end

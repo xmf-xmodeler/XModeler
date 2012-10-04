@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+context Root
+  @Class C
+    @Operation m(x,y) x + y end
+  end
+
+context Root
+  @Operation loop()
+    let c = C()
+    in @WithoutSourcePos
+         let t = Time();
+             x = 1000000
+         in @While x > 0 do
+              x := x - 1;
+              c.m(1,2)
+            end;
+            Time() - t
+         end
+      end
+    end
+  end 
+  
+context Root
+  @Operation iter1(S)
+    S->iterate(x y = 0 | y + x)
+  end
+  
+context Root
+  @Operation iter2(S)
+    let y = 0
+    in @For x in S do
+         y := y + x
+       end;
+       y
+    end
+  end

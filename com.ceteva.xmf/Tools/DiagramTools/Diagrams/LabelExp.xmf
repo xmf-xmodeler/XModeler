@@ -1,0 +1,33 @@
+parserImport XOCL;
+parserImport XMap;
+
+import XOCL;
+import Tools;
+import DiagramTools;
+import Diagrams;
+import Compiler;
+
+context Diagrams
+
+  @Class LabelExp extends MultilineLabel
+  
+    @Attribute imports : Seq(XCore::NameSpace) = Seq{XCore,Root,XOCL} end
+    
+    @Operation exp():Exp
+    
+      // Returns the current text in the expression as source code.
+      
+      try
+        let name = "exp";
+            dynamics = imports->collect(i | Seq{2 | i.contents});
+            exp = OCL::OCL.grammar.parseString(text,"Exp1",imports) then
+            op = compileToFun(name,exp,Seq{},dynamics,true)
+        in XOCL::Exp(exp,op)
+        end
+      catch(exception)
+        xmf.message("Error updating expression: " + exception.toString());
+        null
+      end
+    end
+    
+  end

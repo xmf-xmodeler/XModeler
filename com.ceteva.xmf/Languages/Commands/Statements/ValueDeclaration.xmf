@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+import Expressions;
+import Instrs;
+
+context Statements
+
+  @Class ValueDeclaration extends Declaration
+  
+    @Attribute value : Exp end
+    
+    @Constructor(name,value) ! end
+    
+    @Operation compile(typeEnv,varEnv,next)
+      value.compile(typeEnv,varEnv) +
+      Seq{SetLocal(name,varEnv->size),Pop()} +
+      next(typeEnv,varEnv + Seq{name})
+    end
+    
+    @Operation desugar1(next:Performable):Performable
+      [| let <name> = <value.desugar1()> in <next> end |]
+    end
+    
+    @Operation desugar2(typeEnv,next)
+      [| let <name> = <value.desugar2(typeEnv)> in <next(typeEnv)> end |]
+    end
+    
+    @Operation eval(target,env,imports)
+      env.bind(name,value.eval(target,env,imports))
+    end
+    
+    @Operation maxLocals(locals,maxLocals,next)
+      next(locals + 1,maxLocals.max(locals + 1))
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"value ~S is ",Seq{name});
+      value.pprint(out);
+      format(out," end")
+    end
+    
+    
+  end

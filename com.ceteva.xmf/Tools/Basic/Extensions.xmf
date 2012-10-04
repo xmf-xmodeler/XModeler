@@ -1,0 +1,83 @@
+parserImport XOCL;
+
+import Tools;
+import Basic;
+
+context Object
+  @Operation observeBy(tool:Tool)
+    @Doc
+      Makes the receiver observed by the supplied tool. When any
+      state change occurs to the receiver, an object changed event
+      is raised by the tool and handled by the element manager.
+      Not persistent.
+    end
+    self.observeBy(tool,false)
+  end
+  
+context Object
+  @Operation observeBy(tool:Tool,persistent:Boolean)
+    @Doc
+      As for observeBy/1, but the second arg determines persistence.
+    end
+    if not self.observedBy(tool)
+    then
+      let observer = mkHandleStateChangedHandler(tool) then
+          daemon = Daemon("Tool Observer",Daemon::ANY,"",observer,persistent,false,tool)
+      in tool.addToObservedObjects(self);
+         self.addDaemon(daemon)
+      end
+    else self
+    end
+  end
+  
+context Object
+  @Operation observedBy():Seq(Tool)
+    // Returns all tools observed by the supplied tool.
+    self.daemons()->select(daemon | daemon.id() = "Tool Observer")->collect(daemon | daemon.target())
+  end
+  
+context Object
+  @Operation observedBy(tool:Tool)
+    // Returns true when the receiver is observed by the supplied tool.
+    self.daemons()->exists(daemon | daemon.id() = "Tool Observer" and daemon.target() = tool)
+  end
+
+context Object
+  @Operation ignoreBy(tool:Tool)
+    @Find(daemon,self.daemons())
+      when daemon.id() = "Tool Observer" and daemon.target() = tool
+      do
+        self.removeDaemon(daemon);
+        tool.deleteFromObservedObjects(self)
+    end
+  end
+  
+context Object
+  @Operation ignoreByAll()
+    @For tool in self.observedBy() do
+      self.ignoreBy(tool)
+    end
+  end
+
+context Object
+  @Operation saveXTO()
+    // Delegates to the XMF tool manager to save a xar for the element including
+    // all XTool tools and related diagrams
+    xmf.toolManager().saveXTO(self)
+  end
+  
+context Object
+  @Operation saveXTOFile(file)
+    // Delegates to the XMF tool manager to save a xar for the element including
+    // all XTool tools and related diagrams
+    xmf.toolManager().saveXTO(self,file)
+  end
+
+context Container
+  @Operation loadXTO()
+      let file = xmf.openFile(xmf.projDir(),"*.xto") then
+          element = xmf.toolManager().loadXTO(file)
+      in
+        self.add(element)
+      end
+  end

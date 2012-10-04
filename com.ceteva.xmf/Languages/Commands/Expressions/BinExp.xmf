@@ -1,0 +1,59 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+import Languages;
+import Commands;
+import Expressions;
+
+context Expressions
+
+  @Class BinExp extends Exp
+  
+    @Attribute op : String end
+    @Attribute left : Exp end
+    @Attribute right : Exp end
+    
+    @Constructor(op,left,right) ! end
+    
+    @Operation compile(typeEnv,valueEnv):Seq(Instr)
+      left.compile(typeEnv,valueEnv) + 
+      right.compile(typeEnv,valueEnv) +
+      @Case op of
+        "and" do Seq{And()} end
+        "or"  do Seq{Or()} end
+        "+"   do Seq{Add()} end
+      end
+    end
+    
+    @Operation desugar1():Performable
+      @Case op of
+        "and" do [| <left.desugar1()> and <right.desugar1()> |] end
+        "or"  do [| <left.desugar1()> and <right.desugar1()> |] end
+        "+"   do [| <left.desugar1()> + <right.desugar1()> |] end
+      end
+    end
+    
+    @Operation desugar2(typeEnv):Performable
+      @Case op of
+        "and" do [| <left.desugar2()> and <right.desugar2()> |] end
+        "or"  do [| <left.desugar2()> and <right.desugar2()> |] end
+        "+"   do [| <left.desugar2()> + <right.desugar2()> |] end
+      end
+    end
+    
+    @Operation eval(target,env,imports)
+      @Case op of
+        "and" do left.eval(target,env,imports).binAnd(right.eval(target,env,imports)) end
+        "or"  do left.eval(target,env,imports).binOr(right.eval(target,env,imports)) end
+        "+"   do left.eval(target,env,imports).binAdd(right.eval(target,env,imports)) end
+      end
+    end
+    
+    @Operation pprint(out)
+      left.pprint(out);
+      format(out," ~S ",Seq{op});
+      right.pprint(out)
+    end
+    
+  end

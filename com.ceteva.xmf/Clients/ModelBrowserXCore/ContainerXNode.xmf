@@ -1,0 +1,57 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class ContainerXNode extends ObjectXNode
+
+    @Attribute contentDaemon : Daemon end
+
+    @Operation checkDaemons()
+      super();
+      self.contentDaemon := element.addContentDaemon(self,
+        ContainerXNode::contentsChanged)
+    end
+    
+    @Operation contentsChanged(newContents,oldContents)
+      let
+        added = newContents - oldContents;
+        removed = oldContents - newContents
+      in
+        @For value in added do
+          self.elementAdded(value)
+        end; 
+        @For value in removed do
+          self.elementRemoved(value)
+        end;
+        
+        // The elements changed event is raised so that
+        // the nodes get sorted
+        
+        if added.isEmpty() and removed.isEmpty()
+        then
+          self.elementsChanged()
+        end
+      end
+    end
+    
+    @Operation elementsChanged()
+      node.forceChildSort()
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.removeContentDaemon(contentDaemon);
+      self.contentDaemon := null
+    end
+    
+    @Operation updateChildNodes(slot,newValue,oldValue)
+      self
+    end
+
+  end

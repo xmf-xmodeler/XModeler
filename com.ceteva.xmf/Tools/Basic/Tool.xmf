@@ -1,0 +1,178 @@
+parserImport XOCL;
+
+import Tools;
+import Events;
+import Basic;
+import Stacks;
+import Data;
+
+context Basic
+
+  @Class Tool extends Contained
+  
+    @Doc
+      A tool provides an interface over an element. The interface may be realised in
+      a number of different ways (for example a diagram or a form). Changes to the 
+      interface cause events to be raised and handled by an element manager. Changes
+      to the element and its sub-components (may) cause events to be raised and
+      handled by the element manager.
+    end
+  
+    @Attribute type            : ToolType                (?)   end
+    @Attribute id              : String                  (?)   end
+    @Attribute elementManager  : ElementManager          (?)   end
+    @Attribute element         : Element                 (?,!) end
+    @Attribute handleEvents    : Boolean = true          (?,!) end
+    @Attribute subTools        : Seq(Tool) = Seq{}       (?) end
+    @Attribute observedObjects : SetOfElement = Set{}    (+,-) end
+    
+    @Operation addTool(tool)
+      self.subTools := Seq{tool} + self.subTools;
+      tool.owner := self
+    end
+    
+    @Operation allTools()
+      // Returns the flattened tool tree...
+      let allTools = Set{self}
+      in
+        @For tool in subTools do
+          allTools := allTools->union(tool.allTools())
+        end;
+        allTools
+      end
+    end
+    
+    @Operation calcChildrenSlots()
+      // Prevent browsers from showing the internals of a tool...
+      Seq{"subTools"}
+    end
+
+    @Operation checkLegacyUpgrade(xmfVersion)
+      // Over-ride where necessary
+      null
+    end
+
+    @Operation deregister(element)
+      elementManager.deregister(element)
+    end
+    
+    @Operation deregisterEdge(source,key,target)
+      elementManager.deregisterEdge(source,key,target)
+    end
+    
+    @Operation find(element)
+    
+      // Use this to look up assiated elements in the element manager mapping.
+      
+      elementManager.findElement(element)
+    end
+    
+    @Operation findEdge(source,key,target)
+    
+      // Use this to look up assiated elements in the element manager mapping.
+      
+      elementManager.findEdge(source,key,target)
+    end
+    
+    @Operation handleObjectStateChange(object,slot,new,old)
+    
+      // Object has changed, tell the element manager...
+      
+      elementManager.handleObjectStateChange(self,object,slot,new,old)
+      
+    end
+    
+    @Operation isRegistered(element):Boolean
+    
+      // Use this to determine whether or not the element
+      // is registered with the tool.
+      
+      elementManager.isRegistered(element)
+    end
+    
+    @Operation isRegisteredEdge(source,key,target):Boolean
+    
+      // Use this to determine whether or not the element
+      // is registered with the tool.
+      
+      elementManager.isRegisteredEdge(source,key,target)
+    end
+    
+    @Operation isSubTool():Boolean
+      owner.isReallyKindOf(Tool)
+    end
+    
+    @Operation toolData()
+    
+      // Returns an instance of XToolData ready for serialization...
+      
+      XToolData(elementManager.toolData())
+      
+    end
+    
+    @Operation raise(event:Event)
+      
+       // Called when a change on the diagram occurs. The event
+       // is handed to the element manager.
+       
+       if handleEvents
+       then
+         event.setTool(self);
+         elementManager.raise(event)
+       end
+       
+    end
+    
+    @Operation register(e1,e2)
+    
+      // Registers e1 against e2 in the element manager association table.
+      
+      elementManager.register(e1,e2)
+      
+    end
+    
+    @Operation registerEdge(source,key,target,edge)
+    
+      // Edges are indexed by a source, a target and a key.
+      
+      elementManager.registerEdge(source,key,target,edge)
+    end
+    
+    @Operation removeDaemons()
+      @For t in self.allTools() do
+        @For o in t.observedObjects do
+          o.removeDaemonsWithTarget(t,true)
+        end
+      end
+    end
+    
+    @Operation removeFromOwner()
+      if owner <> null
+      then owner.removeTool(self)
+      end;
+      self.removeDaemons()
+    end
+    
+    @Operation removeTool(tool)
+      self.subTools := self.subTools->excluding(tool);
+      tool.owner := null
+    end
+    
+    @Operation rootTool()
+      if owner = null
+      then null
+      elseif owner = xmf.toolManager()
+      then self
+      else owner.rootTool()
+      end
+    end
+    
+    @Operation tooledElement()
+      self.element()
+    end
+
+    @Operation toString()
+      self.of().nameString() + "[" + self.tooledElement().toString() + "]"
+    end
+    
+  end

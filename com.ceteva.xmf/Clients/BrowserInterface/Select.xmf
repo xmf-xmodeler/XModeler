@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import ExtensionPoints;
+import BrowserInterface;
+
+context BrowserInterface
+
+  @Class Select extends Menu
+  
+    @Attribute source : Seq(Seq(String)) end
+  
+    @Constructor(path,name,source) ! end
+    
+    @Grammar 
+    
+      Select ::= path = Path name = Dots 'from' source = Source* { Select(path,name,source) }.
+      
+      Source ::= '[' Dots ']'.
+      
+      Dots ::= n = Name ns = ('.' Name)* { Seq{n|ns} }.
+      
+      Path ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+    end
+    
+    @Operation register(class:Class)
+      let registry = xmf.registry() then
+          id = "com.ceteva.xmf.menus";
+          path = path;
+          source = source;
+          name = name then
+          o = @Operation() Select::select(self,name,source) end
+      in registry.addContribution(id,
+           Contribution(class,Seq{
+             Seq{}, o, Seq{"Select" | self.displayPath()},"",false,true}))
+      end 
+    end
+    
+    @Operation select(obj,target,paths)
+      let V = Seq{}
+      in @For source in paths do
+           let C = obj
+           in @For name in source do
+                C := C.get(name)
+              end;
+              V := V + C->asSeq
+           end
+         end;
+         let e = xmf.select("Selection",target->separateWith("."),V,null,null);
+             name = target->last
+         in if e <> null
+            then 
+              @For name in target->butLast do
+                obj := obj.get(name)
+              end;
+              @Find(a,obj.of().allAttributes())
+                when a.name().toString() = name
+                do if a.hasSetType() or a.hasSeqType()
+                   then obj.set(name,obj.get(name)->including(e))
+                   else obj.set(name,e)
+                   end
+              end
+            end
+         end
+      end
+    end
+    
+  end

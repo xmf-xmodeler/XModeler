@@ -1,0 +1,140 @@
+parserImport XOCL;
+
+// Load the packages that the server depends on
+
+try
+  (xmf.homeDir() + "/Clients/Clients.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ClientElement.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ElementViewerInterface.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ElementViewer.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Commandable.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ContainedClientElement.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/CommandInterpreter.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/XMLCommandInterpreter.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/EventHandler.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Client.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ExternalClient.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/IdManager.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/ClientManager.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/CompileSourceUtilities.o").loadBin(true);
+  
+  "Boot/Server/ClientManager.o".loadBin();
+  
+   // The only client loaded into the server image is Enterprise
+  
+  (xmf.homeDir() + "/Clients/Enterprise/Boot.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Server/BootEnterprise.o").loadBin(true);
+  (xmf.homeDir() + "/DocTables/HTML/ExternalBrowser/Boot.o").loadBin(true);
+  
+  gc();
+  
+  let startup = saveMachineState("Images/server.img")
+  in if startup = true
+     then format(stdout,"[ Server Build Completed. ]~%")
+     else
+     
+     
+       // When the image restarts the command line -arg name:value arguments are passed
+       // as a sequence of name-value pairs as the value of startup.
+     
+       let hasArg = @Operation(name) startup->exists(pair | pair->head = name) end;
+           getArg = @Operation(name) startup->select(pair | pair->head = name)->head->tail end
+       in 
+          if hasArg("user")
+          then xmf.setUser(getArg("user"))
+          else xmf.setUser("Unknown User")
+          end;
+          
+          if hasArg("projects")
+          then 
+            let projects = getArg("projects")
+            in xmf.setProperty("projDir",projects);
+               XMF.add(@Operation projDir() self.property("projDir") end)
+            end
+          end;
+          
+          if hasArg("demos")
+          then 
+            let demos = getArg("demos")
+            in xmf.setProperty("demoDir",demos);
+               XMF.add(@Operation demoDir() self.property("demoDir") end)
+            end
+          end;
+          
+          if hasArg("home")
+          then 
+            let home = getArg("home")
+            in xmf.setHomeDir(home)
+            end
+          end;
+     
+          if hasArg("images")
+          then
+            let images = getArg("images")
+            in xmf.setImageDir(images)
+            end
+          end;
+          
+          if hasArg("version")
+          then 
+            xmf.setVersion(getArg("version"))
+          end;
+          
+          if hasArg("stdout")
+          then xmf.setStandardOutput(getArg("stdout"))
+          end;
+          
+          if hasArg("initFile")
+          then
+            xmf.setProperty("initFile",getArg("initFile"))
+          end;
+          
+          if hasArg("webserver")
+          then
+          
+            // Start the enterprise client and then yield so that any errors can be shown
+         
+            xmf.bootEnterprise();
+            self.yield();
+          
+            // Load enterprise libraries
+          
+            let baseDir = xmf.homeDir + "/../com.ceteva.enterprise"
+            in
+              (baseDir + "/Interfaces/Manifest.o").loadBin().build(baseDir + "/Interfaces");
+              (baseDir + "/Interfaces/Manifest.o").loadBin().load(baseDir + "/Interfaces");
+              (baseDir + "/InternalDS/Manifest.o").loadBin().build(baseDir + "/InternalDS");
+              (baseDir + "/InternalDS/Manifest.o").loadBin().load(baseDir + "/InternalDS");
+              (baseDir + "/InternalUI/Manifest.o").loadBin().build(baseDir + "/InternalUI");
+              (baseDir + "/InternalUI/Manifest.o").loadBin().load(baseDir + "/InternalUI");
+              (baseDir + "/ExternalUI/Manifest.o").loadBin().build(baseDir + "/ExternalUI");
+              (baseDir + "/ExternalUI/Manifest.o").loadBin().load(baseDir + "/ExternalUI");
+              (baseDir + "/Syntax/Manifest.o").loadBin().build(baseDir + "/Syntax");
+              (baseDir + "/Syntax/Manifest.o").loadBin().load(baseDir + "/Syntax");
+              (baseDir + "/Applications/Admin/Manifest.o").loadBin().build(baseDir + "/Applications/Admin");
+              (baseDir + "/Applications/Admin/Manifest.o").loadBin().load(baseDir + "/Applications/Admin")
+            end
+          
+          end;
+          
+          if not hasArg("filename")
+          then 
+            let topLevel = TopLevel::Loop(stdin,stdout)
+            in xmf.setProperty("topLevel",topLevel);
+               XMF.add(@Operation topLevel() self.property("topLevel") end);
+               topLevel.loop()
+            end
+          else 
+            try
+              getArg("filename").loadBin(false)
+            catch(exception)
+              xmf.raise(exception)
+            end
+          end
+       end
+    end
+  end 
+  
+catch(exception)
+  exception.printBacktrace()
+end;

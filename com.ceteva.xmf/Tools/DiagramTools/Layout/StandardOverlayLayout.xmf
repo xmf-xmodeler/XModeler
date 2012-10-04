@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Layout;
+
+context StandardLayoutManager
+
+  @Operation overlayLayout(type,container,width,height)
+    
+      // Cause all the object slot values to be formatted on
+      // top of each other. Note that the order of display is
+      // important to be able to see the appropriate elements.
+      
+      @For value in container.contents() do
+        @Case value.type().layout() of
+          "ALIGN" do
+            value.type().layout(value,value.padLeft(),value.padTop(),width - value.padWidth(),height - value.padHeight())
+          end
+          "CENTRE" do
+            let maxWidth = value.layoutWidth();
+                maxHeight = value.layoutHeight() then
+                x = if width > maxWidth then (width - maxWidth).div(2) else 0 end;
+                y = if height > maxHeight then (height - maxHeight).div(2) else 0 end
+            in value.type().layout(value,x + value.padLeft(),y + value.padTop(),maxWidth - value.padWidth(),maxHeight - value.padHeight())
+            end
+          end
+          "LEFT" do
+            let maxWidth = value.layoutWidth() 
+            in value.type().layout(value,value.padLeft(),value.padRight(),maxWidth - value.padWidth(),height - value.padHeight())
+            end
+          end
+          "RIGHT" do
+            let maxWidth = value.layoutWidth() then
+                x = if width > maxWidth then width - maxWidth else maxWidth - width end
+            in value.type().layout(value,x - value.padRight(),value.padTop(),maxWidth - value.padWidth(),height - value.padHeight())
+            end
+          end
+        end
+      end
+    end
+    
+    
+     

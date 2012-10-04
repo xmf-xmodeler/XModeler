@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+context Root
+  @Bind 
+    stdout = IO::StandardOutputChannel(Kernel_stdout) 
+  end 
+  
+context Root
+  @Bind 
+    stdin = IO::StandardInputChannel(Kernel_stdin) 
+  end 

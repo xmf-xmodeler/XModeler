@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Clients;
+import Menus;
+import ExtensionPoints;
+
+context XOCL
+
+  @Class Menu extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Bind ::= 'binds' left = Name '+' right = Name { StrExp(left + "+" + right) } | { StrExp("") }.
+    
+      Menu ::= name = NamePath type = Type bind = Bind undo = Undo multi = Multi body = Exp paras = Para {
+        XOCL::Menu(name,type,bind,undo,multi,body,paras)
+      }.
+      
+      Multi ::= 'multi' { BoolExp(true) } | { BoolExp(false) }.
+      
+      NamePath ::= name = Exp names = (':' Exp)* { SetExp("Seq",Seq{name | names}) }.
+      
+      Para ::= '$' para = Exp paras = (',' Exp)* { SetExp("Seq",Seq{para | paras}) } | { SetExp("Seq",Seq{}) }.
+
+	  Type ::= 'on' type = Exp.
+	  
+	  SingleBody ::= Exp.
+	  
+	  Undo ::= 'notUndoable' { BoolExp(false) } | { BoolExp(true) }.
+	        
+    end
+    
+    @Attribute name  : Performable end
+    @Attribute type  : Seq(Performable) end
+    @Attribute bind  : Performable end
+    @Attribute undo  : Performable end
+    @Attribute multi : Performable end
+    @Attribute body  : Performable end
+    @Attribute paras : Performable end
+    
+    @Constructor(name,type,bind,undo,multi,body,paras)
+    end
+    
+    @Operation desugar():Performable
+	  [|
+	    let 
+  		  registry = xmf.registry();
+  		  id = "com.ceteva.xmf.menus"
+		in
+	      registry.addContribution(id,
+	        Clients::ExtensionPoints::Contribution(
+	          <type>,Seq{
+	            <paras>,
+	            <body>,
+	            <name>,
+	            <bind>,
+	            <multi>,
+	            <undo>
+	      }))
+	    end
+	  |]
+    end
+  
+  end

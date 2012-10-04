@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import XRules;
+import XOCL;
+
+context ! Root::XRules
+
+  @Class EvalCall extends Term
+
+    @Attribute fun : Exp end
+    @Attribute args : Seq(Term) end
+    
+    @Constructor(left,op,right) ! end
+    
+    @Constructor(fun,args) ! end
+    
+    @Operation buildArgs(rules,vars,env)
+      args->collect(arg | recons(arg.build(rules,vars),env))
+    end
+    
+    @Operation eval(vars,env)
+      let args = args->collect(arg | recons(arg.eval(vars,env),env));
+          op = fun.perform(self,Seq{})
+      in op.invoke(self,args,Seq{})
+      end
+    end
+    
+    @Operation vars(vars)
+      @For arg in args do
+        vars := arg.vars(vars)
+      end;
+      vars
+    end
+    
+  end

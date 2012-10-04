@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+import IO;
+
+context PropertyEditorXCore
+
+  @Class XMapClauseTextBox extends CodeboxDisplayTextBox, Parsable
+
+    @Operation setTextIn(text:String)
+      if Clients::checkParsable(contex,text)
+      then
+        xmf.clientManager().setRecompilingClause(contex);
+        contex.setSource(text);
+        xmf.clientManager().setRecompilingClause(null)
+      end
+    end
+
+  end

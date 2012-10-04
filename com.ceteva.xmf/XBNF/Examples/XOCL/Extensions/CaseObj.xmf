@@ -1,0 +1,42 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import OCL;
+import XOCL;
+ 
+context CaseObj
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      CaseObj ::= o = Exp 'of' arms = CaseObjArm* default = Default {
+      
+        [| let caseObj = <o> 
+           in <arms->iterate(arm e = default |
+                let type = arm->at(0);
+                    slots = arm->at(1);
+                    body = arm->at(2)
+                in [| if caseObj.of() = <type>
+                      then 
+                        <slots->iterate(slot b = body |
+                          [| let <slot> = caseObj.<slot> in <b> end |])>
+                      else <e>
+                      end
+                   |]
+                end)>
+           end
+        |]
+      }.
+      
+      CaseObjArm ::= type = PathExp '[' slots = CaseObjSlots ']' 'do' body = Exp 'end' {
+      
+        Seq{type,slots,body}
+        
+      }.
+      
+      CaseObjSlots ::= slot = Name slots = (',' Name)* { Seq{slot | slots } } | { Seq{} }.
+      
+      Default ::= 'else' Exp | { [| caseObj.error("No type matched in CaseObj.") |] }.
+      
+    end
+    
+    

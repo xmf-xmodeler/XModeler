@@ -1,0 +1,242 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients::Diagrams::Line;
+import Tools;
+import Menus;
+import DiagramTools;
+import Diagrams;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+
+context Types
+
+  @Class EdgeType extends AbstractEdgeType
+  
+    @Attribute source     : NodeType                    (!,?)   end
+    @Attribute target     : NodeType                    (!,?)   end
+    @Attribute sourceHead : Integer                     (!,?)   end
+    @Attribute targetHead : Integer                     (!,?)   end
+    @Attribute lineStyle  : Integer  = solidLine        (!,?)   end
+    @Attribute labels     : Seq(Label)                  (+,-,?) end
+    @Attribute menu       : Menu = Menu()               (?)     end  
+    @Attribute colour     : String                              end   
+    
+    @Constructor(source,target) end    
+    
+    @Constructor(name,source,target)
+      self.init(Seq{name})
+    end      
+    
+    @Constructor(name,source,target,sourceHead,targetHead,lineStyle) 
+      self.init(Seq{name})    
+    end
+    
+    @Constructor(name,source,target,sourceHead,targetHead,lineStyle,colour) 
+      self.init(Seq{name})    
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      EdgeType ::= 
+        name = Name 
+        sourceName = Name '->' targetName = Name 
+        sourceHead = SourceHead 
+        targetHead = TargetHead 
+        lineStyle = LineStyle 
+        lineColour = LineColour
+        defs = Exp* {
+          defs->iterate(def exp = [| Tools::DiagramTools::Types::EdgeType(
+               <OCL::StrExp(name)>,
+               <OCL::StrExp(sourceName)>,
+               <OCL::StrExp(targetName)>,
+               <OCL::IntExp(sourceHead)>,
+               <OCL::IntExp(targetHead)>,
+               <OCL::IntExp(lineStyle)>,
+               <OCL::StrExp(lineColour)>) |] | [| <exp>.add(<def>) |])
+      }.
+      
+      SourceHead ::= 'sourceHead' '=' EdgeEnd | { 0 }.
+      TargetHead ::= 'targetHead' '=' EdgeEnd | { 0 }.
+      LineStyle ::= 'lineStyle' '=' LineStyle | { solidLine }.
+      LineColour ::= 'lineColour' '=' Str | { "" }.
+      
+      EdgeEnd ::= 
+        'noArrow'      { 0 } |
+        'arrow'        { 1 } |
+        'blackDiamond' { 2 } |
+        'whiteDiamond' { 3 } |
+        'blackArrow'   { 4 } |
+        'whiteArrow'   { 5 }.
+        
+      LineStyle ::= 
+       'solidLine'      { 1 } |
+       'dashLine'       { 2 } |
+       'dottedLine'     { 3 } |
+       'dashDottedLine' { 4 } |
+       'dashDotDotLine' { 5 }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+        Label do
+         self.addToLabels(element)
+        end
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T := super(T);
+      @For l in self.labels do
+        T := l.allDisplayTypes(T)
+      end;
+      T
+    end
+
+    @Operation deref(env)
+    
+      // Replace references to node types with the node type object.
+      
+      self.source := env.lookup(source.name().toString());
+      self.target := env.lookup(target.name().toString())
+    end
+    
+    @Operation edgeLegal(tool,sourcePort,targetPort):Boolean
+    
+      // Return true when the ports are contained by nodes
+      // whose types match up.
+      
+      sourcePort.owner().type().inheritsFrom(source.name().toString(),tool) and
+      targetPort.owner().type().inheritsFrom(target.name().toString(),tool)
+    
+    end   
+    
+    @Operation merge(inherited)
+      menu.merge(inherited.menu())
+    end
+    
+    @Operation mkClicksHandler(tool,edge)
+      @Operation[closure="Tools::DiagramTools::Types::EdgeType::mkClicksHandler"](clicks)
+        tool.raise(Tools::DiagramTools::DiagramEvents::Clicks(edge,clicks))
+      end.setOwner(null)
+    end
+    
+    @Operation mkDeselectionHandler(tool,edge)
+      @Operation[closure="Tools::DiagramTools::Types::EdgeType::mkDeselectionHandler"]()
+        tool.raise(Tools::DiagramTools::DiagramEvents::Selection(edge,false))
+      end.setOwner(null)
+    end
+    
+    @Operation mkSelectionHandler(tool,edge)
+      @Operation[closure="Tools::DiagramTools::Types::EdgeType::mkSelectionHandler"]()
+        tool.raise(Tools::DiagramTools::DiagramEvents::Selection(edge,true))
+      end.setOwner(null)
+    end
+    
+    @Operation mkSourceChangedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Types::EdgeType::mkSourceChangedHandler"](edge,new,old) 
+        tool.sourceChanged(edge,new,old)
+      end.setOwner(null)
+    end
+    
+    @Operation mkTargetChangedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Types::EdgeType::mkTargetChangedHandler"](edge,new,old) 
+        tool.targetChanged(edge,new,old)
+      end.setOwner(null)
+    end
+    
+    @Operation newEdge(sourcePort,targetPort,tool)
+      let edge = Edge(sourcePort,targetPort,sourceHead,targetHead,self.parseColour(colour))
+      in edge.setType(self);
+         edge.lineStyle := lineStyle;
+         edge.setSourceChangedHandler(EdgeType::mkSourceChangedHandler(tool));
+         edge.setTargetChangedHandler(EdgeType::mkTargetChangedHandler(tool));
+         @For label in labels do
+           edge.add(label.new(edge,Seq{name.toString()},tool))
+         end;
+         // Go through the labels and lay them out
+         self.setLabels(edge,sourcePort,targetPort);
+         edge.new(tool.diagram());
+         self.setGlobalMenu(edge,tool,Seq{self.name.toString()});
+         edge.setSelectionHandler(EdgeType::mkSelectionHandler(tool,edge));
+         edge.setDeselectionHandler(EdgeType::mkDeselectionHandler(tool,edge));
+         edge.setClickHandler(EdgeType::mkClicksHandler(tool,edge));
+         tool.diagram().add(edge);
+         edge
+      end
+    end
+    
+    @Operation parseColour(value:String):Clients::Diagrams::Color
+      @Case value of
+        "red"   do Clients::Diagrams::Color(255,0,0) end
+        "green" do Clients::Diagrams::Color(0,255,0) end
+        "blue"  do Clients::Diagrams::Color(0,0,255) end
+        ""      do Clients::Diagrams::Color()        end
+        else       Clients::Diagrams::Color.invoke(self,value->splitBy(",",0,0)->map("asInt"))
+      end
+    end
+
+    @Operation setGlobalMenu(edge,tool,path,sendSetCommand:Boolean)
+      self.menu.setGlobalMenu(edge,edge,tool,path,Set{self,tool},sendSetCommand)
+    end
+
+    @Operation setGlobalMenu(edge,tool,path)
+      self.setGlobalMenu(edge,tool,path,true)
+    end
+
+    @Operation setLabels(edge : XCore::Element,sourcePort : XCore::Element,targetPort : XCore::Element):XCore::Element
+
+     // A simple algorithm for laying out start and end labels
+     // Additional labels are stacked
+
+       let endlabelcount = 0;
+           startlabelcount = 0
+       in             @For label in edge.labels->select(l |
+            l.attachedTo = "start") do
+            let starty = if targetPort.owner.y > sourcePort.owner.y
+                         then 15 - startlabelcount
+                         else (0 - 30) + startlabelcount
+                         end;
+                startx = if targetPort.owner.x > sourcePort.owner.x
+                         then 15
+                         else 0-35
+                         end
+            in startlabelcount := startlabelcount + 7;
+               label.relx := startx;
+               label.rely := starty
+            end
+          end;
+          @For label in edge.labels->select(l |
+            l.attachedTo = "end") do
+            let endy = if sourcePort.owner.y > targetPort.owner.y
+                       then 15 - endlabelcount
+                       else (0 - 30) + endlabelcount
+                       end;
+                endx = if sourcePort.owner.x > targetPort.owner.x
+                       then 15
+                       else 0-35
+                       end
+            in endlabelcount := endlabelcount + 12;
+               label.relx := endx;
+               label.rely := endy
+            end
+          end
+       end
+     end
+
+    @Operation upgradeEdge(edge,tool)
+      @For labelType in self.labels - edge.labels->collect(l | l.type)->asSeq do
+        let label = labelType.new(edge,Seq{name.toString()},tool)
+        in
+          label.setOwner(edge);
+          edge.add(label)
+        end
+      end
+    end
+    
+  end

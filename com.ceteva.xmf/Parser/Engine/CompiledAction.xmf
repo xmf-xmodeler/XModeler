@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Parser::BNF
+
+  @Class CompiledAction extends Action
+    
+    @Attribute op : Operation end
+    
+    @Constructor(action,op,source) end
+    
+    @Operation setOwner(owner)
+      super(owner);
+      op.owner := owner
+    end
+    
+  end
+    

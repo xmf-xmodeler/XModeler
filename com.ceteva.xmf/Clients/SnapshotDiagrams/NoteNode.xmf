@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import Menus;
+import SnapshotDiagrams;
+
+context SnapshotDiagrams
+
+  @Class NoteNode extends Node
+  
+    @Attribute box      : Box end
+    @Attribute text		: MultilineText end
+    @Attribute editable : Boolean end
+    
+    @Constructor(x,y,editable)
+      self.x := x;
+      self.y := y;
+      self.width := 75;
+      self.height := 75;
+      self.box := Box(0,0,self.width,self.height,0,Color(0,0,0),Color(251,243,149));
+      self.text := MultilineText("This is a note.",0,0,self.width,self.height,editable)
+    end
+  
+    @Operation addDisplays()
+      self.add(box);
+      self.add(text)
+    end
+    
+    @Operation addPorts()
+      self.add(Port(0,0,width,height))
+    end
+        
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Node::delete));
+        globalMenu
+      end
+    end
+    
+    @Operation packHeight()
+      self
+    end
+    
+    @Operation packWidth()
+      self
+    end
+    
+    @Operation resize(width,height)
+      super(width,height);
+      box.resize(width,height);
+      text.resize(width,height);
+      @For port in ports do
+        port.resize(width,height)
+      end
+    end
+  
+  end

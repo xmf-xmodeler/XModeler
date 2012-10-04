@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import OCL;
+import Exceptions;
+
+context Instantiate
+
+  @Operation eval(target,env,imports):Element
+    let c = class.eval(target,env,imports) then
+        o = c()
+    in @For arg in args do
+         if o.hasStructuralFeature(arg.name)
+         then o.set(arg.name,arg.value.eval(target,env,imports))
+         else throw NoSlot(o,arg.name)
+         end
+       end;
+       o
+    end
+  end 

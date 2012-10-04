@@ -1,0 +1,38 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+import Menus;
+
+context ClassDiagrams
+
+  @Class AssociationEnd extends RightClickableProxy
+  
+    @Attribute name : Label end
+    @Attribute mult : Multiplicity end
+    
+    @Constructor(name,mult) ! 
+    end
+
+    @Operation proxyElementTarget()
+      xmf.menuManager().getProxy(self).mult
+    end
+
+    @Operation mult():String
+      mult.text
+    end
+
+    @Operation name():String
+      name.text
+    end
+
+    @Operation setName(text:String)
+      name.textChanged(text)
+    end
+    
+    @Operation setMult(text:String)
+      mult.textChanged(text)
+    end
+    
+  end 

@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+
+context Basic
+
+  @Class Break extends Entry
+  
+    @Operation contents()
+      Seq{}
+    end
+
+  end

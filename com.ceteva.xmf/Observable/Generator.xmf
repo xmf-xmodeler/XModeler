@@ -1,0 +1,93 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import XOCL;
+import Observable;
+
+context Observable
+
+  @Class Generator extends NamedElement, Syntax
+  
+    @Doc
+      A generator is used to listen for state changes on an object 
+      or an object type and then conditionally fire events based
+      on the state change. The events are fired by informing any 
+      observers that have been registered with the object or object
+      type.
+    end
+  
+    @Attribute scope   : Scope                end
+    @Attribute clauses : Seq(EventClause) (+) end
+    
+    @Constructor(name,scope,clauses) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Generator ::= name = Name 'for' scope = Scope clauses = Clause* {
+        Generator(Symbol(name),scope,clauses)
+      }.
+      
+      Scope ::= TypeScope | ObjScope.
+      
+      TypeScope ::= 'type' p = GenNames { TypeScope(p,false) }.
+      
+      ObjScope ::= 'obj' o = Exp { ObjScope(Exp(o)) }.
+      
+      Clause ::= 'raise' e = Event 'when' c = Condition bs = OptBinding 'end' { EventClause(e,c,bs) }.
+      
+      Event ::= es = GenNames '(' ps = EventParams ')' { Event(es,Exps(ps)) }.
+      
+      GenNames ::= n = Name ns = ('::' Name)* { Seq{n|ns} }.
+      
+      EventParams ::= e = Exp es = (',' Exp)* { Seq{e|es} } | { Seq{} }.
+      
+      Condition ::= Modification | Creation | e = Exp { Bool(Exp(e)) }.
+      
+      Modification ::= n = Name ('is' | 'are') 'modified' ('and' e = Exp { Guard(Exp(e),Mod(n)) } | { Mod(n) }).
+      
+      Creation ::= 'new' { Creation() }.
+      
+      OptBinding ::= 'where' GenBindings | { Seq{} }.
+      
+      GenBindings ::= g = GenBinding gs = (';' GenBinding)* { Seq{ g | gs} }.
+      
+      GenBinding ::= n = Name '=' e = LogicalExp { Binding(Symbol(n),Exp(e)) }.
+      
+    end
+    
+    @Operation addCreationListeners(class)
+      
+       // Invoked by a type scope to attach new listeners to the class
+       // for each clause that uses 'new' as the condition.
+       
+       @For clause in clauses do
+         clause.addCreationListener(class)
+       end
+       
+    end
+    
+    @Operation eval(target,env,imports)
+    
+      // This is called for all syntax elements when they are evaluated. 
+      // A generator evaluats to produce itself, but attaches itself 
+      // to the values it is scoped over in order to detect and generate
+      // the events.
+      
+      scope.attach(self);
+      self
+      
+    end
+    
+    @Operation generateEvents(daemon,object,slot,new,old)
+    
+      // Something has changed in the object. This generator is performed to see
+      // if any of the conditions are satisfied. If they are then the observers
+      // registered with the daemon (i.e. for object) are informed.
+      
+      @For clause in clauses do
+        clause.generateEvents(daemon,object,slot,new,old)
+      end
+      
+    end
+     
+  end

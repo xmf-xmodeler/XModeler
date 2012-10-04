@@ -1,0 +1,52 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class Send extends ProcessBody
+
+    // A send action causes a process in scope to be
+    // activated by sending the process a message.
+    // A send action has the following form:
+    // @Send <NAME> <OCL> end
+    // where <NAME> is the name of a process in scope 
+    // and <OCL> is a general OCL expression.
+
+    @Attribute name : String end
+    @Attribute value : Performable end
+
+    @Grammar extends OCL::OCL.grammar
+    
+      Send ::= name = Name exp = Exp
+      {
+        [| Languages::DFD::Syntax::Send(<name>,<value>) |]
+      }.
+  
+    end
+         
+    @Constructor(name,value)
+    end
+
+    @Operation eval(env)
+
+      // A process is an applicable object. Apply a process to a message
+      // to cause it to start processing. To evaluate a send action, lookup
+      // the process, evaluate the OCL expression and then apply the process
+      // to the message.
+
+      let process = self.lookup(name,env); 
+          message = value.eval(self,env)
+      in process(message)
+      end
+    end
+      
+    @Operation code(indent:Integer):String
+      "@Send " + name + "\n" + 
+      " ".repeat(indent + 2) + value.code(indent + 2) + 
+      "\n" + " ".repeat(indent) + "end"
+    end
+  end

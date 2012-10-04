@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Plus extends Recognizer
+  
+    @Attribute base : Recognizer end
+    
+    @Constructor(base) ! end
+    
+    @Operation CNF(grammar,BV,handler)
+      base.CNF(grammar,BV,
+        @Operation(justBase,BV,newClauses1)
+          Star(base).CNF(grammar,BV,
+            @Operation(starBase,BV,newClauses2)
+              handler(justBase + starBase + Seq{ConsAction()},BV,newClauses1 + newClauses2)
+            end)
+        end)
+     end
+         
+    @Operation FV():Set(String)
+      base.FV()
+    end
+    
+    @Operation pprint(out,indent)
+      base.pprint(out,indent);
+      format(out,"+")
+    end
+    
+    @Operation setLocals(locals:Seq(String),next:Operation)
+      base.setLocals(locals,next)
+    end
+    
+    @Operation terminals():Set(String)
+      base.terminals()
+    end
+   
+  end

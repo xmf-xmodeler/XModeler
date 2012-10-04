@@ -1,0 +1,438 @@
+parserImport XOCL;
+
+import Clients;
+import FileBrowser;
+import XmfFileTree;
+import Menus;
+import Projects;
+import IO;
+import SearchReport;
+import XmfTextEditor;
+
+context Directory
+  @Operation getFileTypeForFileName(name:String)
+    if name = "Manifest.xmf"
+    then XmfManifest
+    elseif self.getExtension(name) = "txt"
+    then XmfFile
+    elseif self.getExtension(name) = "xmf"
+    then XmfFile
+    elseif self.getExtension(name) = "java"
+    then JavaFile
+    elseif self.getExtension(name) = "xml"
+    then XMLFile
+    elseif self.getExtension(name) = "adb"
+    then AdaFile
+    else File
+    end
+  end
+
+context Directory
+  @Operation newPackageString(filename)
+    let name = filename.subst("",".xmf",true) in
+      let header  = "parserImport XOCL;\n\n";
+          imports = "";
+          contex  = "";
+          package = "@Package " + name + "\nend";
+          file    = self
+      in
+        @While file.owner() <> null do
+          imports := "import " + file.name + ";\n" + imports;
+          file := file.owner()
+        end;
+        if self.owner() <> null then
+          contex := "\ncontext " + self.name + "\n\n"
+        else
+          contex := "\ncontext Root\n\n"
+        end;
+        header + imports + contex + package
+      end
+    end
+  end
+  
+context Directory
+  @Operation newXmfFile()
+    let name = self.generateFileName("xmf") 
+    in self.createFile(name,XmfFile,"")
+    end
+  end
+
+context Directory
+  @Operation newTemplateFile(template:String)
+    let name = self.generateFileName("xmf");
+        templateFile = xmf.homeDir() + "/Templates/" + template
+    in self.createFile(name,XmfFile,"");
+       @WithOpenFile(fin <- templateFile)
+         @WithOpenFile(fout -> self.fullPath() + "/" + name)
+           @While not fin.eof() do
+             fout.write(fin.read())
+           end
+         end
+       end
+    end
+  end
+  
+context Directory
+  @Operation newPackageFile()
+    let name = self.generateFileName("xmf") then
+        packString = self.newPackageString(name)
+    in
+      self.createFile(name,XmfFile,packString)
+    end
+  end
+
+context Directory
+  @Operation search()
+    let pattern = xmf.getString("Search Directory","Type a literal string","")
+    in if pattern <> null
+       then 
+         let dialog = xmf.busy("Searching") then
+             position = self.search(pattern)
+         in if position <> null
+            then 
+              mapResourcePosition(position).edit(pattern);
+              dialog.finished()
+            else
+              dialog.finished();
+              xmf.message("No results for \"" + pattern + "\"")
+            end
+         end
+       end
+    end
+  end
+
+context Root
+  @Operation createFileBrowser()
+    let
+      directory = xmf.selectDirectory(xmf.projDir());
+      fileMappingClient = xmf.findClient(Clients::ModelBrowserXCore::MappingClient)
+    in
+      if directory.fileExists() then
+        let dir = IO::Directory(directory,Seq{".*.txt",".*.xmf",".*.xml",".*.java",".*.adb",".*.html"},0) in
+          fileMappingClient.add(dir)
+        end
+      end
+    end
+  end
+
+context Root
+  @Operation openSingleFile()
+    let file = xmf.openFile(xmf.projDir(),"*.xmf") in
+      if file.fileExists() then
+        XmfFile(null,file).editText()
+      end
+    end
+  end
+
+context XmfFile
+  @Operation compileFile()
+    let fullPath = self.fullPath()
+    in
+      if fullPath.fileExists() 
+      then
+        let filename = fullPath
+        in  
+          let dialog = xmf.busy(("Compiling: " + name))
+          in
+            try
+              Compiler::resetCompilationErrors();
+              Compiler::compileFile(filename,true,true);
+              dialog.finished()
+            catch(exception)
+              dialog.finished()
+            end;
+            if Compiler::errors->isEmpty() then
+              xmf.message(filename + " successfully compiled")
+            else
+              let message = filename + " compile failed" then
+                text = ""
+              in @For error in Compiler::errors do
+                   text := text + error.message
+                 end;
+                 xmf.errorMessageWithText(message,text)
+              end
+            end
+          end
+        end
+      else
+        xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+      end
+    end
+  end
+
+context XmfFile
+  @Operation loadBinary()
+    let fullPath = self.fullPath() in
+      let filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) in
+        if filename.fileExists() then
+          let dialog = xmf.busy(("Loading: " + filename))
+          in
+            try
+              Kernel_loadbin(filename);
+              dialog.finished();
+              xmf.message(filename + " loaded")
+            catch(exception)
+              exception.edit();
+              dialog.finished()
+            end  
+          end
+        else
+          xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+        end
+      end
+    end
+  end
+  
+context XmfFile
+  @Operation loadSource()
+    try 
+      Evaluator::loadFile(self.fullPath(),self,Env::NullEnv(),Seq{XCore,Root});
+      xmf.message("Loaded " + self.fullPath())
+    catch(exception)
+      @TypeCase(exception)
+        Parser::BNF::ParseError do
+          let dialog = xmf.findClient(DialogBoxes::DialogBoxClient)
+          in dialog.newTextAreaDialog(
+               DialogBoxes::TextAreaDialog::error,
+               exception.message,
+               exception.consumed
+             )
+          end
+        end
+        else throw exception
+      end
+    end
+  end
+
+context XmfManifest
+  @Operation compileBuildLoadManifest()
+    let fullPath = self.fullPath();
+        fileName = ""
+    in
+      if fullPath.fileExists() 
+      then
+        let filename = fullPath
+        in  
+          let dialog = xmf.busy(("Compiling: " + name))
+          in
+            try
+              Compiler::resetCompilationErrors();
+              Compiler::compileFile(filename,true,true);
+              dialog.finished()
+            catch(exception)
+              dialog.finished()
+            end;
+            if Compiler::errors->isEmpty() then
+
+              filename := fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true);
+              dialog := xmf.busy(("Building: " + filename));
+              try
+                let manifest = Kernel_loadbin(filename)
+                in manifest.build(owner.fullPath());
+                   dialog.finished();
+
+                   filename := fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true);
+                   @Busy("Loading Manifest")
+                     let manifest = Kernel_loadbin(filename) then
+                         result = manifest.load(owner.fullPath())
+                     in if result.isReallyKindOf(Projects::Project)
+                        then xmf.projectManager("MyProjects").add(result)
+                        elseif result.isReallyKindOf(XCore::NameSpace)
+                        then result.init().browse()
+                        end
+                     end
+                   end
+
+                end
+              catch(exception)
+                dialog.finished();
+                xmf.errorMessageWithText(exception.message,exception.toString())
+              end
+
+            else
+              let message = filename + " compile failed" then
+                text = ""
+              in @For error in Compiler::errors do
+                   text := text + error.message
+                 end;
+                 xmf.errorMessageWithText(message,text)
+              end
+            end
+          end
+        end
+      else
+        xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+      end
+    end
+  end
+  
+context XmfManifest
+  @Operation buildManifest()
+    let fullPath = self.fullPath() in
+      let filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) in
+        if filename.fileExists() then
+          let dialog = xmf.busy(("Building: " + filename))
+          in
+            try
+              let manifest = Kernel_loadbin(filename)
+              in manifest.build(owner.fullPath());
+                 dialog.finished();
+                 xmf.message(filename + " loaded")
+              end
+            catch(exception)
+              dialog.finished();
+              xmf.errorMessageWithText(exception.message,exception.toString())
+            end  
+          end
+        else
+          xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+        end
+      end
+    end
+  end
+  
+context XmfManifest
+  @Operation deleteBinary()
+    if xmf.question("Are you sure you want to delete all the binaries for this manifest?")
+    then
+      let fullPath = self.fullPath() then
+          filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) 
+      in if filename.fileExists()
+         then
+           @Busy("Deleting binary files")
+             let manifest = Kernel_loadbin(filename)
+             in manifest.deleteBinary(owner.fullPath())
+             end
+           end
+         else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+         end
+     end
+    end
+  end  
+
+
+context XmfManifest
+  @Operation loadManifest(loadSource:Binary)
+    let fullPath = self.fullPath() then
+        filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) 
+    in if filename.fileExists() 
+       then
+         @Busy("Loading Manifest")
+           let manifest = Kernel_loadbin(filename) then
+               result = manifest.load(owner.fullPath(),loadSource)
+           in if result.isReallyKindOf(Projects::Project)
+              then xmf.projectManager("MyProjects").add(result)
+              elseif result.isReallyKindOf(XCore::NameSpace)
+              then result.init().browse()
+              end
+           end
+         end;
+         xmf.message(filename + " loaded")
+       else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+       end
+     end
+   end
+   
+context XmfManifest
+  @Operation loadBinaries()
+    self.loadManifest(false)
+  end
+  
+context XmfManifest
+  @Operation loadSources()
+    self.loadManifest(true)
+  end
+
+context XmfManifest
+  @Operation touch(source:Boolean)
+    let fullPath = self.fullPath() then
+        filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) 
+    in if filename.fileExists() 
+       then
+         @Busy("Touch")
+           let manifest = Kernel_loadbin(filename)
+           in manifest.touch(owner.fullPath(),source)
+           end
+         end
+       else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+       end
+     end
+   end
+   
+context XmfManifest
+ @Operation xip()
+   let file = xmf.saveFile(xmf.projDir(),"*.xip")
+   in if file <> ""
+      then 
+        if (not file.fileExists()) orelse xmf.question("overwrite " + file)
+        then
+          // Should really check the manifest is up to date...
+          let binFile = self.fullPath().subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) then
+              manifest = binFile.loadBin()
+          in @Busy("Xipping ")
+               manifest.xip(self.path(),file)
+             end;
+             xmf.message("Xipped " + self.fullPath() + " to " + file)
+          end
+        end
+      end
+   end
+ end
+ 
+context XmfManifest
+  @Operation fullBrowse()
+    let fullPath = self.fullPath() then
+        filename = fullPath.subst(self.nameWithoutTag()+".o",self.nameWithoutTag()+".xmf",true) 
+    in if filename.fileExists() 
+       then
+         @Busy("Browse Manifest")
+           let manifest = Kernel_loadbin(filename)
+           in self.setManifest(manifest.deref(owner.fullPath()))
+           end
+         end
+       else xmf.errorMessage("The selected file does not exist.\nThe parent directory may need to be refreshed first.")
+       end
+     end
+   end
+ 
+context XmfManifest
+  @Operation refresh()
+    if manifest <> null
+    then
+      @Busy("Refresh Manifest")
+        manifest.refresh(owner.fullPath())
+      end
+    end
+  end
+  
+context XmfFileTree
+  @Operation mapResourcePosition(p:ResourcePosition):SearchNode
+    @Case p of
+      DirectoryPosition(d) do
+        let node = SearchNodes(d.fullPath(),"Search/Directory.gif")
+        in @For position in p.contents() do
+             node.add(mapResourcePosition(position))
+           end;
+           node
+        end
+      end
+      FilePosition(f) do
+        let node = SearchNodes(f.name,"Search/File.gif")
+        in @For position in p.contents() do
+             let label = "line " + position.line + " char " + position.char;
+                 action = 
+                  @Operation(r) 
+                    let editor = xmf.fileEditorManager().edit(f,true)
+                    in editor.clearHighlights();
+                       editor.showLine(position.line);
+                       editor.addLineHighlight(position.line) 
+                    end
+                  end
+             in node.add(SearchResult(label,p,"Search/Search.gif",action))
+             end
+           end;
+           node
+        end
+      end
+    end
+  end

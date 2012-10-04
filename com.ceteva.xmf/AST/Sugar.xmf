@@ -1,0 +1,7 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler XOCL::Sugar in AST(sugared,arg,seen)
+  self.dispatch(sugared.desugar(),arg)
+end;

@@ -1,0 +1,202 @@
+parserImport XOCL;
+
+context Root
+
+  @Package DaemonTest
+  
+    @Class Class
+    
+      // This class is representative of an abstract syntax model.
+      // In general it is just a model that needs to be kept in
+      // sync with another model.
+    
+      @Attribute name : String end
+      
+      @Operation init(args)
+        self.name := args->at(0)
+      end
+      
+      @Operation toString()
+        "Class(" + name + ")"
+      end
+      
+    end
+    
+    @Class Text
+    
+      // This class is representative of a concrete syntax model.
+      // In general it is a model that needs to be kept in sync
+      // with another model.
+    
+      @Attribute value : String end
+      
+      @Operation init(args)
+        self.value := args->at(0)
+      end
+      
+      @Operation toString()
+        "Text(" + value + ")"
+      end
+      
+    end
+    
+    @Class ConsistentNames
+    
+      // This class represents a bi-directional relationship
+      // between model elements. It uses the daemon mechanism
+      // of XMF to register itself with the related model elements.
+      // When any changes occur to the related models elements,
+      // all their daemons 'fire'. This particular daemon handles
+      // the change event itself. In general arbitrarily complex
+      // control regimes can be implemented via this mechanism.
+    
+    
+      // Two related elements:
+      
+      @Attribute class : Class end
+      @Attribute text : Text end
+      
+      @Operation init(args) 
+      
+        // Set up the relation and register it as a daemon
+        // on the two model elements.
+        
+        self.class := args->at(0);
+        self.text := args->at(1);
+        class.addDaemon(self);
+        text.addDaemon(self);
+        self
+      end
+    
+      @Operation invoke(target,args)
+      
+        // When a daemon fires, it is invoked. For efficiency, if we
+        // ever need that, daemons can be represented as operations
+        // so that the machine can directly execute them. Therefore the
+        // interface operation that all daemons must implement is 'invoke'.
+        // The model element that changed is the first element of 'args'.
+        
+        // This particular daemon ensures that the value of the text
+        // field and the name of the class are the same. Note that when
+        // a daemon fires, the object that causes the daemon to fire will
+        // not wish to fire further daemons for the duration of 'invoke'.
+        // If this is the case then use @WithoutDaemons(O) ... end to 
+        // switch daemons off for the duration of the special form.
+        
+        @WithoutDaemons(target)
+          if target = class
+          then text.value := class.name
+          else class.name := text.value
+          end
+        end
+      end
+      
+    end
+    
+    @Class A
+    
+      @Attribute bs : Set(B) end
+      
+    end
+    
+    @Class B
+    
+      @Attribute b : Integer end
+      
+      @Operation init(args) self.b := args->at(0) end
+      
+      
+    end
+    
+    @Class X
+    
+      @Attribute ys : Set(Y) end
+      
+      @Operation add(y) self.ys := ys->including(y) end
+      
+      @Operation toString() "<X " + ys.toString() + ">" end
+      
+    end
+    
+    @Class Y
+    
+      @Attribute y : Integer end
+      
+      @Operation init(args) self.y := args->at(0) end
+      
+      @Operation toString() "<Y " + y + ">" end
+      
+    end
+    
+    @Class P
+    
+      @Operation init(args)
+        let a = args->at(0);
+            x = args->at(1)
+        in A.add(
+             @Operation add(b)
+               self.bs := bs->including(b);
+               b.addDaemon(
+                 @Operation(name,oldValue,newValue)
+                   x.add(Y(self.b))
+                 end)
+             end)
+        end
+      end
+      
+    end
+         
+    
+    @Operation test()
+    
+      // Create two classes and a text field between them.
+      // Classes 'c' and 'd' represent two different views of the
+      // same class (for the sake of argument). Text 't' represents
+      // something on a diagram showing the name of the class.
+      
+      let c = Class("C");
+          d = Class("C");
+          t = Text("C")
+      in 
+         // Specify that the names of 'c' and 'd' should always be
+         // in sync with the value of 't':
+         
+         ConsistentNames(c,t);
+         ConsistentNames(d,t);
+         
+         // Show the current state of play.
+         
+         c.println();
+         d.println();
+         t.println();
+         
+         // Change 'c' and show that the change has been propagated.
+         
+         c.name := "D";
+         c.println();
+         d.println();
+         t.println();
+         
+         // Change 't' and show that the change has been propagated.
+         
+         t.value := "E";
+         c.println();
+         d.println();
+         t.println();
+         
+         let a = A();
+             x = X();
+             b = B(100)
+         in P(a,x);
+            a.add(b);
+            b.b := 99;
+            x.println();
+            b.b := 101;
+            x.println()
+         end
+      end
+    end
+    
+  end
+  
+DaemonTest::test();

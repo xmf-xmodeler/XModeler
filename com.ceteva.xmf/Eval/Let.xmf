@@ -1,0 +1,6 @@
+import OCL;
+
+context Let
+  @Operation eval(target,env,imports)
+    body.eval(target,bindings->iterate(b e = env | e.bind(b.name,b.value.eval(target,env,imports))),imports)
+  end

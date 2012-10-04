@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import MDC;
+import Displays;
+
+context Displays
+
+  @Class Ellipse extends Tools::DiagramTools::Types::DisplayTypes::Ellipse,EventHandler
+    
+  end

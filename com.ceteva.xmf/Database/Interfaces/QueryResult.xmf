@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import Database;
+
+context Interfaces
+
+  @Class QueryResult
+  
+    @Operation close()
+      self
+    end
+  
+    @AbstractOp hasNext()
+    end
+    
+    @AbstractOp next()
+    end
+  
+  end

@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+context Arrays
+
+  @Class ArrayIndexOutOfBounds extends Exception
+  
+    @Attribute array  : Element end
+    @Attribute index  : Integer end
+    @Attribute size   : Integer end
+    
+    @Constructor(array,index,size) !
+      self.setBacktrace();
+      self.message := "Array index " + index + " not in the range[0," + (size-1) + "]"
+    end
+    
+  end
+      
+    

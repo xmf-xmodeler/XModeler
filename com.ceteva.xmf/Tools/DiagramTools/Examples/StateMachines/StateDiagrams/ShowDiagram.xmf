@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import StateMachines;
+
+context StateMachine
+  @Operation showDiagram()
+    // A package is transformed into a tool.
+    let tool = super()
+    in @Busy("Generating Tool")
+         // Don't bother drawing the diagram while the tool is under construction...
+         @WithoutRendering(tool.diagram())
+           // Suppress events while the tool is under construction...
+           tool.setHandleEvents(false);
+           // Add the nodes...
+           @For state in self.states() do
+             state.toTool(tool)
+           end;
+           @For transition in self.transitions() do
+             transition.toTool(tool)
+           end;
+           // Restart events...
+           tool.setHandleEvents(true)
+         end
+       end
+    end
+  end
+  
+context State
+  @Operation toTool(tool:Tool)
+    // Create a new instance of the Node type in the tool...
+    let node = StateMachine::StateDiagrams::StateEditor.nodeType("State").new(10,10,tool);
+        // The env is used to pass in a context of types...
+        env = Env::NullEnv()
+    in // Set the node label...
+       node.ref1(Seq{"box","name"}).setText(name);
+       // Register the elements with the tool...
+       tool.register(node,self);
+       tool.register(self,node);
+       tool.register(name,node);
+       // Save the layout id ...
+       node.setLayoutId(name);
+       // Observe changes in the new node...
+       self.observeBy(tool)
+    end
+  end
+  
+context Transition
+  @Operation toTool(tool:Tool)
+    let source = tool.find(source);
+        target = tool.find(target) then
+        sourcePort = source.port();
+        targetPort = target.port() then
+        edge = StateMachine::StateDiagrams::StateEditor.edgeType("Transition").new(sourcePort,targetPort,tool) then
+        nameLabel = edge.ref("name");
+        guardLabel = edge.ref("guard");
+        actionLabel = edge.ref("action") then
+        guardText = pred.exp().pprint().subst("","\n",true);
+        actionText = action.exp().pprint().subst("","\n",true)
+    in nameLabel.textChanged(name + "(" + args->map("pprint")->separateWith(",") + ")");
+       guardLabel.textChanged(guardText);
+       actionLabel.textChanged(actionText);
+       tool.register(edge,self);
+       tool.register(nameLabel,self);
+       tool.register(guardLabel,self);
+       tool.register(actionLabel,self)
+    end
+  end

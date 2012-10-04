@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Includingp in AST(aIncludingp,arg,seen)
+  let element = self.dispatch(aIncludingp.element,arg);
+      set = self.dispatch(aIncludingp.set,arg)
+  in ASTNode(aIncludingp,Seq{set,element})
+  end
+end;

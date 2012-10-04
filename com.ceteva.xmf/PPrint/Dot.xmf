@@ -1,0 +1,13 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Dot in PPrint(aDot,out,seen)
+  self.dispatch(aDot.target,out);
+  if aDot.name.isKindOf(Drop)
+  then 
+    format(out,".");
+    self.dispatch(aDot.name,out)
+  else format(out,".~S",Seq{aDot.name})
+  end
+end;

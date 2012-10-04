@@ -1,0 +1,19 @@
+parserImport  XOCL;
+
+format(stdout,"TypeCase is used to dispatch on the type of a value.~%");
+format(stdout,"Your should see type information about a variety of values.~%");
+
+let typeOf =
+  @Operation(v)
+    @TypeCase(v)
+      Integer do "Integer".println() end
+      String do "String".println() end
+      Boolean do "Boolean".println() end
+      else "Unknown type".println()
+    end
+  end
+in typeOf(100);
+   typeOf("s");
+   typeOf(true);
+   typeOf(typeOf)
+end;

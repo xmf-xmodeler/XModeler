@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class SymbolValue extends Instr
+  
+    @Doc
+      Symbols have values. This instruction finds the symbol in the constants
+      area of the currently executing operation and dereferences its value.
+    end
+  
+    @Attribute name : Symbol end
+    @Attribute nameOffset : Integer end
+    
+    @Constructor(name) end
+    
+    @Operation assemble(codeBox)
+      self.nameOffset := codeBox.constOffset(name);
+      codeBox.addInstr(self)
+    end
+    
+    @Operation toString():String
+      "<SymbolValue " + name.toString() + ">"
+    end
+    
+    @Operation operands():Integer
+      nameOffset
+    end
+    
+  end
+  

@@ -1,0 +1,90 @@
+parserImport XOCL;
+
+import Compiler;
+import IO;
+import Parser::Machine;
+import Exceptions;
+
+context Compiler
+
+  @Operation compileFile(name:String,isLast:Boolean,saveSource:Boolean):Element
+  
+    @Doc
+      Use compileFile/3 to compile a file. If the compilation succeeds then the
+      source file is translated to machine code and an object file and an instruction
+      file is created. The object file contains a binary format machine code and the
+      instructions file contains a human readable version of the object file.
+      Parameter: name:String
+        A pathname designating the file to compile.
+      Parameter: isLast:Boolean
+        A boolean value that defines whteher this is the last in a sequence
+        of expressions (should be 'true').
+      Parameter: saveSource:Boolean
+        A boolean value that determines whether or not the source code
+        is saved to the object file. In most cases you will want to save
+        the source code as this aids debugging and is reachable from the stack
+        frame when a particular operation body fails.
+    end
+    
+    try
+    
+      // The compiler uses relatively large amounts of memory to compile a 
+      // file (particularly the current parser). Check that there is at least
+      // 10MB of heap and extend the heap if necessary.
+      
+      xmf.ensureHeap(10000 * 1024);
+      
+      let fileStem = if name->hasSuffix(".xmf") then name.reverse().drop(4).reverse() else name end then
+          sourceFile = fileStem + ".xmf";
+          binaryFile = fileStem + ".o"
+      in if not sourceFile.fileExists()
+         then throw FileNotFound(sourceFile)
+         else
+           if (sourceFile).isOlder(binaryFile) and (not compileAll)
+           then format(stdout,"[ ~<46,.>S is up to date. ]~%",Seq{binaryFile})
+           else 
+             format(stdout,"[ Compile ~<38,.>S...",Seq{fileStem+".xmf"});
+             stdout.flush(); 
+             let time1 = Time() then
+                 unit = parseCompilationUnit(sourceFile) then
+                 time2 = Time() 
+             in if unit <> null
+                then
+                  format(stdout,"(");
+                  (time2-time1).pprint(stdout);
+                  format(stdout,")");
+                  unit.compileFile(fileStem,saveSource,true);
+                  format(stdout," ]~%")
+                end
+             end
+           end
+         end
+      end 
+    catch(exception)
+      Compiler::compilationError(exception.message,name,exception)
+    end
+  end
+  
+context Compiler
+
+  @Operation parseCompilationUnit(file:String):CompilationUnit
+  
+     // Use this operation to parse a compilation unit from the 
+     // supplied file. Deals with parse errors by recording them
+     // as compiler errors. Returns null if the parse failed.
+     
+     @WithOpenFile(input <- file)
+       let state = State(OCL::OCL.grammar,input) then
+           unit = state.run("CompilationUnit") 
+       in if state.failed
+          then 
+            let text = state.getConsumedChars()
+            in compilationError("\nParse error in " + file + " at or after the following text:\n\n" + text + "\n\n",file);
+               null
+            end
+          else unit
+          end
+       end
+     end
+     
+   end

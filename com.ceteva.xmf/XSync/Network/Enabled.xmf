@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import XSync;
+import Network;
+
+context Network
+
+  @Class Enabled
+  
+    @Attribute gamma : Gamma (?) end
+    @Attribute token : Token (?) end
+    
+    @Constructor(gamma,token) ! end
+    
+    @Operation equals(other:Element):Boolean
+      if other.isKindOf(Enabled)
+      then other.gamma = gamma and other.token.equals(token)
+      else false
+      end
+    end
+    
+    @Operation fire(net:Net)
+      gamma.fire(token,net)
+    end
+    
+    @Operation precedence():Integer
+      gamma.precedence()
+    end
+    
+  end

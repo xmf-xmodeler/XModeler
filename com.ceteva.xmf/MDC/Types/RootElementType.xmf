@@ -1,0 +1,764 @@
+parserImport XOCL;
+parserImport XMap;
+parserImport Tools::Basic;
+
+import Tools::Basic;
+import Tools::DiagramTools::Types;
+import Tools::DiagramTools::Structure;
+import MDC;
+import Types;
+
+context ! Types 
+
+  @Class RootElementType extends Display_x_Display
+
+    @Attribute classifier       : Classifier                        (?,!)     end
+    @Attribute nodes            : Set(Free_x_Node)                  (?,!,+,-) end
+    @Attribute edges            : Set(Attribute_x_Edge)             (?,!,+,-) end
+    @Attribute classEdges       : Set(Class_x_Edge)                 (?,!,+,-) end
+    @Attribute slotMonitors     : Set(SlotMonitor)                  (?,!,+,-) end
+    @Attribute creationMonitors : Set(CreationMonitor)              (?,!,+,-) end
+    @Attribute toolDescriptor   : ToolDescriptor                    (?,!) end
+    @Attribute diagramInit      : Operation = RootElementType::mkDiagramInit() (?,!) end
+    @Attribute refNameSpace     : XToolsRefNameSpace                (?,!) end
+    
+    @Constructor(classifier) !
+      self.init(Seq{classifier,""})
+    end
+
+    @Constructor(classifier,name) !
+      self.displayType := ToolType(classifier.name());
+      displayType.setMinWidth(30);
+      displayType.setMinHeight(30);
+      displayType.setPadTop(1);
+      displayType.setPadRight(1);
+      displayType.setPadBottom(1);
+      displayType.setPadLeft(1);
+      self.initialize()
+    end
+
+    @Constructor(classifier,displayType,name)
+      self.initialize()
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Free_x_Node do
+          self.addNodeMap(element)
+        end
+      end
+    end
+
+    @Operation addCreationMonitor(class)
+      
+      // Add a dummy monitor...
+      
+      self.addCreationMonitor(class,@Operation(tool,value) null end)
+    end
+    
+    @Operation addCreationMonitor(class,handler)
+    
+      // A monitor is an association between a class and a
+      // handler. When an instance of the class is changed,
+      // the monitor is supplied with the tool, and the
+      // freshly created object.
+      
+      let monitor = CreationMonitor(class,handler)
+      in self.addToCreationMonitors(monitor);
+         handler.setOwner(null);
+         monitor
+      end
+    end
+
+    @Operation addDaemons()
+      @SlotValueChanged multi once RootElementType::daemons_nameChange(self,"name") end
+    end
+
+    @Operation addDiagramContribution()
+      let this = self then
+          handler = 
+            @Operation(element,name)
+              let tool = element.createTool(this.toolDescriptor.name.toString())
+              in let diagram = tool.diagram()
+                 in this.build(tool,element,diagram);
+                    tool.diagram().tileLayout(200,100,800);
+                    diagram
+                 end
+              end
+            end then
+          contribution = Clients::DiagramsMapping::DiagramContribution(
+            self.name.toString().replaceUnderscoresWithSpaces(), classifier, handler)
+      in
+        toolDescriptor.setDiagramContribution(contribution)
+      end
+    end
+
+    @Operation addMenuContributions()
+      let id = "com.ceteva.xmf.menus"
+      in
+        toolDescriptor.addContribution(id,
+          Clients::ExtensionPoints::Contribution(Basic::ObjectManager,Seq{
+            Seq{classifier},
+            Basic::ObjectManager::addInstance,
+            Seq{"Add Element",classifier.name().toString()},
+            "",
+            false,
+            true
+          }));
+        //toolDescriptor.addContribution(id,
+        //  Clients::ExtensionPoints::Contribution(classifier,Seq{
+        //    Seq{},
+        //    Object::saveXTO,
+        //    Seq{"Save (XTO) ..."},"",false
+        //  }));
+          self
+      end
+    end
+
+    @Operation addNodeMap(map1)
+    
+      // Node types must inherit appropriately...
+      
+      @For map2 in nodes do
+        let classifier1 = map1.type().classifier();
+            nodeType1 = map1.type().nodeType();
+            classifier2 = map2.type().classifier();
+            nodeType2 = map2.type().nodeType()
+        in if classifier1.inheritsFrom(classifier2)
+           then nodeType1.addToParents(nodeType2.name().toString())
+           elseif classifier2.inheritsFrom(classifier1)
+           then nodeType2.addToParents(nodeType1.name().toString())
+           end
+        end
+      end;
+      self.addToNodes(map1)
+    end
+    
+    @Operation addSlotMonitor(class)
+      
+      // Add a dummy monitor...
+      
+      self.addSlotMonitor(class,@Operation(tool,value,slot,new,old) null end)
+    end
+    
+    @Operation addSlotMonitor(class,handler)
+    
+      // A monitor is an association between a class and a
+      // handler. When an instance of the class is changed,
+      // the monitor is supplied with the tool, the value, 
+      // the slot, the new value and the old value.
+      
+      let monitor = SlotMonitor(class,handler)
+      in self.addToSlotMonitors(monitor);
+         handler.setOwner(null);
+         monitor
+      end
+    end
+
+    @Operation addToolDescriptor()
+      let type = self.displayType().deref()
+      in
+        self.toolDescriptor := ToolDescriptor(self.name);
+        toolDescriptor.toolClass := MDCTool;
+        toolDescriptor.add(type); // set type
+        toolDescriptor.add(Tools::Events::ElementManager()) // set manager
+      end
+    end
+
+    @Operation allDisplayTypes():Seq(AbstractDisplayType)
+      self.displayType.allDisplayTypes()
+    end
+
+    @Operation allMappingTypes(T:Seq(AbstractMappingType)):Seq(AbstractMappingType)
+      if not T->includes(self)
+      then
+        T := super(T);
+        @For type in self.nodes do
+          T := type.allMappingTypes(T)
+        end;
+        @For type in self.edges do
+          T := type.allMappingTypes(T)
+        end;
+        @For type in self.classEdges do
+          T := type.allMappingTypes(T)
+        end
+      end;
+      T
+    end
+
+    @Operation allMappingTypes():Seq(AbstractMappingType)
+      self.allMappingTypes(Seq{})
+    end
+
+    @Operation allNodes()
+    
+      // Returns a set of all the nodes defined for the receiver.
+      // Note that some of them may be computed due to nested
+      // diagram types. This is used to determine linkable nodes...
+      
+      nodes->iterate(node N = Set{} | N->including(node) + node.allNodes())
+      
+    end
+
+    @Operation attributeChanged(tool,changedNode,display,new,old)
+      @For node in nodes do
+        node.attributeChanged(tool,changedNode,display,new,old)
+      end
+    end
+    
+    @Operation build(tool,element,display)
+    
+      // Called when the receiver is expected to build a value and
+      // link it to the appropriate elements of the element and the
+      // display...
+      
+      //@Busy("Building XTool Diagram")
+        @WithoutRendering(tool.diagram(),100)
+          @WithoutEvents(tool)
+            self.initializeDiagram(tool);
+            if element.isKindOf(Values::Value)
+            then self.buildValue(tool,element,display)
+            else self.buildElement(tool,element,display)
+            end
+          end
+        end
+      //end
+    end
+    
+    @Operation buildAssociations(tool)
+    
+      // Called to build all the class edges that correspond to
+      // elements in the root object...
+      
+      @For classEdge in classEdges do
+        let element = tool.element().element();
+            name = classEdge.attribute.name() then
+            newValue = element.get(name);
+            oldValue = 
+              if classEdge.attribute.hasAtomicType()
+              then null
+              elseif classEdge.attribute.hasSetType()
+              then Set{}
+              else Seq{}
+              end
+        in @WithEvents(tool)
+             tool.handleObjectStateChange(element,name,newValue,oldValue)
+           end
+        end
+      end
+    end
+    
+    @Operation buildElement(tool,element,display)
+    
+      // Called when the controlled element has yet to be constructed...
+      
+      let value = 
+        if classifier.isKindOf(Class)
+        then 
+          element.observeBy(tool,true);
+          Values::ControlledObject(self,tool,element,display)
+        else self.error("Cannot define a root element type on a non-class.")
+        end
+      in tool.setElement(value);
+         self.buildNodes(tool,value,display);
+         value
+      end
+    end
+    
+    @Operation buildFreeNodes(tool,value,display)
+      let findFreeNode =
+            @Find(m,nodes)
+              when not m.isKindOf(Root_x_Node)
+              else null
+            end
+      in
+        if findFreeNode <> null
+        then
+          let element = value.element();
+              walker = Walkers::Flatten() then
+              elementOwner =
+                if element.isKindOf(Contained)
+                then element.owner
+                else null
+                end
+          in 
+            // Add free nodes where appropriate...
+            @For object in self.reachable(element) do 
+              @Find(m,nodes)
+                when 
+                  m.of() = Free_x_Node andthen
+                  object.isReallyKindOf(m.type().classifier()) andthen
+                  m.isMostSpecific(nodes,object) andthen
+                  not tool.free()->exists(value | value.element() = object)
+                do m.buildFree(tool,object)
+              end
+            end
+            
+          end
+        end
+      end
+    end
+    
+    @Operation buildLinks(tool)
+    
+      // Called to populate the diagram with the link edges.
+      // Get all the values that represent nodes and match them
+      // up to source and target types of link types. If no
+      // link exists then create one if the target is the appropriate
+      // slot value of the source...
+      
+      let slots = tool.element().slots() then
+          values = slots->iterate(s V = Seq{} | 
+            if s.hasAtomicType()
+            then let val = s.value()
+                 in if val <> null
+                    then V->including(val)
+                    else V
+                    end
+                 end
+            else V + s.value()->asSeq
+            end) then
+          O = values + tool.free()
+      in @For value in O do
+           let object = value.element() then
+               names = object.getStructuralFeatureNames()
+           in @For name in names do
+                let value = object.get(name)
+                in @WithEvents(tool)
+                     @TypeCase(value)
+                       Seq(Element) do
+                         tool.handleObjectStateChange(object,Symbol(name),value,Seq{})
+                       end
+                       Set(Element) do
+                         tool.handleObjectStateChange(object,Symbol(name),value,Set{})
+                       end
+                       else tool.handleObjectStateChange(object,Symbol(name),value,null)
+                     end
+                   end
+                end
+              end
+           end
+         end
+      end
+    end 
+    
+    @Operation buildNodes(tool,value,display)
+      self.buildRootNodes(tool,value,display);
+      self.buildFreeNodes(tool,value,display);
+      self.buildLinks(tool);
+      self.buildAssociations(tool)
+    end
+    
+    @Operation buildRootNodes(tool,value,display)
+      @For node in nodes when node.isKindOf(Root_x_Node) do
+        node.build(tool,value,display,nodes)
+      end
+    end
+    
+    @Operation buildValue(tool,value,display)
+    
+      // Called when the controlled value has already been constructed...
+      
+      let nestedTool = MDCTool(displayType,tool.id() + "+",tool.elementManager(),display,value)
+      in tool.addTool(nestedTool);
+         value.setTool(nestedTool);
+         self.buildNodes(nestedTool,value,display);
+         value
+      end
+    end
+    
+    @Operation changeName()
+      let name = xmf.input("Tool Definition Name",
+                           "Enter the name for this tool definition (underscores will be displayed " +
+                           "as spaces in the 'Create Diagram' menu).)",
+                           self.name.toString())
+      in
+        if name <> null
+        then
+          if name = ""
+          then
+            xmf.warning("The tool definition name cannot be the empty string. This has been set to 'Default_Diagram'");
+            name := "Default_Diagram"
+          end;
+          self.setName(name)
+        end;
+        name
+      end
+    end
+    
+    @Operation checkRefNameSpaceInitialised()
+      if self.owner = xmf.toolManager().definitionManager() andthen
+         not self.refNameSpace.isReallyKindOf(XToolsRefNameSpace)
+      then
+        self.initRefNameSpace();
+        self.updateNameSpaceRefs();
+        if xmf.question("This legacy XTools definition has been upgraded and should be saved before continuing.\nDo you wish to save it?")
+        then self.save()
+        end;
+        self
+      end
+    end
+
+    @Operation daemons_nameChange(selfElement,slot,newName,oldName)
+      let newNameString = newName.toString().replaceUnderscoresWithSpaces()
+      in
+        if toolDescriptor <> null andthen
+           toolDescriptor.diagramContribution <> null andthen
+           toolDescriptor.diagramContribution.name.toString() <> newNameString
+        then toolDescriptor.setName(newName);
+             toolDescriptor.diagramContribution.setName(newNameString)
+        end
+      end
+    end
+
+    @Operation displayRemoved(tool,modifiedNode,display)
+      @For node in nodes do
+        node.displayRemoved(tool,modifiedNode,display)
+      end
+    end
+
+    @Operation enableDrop(enabled : Boolean)
+      if toolDescriptor <> null andthen
+         toolDescriptor.diagramContribution <> null
+      then
+        toolDescriptor.diagramContribution.setDropEnabled(enabled)
+      end;
+      self
+    end
+
+    @Operation enableMultipleDiagrams(mult : Boolean)
+      if toolDescriptor <> null andthen
+         toolDescriptor.diagramContribution <> null
+      then
+        toolDescriptor.diagramContribution.singleDiagram := not mult
+      end;
+      self
+    end
+
+    @Operation fireCreationMonitors(tool,value)
+    
+      // Find the most specific monitor for the object
+      // that has been created and fire it...
+      
+      @Find(monitor1,creationMonitors)
+        when 
+          value.element().isKindOf(monitor1.class()) andthen
+          not creationMonitors->exists(monitor2 |
+            value.element().isKindOf(monitor2.class()) andthen
+            monitor2.class().inheritsFrom(monitor1.class()) and
+            monitor1 <> monitor2)
+        do monitor1.fire(tool,value)
+      end
+    end
+    
+    @Operation fireSlotMonitors(tool,value,slot,new,old)
+    
+      // Find the most specific monitor for the object
+      // that has changed and fire it...
+      
+      @Find(monitor1,slotMonitors)
+        when 
+          value.element().isKindOf(monitor1.class()) andthen
+          not slotMonitors->exists(monitor2 |
+            value.element().isKindOf(monitor2.class()) andthen
+            monitor2.class().inheritsFrom(monitor1.class()) and
+            monitor1 <> monitor2)
+        do monitor1.fire(tool,value,slot,new,old)
+      end
+    end
+
+    @Operation getChildren()
+      Seq{}
+    end
+    
+    @Operation initialize()
+    
+      // Set tool descriptor...
+      if toolDescriptor = null
+      then self.addToolDescriptor()
+      end;
+      xmf.toolManager().addToolDescriptor(classifier,toolDescriptor);
+
+      // Set diagram contribution...
+      if toolDescriptor.diagramContribution = null
+      then self.addDiagramContribution()
+      end;
+      xmf.diagramManager().addContribution(toolDescriptor.diagramContribution);
+
+      // Set menu contributions...
+      if toolDescriptor.contributions->isEmpty
+      then self.addMenuContributions()
+      end;
+      toolDescriptor.updateRegistry();
+
+      // Set daemons...
+      self.addDaemons()
+      
+    end
+    
+    @Operation initRefNameSpace()
+      self.refNameSpace := XToolsRefNameSpace();
+      refNameSpace.setOwner(self);
+      self.initRef(refNameSpace);
+      self
+    end
+    
+    @Operation labelString()
+      if classifier = null
+      then super()
+      else
+        classifier.path() + " [" + name.toString() + "]"
+      end
+    end
+
+    @Operation initializeDiagram(tool)
+    
+      // Called on creation of the diagram to initialize
+      // any background displays...
+      
+      diagramInit(tool)
+    end
+    
+    @Operation mkDiagramInit()
+    
+      // Creates a new diagram initializer...
+      
+      @Operation[closure="MDC::Types::RootElementType::mkDiagramInit"](tool)
+        null
+      end.setOwner(null)
+    end
+    
+    @Operation newNode(tool,newNode)
+    
+      // The tool is an MDCTool and the node has just been
+      // added to the diagram. Find the node with the 
+      // appropriate node type and perform the appropriate 
+      // associations...
+      
+      @For node in nodes do
+        node.newNode(tool,newNode)
+      end
+    end
+    
+    @Operation nodeRemoved(tool,oldNode)
+      @For node in nodes do
+        node.nodeRemoved(tool,oldNode)
+      end
+    end
+    
+    @Operation postLoad()
+      self.shortTermLegacyInitialise(); // to be removed once MDC stabilises
+      self.initialize();
+      self.checkRefNameSpaceInitialised();
+      self.checkMenuUpgrader();
+      self
+    end
+    
+    @Operation postSave()
+      self.addDaemons();
+      
+      // Re-link tool definition to the definition manager.
+      
+      let dm = xmf.toolManager().definitionManager()
+      in
+        self.owner := dm;
+        dm.contents := Root::rootElementType_definitionManagerContents;
+        Root.contents.remove(Symbol("rootElementType_definitionManagerContents"))
+      end
+
+      //xmf.toolManager().postSave() // relink all delinked tools
+    end
+    
+    @Operation preSave()
+      
+      // Delink tool definition from the definition manager. It is done in this
+      // convoluted way to stop the browser daemons firing (currently it is
+      // not possible to use WithoutDaemons on a Table daemon.
+      
+      self.removeDaemons();
+      self.updateNameSpaceRefs();
+      
+      let dm = xmf.toolManager().definitionManager()
+      in
+        self.owner := null;
+        Root.putElement("rootElementType_definitionManagerContents",dm.contents);
+        dm.contents := Table(10)
+      end
+      
+      // Delink all tools from the tool descriptor...
+      //@For tool in toolDescriptor.allContentsOf(Tool) do
+      //  xmf.toolManager().delinkTool(tool)
+      //end
+      
+    end
+    
+    @Operation reachable(object)
+    
+      // Walks the object guided by the type definition. Returns all
+      // the objects that should be drawn on the diagram.
+      
+      nodes->iterate(node O = Set{} |
+        O + node.reachable(object,self)) +
+        
+      classEdges->iterate(edge O = Set{} |
+        O + edge.reachable(object))
+    end
+    
+    @Operation reachableFree(object)
+    
+      // Can we get from this object via a link to a free node?
+      
+      let A = object.of().allAttributes()
+      in edges->iterate(edge O = Set{object} |
+           if A->includes(edge.attribute()) and edge.target().of() = Free_x_Node
+           then
+             if not edge.attribute().hasAtomicType()
+             then object.get(edge.attribute().name())->iterate(v O = O | O + self.reachableFree(v))
+             else 
+               let value = object.get(edge.attribute().name())
+               in if value = null
+                  then O
+                  else O + self.reachableFree(value)
+                  end
+               end
+             end
+           else O
+           end
+         )
+      end
+    end
+    
+    @Operation removeDaemons()
+      self.removeDaemonsWithTarget(self,true)
+    end
+    
+    @Operation removeFromOwner()
+      self.removeDaemons();
+      xmf.toolManager().removeToolDescriptor(classifier,toolDescriptor);
+      xmf.diagramManager().removeContribution(toolDescriptor.diagramContribution);
+      super()
+    end
+    
+    @Operation save(file:String)
+      if if file.fileExists() 
+         then xmf.question("Overwrite " + file)
+         else true
+         end 
+      then
+        self.preSave();
+        @WithOpenFile(fout -> file)
+          let xout = ElementOutputChannel(fout)
+          in xout.write(self,Root.allContentsOf(NameSpace)->asSeq->including(Root))
+          end
+        end;
+        self.postSave()
+      end
+    end 
+
+    @Operation save()
+    
+      // Get a file via a dialog and then save the mapping
+      // into a XAR file...
+      
+      let file = xmf.saveFile(xmf.projDir(),"*.xtd",self.name())
+      in 
+         if file <> "" then
+           @Busy("Saving XTD")
+             self.save(file)
+           end
+         end
+      end
+    end
+
+    @Operation shortTermLegacyInitialise()
+      // This should be removed once MDC stabilises
+      
+      // Ensure no missing slots...
+      self.slotMonitors;
+      self.creationMonitors;
+      self.toolDescriptor;
+      self.owner;
+      self.name;
+      
+      // Set diagramInit...
+      if self.diagramInit = null
+      then self.diagramInit := self.newDiagramInit()
+      end;
+      
+      // Set name...
+      if self.name.toString() = ""
+      then self.changeName()
+      end;
+      toolDescriptor.diagramContribution.setName(self.name.replaceUnderscoresWithSpaces());
+      
+      // Upgrade menu contributions to support new format
+      
+      @For contribution in toolDescriptor.contributions
+      do
+        if contribution.head() = "com.ceteva.xmf.menus"
+        then
+          let contribution = contribution.tail()
+          in
+            if contribution.values.size() = 3
+            then
+              contribution.values := contribution.values + Seq{"",true,false}
+            elseif contribution.values.size() = 4
+            then
+              contribution.values := contribution.values + Seq{true,false}
+            elseif contribution.values.size() = 5
+            then
+              contribution.values := contribution.values + Seq{false}
+            end
+          end
+        end
+      end;
+      self
+    end
+
+    @Operation toString()
+      "RootElementType(" + self.labelString() + ")"
+    end
+
+    @Operation updateNameSpaceRefs() : Boolean
+      
+      // Updates the ref namespace contents if necessary and
+      // returns true if changes have been made...
+      
+      let nameSpaceContents = self.refNameSpace.contents()->asSet;
+          allTypes = (self.allDisplayTypes() + self.allMappingTypes())->asSet then
+          removedTypes = nameSpaceContents - allTypes;
+          addedTypes = allTypes - nameSpaceContents
+      in
+      
+        // Remove deleted display and mapping types from the ref namespace...
+        @For type in removedTypes do
+          refNameSpace.remove(type)
+        end;
+        
+        // Add new display and mapping types from the ref namespace...
+        @For type in addedTypes do
+          type.initRef(refNameSpace)
+        end;
+        
+        // Return true if any changes have been made...
+        not addedTypes->isEmpty
+      end  
+    end
+
+    @Operation upgradeEdgeTypes()
+      @For edgeMapping in edges+classEdges do
+        let edgeType = edgeMapping.edgeType
+        in
+          // Change edge type's class to MDC::Displays::EdgeType which subclasses EventHandler...
+          Kernel_setOf(edgeType,MDC::Displays::EdgeType);
+          
+          // Missing slot protocol refresh...
+          edgeType.clickHandler;
+          edgeType.moveHandler;
+          edgeType.resizeHandler;
+          edgeType.selectionHandler
+        end
+      end
+    end
+
+  end

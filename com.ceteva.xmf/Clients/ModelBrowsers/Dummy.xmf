@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+import ModelBrowsers;
+
+context ModelBrowsers
+
+  @Class Dummy
+  
+    // objects of this class are used purely for creating dummy nodes that are
+    // needed for providing the expansion handles on container nodes
+  
+    @Operation toString()
+      " "
+    end
+  
+  end

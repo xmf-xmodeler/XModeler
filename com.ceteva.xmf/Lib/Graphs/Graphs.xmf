@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Graphs
+  
+    @Doc
+      A package defining generic graphs and associated operations.
+    end
+    
+    @Operation test()
+      import Graphs
+      in let n1 = Node(1);
+             n2 = Node(2);
+             n3 = Node(3);
+             n4 = Node(4) then
+             e1 = Edge(n1,n2);
+             e2 = Edge(n1,n3);
+             e3 = Edge(n3,n4) then 
+             G = Graph(Set{n1,n2,n3,n4},Set{e1,e2,e3})
+         in G.paths(G.roots()->sel)
+         end
+      end
+    end
+         
+  end 

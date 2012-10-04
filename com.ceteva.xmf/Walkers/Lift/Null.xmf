@@ -1,0 +1,14 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler Null in Lift(n,arg,encountered)
+  [| null |]
+end;
+
+context XCore::Null
+  @Operation lift():Performable
+    [| null |]
+  end
+

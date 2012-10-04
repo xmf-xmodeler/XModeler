@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+context StateMachines::Package::ClassDiagrams::PackageManager
+  @EventHandler New_Consumer()
+    let clock = find(event.source());
+        machine = find(event.target()) then 
+        attribute = XCore::Attribute("consumer",machine)
+    in register(event.edge(),attribute);
+       clock.add(attribute)
+    end
+  end

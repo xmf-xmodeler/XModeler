@@ -1,0 +1,86 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Basic;
+import Events;
+import Menus;
+import Clients::ExtensionPoints;
+
+context Basic
+
+  @Class ToolDescriptor isabstract extends NameSpace
+  
+    @Doc
+      A tool descriptor associates a tool type with an element
+      manager. Tool descriptors are added to classifiers and
+      are used to produce language specific tools such as property
+      editors and diagram editors.
+    end
+  
+    @Attribute type      : ToolType       (?,!) end
+    @Attribute manager   : ElementManager (?,!) end
+    @Attribute toolClass : Classifier     (?,!) end
+    @Attribute menu      : Menu = Menu()  (?,!) end
+    @Attribute contributions : Seq(Element)     end
+    
+    @Operation add(element)
+      if element.isKindOf(ToolType)
+      then self.setType(element)
+      elseif element.isKindOf(ElementManager)
+      then self.setManager(element)
+      elseif element.isKindOf(Menu)
+      then self.menu := element
+      end;
+      super(element)
+    end
+    
+    @Operation addContribution(id,contribution)
+      self.contributions := self.contributions + Seq{ Seq{id | contribution} }
+    end
+    
+    @Operation init()
+    
+      // Add a menu entry for the Tools drop down menu. 
+      
+      if owner <> null
+      then menu.setToolDescriptorMenu(owner.name())
+      else menu.setToolDescriptorMenu(name)
+      end;
+
+      super()
+      
+    end
+    
+    //@Operation mergeTools(d:ToolDescriptor)
+    //  @For element inTableValues d.contents do
+    //    if element.isReallyKindOf(Tool)
+    //    then //"    tool added".println();
+    //         self.add(element)
+    //    end
+    //  end
+    //end
+    
+    @Operation postLoad()
+      self.init();
+      self.updateRegistry()
+    end
+    
+    @Operation tool(element,id):Tool
+      toolClass(type,id,manager.new(),element)
+    end
+
+    @Operation updateRegistry()
+
+      // Add any registry contributions. 
+
+      let registry = xmf.registry()
+      in
+        @For cPair in contributions do
+          registry.addContribution(cPair->head,cPair->tail)
+        end
+      end
+      
+    end
+
+  end

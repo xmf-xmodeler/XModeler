@@ -1,0 +1,131 @@
+parserImport XOCL;
+
+import MDC;
+import Values;
+import Types;
+import Clients;
+import Diagrams;
+
+context ! Values
+
+  @Class Association
+  
+    @Attribute source : Value         (?,!) end
+    @Attribute type   : Class_x_Edge  (?,!) end
+    @Attribute target : Value         (?,!) end
+    @Attribute edge   : Edge          (?,!) end
+    @Attribute object : XCore::Object (?,!) end
+    
+    @Constructor(edge,type,source,target,object) 
+    end
+    
+    @Operation coerceValue(att:Attribute,value:String)
+    
+      // Used to translate a display change into a value
+      // for a slot based on the type of the attribute...
+      
+      @Case att.underlyingType() of
+        [String] do
+          value
+        end
+        [Integer] do
+          value.asInt()
+        end
+        [Boolean] do
+          value.asBool()
+        end
+        [Float] do
+          value.asFloat()
+        end
+        else value
+      end
+    end
+    
+    @Operation labelChanged(tool,label,new,old)
+    
+      // Called when the label text has changed.
+      // The label may correspond to an attribute
+      // in which case the object must be changed...
+      
+      let map = type.attributeFor(label)
+      in if map <> null
+         then map.setValue(tool,object,self.coerceValue(map.attribute(),new))
+         end
+      end
+    end
+    
+    @Operation populate(tool)
+    
+      // Called when the labels need to be updated with the current
+      // contents of the object...
+      
+      @For map in type.attributes() do
+        @Find(label,edge.labels)
+          when label.type() = map.label()
+          do let value = map.ref(tool,object).toString() 
+             in if value = "" 
+                then label.textChanged("<UNKNOWN>")
+                else label.textChanged(value)
+                end
+             end
+        end
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Association~%~V",Seq{indent+2});
+      format(out,"Source~%~V",Seq{indent+4});
+      source.pprint(out,indent+4);
+      format(out,"~%~VTarget~%~V",Seq{indent+2,indent+4});
+      target.pprint(out,indent+4);
+      format(out,"~%~Vend",Seq{indent+2})
+    end
+    
+    @Operation remove(tool)
+    
+      // Called when the edge has been removed from the diagram.
+      // Delete the associated object from the controlled value...
+
+      type.edgeRemoved(tool,object)
+    end
+    
+    @Operation sourceReconnected(tool,newValue,oldValue)
+    
+      // Called when the source of the association has changed.
+      // The element must be updated...
+      
+      let result = type.sourceReconnected(tool,object,newValue.element(),oldValue.element())
+      in
+        self.setSource(newValue);
+        result
+      end
+    end
+    
+    @Operation stateChanged(tool,object,slot,new,old)
+    
+      // Called when the object's state has changed...
+      
+      @Find(label,edge.labels)
+        when 
+          type.attributes()->exists(map | 
+            map.label() = label.type() and 
+            map.attribute().name() = slot andthen
+            map.monitoredObject(tool,self.object) = object)
+        do 
+          label.textChanged(new.toString())
+      end
+    end
+    
+    @Operation targetReconnected(tool,newValue,oldValue)
+    
+      // Called when the target of the association has changed.
+      // The element is updated...
+      
+      let result = type.targetReconnected(tool,object,newValue.element(),oldValue.element())
+      in
+        self.setTarget(newValue);
+        result
+      end
+    end
+    
+  end

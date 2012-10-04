@@ -1,0 +1,199 @@
+parserImport XOCL;
+
+import XCore;
+import Clients;
+import Menus;
+import Projects;
+import IO;
+
+context ProjectManager
+  @Operation createFileBrowser()
+    self
+  end
+  
+context ProjectManager
+  @Operation deploy_client()
+    self.deploy();
+    xmf.message(self.toString() + " deployed.")
+  end
+  
+context ProjectManager
+  @Operation loadFixedProject(fix:Boolean)
+    @Operation()
+      try
+        let project = self.loadMosaicProject(fix)
+        in
+          if project = null
+          then
+            xmf.errorMessage("Project failed to load.")
+          //else
+          //   xmf.message(
+          //     "Project " + project.name().toString() + 
+          //     " loaded.\nProject created by " + project.creator() + " on " + project.creationDate() + ".\n" +
+          //     "Project saved by " + project.savedBy() + " on " + project.saveDate() + ".\n")
+           end
+        end
+      catch(exception)
+        if exception.isKindOf(MachineException) andthen exception.id = 5 // NAMESPACEERR
+        then let message = "Missing namespace reference error:\n\n"
+                         + exception.message.subst("","Machine.nameSpaceRef: ",false)
+                         + ".\nYou need to load the project defining this element first."
+             in xmf.errorMessage(message)
+             end
+        else
+          throw exception
+        end
+      end
+    end
+  end
+  
+context ProjectManager
+  @Operation newProject()
+    // Create a new standard project that will save and load to the
+    // file system. The project is initialized with a new package
+    // that will contain all of the elements for the project. The
+    // new package is added to root. 
+    
+    let 
+      name = Root.newName("Project") then
+      package = XCore::Package(name) then
+      project = Project(package,"",null)
+    in
+      Root.add(package);
+      self.add(project)
+    end
+  end
+
+context ProjectManager
+  @Operation loadDefinition():Element
+    // Compiles and loads a .xmf source file specified by an open file dialog.
+       
+    let selectedFile = xmf.openFile(xmf.saveDir(),"*.xmf") then
+        fileStem = selectedFile.toString().subst("",".xmf",true) then
+        sourceFile = fileStem+".xmf" then
+        objectFile = fileStem+".o"
+    in  if not sourceFile.fileExists() then
+          xmf.warning("File does not exist or has wrong extension.")
+        else
+          try
+            Compiler::compileFile(fileStem,true,true);
+            objectFile.loadBin(true)
+          catch(exception)
+            xmf.errorMessage(exception.message)
+          end
+        end
+    end
+  end
+
+context ProjectManager
+  @Operation doubleClick()
+    self
+  end
+
+context ProjectStub
+  @Operation build_check()
+    try
+      self.build();
+      xmf.message(self.toString() + " build completed.")
+    catch(exception)
+      xmf.warning("Error building project " + exception.toString())
+    end
+  end
+
+context ProjectStub
+  @Operation load_check()
+    try
+      self.load();
+      xmf.message(self.toString() + " load completed.")
+    catch(exception)
+      xmf.warning("Error loading project " + exception.toString());
+      throw exception
+    end
+ end
+
+context Project
+  @Operation browse()
+    if self.loaded()
+    then package.browse()
+    else 
+      if xmf.question("Load " + self.name())
+      then 
+        self.load();
+        if self.loaded()
+        then package.browse()
+        end
+      end
+    end
+  end
+
+context Project
+  @Operation build_check()
+    try
+      self.build();
+      xmf.message(self.toString() + " build completed.")
+    catch(exception)
+      xmf.warning("Error building project " + exception.toString())
+    end
+  end
+
+context Project
+  @Operation deploySelf()
+     xmf.projectManager().deployProject(self)
+  end
+
+context Project
+  @Operation save()
+    if self.resourceName = ""
+    then self.saveAs(self.mappings())
+    else self.save(self.mappings())
+    end
+  end
+
+context Project
+  @Operation saveAs()
+    self.saveAs(self.mappings())
+  end
+
+context Project
+  @Operation delete_client()
+    self.deleteRecursive()
+  end
+
+context Project
+  @Operation mappings()
+  
+    // Returns all the mappings that are defined for the (package of the) receiver.
+    // This is used when the project is saved as a XAR file. The project is saved and
+    // the mappings are saved in order to reconstruct the diagrams from the mappings
+    // when the XAR file is re-loaded.
+    
+    let clients = xmf.getAllClients() in
+      let mappings = Set{} then
+          packages = package.allContentsOf(XCore::Package)->including(package)
+      in
+        @For client in clients do
+          mappings := mappings + packages->collect(package | client.mappingsFor(package))->flatten
+        end;
+        mappings
+      end
+    end
+  end
+
+context Project
+  @Operation doubleClick()
+    if xmf.preference("ExpandableProjectBrowser")
+    then
+      //if owner.expandedProjects->includes(self)
+      //then owner.expandedProjects := owner.expandedProjects->excluding(self)
+      //else owner.expandedProjects := owner.expandedProjects->prepend(self)
+      //end
+      self
+    else
+      self.browse()
+    end
+  end
+
+context ProjectStub
+  @Operation doubleClick()
+    self.load_check()
+  end

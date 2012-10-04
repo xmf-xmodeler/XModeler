@@ -1,0 +1,55 @@
+// toXMLGrammarOp() is designed to support the generation of support operations
+// from XCore models. It is used by XML grammars generated from XCore models 
+// using toXMLGrammar(). 
+// Once a grammar has been defined it can be used to import XML that 
+// conforms to the syntax thereby populating the model.
+
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+ 
+import Parser::BNF;
+ 
+context Class
+  @Operation toXMLGrammarOp(package)
+    let attributes = self.allAttributes() in
+      let patterns = attributes->asSeq->collect(a |
+          a.name + " = " + 
+            if a.type.isKindOf(XCore::Set) then
+              a.name + "->asSet()" 
+            elseif a.type = XCore::Boolean then
+              a.name + " = \"true\""
+            else
+              a.name
+            end)->asSeq()->separateWith(",");
+          filters = attributes->asSeq->reject(a | 
+          a.underlyingType().isKindOf(DataType))->collect(f |
+            " " + f.name + " = " + 
+            if f.type.isKindOf(XCore::Set) or f.type.isKindOf(XCore::Seq) then
+              package.name + "Parser::dataFilter(data," + f.underlyingType().pathSeq()->separateWith("::") + "," + "\"" +  f.name + "\")"
+            else
+              package.name + "Parser::valueFilter(data," + f.underlyingType().pathSeq()->separateWith("::") + "," + "\"" + f.name + "\")" 
+            end)->separateWith(";\n")  
+        in
+          "context " + package.name + "Parser\n" + 
+          "@Operation " + self.name + "Body(" + (Seq{"data","endName"} + 
+          self.allAttributes()->asSeq->select(a | a.underlyingType().isKindOf(DataType))->
+            collect(a | a.name))->separateWith(",") + ")" +
+          if filters <> "" then
+            "\nlet\n" + filters + "\n" + "in\n" +
+            " Seq{endName | " + self.pathSeq()->separateWith("::") + "[ " + patterns + "]}" + "\n" + "end"
+          else
+            " " + self.pathSeq()->separateWith("::") + "[ " + patterns + "]"
+          end + "\n" + "end\n\n" 
+      end
+    end
+  end 
+
+context Package
+  @Operation toXMLGrammarOp()
+    self.allContentsOf(Class)->reject(c | c.isKindOf(Package))->collect(c | c.toXMLGrammarOp(self))->asSeq()->separateWith("\n")
+  end
+
+ 

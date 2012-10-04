@@ -1,0 +1,32 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe a Break within the context of the namespace Frames
+context Frames
+
+	// the class Break provides identification of the points at which the
+	// client Frame may be adapted - however the presence of a Break within
+	// a Frame does mandate that the Frame must be adapted by clients
+    @Class Break extends CompositeExpression
+		// create an instance of the class
+		@Constructor(name) end
+		
+		// unsurprisingly, the grammar for a Break is essentially that of a Frame
+		@Grammar extends OCL::OCL.grammar
+			Break ::= name=Name elements=Exp* 
+				{ import OCL 
+					in elements->iterate(element break = [| import Frames in Break(<StrExp(name)>) end |] | 
+						[| <break>.add(<element>) |] ) end }.
+		end
+
+		@Attribute name : String end
+		
+		// query operation
+		@Operation isBreak():Boolean
+			true
+		end
+    end

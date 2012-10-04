@@ -1,0 +1,52 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+import XMap;
+
+context XMap
+
+  @Class DeleteAction extends Sugar, SyncContainerAction
+  
+    @Doc
+      A delete action is a general action that can occur to a container.
+      The DeleteAction construct is general and is specialized to particular 
+      forms of container synchronization and mapping.
+    end
+  
+    @Attribute arg : String end
+    @Attribute body : Performable end
+    @Attribute name : String (!) end
+    
+    @Constructor(arg,body) end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      DeleteAction ::= '(' arg = Name ')' body = Exp { DeleteAction(arg,body) }.
+      
+    end
+    
+    @Operation desugar():Performable
+      import OCL
+      in
+        [| @Operation(slot,newValue,oldValue)
+             if slot.name = <StrExp(name)>
+             then
+               let old = oldValue - newValue
+               in if not old->isEmpty
+                  then 
+                    @For <arg> in old do
+                      let <name> = self.<name>
+                      in <body>
+                      end
+                    end
+                  end
+               end 
+             end
+           end
+         |]
+       end
+     end
+     
+   end    

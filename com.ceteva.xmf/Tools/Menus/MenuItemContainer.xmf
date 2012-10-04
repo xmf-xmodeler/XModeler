@@ -1,0 +1,63 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+
+context Menus
+
+  @Class MenuItemContainer isabstract
+
+    @Attribute items : Seq(MenuItem) (+,-,?) end
+
+    @Operation reorder(item)
+      let options = self.items->excluding(item) + Seq{"end"};
+          stringOp = 
+            @Operation(e)
+              if e = "end"
+              then "- End of Sequence -"
+              else e.name()
+              end
+            end;
+          message = "Select the menu item that you want to insert '"
+                    + item.name() + "' before" then
+          beforeItem = xmf.select("Move Menu Item",
+                                  message,
+                                  options,
+                                  null,
+                                  stringOp)
+      in
+        if beforeItem <> null
+        then
+          self.items := items->excluding(item);
+          if beforeItem = "end"
+          then
+            self.items := items + Seq{item}
+          else
+            let newPos = items.indexOf(beforeItem)
+            in  self.items := items.insertAt(item,newPos)
+            end
+          end;
+          // return moved item for further processing if necessary...
+          item
+        else null
+        end
+      end
+    end
+
+    @Operation reorder()
+      let stringOp = @Operation(e) e.name() end then
+          item = xmf.select("Reorder Menu Items",
+                             "Choose an menu item to move",
+                             self.items,
+                             null,
+                             stringOp)
+      in
+        if item <> null
+        then
+          self.reorder(item)
+        end
+      end
+    end
+
+  end

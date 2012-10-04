@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class Greater extends Instr
+ 
+    @Doc
+      A machine instruction. Expects two elements at the head
+      of the stack. Pops the elements and performs a > operation.
+      If the elements are numbers then > will push the appropriate
+      boolean value. If the machine does not understand the operand 
+      types then 'gre/1' is sent to the left hand operand. The result 
+      is left at the head of the stack.
+    end 
+     
+    @Operation toString():String
+      "<Greater>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end

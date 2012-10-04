@@ -1,0 +1,7 @@
+import OCL;
+
+context FloatExp
+
+  @Operation eval(target,env,imports):Element
+    Kernel_mkFloat(prePoint,postPoint)
+  end

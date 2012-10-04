@@ -1,0 +1,30 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import ClassDiagrams;
+import Menus;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class SyncableDiagramXNode extends DiagramXNode
+
+    @Operation daemons_syncModeChanged(diagram,slot,newTotal,oldTotal)
+      node.setIcon(node.getIcon())
+    end
+
+    @Operation checkDaemons()
+      super();
+      @SlotValueChanged multi once SyncableDiagramXNode::daemons_syncModeChanged(element,"total") end;
+      self
+    end
+
+    @Operation removeDaemons()
+      super();
+      element.removeDaemonsWithTarget(self,true);
+      self
+    end
+
+  end

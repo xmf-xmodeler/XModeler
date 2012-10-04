@@ -1,0 +1,45 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Form
+  
+    @Attribute id           : String end
+    @Attribute name         : String end
+    @Attribute tables       : Seq(Table) end
+    @Attribute textBoxes    : Seq(TextBox) end
+    @Attribute dropDowns    : Seq(DropDown) end
+    @Attribute checkBoxes   : Seq(CheckBox) end
+    @Attribute radioButtons : Seq(RadioButton) end
+    @Attribute buttons      : Seq(Button) end
+    @Attribute labels       : Seq(Label) end
+    
+    @Constructor(id,name,tables,textBoxes,dropDowns,checkBoxes,radioButtons,buttons,labels) end
+     
+    @ToXML(FORM)[Id=id,Name=name] 
+      tables*
+      textBoxes*
+      dropDowns*
+      checkBoxes*
+      radioButtons*
+      buttons*
+      labels*
+    end 
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else 
+        @Find(x,tables + textBoxes + dropDowns + checkBoxes + radioButtons + buttons + labels)
+          when x.find(id) <> null
+          do x.find(id)
+          else null
+        end
+      end
+    end
+    
+  end

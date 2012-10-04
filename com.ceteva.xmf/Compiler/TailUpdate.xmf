@@ -1,0 +1,24 @@
+import OCL;
+import Instrs;
+
+context TailUpdate
+  @Operation FV():Set(String)
+    seq.FV() + value.FV()
+  end
+  
+context TailUpdate
+  @Operation maxLocals():Integer
+    seq.maxLocals() + value.maxLocals()
+  end
+  
+context TailUpdate
+  @Operation compile(env,frame,isLast,saveSource)
+    value.compile(env,frame,false,saveSource) +
+    seq.compile(env,frame,false,saveSource) +
+    Seq{SetTail()}
+  end
+  
+context TailUpdate 
+  @Operation lift()
+    Apply(self.typeExp(),Seq{seq.lift(),value.lift()})
+  end

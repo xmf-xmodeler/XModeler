@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest TextEditor
+  TextEditor = @File TextEditor end
+  @File Editor end
+  @File FileEditor end
+  @File FileTextEditor end
+  @File FileEditorManager end
+  @File HTMLViewer end
+  @File HTMLFileViewer end
+  @File TextCommandInterpreter end
+  @File TextEventHandler end
+  @File TextEditorClient end
+  @File StatefulEditor end
+  @File TextEditorChannel end
+  @File ExpEditor end
+  @File OleEditor end
+  @File Extensions end
+do Project(TypeCTextEditorheck,dir,self)
+end;

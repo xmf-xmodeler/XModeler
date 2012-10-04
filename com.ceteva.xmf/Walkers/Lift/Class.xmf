@@ -1,0 +1,20 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler XCore::Class in Lift(o,arg,encountered)
+  o.lift()
+end;
+
+context XCore::Class
+  @Operation lift():Performable
+    let metaExp = Path::toPath(self.of().pathSeq());
+        parentExps = parents->asSeq->collect(p | Path::toPath(p.pathSeq()));
+        cnstrExps = constructors->asSeq->collect(c | c.lift());
+        attExps = attributes->asSeq->collect(a | a.lift());
+        opExps = operations->asSeq->collect(o | o.lift());
+        conExps = constraints->reject(c | c.isKindOf(Associations::End))->asSeq->collect(c | c.lift())
+    in XOCL::Class(name,metaExp,isAbstract,parentExps,cnstrExps + attExps + opExps + conExps)
+    end
+  end

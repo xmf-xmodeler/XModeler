@@ -1,0 +1,377 @@
+parserImport XOCL;
+
+import Clients;
+import DiagramsMapping;
+import Tools;
+import Events;
+import DiagramTools;
+import DiagramEvents;
+import Structure;
+import Diagrams;
+import Types;
+import Data;
+
+context Structure
+
+  @Class Tool extends Basic::Tool, Clients::Diagrams::DiagramListener
+  
+    @Doc
+      A tool is a combination of a diagram, an element and a tool type. The tool type
+      is defined to be the (meta) class of the tool. Tools are instantiated with a
+      name and an element. The result of instantiating a tool is a diagram that
+      can be edited to manage the underlying element contained in the tool. The
+      tool type defines how the edits are interpreted with respect to the underlying
+      tool element. Generally, edits to the tool cause events to be generated that
+      are handled by event handlers in the tool type.
+    end
+  
+    @Attribute diagram : Diagram (?) end
+    
+    @Constructor(type,id,elementManager,element)
+      self.diagram := Diagram(id);
+      diagram.setType(self.type());
+      diagram.setEdgeAddedHandler(Tool::mkEdgeAddedHandler(self));
+      diagram.setEdgeRemovedHandler(Tool::mkEdgeRemovedHandler(self));
+      diagram.setNodeAddedHandler(Tool::mkNodeAddedHandler(self));
+      diagram.setNodeRemovedHandler(Tool::mkNodeRemovedHandler(self));
+      type.addMenuItems(self)
+    end
+    
+    @Operation mkEdgeAddedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Structure::Tool::mkEdgeAddedHandler"](edge)
+        tool.edgeAdded(edge)
+      end.setOwner(null)
+    end
+    
+    @Operation mkEdgeRemovedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Structure::Tool::mkEdgeRemovedHandler"](edge)
+        tool.edgeRemoved(edge)
+      end.setOwner(null)
+    end
+    
+    @Operation mkNodeAddedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Structure::Tool::mkNodeAddedHandler"](node,diagram)
+        tool.nodeAdded(node,diagram)
+      end.setOwner(null)
+    end
+    
+    @Operation mkNodeRemovedHandler(tool)
+      @Operation[closure="Tools::DiagramTools::Structure::Tool::mkNodeRemovedHandler"](node,diagram)
+        tool.nodeRemoved(node,diagram)
+      end.setOwner(null)
+    end
+    
+    @Constructor(type,id,elementManager,diagram,element)
+    
+      // If we supply the diagram then we must ensure that all the events are handled
+      // by the tool. Override all the event handlers...
+      
+      diagram.setType(self.type());
+      diagram.setEdgeAddedHandler(@Operation(edge) self.edgeAdded(edge) end);
+      diagram.setEdgeRemovedHandler(@Operation(edge) self.edgeRemoved(edge) end);
+      diagram.setNodeAddedHandler(@Operation(node,diagram) self.nodeAdded(node,diagram) end);
+      diagram.setNodeRemovedHandler(@Operation(node,diagram) self.nodeRemoved(node,diagram) end);
+      self.setNewHandlers();
+      type.addMenuItems(self)
+    end
+
+    @Operation addTool(tool)
+      super(tool);
+      tool.setRecursiveNewHandlers();
+      let diagram = tool.diagram()
+      in
+        xmf.diagramManager().addDiagram(tool.tooledElement(),diagram);
+        tool.registerWithDiagram(diagram);
+        xmf.diagramManager().deregisterFromDiagram(diagram)
+      end
+    end
+
+    @Operation createToolDiagram(showDiagram:Boolean)
+    
+      // Display the diagram associated with the tool. This can be
+      // called when the diagram is first shown or in order to change
+      // client focus to the diagram. If the id of the diagram is not
+      // null then assume that the tool has been loaded from elsewhere.
+      // In this case renew the diagram and new the type (for the toolbar).
+      
+      let client = xmf.findClientByName("com.ceteva.diagram")
+      in
+        if client.hasDiagram(diagram) andthen showDiagram
+        then client.showDiagram(diagram);
+             diagram
+        else
+          if showDiagram
+          then
+            self.reallyCreateToolDiagram()
+          else
+            let tool = self then
+                handler = @Operation(element,name) tool.reallyCreateToolDiagram() end
+            in
+              DiagramStub(diagram.name(),self.tooledElement(),handler)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation createToolDiagram()
+      self.createToolDiagram(true)
+    end
+
+    @Operation edgeAdded(edge:Clients::Diagrams::Edge)
+      self.raise(NewEdge(edge,edge.source().owner(),edge.target().owner()))
+    end
+    
+    @Operation edgeRemoved(edge:Clients::Diagrams::Edge)
+      self.raise(EdgeRemoved(edge,edge.source().owner(),edge.target().owner()))
+    end
+    
+    @Operation edgeType(name:String)
+      type.edgeType(name)
+    end
+
+    @Operation handleDiagramCloseEvent(diagram)
+      self
+    end
+
+    @Operation handleDiagramDeleteEvent(diagram)
+      /* if self.diagram = diagram
+      then self.removeFromOwner()
+      end */
+      
+      if self.diagram = diagram
+      then
+        if owner.isReallyKindOf(Structure::ToolDescriptor)
+        then owner.deregisterFromDiagram(diagram)
+        end;
+        
+        let client = xmf.findClient(Clients::Diagrams::DiagramClient)
+        in client.remove(diagram)
+        end;
+        
+        //@For tool in self.allTools() do
+        //  xmf.diagramManager().removeDiagram(tool.diagram());
+        //  tool.diagram := null
+        //end;
+        
+        xmf.diagramManager().removeDiagram(diagram);
+        self.diagram := null;
+        
+        @For tool in self.subTools do
+          //tool.removeFromOwner()
+          tool.handleDiagramDeleteEvent(tool.diagram)
+        end;
+        
+        let menuManager = xmf.menuManager()
+        in
+          @For menuKey inTableKeys menuManager.menuTable do
+            if menuKey.isKindOf(SetOfElement) andthen menuKey->includes(self)
+            then let globalMenu = menuManager.getMenu(menuKey)
+                 in  menuManager.removeMenu(menuKey);
+                     globalMenu.dispose()
+                 end
+            end
+          end
+        end;
+        
+        if owner <> null
+        then owner.removeTool(self)
+        end;
+        
+        self.removeDaemons()
+      end
+    end
+
+    @Operation handleDiagramRenewEvent(diagram)
+      type.new(self)
+    end
+
+    @Operation newEdge(name:String,sourcePort,targetPort)
+      
+      // Called when the user has created a new edge bwteen two ports
+      // using the mouse on the diagram.
+      
+      type.newEdge(name,sourcePort,targetPort,self)
+      
+    end
+    
+    @Operation newNode(name:String,x:Integer,y:Integer,diagram)
+    
+      // Called when a node creation button has been pressed and the
+      // mouse has been clicked on the (x,y) position on the diagram.
+      
+      diagram.type().newNode(name,x,y,self,diagram)
+      
+    end
+    
+    @Operation nodeAdded(node:Clients::Diagrams::Node,diagram)
+      self.raise(NewNode(node))
+    end
+    
+    @Operation nodeRemoved(node:Clients::Diagrams::Node,diagram)
+      self.raise(NodeRemoved(node))
+    end
+    
+    @Operation nodeType(name:String)
+      type.nodeType(name)
+    end
+
+    @Operation postLoad()
+      if not self.isSubTool()
+      then @Busy("Initializing Tool")
+             self.postLoadHandler()
+           end
+      else self.postLoadHandler()
+      end
+    end
+
+    @Operation postLoadHandler()
+      self.renewGlobalMenu();
+      @For tool in self.subTools do
+        tool.postLoad();
+        let diagram = tool.diagram()
+        in
+          xmf.diagramManager().addDiagram(tool.tooledElement(),diagram);
+          xmf.diagramManager().deregisterFromDiagram(diagram)
+        end
+      end
+    end
+
+    @Operation reallyCreateToolDiagram()
+      let client = xmf.findClientByName("com.ceteva.diagram")
+      in
+        diagram.close();
+        if diagram.id() = null
+        then
+          // client.newDiagram(diagram);
+          client.add(diagram);
+          client.deregisterFromDiagram(diagram);
+          type.new(self)
+        else
+          // client.renewDiagram(diagram);
+          client.add(diagram);
+          client.deregisterFromDiagram(diagram)
+          // type.new(self)
+        end;
+        diagram
+      end
+    end
+
+    @Operation removeFromOwner()
+      /* if owner.isReallyKindOf(Structure::ToolDescriptor)
+      then owner.deregisterFromDiagram(diagram)
+      end; */
+      diagram.delete()
+      /* let client = xmf.findClient(Clients::Diagrams::DiagramClient)
+      in client.remove(diagram)
+      end;
+      @For tool in self.allTools() do
+        xmf.diagramManager().removeDiagram(tool.diagram());
+        tool.diagram := null
+      end;
+      super() */
+    end
+
+    @Operation renewGlobalMenu()
+      let path = Seq{};
+          graph = diagram.graph then
+          nodes = graph.nodes;
+          edges = graph.edges
+      in
+        type.setGlobalMenu(diagram,self,path,false);
+
+        @For node in nodes do
+          node.renewGlobalMenu(self,path)
+        end;
+        
+        @For edge in edges do
+          edge.renewGlobalMenu(self,path)
+        end
+      end
+    end
+    
+    @Operation setNewHandlers()
+      @For nodeType in self.type().nodeTypes() do
+        let name = nodeType.name().toString();
+            tool = self;
+            diagram = self.diagram
+        in diagram.defineNewHandler(name,@Operation(x,y) tool.newNode(name,x,y,diagram) end)
+        end
+      end;
+      @For edgeType in self.type().supportedEdgeTypes() do
+        let name = edgeType.name().toString();
+            tool = self
+        in diagram.defineNewHandler(name,@Operation(s,t) tool.newEdge(name,s,t) end)
+        end
+      end
+    end
+    
+    @Operation setRecursiveNewHandlers()
+      let rootToolType = self.rootTool().type()
+      in
+        //@For nodeType in rootToolType.recursiveNodeTypes() do
+        //  let name = nodeType.name().toString();
+        //      tool = self;
+        //      diagram = self.diagram
+        //  in diagram.defineNewHandler(name,@Operation(x,y) tool.newNode(name,x,y,diagram) end)
+        //  end
+        //end;
+        @For edgeType in rootToolType.recursiveEdgeTypes() do
+          let name = edgeType.name().toString();
+              tool = self
+          in diagram.defineNewHandler(name,@Operation(s,t) tool.newEdge(name,s,t) end)
+          end
+        end
+      end
+    end
+
+    @Operation showDiagram()
+    
+      // Display the diagram associated with the tool. This can be
+      // called when the diagram is first shown or in order to change
+      // client focus to the diagram. If the id of the diagram is not
+      // null then assume that the tool has been loaded from elsewhere.
+      // In this case renew the diagram and new the type (for the toolbar).
+      
+      @Find(client,xmf.clientManager().clients)
+        when client.name = "com.ceteva.diagram"
+        do if client.hasDiagram(diagram)
+           then client.showDiagram(diagram)
+           elseif diagram.id() = null
+           then
+             client.newDiagram(diagram);
+             type.new(self)
+           else 
+             client.renewDiagram(diagram)
+             // type.new(self)
+           end
+      end
+    end
+    
+    @Operation sourceChanged(edge,new,old)
+    
+      // The source of the edge has changed from new port to old port.
+      
+      self.raise(SourceChanged(edge,new.owner(),old.owner()))
+      
+    end
+    
+    @Operation targetChanged(edge,new,old) 
+    
+      // The target of the edge has changed from new port to old port.
+      
+      self.raise(TargetChanged(edge,new.owner(),old.owner()))
+      
+    end
+    
+    @Operation toolData()
+    
+      // Returns an instance of XToolData ready for serialization...
+      
+      XDiagramData(diagram.graph,elementManager.toolData())
+      
+    end
+    
+    
+    
+  end

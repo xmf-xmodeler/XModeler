@@ -1,0 +1,148 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class ConstraintPE extends AbstractObjectEditor
+
+    @Attribute selfDisplay : SingletonDisplay end
+    @Attribute ofDisplay : SingletonDisplay end
+    @Attribute ownerDisplay : SingletonDisplay end
+    @Attribute bodyDisplay : CodeboxDisplay end
+    @Attribute successDisplay : CodeboxDisplay end
+    @Attribute failDisplay : CodeboxDisplay end
+
+    @Operation new()
+      super();
+      self.addTextBoxRules()
+    end
+
+    @Operation addContents()
+      if not self.layoutManager = null then
+        layoutManager.add(self.selfDisplays());
+        layoutManager.addSeparator();
+        layoutManager.add(Seq{self.bodyDisplay(),self.successDisplay(),self.failDisplay()});
+        layoutManager.layoutContents()
+      else self.error("Layout manager must be set for " + self.toString())
+      end
+    end
+
+    @Operation selfDisplays()
+      self.selfDisplay := self.newSingletonDisplay(self.element,"self");
+      selfDisplay.field
+        .setIsEditable(true)
+        .setContex(element)
+        .setSlotName("self");
+      self.ofDisplay := self.newSingletonDisplay(self.element.of(),"of");
+      ofDisplay.field
+        .setIsEditable(false)
+        .setContex(element)
+        .setSlotName("of");
+      self.ownerDisplay := self.newSingletonDisplay(self.element.owner,"owner");
+      ownerDisplay.field
+        .setContex(element)
+        .setSlotName("owner");
+      Seq{selfDisplay,ofDisplay,ownerDisplay}
+    end
+
+    @Operation addTextBoxRules()
+      let rules = OCL::OCL.grammar.terminals()->asSeq in
+        @For rule inSeq rules do
+          bodyDisplay.textbox.addWordRule(rule,FormTextBox::blue);
+          successDisplay.textbox.addWordRule(rule,FormTextBox::blue);
+          failDisplay.textbox.addWordRule(rule,FormTextBox::blue)
+        end
+      end;
+      self
+    end
+
+    @Operation bodyDisplay()
+      self.bodyDisplay := self.sourceDisplay("body");
+      bodyDisplay
+    end
+
+    @Operation failDisplay()
+      self.failDisplay := self.sourceDisplay("fail");
+      failDisplay
+    end
+    
+    @Operation refresh()
+      super();
+      self.addTextBoxRules()
+    end
+
+    @Operation setTextOut(slotName:String,value)
+      let valueLabel = value.labelString() in
+        if slotName = "body" then
+          let textbox = bodyDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        elseif slotName = "success" then
+          let textbox = successDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        elseif slotName = "fail" then
+          let textbox = failDisplay.textbox
+          in
+            textbox.setText(valueLabel);
+            self.commandInterpreter().setText(textbox,valueLabel)
+          end
+        else
+          let displays = Seq{selfDisplay,ofDisplay,ownerDisplay} in
+            @Find(display,displays)
+              when display.label.text.toString() = slotName
+              do
+                let textComponent = display.field in
+                  textComponent.element := value;
+                  textComponent.setText(valueLabel);
+                  self.commandInterpreter().setText(textComponent,valueLabel)
+                end
+            end
+          end
+        end;
+        self
+      end
+    end
+
+    @Operation sourceDisplay(slotName:String)
+      let source = self.strippedSource(self.element.get(slotName))
+      then
+        code =
+          if source.isKindOf(Null)
+          then ""
+          else source
+          end
+      then
+        textbox = ConstraintSourceTextBox(0,0,0,0,code,true)
+          .setContex(element)
+          .setSlotName(slotName)
+      in
+        self.newCodeboxDisplay(textbox,slotName)
+      end
+    end
+
+    @Operation strippedSource(op)
+      let
+        source = op.source() then
+        as = OCL::OCL.grammar.parseString(source,"Exp1",Seq{XOCL})
+      in
+        as.performable.pprint(3)
+      end
+    end
+
+    @Operation successDisplay()
+      self.element.success(); //Ensures the success slot is initialized first
+      self.element.fail(); //Ensures the fail slot is initialized first
+      self.successDisplay := self.sourceDisplay("success");
+      successDisplay
+    end
+
+  end

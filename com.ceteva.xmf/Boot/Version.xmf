@@ -1,0 +1,207 @@
+parserImport XOCL;
+
+import XML;
+import IO;
+
+context Root
+
+  @Class Version
+  
+    @Doc
+      This class defines operations that manage the version information
+      maintained in the file Boot/verison.xml.
+    end
+  
+    @Attribute new : Boolean end
+    @Attribute silent : Boolean end
+    @Attribute document : Document end
+    @Attribute XMF : Element end
+    @Attribute version : Element end
+    @Attribute release : Element end
+    @Attribute delta : Element end
+    
+    @Constructor(new,silent)
+      self.loadVersion();
+      if new
+      then 
+        if silent
+        then self.incDelta()
+        else self.dialog()
+        end;
+        self.writeVersion()
+      end
+    end
+    
+    @Operation deltaId():Integer
+      if delta = null
+      then 0
+      else delta.getAtt("id").asInt()
+      end
+    end
+    
+    @Operation dialog()
+      @StandardDialog
+        @Dialog
+          @Commands
+            @Separator end
+            @Show "Current Version" self.version() end
+            @Separator end
+            @Options
+              @Option("New Version") self.newVersionDialog() end
+              @Option("New Release") self.newReleaseDialog() end
+              @Option("New Delta") self.newDeltaDialog() end
+              @Option("Increment Current Delta") self.incDelta(); @Skip end end
+            end
+           end  
+         end
+       end
+    end 
+    
+    @Operation incDelta()
+      delta.put("id",self.deltaId() + 1)
+    end
+    
+    @Operation loadVersion()
+      try
+        let input = XMLInputChannel(FileInputChannel(xmf.homeDir() + "/Boot/version.xml"))
+        in self.document := input.read();
+           self.setXMF();
+           self.setVersion();
+           self.setRelease();
+           self.setDelta();
+           input.close() 
+        end
+      catch(exception)
+        format(stdout,"Problem reading Boot/version.xml.~%");
+        throw exception
+      end
+    end
+    
+    @Operation newDelta(comment:String)
+      let id = Attribute("id",(self.deltaId() + 1).toString());
+          comment = Attribute("comment",comment);
+          children = release.children()
+      in self.delta := Element("Delta",Set{id,comment});
+         release.setChildren(Seq{self.delta | children})
+      end
+    end
+    
+    @Operation newDeltaDialog()
+      @Commands
+        @Show "" "Type in a comment for the new delta." end
+        @Separator end
+        @Let comment = @Value String end
+         in self.newDelta(comment);
+            @Skip end
+         end
+      end
+    end
+    
+    @Operation newReleaseDialog()
+      @Commands
+        @Show "" "Type in a comment for the new release." end
+        @Separator end
+        @Let comment = @Value String end
+         in self.newRelease(comment);
+            @Skip end
+         end
+      end
+    end
+    
+    @Operation newVersionDialog()
+      @Commands
+        @Show "" "Type in a comment for the new version." end
+        @Separator end
+        @Let comment = @Value String end
+         in self.newVersion(comment);
+            @Skip end
+         end
+      end
+    end
+    
+    @Operation newRelease(comment:String)
+      let id = Attribute("id",(self.releaseId() + 1).toString());
+          comment = Attribute("comment",comment);
+          children = version.children()
+      in self.release := Element("Release",Set{id,comment});
+         version.setChildren(Seq{self.release | children});
+         self.delta := null;
+         self.newDelta("Initial Delta For " + self.releaseId())
+      end
+    end
+    
+    @Operation newVersion(comment:String)
+      let id = Attribute("id",(self.versionId() + 1).toString());
+          comment = Attribute("comment",comment);
+          children = XMF.children()
+      in self.version := Element("Version",Set{id,comment});
+         XMF.setChildren(Seq{self.version | children});
+         self.release := null;
+         self.newRelease("Initial Release For " + self.versionId())
+      end
+    end
+    
+    @Operation releaseId():Integer
+      if release = null
+      then 0
+      else release.getAtt("id").asInt()
+      end
+    end
+    
+    @Operation setDelta()
+      let children = release.children()
+      in if children->isEmpty
+         then self.error("No versions")
+         else self.delta := children->head
+         end
+      end
+    end
+    
+    @Operation setRelease()
+      let children = version.children()
+      in if children->isEmpty
+         then self.error("No versions")
+         else self.release := children->head
+         end
+      end
+    end
+    
+    @Operation setVersion()
+      let children = XMF.children()
+      in if children->isEmpty
+         then self.error("No versions")
+         else self.version := children->head
+         end
+      end
+    end
+    
+    @Operation setXMF()
+      let root = document.root()
+      in if root = null
+         then self.error("No root element.")
+         else self.XMF := root
+         end
+      end
+    end
+    
+    @Operation version():String
+      self.versionId() + "." + self.releaseId() + "." + self.deltaId()
+    end
+    
+    @Operation versionId():Integer
+      version.getAtt("id").asInt()
+    end
+    
+    @Operation writeVersion()
+      try
+        let out = FileOutputChannel("Boot/version.xml")
+        in document.print(out);
+           out.close()
+        end
+      catch(exception)
+        format(stdout,"Problem updating Boot/version.xml.~%");
+        throw exception
+      end
+    end
+    
+  end 

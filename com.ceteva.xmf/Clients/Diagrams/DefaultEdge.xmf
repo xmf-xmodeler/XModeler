@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+
+context Diagrams
+
+  @Class DefaultEdge extends Edge
+  
+    @Constructor(source,target,sourceHead,targetHead) 
+      let label1 = Label("start","start",5,5,true);
+          label2 = Label("end","end",5,5,true)
+      in self.add(label1);
+         self.add(label2)
+      end
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget
+      in
+        globalMenu.add(MenuAction("Delete","CTRL+D",target,Seq{},Edge::delete));
+        globalMenu
+      end
+    end
+    
+  end
+    

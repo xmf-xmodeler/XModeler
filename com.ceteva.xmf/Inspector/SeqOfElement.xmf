@@ -1,0 +1,67 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import Env;
+
+context AllAspects::Inspect
+
+  @Class SeqOfElement
+  
+    @Operation inspectDialog(level)
+      if self->isEmpty 
+      then super(level)
+      else self.headTailDialog(level)
+      end
+    end
+    
+    @Operation headTailDialog(level)
+      @Dialog
+        @Dialog setHead
+          @Let newHead = @Value Element end
+           in self->head := newHead;
+              self.headTailDialog(level)
+           end
+        end
+        @Dialog setTail
+          @Let newTail = @Value Element end
+           in self->tail := newTail;
+              self.headTailDialog(level)
+           end
+        end
+        @Commands
+          @Separator end
+          @Show "Inspect[ " + level + "]" self end
+          @Separator end
+          @Show "Head" self->head end
+          @Show "Tail" self->tail end
+          @Separator end
+          @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Inspect Head") 
+              @Commands
+                self->head.inspectDialog(level + 1) 
+                self.headTailDialog(level)
+              end
+            end
+            @Option("Inspect Tail")
+              @Commands
+                self->tail.inspectDialog(level + 1)
+                self.headTailDialog(level)
+              end 
+            end 
+            @Option("Set Head") setHead end
+            @Option("Set Tail") setTail end
+          end
+        end
+      end
+    end
+  end

@@ -1,0 +1,91 @@
+parserImport XOCL;
+parserImport StateMachines;
+
+context Root
+
+  @StateMachine TrafficLight
+  
+    // A traffic light has a colour and receives 
+    // an event each time the light should change
+    // to the next state.
+  
+    @Attribute colour : String end
+    @Attribute event  : Boolean end
+    
+    // States...
+    
+    @InitialState Red end
+    @State RedAmber end
+    @State Green end
+    @State Amber end
+    
+    // Transitions...
+    
+    @Transition t1 Red -> RedAmber 
+      when event 
+      do self.event := false 
+    end
+    
+    @Transition t2 RedAmber -> Green 
+      when event 
+      do self.event := false 
+    end
+    
+    @Transition t3 Green -> Amber 
+      when event 
+      do self.event := false 
+    end
+    
+    @Transition t4 Amber -> Red 
+      when event 
+      do self.event := false 
+    end
+    
+  end
+  
+context Root
+  @StateMachine VendingMachine
+  
+    // A vending machine accepts coins and dispenses
+    // cans at a predefined price. If more coins than
+    // necessary are inserted then the change must be
+    // released before the next can can be dispensed.
+  
+    @Attribute coins : Integer end
+    @Attribute cans  : Integer end
+    @Attribute price : Integer end
+    
+    // States...
+    
+    @InitialState Idle end
+    @State Vending end
+    @State Change end
+    
+    // Transitions...
+    
+    @Transition t1 Idle -> Vending 
+      when coins > 0 and coins < price 
+      do null 
+    end
+    
+    @Transition t2 Vending -> Idle 
+      when coins = 0 
+      do null 
+    end
+    
+    @Transition t3 Vending -> Idle 
+      when coins = price and cans > 0
+      do self.coins := 0; self.cans := cans - 1 
+    end
+    
+    @Transition t4 Vending -> Change 
+      when coins > price and cans > 0 
+      do self.coins := coins - price; self.cans := cans - 1 
+    end
+    
+    @Transition t5 Change -> Idle 
+      when coins = 0 
+      do null 
+    end
+    
+  end

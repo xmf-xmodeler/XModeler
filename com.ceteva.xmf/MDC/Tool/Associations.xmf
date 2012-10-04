@@ -1,0 +1,158 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import MDC;
+import Types;
+import Tools::DiagramTools::Types;
+import DisplayTypes;
+import Displays;
+
+context MDC
+  @Operation associationEndPaths(element,limit)
+  
+    // Calculate the paths from the association class to the 
+    // class that the edge end is linked to. These paths could
+    // be arbitrarily long in principle. We limit the length.
+    
+    @TypeCase(element)
+      Class do
+        let A = element.allAttributes()->asSeq
+        in A->iterate(a P = Seq{} | P + associationEndPaths(a,limit-1))
+        end
+      end
+      Classifier do
+        Seq{}
+      end
+      Attribute do
+        let type = element.underlyingType()
+        in if limit > 0
+           then associationEndPaths(type,limit-1)->collect(p | Seq{element | p})->including(Seq{element})
+           else Seq{Seq{element}}
+           end
+        end
+      end
+      else Seq{}
+    end
+  end
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Association"()
+  let rootElementType = event.tool().find(event.parent()) then
+      // Collect all the instantiable class valued attributes of the controlled class...
+      A = rootElementType.classifier().allAttributes()
+        ->select(a | a.underlyingType().isKindOf(Class) andthen not a.underlyingType().isAbstract)->asSeq then
+      // Collect all the node classes...
+      N = rootElementType.allNodes()->collect(node | node.type().classifier()) then
+      // Filter the attributes for those whose type has attribute links to nodable classes...
+      A = A->select(a | 
+        associationEndPaths(a.underlyingType(),3)->exists(p1 | 
+          N->includes(p1->last.underlyingType()) and
+          associationEndPaths(a.underlyingType(),3)->exists(p2 |
+            N->includes(p2->last.underlyingType()))));
+      pathToString = @Operation(path) formats("~{.~;~S~} : ~S",Seq{path.name,path->last.underlyingType().name()}) end
+  in if A->isEmpty
+     then
+       xmf.warning("No edge classes available");
+       event.value().delete()
+     else
+       let att = xmf.select("Edge Class","Select an edge class",A,null,null)
+       in if att = null
+          then event.value().delete()
+          else
+            let A = associationEndPaths(att.underlyingType(),3)->select(p | N->includes(p->last.underlyingType())) then
+                sourcePath = xmf.select("Source Attribute","Select the source attribute",A,null,pathToString) then
+                sourceAtt = if sourcePath = null then null else sourcePath->last end
+            in if sourceAtt = null
+               then event.value().delete()
+               else 
+                 let A = A->excluding(sourcePath) then
+                     targetPath = xmf.select("Target Attribute","Select target attribute",A,null,pathToString) then
+                     targetAtt = if targetPath = null then null else targetPath->last end
+                 in if targetAtt = null
+                    then event.value().delete()
+                    else
+                      let sourceNode = @Find(n,rootElementType.allNodes()) when n.type().classifier() = sourceAtt.underlyingType() end;
+                          targetNode = @Find(n,rootElementType.allNodes()) when n.type().classifier() = targetAtt.underlyingType() end then
+                          edgeType = EdgeType(sourceNode.type().nodeType(),targetNode.type().nodeType()) then
+                          menu = edgeType.menu();
+                          menuNode = event.value().ref1(Seq{"Menu"});
+                          map = Class_x_Edge(att,sourcePath,targetPath,sourceNode,targetNode,edgeType)
+                      in edgeType.setName(map.toString());
+                         rootElementType.addToClassEdges(map);
+                         rootElementType.displayType().add(edgeType);
+                         event.tool().register(event.value(),map);
+                         event.tool().register(map,event.value());
+                         event.tool().register(menu,menuNode);
+                         event.tool().register(menuNode,menu);
+                         event.value().setTextIn(map.toString())
+                      end
+                    end
+                 end
+               end
+            end
+          end
+       end
+     end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Association"()
+  if event.tool().isRegistered(event.value())
+  then
+    let classEdge = event.tool().find(event.value()) then
+        edgeType = classEdge.edgeType();
+        rootElementType = event.tool().find(event.owner())
+    in rootElementType.deleteFromClassEdges(classEdge);
+       rootElementType.displayType().remove(edgeType);
+       event.tool().deregister(event.value());
+       event.tool().deregister(classEdge)
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"New_Type_Tree_RootElementType_(.*)Association_AttributeLabel"()
+  if event.tool().isRegistered(event.parent())
+  then 
+    let assMap = event.tool().find(event.parent()) then
+        class = assMap.attribute().underlyingType() then
+        P = associationEndPaths(class,3)->asSeq; //->select(p | p->last.type.isKindOf(DataType))->asSeq;
+        pathToString = @Operation(path) formats("~{.~;~S~} : ~S",Seq{path.name,path->last.underlyingType().name()}) end
+    in if P->isEmpty
+       then
+         xmf.message("No attributes for " + class.toString());
+         event.value().delete()
+       else
+        let p = xmf.select("Attribute","Select a label attribute",P,null,pathToString)
+        in if p = null
+           then event.value().delete()
+           else
+             let a = p->last then
+                 label = Label(a.name()) then
+                 attMap = Attribute_x_Label(label,p)
+             in label.setText(a.name().toString());
+                assMap.addToAttributes(attMap);
+                assMap.edgeType().add(label);
+                event.value().setTextIn(a.name().toString());
+                event.tool().register(attMap,event.value());
+                event.tool().register(event.value(),attMap)
+             end
+           end
+        end
+      end
+    end
+  end
+end;
+
+@EventHandler RootElementType::Editor::Manager::"Delete_Type_Tree_RootElementType_(.*)Association_AttributeLabel"()
+  if event.tool().isRegistered(event.value())
+  then 
+    let assMap = event.tool().find(event.owner()) then
+        attMap = event.tool().find(event.value())
+    in assMap.deleteFromAttributes(attMap);
+       assMap.edgeType().deleteFromLabels(attMap.label());
+       event.tool().deregister(attMap);
+       event.tool().deregister(event.value())
+    end
+  end
+end;

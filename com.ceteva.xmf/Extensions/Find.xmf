@@ -1,0 +1,73 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context XOCL
+
+  @Class Find extends Sugar
+  
+    @Doc
+      A find construct is used to perform an action in terms of an element
+      of a collection. Typically we want to find the first element in a 
+      collection that satisfies a given predicate and to perform an action.
+      If no value exists that satisfies the predicate then we optionally
+      want to perform some other action. This construct captures the pattern.
+      Constructor: Find(collection,name,test,action,alternative)
+    end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Find ::= '(' name = Name ',' coll = Exp ')' test = Test action = Action alt = Alt
+        { Find(coll,name,test,action,alt) }.
+      Alt ::= 'else' Exp | { [| false |] }.
+      Action ::= 'do' action = Exp | { [| findElement |] }.
+      Test ::= 'when' Exp | { [| true |] }.
+      
+    end 
+    
+    @Attribute collection : Performable end
+    @Attribute name : String end
+    @Attribute test : Performable end
+    @Attribute action : Performable end
+    @Attribute alternative : Performable end
+    
+    @Constructor(collection,name,test,action,alternative) ! end
+    
+    @Operation desugar() 
+      [| let findSeq = <collection>->asSeq;
+             findDone = false;
+             findResult = null
+         in @While not findSeq->isEmpty and not findDone do
+              let <name> = findSeq->head;
+                  findElement = findSeq->head
+              in if <test>
+                 then findDone := true;
+                      findResult := <action>
+                 else findSeq := findSeq->tail
+                 end
+              end
+            end;
+            if not findDone
+            then <alternative>
+            else findResult
+            end
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Find(~S,",Seq{name});
+      collection.pprint(out,indent);
+      format(out,")~%~Vwhen ",Seq{indent+2});
+      test.pprint(out,indent+4);
+      format(out,"~%~Vdo ",Seq{indent + 2});
+      action.pprint(out,indent+4);
+      format(out,"~%~Velse ",Seq{indent+2});
+      alternative.pprint(out,indent+4);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

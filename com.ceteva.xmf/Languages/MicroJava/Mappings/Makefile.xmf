@@ -1,0 +1,15 @@
+import Compiler;
+
+compileFile("Languages/MicroJava/Mappings/BinExpToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/Boot",true,true);
+compileFile("Languages/MicroJava/Mappings/Manifest",true,true);
+compileFile("Languages/MicroJava/Mappings/ClassToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/ConstraintsToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/XCoreToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/IterExpToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/IterateToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/LetToMicroJava",true,true);
+compileFile("Languages/MicroJava/Mappings/Mappings",true,true); 
+compileFile("Languages/MicroJava/Mappings/OCLtoMicroJava",true,true); 
+compileFile("Languages/MicroJava/Mappings/PackageToMicroJava",true,true); 
+ 

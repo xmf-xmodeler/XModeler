@@ -1,0 +1,16 @@
+<Object id ='0' path='Root::Clients::Diagrams::DiagramLayout::Layout'><Slot name='nodes'><List id='1'><Object id ='2' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:14;StackUnderflow' x='I:51;' y='I:158;'></Object>
+<Object id ='3' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:118;' height='I:95;' layoutId='S:9;Exception' x='I:44;' y='I:20;'></Object>
+<Object id ='4' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:50;' layoutId='S:5;Queue' x='I:55;' y='I:255;'></Object>
+<Object id ='5' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:101;' height='I:44;' layoutId='S:6;Vector' x='I:289;' y='I:254;'></Object>
+<Object id ='6' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:5;Stack' x='I:298;' y='I:152;'></Object>
+</List></Slot><Slot name='edges'><List id='7'><Object id ='8' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:5;Stack' targetId='S:6;Vector' refx='I:339;' refy='I:220;' sourceHead='I:0;' targetHead='I:1;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:8;elements' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='9'><Object id ='10' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='11' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:8;elements' relx='I:14;' rely='N:22;'></Object>
+</List></Slot></Object>
+<Object id ='12' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:5;Queue' targetId='S:6;Vector' refx='I:222;' refy='I:278;' sourceHead='I:0;' targetHead='I:1;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:8;elements' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='13'><Object id ='14' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='15' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:8;elements' relx='N:61;' rely='I:13;'></Object>
+</List></Slot></Object>
+<Object id ='16' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:14;StackUnderflow' targetId='S:9;Exception' refx='I:95;' refy='I:136;' sourceHead='I:0;' targetHead='I:5;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='17' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:14;StackUnderflow' targetId='S:5;Stack' refx='I:224;' refy='I:170;' sourceHead='I:0;' targetHead='I:1;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:5;stack' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='18'><Object id ='19' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='20' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:5;stack' relx='N:42;' rely='N:19;'></Object>
+</List></Slot></Object>
+</List></Slot></Object>

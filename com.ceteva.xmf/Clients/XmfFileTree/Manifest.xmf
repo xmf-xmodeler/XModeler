@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest XmfFileTree
+  XmfFileTree = @File XmfFileTree end
+  @File XmfFile end
+  @File JavaFile end
+  @File AdaFile end
+  @File XMLFile end
+  @File XmfManifest end
+  @File Extensions end
+do Project(XmfFileTree,dir,self)
+end;

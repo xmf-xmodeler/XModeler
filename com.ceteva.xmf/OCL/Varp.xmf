@@ -1,0 +1,79 @@
+parserImport XOCL;
+
+import OCL;
+import Env;
+
+context OCL
+
+  @Class Varp extends Pattern
+  
+    @Doc
+      A variable pattern is just a name, an optional pattern and an optional type.
+      When the pattern matches a value the name is bound to the value and the
+      pattern (when supplied) also matches the value.
+    end
+     
+     @Attribute name    : String end
+     @Attribute pattern : Pattern end
+     @Attribute type    : TypeExp end
+     
+     @Constructor(name)
+       self.type := NamedType()
+     end
+     
+     @Constructor(name,type) ! end 
+     
+     @Constructor(name,pattern,type) end
+   
+     @Operation bind(value:Element,target:Element,env:Env,imports:Seq(NameSpace)):Env
+       env.bind(name,value)
+     end
+     
+     @Operation lift():Performable
+       if name.isKindOf(Drop)
+       then Apply(self.typeExp(),Seq{name.lift(),type.lift()})
+       else Apply(self.typeExp(),Seq{StrExp(name),type.lift()})
+       end
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       if pattern = null
+       then success
+       else pattern.matchCode(value,success,fail)
+       end
+     end
+     
+     @Operation needsBacktrack():Boolean
+       if pattern <> null
+       then pattern.needsBacktrack()
+       else false
+       end
+     end
+     
+     @Operation newParam()
+       Parameter(self.newVar(),type)
+     end
+     
+     @Operation newVar():String
+       name
+     end
+     
+     @Operation pprint(out)
+       format(out,"~S",Seq{name});
+       if pattern <> null
+       then 
+         format(out," = ");
+         pattern.pprint(out)
+       end;
+       format(out," : ");
+       type.pprint(out,0)
+     end
+     
+     @Operation toSig()
+       if type.isKindOf(TypeExp)
+       then type.toSig()
+       else NamedType().toSig()
+       end
+     end
+     
+   end

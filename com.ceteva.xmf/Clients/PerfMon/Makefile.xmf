@@ -1,0 +1,6 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Clients/PerfMon/Boot",true,true);
+compileFile(xmf.homeDir() + "/Clients/PerfMon/Manifest",true,true);
+compileFile(xmf.homeDir() + "/Clients/PerfMon/PerfMon",true,true);
+compileFile(xmf.homeDir() + "/Clients/PerfMon/Memory",true,true);

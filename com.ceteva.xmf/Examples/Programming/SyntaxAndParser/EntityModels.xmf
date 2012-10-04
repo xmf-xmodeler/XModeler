@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+context Root
+
+  @Package EntityModels
+  
+    @Doc
+      A Simple Entity Model
+    end
+    
+    @Class Named extends XOCL::Syntax
+      @Attribute name : String end
+    end
+    
+    @Class EntityModel extends Named
+      @Attribute entities : Set(Entity) end
+    end
+    
+    @Class Entity extends Named
+      @Attribute relationships : Set(Relationship) end
+    end
+    
+    @Class Relationship extends Named
+      @Attribute type : String end
+    end
+    
+  end

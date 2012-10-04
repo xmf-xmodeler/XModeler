@@ -1,0 +1,8 @@
+import Tools;
+import FormTools;
+import Types;
+
+context Classifier
+  @Operation formToolDescriptors():Set(ToolDescriptor)
+    self.toolDescriptors()->select(t | t.type().isReallyKindOf(ToolType))
+  end

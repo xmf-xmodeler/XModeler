@@ -1,0 +1,22 @@
+Root::e := [| let x = 10; y = 20 in if x = y then z else a end end |];
+
+context Root
+  @Operation FV(e)
+    @Case e of
+      [| let <| Seq{} |> in <| e |> end |] do 
+        FV(e) 
+      end
+      [| let <| Seq{ OCL::ValueBinding(v,e1) | bs } |> in <| e2 |> end |] do
+        FV([| let <bs> in <e2> end|])->excluding(v)
+      end
+      [| if <| e1 |> then <| e2 |> else <| e3 |> end |] do
+        FV(e1) + FV(e2) + FV(e3)
+      end
+      [| <| e1 |> = <| e2 |> |] do
+        FV(e1) + FV(e2)
+      end
+      OCL::Var[name=n] do 
+        Set{n} 
+      end
+    end
+  end

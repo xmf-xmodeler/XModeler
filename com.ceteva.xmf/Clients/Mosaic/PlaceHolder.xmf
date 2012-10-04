@@ -1,0 +1,70 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import Mosaic;
+
+context Mosaic
+
+  @Class PlaceHolder extends ContainedClientElement
+  
+    @Grammar extends OCL::OCL.grammar
+  
+      PlaceHolder ::= name = Name '(' position = Position ',' ratio = Int 
+                      relative = ( ',' Name | { "" } ) ')' contents = Exp* {
+        contents->iterate(element exp = 
+          [| Clients::Mosaic::PlaceHolder(<OCL::StrExp(name)>,<OCL::StrExp(position)>,<OCL::StrExp(relative)>,<OCL::IntExp(ratio)>) |] |
+          [| <exp>.add(<element>) |])
+      }.
+      
+      Position ::= 'left' { "left" } |
+      			   'center' { "center" } |
+      			   'right' { "right" } |
+      			   'bottom' { "bottom" } |
+      			   'top' { "top" } .
+      			   
+      Relative ::= ',' Name | { null }.
+      
+    end
+  
+    @Attribute name		: String (?) end
+    @Attribute position : String (?) end
+    @Attribute relative : PlaceHolder (?) end
+    @Attribute ratio 	: Integer (?) end
+    @Attribute types	: Seq(String) (+,-) end
+    
+    @Constructor(position,relative,ratio)
+    end
+    
+    @Constructor(name,position,relative,ratio)
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        GraphicalTool do self.addType(element.id) end
+      end
+    end
+    
+    @Operation addType(type)
+      self.types := self.types->prepend(type)
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newPlaceHolder(self);
+      @For type in types
+      do
+        self.commandInterpreter().newPlaceHolderType(self,type)
+      end
+    end
+    
+    @Operation relative()
+      if relative.isKindOf(String) andthen relative <> ""
+      then 
+        self.relative := self.owner.resolvePlaceholder(relative)
+      end;
+      if relative <> ""
+      then relative.id()
+      else relative end
+    end
+  
+  end

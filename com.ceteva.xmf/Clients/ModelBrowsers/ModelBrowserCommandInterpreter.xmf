@@ -1,0 +1,233 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+import Forms;
+import PropertyEditors;
+import ClassMapping;
+
+context ModelBrowsers
+
+  @Class ModelBrowserCommandInterpreter extends XMLCommandInterpreter
+  
+    @Doc
+       This class defines a command interpreter over model browsers. It can be used as the basis
+       for defining event driven mappings. The mapping handles the following output
+       commands by sen-ding them in the appropriate format to the client connected to the
+       output channel:
+           [newModelBrowserCommandCommand(modelBrowser)]
+       end
+    
+    @Constructor()
+    end
+
+    @Operation deselectModelBrowserNodeCommand(node:ModelBrowserNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          deselectNode(nodeId)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation expandModelBrowserNodeCommand(node:ModelBrowserNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          expandNode(nodeId)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation moveModelBrowserNodeCommand(node:ModelBrowserNode,parent:ModelBrowserNode,index)
+      let
+        nodeId = node.id();
+        parentId = parent.id()
+      in
+        @SendCommand(self)
+          removeNode(nodeId)
+        end;
+        @SendCommand(self) 
+          addNodeWithIcon(parentId,nodeId,node.text(),node.editable,node.getIcon(),index) 
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newModelBrowserCommand(modelBrowser:ModelBrowser)
+      let modelBrowserId = self.allocateId(modelBrowser) in
+        @SendCommand(self) 
+          newModelBrowser(modelBrowserId,modelBrowser.type(),modelBrowser.name())
+        end;
+        modelBrowserId
+      end
+    end
+
+    @Operation newModelBrowserNodeCommand(parent,node:ModelBrowserNode)
+      let
+        nodeId = self.allocateId(node)
+      in
+        @SendCommand(self) 
+          addNodeWithIcon(parent.id(),nodeId,node.text(),node.editable,node.getIcon())
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newModelBrowserNodeCommand(parent,node:ModelBrowserNode,index)
+      let
+        nodeId = self.allocateId(node)
+      in
+        @SendCommand(self) 
+          addNodeWithIcon(parent.id(),nodeId,node.text(),node.editable,node.getIcon(),index) 
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newRightClickMenuCommand(parent,menuItem:MenuItem)
+      let menuItemId = self.allocateId(menuItem) in
+        @SendCommand(self) 
+          addMenuItem(parent.id(),menuItemId,menuItem.name())
+        end;
+        menuItemId
+      end
+    end
+
+    @Operation closeModelBrowserCommand(modelBrowser:ModelBrowser)
+      let modelBrowserId = modelBrowser.id() in
+        @SendCommand(self) 
+          closeModelBrowser(modelBrowserId)
+        end;
+        modelBrowserId
+      end
+    end
+
+    @Operation removeModelBrowserNodeCommand(node:ModelBrowserNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          removeNode(nodeId)
+        end;
+        nodeId
+      end
+    end
+    
+    @Operation selectModelBrowserNodeCommand(node:ModelBrowserNode,doExpand:Boolean)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          selectNode(nodeId,doExpand)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation enableDrag(clientElement)
+      let clientElementId=clientElement.id() in
+        @SendCommand(self)
+          enableDrag(clientElementId)
+        end;
+        clientElementId
+      end
+    end
+
+    @Operation enableDrop(clientElement)
+      let clientElementId=clientElement.id() in
+        @SendCommand(self)
+          enableDrop(clientElementId)
+        end;
+        clientElementId
+      end
+    end
+
+    @Operation setEditableNodeCommand(node:ModelBrowserNode,editable)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          setEditable(nodeId,editable)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation setEditableTextCommand(node:ModelBrowserNode,text)
+      let nodeId=node.id() in
+        @SendCommand(self)
+          setEditableText(nodeId,text)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation setFocus(modelBrowser:ModelBrowser)
+      let modelBrowserId = modelBrowser.id() in
+        if xmf.clientManager().idManager.hasId(modelBrowserId)
+        then
+          @SendCommand(self)
+            setFocus(modelBrowserId)
+          end
+        end
+      end
+    end
+
+    @Operation setModelBrowserClosableCommand(modelBrowser:ModelBrowser)
+      let modelBrowserId = modelBrowser.id() in
+        @SendCommand(self)
+          setClosable(modelBrowserId,modelBrowser.closable)
+        end;
+        modelBrowserId
+      end
+    end
+    
+    @Operation setModelBrowserTextCommand(modelBrowser:ModelBrowser,text:String)
+      let modelBrowserId = modelBrowser.id() in
+        @SendCommand(self)
+          setName(modelBrowserId,text)
+        end;
+        modelBrowserId
+      end
+    end
+
+    @Operation setNodeIconCommand(node:ModelBrowserNode,icon)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          setNodeIcon(nodeId,icon)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation setNodeTextCommand(node:ModelBrowserNode,text)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          setText(nodeId,text)
+        end;
+        //xmf.clientManager().setChangingNames(false);
+        nodeId
+      end
+    end
+
+    @Operation setToolTipTextCommand(node:ModelBrowserNode,text)
+      let nodeId=node.id() in
+        @SendCommand(self)
+          setToolTipText(nodeId,text)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation setVisible(modelBrowser:ModelBrowser)
+      @SendCommand(self)
+        setVisible(modelBrowser.id())
+      end
+    end
+
+    @Operation showDiagramCommand(node:ModelBrowserNode)
+      node.element.showDiagram();
+      node.id()    
+    end
+
+    @Operation showPropertiesCommand(node:ModelBrowserNode)
+      node.element.edit();
+      node.id()
+    end
+
+  end

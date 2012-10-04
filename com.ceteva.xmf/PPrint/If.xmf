@@ -1,0 +1,25 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler If in PPrint(aIf,out,seen)
+  self.mark(
+    @Operation()
+      format(out,"if ");
+      self.dispatch(aIf.test,out);
+      self.newLine();
+      format(out,"then ");
+      self.indent(
+        @Operation()
+          self.dispatch(aIf.get("then"),out)
+        end);
+      self.newLine();
+      format(out,"else ");
+      self.indent(
+        @Operation()
+          self.dispatch(aIf.get("else"),out)
+        end);
+      self.newLine();
+      format(out,"end")
+    end)
+end;

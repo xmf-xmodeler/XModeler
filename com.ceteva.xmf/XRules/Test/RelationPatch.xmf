@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import XRules;
+
+context Relation
+
+@Operation perform(rules,vars,indent,env,succ,fail,cut,exception) 
+      let v1 = left.eval(vars,env);
+          v2 = right.eval(vars,env)
+      in if rules.debug
+         then format(stdout,"~VTry ~S ~S ~S~%",Seq{indent,v1,name,v2})
+         end; 
+         @Case name of
+           ">" do
+             if v1.isKindOf(Integer) and v2.isKindOf(Integer)
+             then 
+               if v1 > v2
+               then succ(env,fail)
+               else fail()
+               end
+             else fail()
+             end
+           end
+           "<" do
+             if v1.isKindOf(Integer) and v2.isKindOf(Integer)
+             then 
+               if v1 < v2
+               then succ(env,fail)
+               else fail()
+               end
+             else fail()
+             end
+           end
+           "<>" do
+             let e = unify(v1,v2,env)
+             in if e = null
+                then succ(env,fail)
+                else fail()
+                end
+             end
+           end
+           ">=" do
+             if v1.isKindOf(Integer) and v2.isKindOf(Integer)
+             then 
+               if v1 >= v2
+               then succ(env,fail)
+               else fail()
+               end
+             else fail()
+             end
+           end
+           "<=" do
+             if v1.isKindOf(Integer) and v2.isKindOf(Integer)
+             then 
+               if v1 <= v2
+               then succ(env,fail)
+               else fail()
+               end
+             else fail()
+             end
+           end
+           "=" do
+             let env = unify(v1,v2,env)
+             in if env <> null
+                then succ(env,fail)
+                else fail()
+                end
+             end
+           end
+           else fail()
+         end
+      end
+    end

@@ -1,0 +1,51 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import DiagramTools;
+import Diagrams;
+
+context Diagrams
+
+  @Class Label extends Clients::Diagrams::Label, Display
+  
+    @Attribute labelChangedHandler : Operation (!) end
+    
+    @Operation init(args:Seq(Element))
+      super(args);
+      self.setDaemons();
+      self
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      super()
+    end
+
+    @Operation removeDaemons()
+      self.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation renew(parent)
+      self.setDaemons();
+      super(parent)
+    end
+
+    @Operation setDaemons()
+    
+      // Call the label changed handler when the text changes.
+      
+      @SlotValueChanged multi Label::textChanged(self,"text") end
+      
+    end
+    
+    @Operation textChanged(label,slot,new,old)
+      labelChangedHandler(label,new,old)
+    end
+    
+    @Operation toString()
+      self.type().name() + "()"
+    end
+  
+  end
+  

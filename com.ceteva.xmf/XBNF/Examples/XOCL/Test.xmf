@@ -1,0 +1,35 @@
+parserImport XCore;
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import XOCL;
+import Exceptions;
+
+context Root
+  @Operation test()
+    let t = Time()
+    in OCL::OCL.grammar().reset();
+       try Root::x := OCL::OCL.grammar().parseFile(xmf.homeDir() + "/XBNF/Examples/XOCL/Data.xmf","CompilationUnit",Seq{})
+       catch(x)
+         if x.isKindOf(ParseError)
+         then x.pprint().edit()
+         else throw x
+         end
+       end;
+       Time() - t
+    end
+  end
+  
+context Root
+  @Operation testParser()
+    let t = Time()
+    in try Root::x := OCL::OCL.grammar().parseFile(xmf.homeDir() + "/XBNF/Grammars/Parser.xmf","CompilationUnit",Seq{})
+       catch(x)
+         if x.isKindOf(ParseError)
+         then x.pprint().edit()
+         else throw x
+         end
+       end;
+       Time() - t
+    end
+  end

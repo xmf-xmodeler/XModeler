@@ -1,0 +1,581 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+import IO;
+
+context ClassDiagrams
+ 
+  @Class ClassDiagram extends SyncableDiagram, ThemableDiagram
+  
+    @Bind classWidth = 70 end   // A uniform box width.
+    
+    @Attribute classNodes         : Seq(ClassNode)       end
+    @Attribute elementNodes       : Seq(ElementNode)     end
+    @Attribute packageNodes       : Seq(PackageNode)     end
+    @Attribute noteNodes          : Seq(NoteNode)	     end
+    @Attribute inheritanceEdges   : Seq(InheritanceEdge) end
+    @Attribute attributeEdges     : Seq(AttributeEdge)   end
+    @Attribute containsEdges      : Seq(ContainsEdge)    end
+    @Attribute dependencyEdges    : Seq(DependencyEdge)  end
+    @Attribute associationEdges   : Seq(AssociationEdge) end
+    @Attribute showAttributes     : Boolean = true (?)   end
+    @Attribute showOperations     : Boolean = false (?)  end
+    @Attribute showMetaslots      : Boolean = false (?)  end
+    
+    @Operation addEdge(edge)
+      @TypeCase(edge)
+        AssociationEdge do
+          self.addAssociationEdge(edge);
+          super(edge)
+        end
+        InheritanceEdge do
+          self.addInheritanceEdge(edge);
+          super(edge)
+        end
+        AttributeEdge do
+          self.addAttributeEdge(edge);
+          super(edge)
+        end
+        ContainsEdge do
+          self.addContainsEdge(edge);
+          super(edge)
+        end
+        DependencyEdge do
+          self.addDependencyEdge(edge);
+          super(edge)
+        end
+        else self.error("I don't know how to add " + edge.toString() + " to a class diagram.")
+      end
+    end
+    
+    @Operation addNode(node)
+      @TypeCase(node)
+        ClassNode do
+          self.addClassNode(node);
+          super(node)
+        end
+        PackageNode do
+          self.addPackageNode(node);
+          super(node)
+        end
+        NoteNode do
+          self.addNoteNode(node);
+          super(node)
+        end
+        ElementNode do
+          self.addElementNode(node);
+          super(node)
+        end
+        DiagramNode do
+          self.addDiagramNode(node);
+          super(node)
+        end
+        else self.error("I don't know how to add " + node.toString() + " to a class diagram.")
+      end
+    end
+    
+    @Operation addAssociationEdge(associationEdge) 
+      self.associationEdges := associationEdges->prepend(associationEdge)
+    end
+    
+    @Operation addAttributeEdge(attributeEdge) 
+      self.attributeEdges := attributeEdges->prepend(attributeEdge)
+    end
+    
+    @Operation addClassNode(classNode)
+      self.classNodes := classNodes->prepend(classNode)
+    end
+    
+    @Operation addContainsEdge(containsEdge)
+      self.containsEdges := containsEdges->prepend(containsEdge)
+    end
+    
+    @Operation addDependencyEdge(dependencyEdge)
+      self.dependencyEdges := dependencyEdges->prepend(dependencyEdge)
+    end
+    
+    @Operation addElementNode(elementNode)
+      self.elementNodes := elementNodes->prepend(elementNode)
+    end
+    
+    @Operation addInheritanceEdge(inheritanceEdge)
+      self.inheritanceEdges := inheritanceEdges->prepend(inheritanceEdge)
+    end
+    
+    @Operation addNoteNode(noteNode)
+      self.noteNodes := self.noteNodes->prepend(noteNode)
+    end
+    
+    @Operation addPackageNode(packageNode)
+      self.packageNodes := packageNodes->prepend(packageNode)
+    end
+
+    @Operation buildGlobalMenu()
+      let globalMenu = super();
+          target = RightClickable::selfTarget;
+          hideMenu = MenuItems("Hide All");
+          showMenu = MenuItems("Show All")
+      in
+        globalMenu.add(hideMenu);
+        globalMenu.add(showMenu);
+        hideMenu.add(MenuAction("Attributes",target,Seq{true},ClassDiagram::hideAttributes));
+        hideMenu.add(MenuAction("Operations",target,Seq{true},ClassDiagram::hideOperations));
+        hideMenu.add(MenuAction("Slot Values",target,Seq{true},ClassDiagram::hideMetaslots));
+        showMenu.add(MenuAction("Attributes",target,Seq{false},ClassDiagram::hideAttributes));
+        showMenu.add(MenuAction("Operations",target,Seq{false},ClassDiagram::hideOperations));
+        showMenu.add(MenuAction("Slot Values",target,Seq{false},ClassDiagram::hideMetaslots));
+        globalMenu
+      end
+    end
+    
+    @Operation defaultAssociationEdgeCommand(sourcePort,targetPort) 
+      self.newAssociationEdgeCommand(sourcePort,targetPort,Associations::Association.pathSeq()) 
+    end
+    
+    @Operation defaultAttributeEdge(sourcePort,targetPort)
+      self.newAttributeEdge(sourcePort,targetPort,XCore::Attribute.pathSeq()) 
+    end
+    
+    @Operation defaultClassNode(x,y)
+      self.newClassNode(x,y,XCore::Class.pathSeq()) 
+    end
+     
+    @Operation defaultDependencyEdgeCommand(sourcePort,targetPort)
+       self.newDependencyEdgeCommand(sourcePort,targetPort,XCore::Dependency.pathSeq())
+    end
+    
+    @Operation defaultPackageNode(x,y)
+       self.newPackageNode(x,y,XCore::Package.pathSeq()) 
+    end
+    
+    @Operation defaultNote(x,y)
+       self.newNote(x,y,true)
+    end
+    
+    @Operation defaultSubDiagram(x,y)
+      self.newSubDiagram(x,y)
+    end
+   
+    @Operation defineEdgeToolGroups()
+      self.defineNewHandler("XCore","Association",true,"XCore/Association.gif",ClassDiagram::defaultAssociationEdgeCommand);
+      self.defineNewHandler("XCore","Inheritance",true,"XCore/Generalization.gif",ClassDiagram::newInheritanceEdge);
+      self.defineNewHandler("XCore","Dependency",true,"XCore/Dependency.gif",ClassDiagram::defaultDependencyEdgeCommand);
+      self.defineNewHandler("XCore","Attribute",true,"XCore/Attribute.gif",ClassDiagram::defaultAttributeEdge);
+      if xmf.preference("EnableMeta")
+      then
+        self.defineNewHandler("XCore","Slot Value",true,"XCore/Contains.gif",ClassDiagram::newContainsEdgeCommand)
+      end
+    end
+    
+    @Operation defineNodeToolGroups()
+      // self.defineNewHandler("XCore","Sub Diagram",false,"XCore/Package.gif",ClassDiagram::defaultSubDiagram);
+      self.defineNewHandler("XCore","Class",false,"XCore/Class.gif",ClassDiagram::defaultClassNode);
+      self.defineNewHandler("XCore","Package",false,"XCore/Package.gif",ClassDiagram::defaultPackageNode);
+      self.defineNewHandler("XCore","Note",false,"XCore/Note.gif",ClassDiagram::defaultNote)
+    end
+    
+    @Operation defineToolGroupTypes()
+      self.defineToolGroup("XCore")
+    end
+    
+    @Operation deleteInheritance(sourceNode,targetNode)
+      @Find(edge,self.edges())
+        when edge.isKindOf(InheritanceEdge) and
+             edge.sourceNode() = sourceNode and
+             edge.targetNode() = targetNode
+        do edge.delete()
+      end
+    end
+
+    @Operation hideAttributes(hidden:Boolean)
+      @WithoutRendering(self)
+        @For edge in attributeEdges do
+          if hidden
+          then edge.hide()
+          else edge.show()
+          end
+        end;
+        @For node in self.nodes() do
+          self.showAttributes := not hidden;
+          if node.isKindOf(ClassNode) 
+          then node.showAttributes(not hidden)
+          end
+        end
+      end
+    end
+    
+    @Operation hideOperations(hidden:Boolean)
+      @WithoutRendering(self)
+        self.showOperations := not hidden;
+          @For node in self.nodes() do
+            if node.isKindOf(ClassNode) 
+            then node.showOperations(not hidden)
+            end
+          end
+      end
+    end
+    
+    @Operation hideMetaslots(hidden:Boolean)
+      self.showMetaslots := not hidden;
+        @For node in self.nodes() do
+          if node.isKindOf(ClassNode) 
+          then node.showMetaslots(not hidden)
+          end
+        end
+    end
+    
+    @Operation inheritanceLayout(nodes,placed,dx,dy,mx,fail)
+      if nodes->isEmpty
+      then
+        @For place in placed do
+          let node = place->at(0);
+              x = place->at(1);
+              y = place->at(2)
+              in node.move(x,y)
+          end
+        end;
+        @For edge in inheritanceEdges do
+          let source = edge.sourceNode();
+              target = edge.targetNode() then
+              //y = (source.y - target.y).abs().div(2) + target.y
+              y = source.y.min(target.y) + dy.div(2)
+          in edge.newWayPoint(0,source.x + source.width.div(2),y);
+             edge.newWayPoint(1,target.x + target.width.div(2),y)
+          end
+        end
+      else
+        let node = self.inheritanceRoot(nodes) then
+            minx = self.inheritanceMinx(node,placed,dx,mx);
+            miny = self.inheritanceMiny(node,placed,dy)
+        in self.inheritancePlaceNode(node,minx,miny,placed,nodes.delete(node),dx,dy,mx,fail)
+        end
+      end
+    end
+    
+    @Operation inheritanceMinx(node,placed,dx,mx)
+      let siblings = placed->select(place | inheritanceEdges->exists(e1 | e1.sourceNode() = place->head and inheritanceEdges->exists(e2 | e2.sourceNode() = node and e1.targetNode() = e2.targetNode()))) then
+          maxy = siblings->collect(place | place->at(2))->iterate(y max = 0 | max.max(y)) then
+          siblingXs = siblings->select(place | place->at(2) = maxy)->collect(place | place->at(1))
+      in (siblingXs->iterate(x maxx = 0 | maxx.max(x)) + dx).min(mx)
+      end
+    end 
+     
+    @Operation inheritanceMiny(node,placed,dy)
+      let parentYs = placed->select(place | inheritanceEdges->exists(e | e.sourceNode() = node and e.targetNode() = place->head))->collect(place | place->at(2));
+          siblingYs = placed->select(place | inheritanceEdges->exists(e1 | e1.sourceNode() = place->head and inheritanceEdges->exists(e2 | e2.sourceNode() = node and e1.targetNode() = e2.targetNode())))->collect(place | place->at(2))
+      in (parentYs->iterate(y maxy = 0 | maxy.max(y)) + dy).max(siblingYs->iterate(y maxy = 0 | maxy.max(y)))
+      end
+    end
+    
+    @Operation inheritancePlaceNode(node,x,y,placed,nodes,dx,dy,mx,fail)
+      if x > mx
+      then self.inheritancePlaceNode(node,0,y+dy,placed,nodes,dx,dy,mx,fail)
+      else 
+        let newPlaced = placed + Set{Seq{node,x,y}}
+        in format(stdout,"~S (~S,~S)~%",Seq{node.name(),x,y});
+           if self.legalInheritanceLayout(newPlaced)
+           then 
+             let fail =
+               @Operation()
+                 self.inheritancePlaceNode(node,x+dx,y,placed,nodes,dx,dy,mx,fail)
+               end
+             in self.inheritanceLayout(nodes,newPlaced,dx,dy,mx,fail)
+             end
+           else self.inheritancePlaceNode(node,x+dx,y,placed,nodes,dx,dy,mx,fail)
+           end
+        end
+      end
+    end
+    
+    @Operation inheritanceRoot(nodes)
+      @Find(node,nodes)
+        when not inheritanceEdges->exists(e | e.sourceNode() = node and nodes->includes(e.targetNode()))
+      end
+    end
+    
+    @Operation legalInheritanceLayout(placed)
+    
+      // No nodes on top of each other...
+      
+      not @Find(place1,placed)
+            when 
+              @Find(place2,placed)
+                when
+                  place1->at(0) <> place2->at(0) and
+                  place1->at(1) = place2->at(1) and
+                  place1->at(2) = place2->at(2)
+                do true
+                else false
+              end
+            do true
+            else false
+          end
+      
+      and            
+      
+      //not placed->exists(place1 |
+      //  placed->exists(place2 |
+      //    place1->at(0) <> place2->at(0) and
+      //    place1->at(1) = place2->at(1) and
+      //    place1->at(2) = place2->at(2))) and
+          
+      // No downward inheritance...
+      
+      not @Find(edge,inheritanceEdges)
+            when
+              @Find(place1,placed)
+                when
+                  edge.sourceNode() = place1->head and
+                  @Find(place2,placed)
+                    when
+                      edge.targetNode() = place2->head and
+                      place1->at(2) <= place2->at(2)
+                    do true
+                    else false
+                  end
+                do true
+                else false
+              end
+            do true
+            else false
+          end
+      
+      //not inheritanceEdges->exists(e |
+      //  placed->exists(p1 | p1->head = e.sourceNode() and
+      //    placed->exists(p2 | p2->head = e.targetNode() and
+      //      p1->at(2) <= p2->at(2)))) 
+            
+    end
+    
+    @Operation makeAttribute(sourceNode,targetNode,typePath)
+      self.makeAttributeEdge(sourceNode.ports->sel,targetNode.ports->sel,typePath)
+    end
+
+    @Operation makeInheritance(sourceNode,targetNode)
+      self.makeInheritanceEdge(sourceNode.ports->sel,targetNode.ports->sel)
+    end
+
+    @Operation makeAssociation(name,end1,end2,sourceNode,targetNode,typePath)
+      self.makeAssociationEdge(name,end1,end2,sourceNode.ports->sel,targetNode.ports->sel,typePath)
+    end
+
+    @Operation newAssociationEdgeCommand(sourcePort,targetPort,typePath)
+      let 
+        // Calculate positions of end labels and create ends
+        starty = if targetPort.owner.y > sourcePort.owner.y then 15 else 0-30 end;
+        startx = if targetPort.owner.x > sourcePort.owner.x then 15 else 0-35 end;
+        endy = if sourcePort.owner.y > targetPort.owner.y then 15 else 0-30 end;
+        endx = if sourcePort.owner.x > targetPort.owner.x then 15 else 0-35 end 
+        in
+        
+        let  
+          end1 = AssociationEnd(Label("e1","start",startx,starty,true),Multiplicity("start",10,25));
+          end2 = AssociationEnd(Label("e2","end",endx,endy,true),Multiplicity("end",0-20,0-40)) then
+          edge = AssociationEdge("A",end1,end2,sourcePort,targetPort,typePath)
+        in 
+          edge.new(self,false);
+          self.addEdge(edge)
+        end
+      end
+    end
+    
+    @Operation newAttributeEdge(sourcePort,targetPort,typePath)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ClassifierNode) and targetNode.isKindOf(ClassifierNode)
+         then 
+           let edge = AttributeEdge("att",sourcePort,targetPort,typePath)
+           in 
+             edge.new(self,false);
+             self.addEdge(edge)
+           end
+         end
+      end
+    end
+    
+    @Operation newContainsEdgeCommand(sourcePort,targetPort)
+      let edge = ContainsEdge(sourcePort,targetPort)
+      in 
+        edge.new(self,false);
+        self.addEdge(edge)
+      end
+    end
+    
+    @Operation newDependencyEdgeCommand(sourcePort,targetPort,typePath)
+      let edge = DependencyEdge(sourcePort,targetPort,typePath)
+      in 
+        edge.new(self,false);
+        self.addEdge(edge)
+      end
+    end
+    
+    @Operation makeAttributeEdge(sourcePort,targetPort,typePath)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ClassifierNode) and targetNode.isKindOf(ClassifierNode)
+         then 
+           let edge = AttributeEdge("att",sourcePort,targetPort,typePath)
+           in edge.new(self);
+              edge
+           end
+         end
+      end
+    end
+
+    @Operation makeInheritanceEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ClassifierNode) and targetNode.isKindOf(ClassifierNode)
+               and sourceNode.of() = targetNode.of()
+               and sourceNode <> targetNode
+         then 
+           let edge = InheritanceEdge(sourcePort,targetPort)
+           in edge.new(self);
+              edge
+           end
+         end
+      end
+    end
+
+    @Operation makeAssociationEdge(name,end1,end2,sourcePort,targetPort,typePath)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ClassifierNode) and targetNode.isKindOf(ClassifierNode)
+         then 
+           let edge = AssociationEdge(name,end1,end2,sourcePort,targetPort,typePath)
+           in edge.new(self);
+              edge
+           end
+         end
+      end
+    end
+
+    @Operation newClassNode(x,y,typePath)
+      @WithoutRendering(self)
+        let node = ClassNode("A Class","",false,typePath,x,y,self.showAttributes(),self.showOperations(),self.showMetaslots()) 
+        in node.new(self,true);
+           self.addNode(node)
+        end
+      end
+    end
+    
+    @Operation newInheritance(sourceNode,targetNode)
+      let sourcePort = sourceNode.ports()->sel;
+          targetPort = targetNode.ports()->sel
+      in self.newInheritanceEdge(sourcePort,targetPort)
+      end
+    end
+    
+    @Operation newInheritanceEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ClassifierNode) and targetNode.isKindOf(ClassifierNode)
+               and sourceNode.of() = targetNode.of()
+               and sourceNode <> targetNode
+         then 
+           let edge = InheritanceEdge(sourcePort,targetPort)
+           in edge.new(self,false);
+              self.addEdge(edge);
+              edge
+           end
+         end
+      end
+    end
+    
+    @Operation newNote(x,y,editable)
+      @WithoutRendering(self)
+        let note = NoteNode(x,y,editable)
+        in note.new(self,true);
+           self.addNode(note)
+        end
+      end
+    end
+
+    @Operation newPackageNode(x,y,typePath)
+      @WithoutRendering(self)
+        let node = PackageNode("A Package",typePath,x,y)
+        in node.new(self,false);
+           self.addNode(node)
+        end
+      end
+    end
+    
+    @Operation newSubDiagram(x,y)
+      @WithoutRendering(self)
+        let node = DiagramNode("A diagram",x,y)
+        in node.new(self,false);
+           self.addNode(node)
+        end
+      end
+    end
+    
+    @Operation removeAssociationEdge(associationEdge)
+      self.associationEdges := associationEdges.excluding(associationEdge)
+    end
+    
+    @Operation removeAttributeEdge(attributeEdge)
+      self.attributeEdges := attributeEdges.excluding(attributeEdge)
+    end
+    
+    @Operation removeClassNode(classNode)
+      self.classNodes := classNodes.excluding(classNode)
+    end
+    
+    @Operation removeElementNode(elementNode)
+      self.elementNodes := elementNodes.excluding(elementNode)
+    end
+    
+    @Operation removeContainsEdge(containsEdge)
+      self.containsEdges := containsEdges.excluding(containsEdge)
+    end
+    
+    @Operation removeInheritanceEdge(inheritanceEdge)
+      self.inheritanceEdges := inheritanceEdges.excluding(inheritanceEdge)
+    end
+    
+    @Operation removeDependencyEdge(dependencyEdge)
+      self.dependencyEdges := dependencyEdges.excluding(dependencyEdge)
+    end
+    
+    @Operation removePackageNode(packageNode)
+      self.packageNodes := packageNodes.excluding(packageNode)
+    end 
+    
+    @Operation removeNode(node)
+      super(node);
+      @TypeCase(node)
+        ClassNode   do self.removeClassNode(node)   end
+        PackageNode do self.removePackageNode(node) end
+        ElementNode do self.removeElementNode(node) end
+        else self
+      end
+    end
+    
+    @Operation removeEdge(edge)
+      super(edge);
+      @TypeCase(edge)
+        InheritanceEdge do self.removeInheritanceEdge(edge)   end
+        AssociationEdge do self.removeAssociationEdge(edge)   end
+        AttributeEdge   do self.removeAttributeEdge(edge)     end
+        ContainsEdge    do self.removeContainsEdge(edge)      end
+        DependencyEdge  do self.removeDependencyEdge(edge)    end
+        else self
+      end
+    end
+    
+    @Operation fix()
+      @For node in classNodes do
+        if node.metaslotsBox.isKindOf(Null) then
+          let mb = MetaslotBox(0,node.attBox.y + node.attBox.height + node.opsBox.height,100) in
+            node.metaslotsBox := mb;
+            node.nodeBox.add(mb);
+            mb.owner := node.nodeBox
+          end
+        end
+      end
+    end
+
+  end

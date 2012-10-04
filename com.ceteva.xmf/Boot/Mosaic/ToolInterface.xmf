@@ -1,0 +1,242 @@
+parserImport XOCL;
+parserImport Clients::Mosaic;
+
+import Clients::ExtensionPoints;
+
+// setup the development perspective
+
+@Perspective("Development","development.gif")
+
+  @PlaceHolder Topleft(left,26)
+    @GraphicalTool "com.ceteva.browser" end
+  end
+  
+  @PlaceHolder BottomLeft(bottom,66,Topleft)
+    @GraphicalTool "com.ceteva.outline" end
+  end
+  
+  @PlaceHolder BottomRight(bottom,66)
+    @GraphicalTool "com.ceteva.form" end
+    @GraphicalTool "com.ceteva.console" end
+  end
+  
+end;
+
+// create the welcome page
+
+let textClient = xmf.findClient(Clients::TextEditor::TextEditorClient)
+in textClient.showWelcomePage()
+end;
+
+// create a project browser
+
+let 
+  client = xmf.findClient(Clients::ModelBrowserXCore::MappingClient);
+  userProjectManager = xmf.projectManager("MyProjects")
+in
+  client.add(userProjectManager);
+  client.setClosable(userProjectManager,false)
+end;
+
+// drop down menus
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.dropMenus"
+in
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","Projects","Open Project ..."},
+        Clients::ProjectBrowser::openProject
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","Projects","New Project"},
+        Clients::ProjectBrowser::newProject
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    Clients::ExtensionPoints::TypeLessContribution(
+      Seq{
+        Seq{"&File","Image","Save &Image ..."},
+        XMF::saveImage
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Main","Performance Monitor"},
+        Clients::PerfMon::showPerfMon
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Main","Monitor Calls"},
+        Debug::monitor
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Daemon","Monitor Daemon Firing"},
+        Daemon::traceAll
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Daemon","Silent Daemon Firing"},
+        Daemon::untraceAll
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Client","Monitor Client Communications"},
+        XMF::monitorClientCommunications
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","System","&Debug","Client","Silent Client Communications"},
+        XMF::silentClientCommunications
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&Browse","Projects","&My Projects"},
+        Clients::ProjectBrowser::showUserBrowser
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&Browse","Projects","&System Projects"},
+        Clients::ProjectBrowser::showSystemBrowser
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&Browse","XTools","&XTools Manager"},
+        Tools::Basic::showXToolsBrowser
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&Browse","File","Open &File Browser ..."},
+        Root::createFileBrowser
+      }
+    )
+  );
+
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","Other","&Show Welcome Page"},
+        Root::showWelcomePage
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","File","Open File &Browser ..."},
+        Root::createFileBrowser
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","File","Open File ..."},
+        Root::openSingleFile
+      }
+    )
+  );
+  
+  registry.addContribution(id,
+    TypeLessContribution(
+      Seq{
+        Seq{"&File","Import","&Import","Main","CSV Data ..."},
+        Arrays::importAndEditCSV
+      }
+    )
+  )
+  
+end;
+
+// namespace view protection
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.protect.view"
+in
+  null
+  // e.g. registry.addContribution(id,TypeLessContribution(XCore,Seq{}))
+end;
+
+// namespace delete protection
+
+let
+  registry = xmf.registry();
+  id = "com.ceteva.xmf.protect.delete"
+in
+  registry.addContribution(id,TypeLessContribution(XCore,Seq{}));
+  registry.addContribution(id,TypeLessContribution(OCL,Seq{}));
+  registry.addContribution(id,TypeLessContribution(XOCL,Seq{}));
+  registry.addContribution(id,TypeLessContribution(Parser,Seq{}));
+  registry.addContribution(id,TypeLessContribution(Instrs,Seq{}));
+  registry.addContribution(id,TypeLessContribution(Assembler,Seq{}));
+  registry.addContribution(id,TypeLessContribution(Compiler,Seq{}));
+  registry.addContribution(id,TypeLessContribution(IO,Seq{}));
+  registry.addContribution(id,TypeLessContribution(Projects,Seq{}))  
+end;
+
+// boot init file
+
+if xmf.hasProperty("initFile")
+then
+  let initFile = xmf.property("initFile")
+  in xmf.setInitFile(initFile.subString(0,initFile->size - 2) + ".xmf");
+    if initFile.fileExists() and initFile.hasSuffix(".o")
+    then
+      initFile.loadBin(false)
+    else xmf.warning("Cannot find Mosaic init file " + initFile)
+    end
+  end
+end;
+  

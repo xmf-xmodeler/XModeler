@@ -1,0 +1,149 @@
+parserImport XOCL;
+
+import XCore;
+
+context XCore
+
+  @Class Snapshot extends NameSpace
+  
+    @Attribute packages	: Seq(Package) (+,-) end
+    @Attribute objects	: Seq(Object)	end
+    
+    @Constructor(name,packages) 
+      self.init(Seq{name})
+    end
+    
+    @Operation add(element:Element)
+      self.add("",element)
+    end
+    
+    @Operation add(name:String,element:Element)
+      let name = if name = "" then self.newName("object") else name end
+      in 
+        self.putElement(name,element)
+      end
+    end
+
+  @Operation fullNameFor(element:Element)
+    if not self.hasSlot("instanceOf")
+    then
+      let binding = self.nameFor(element) then
+          prefix = 
+            if binding <> null
+            then binding + " = "
+            else ""
+            end
+      in
+        prefix + element.labelString()
+      end
+    end
+  end
+
+    @Operation getInstantiableClassTree()
+  
+      // Produce a tree of classes that can be instantiated. Provide
+      // access to all the contained package elements. Filter out
+      // abstract classes.
+      
+      let 
+         packages = packages->flatten->asSet->asSeq->sortNamedElements()
+      in  
+        Seq{"Available Classes","*"}.makeTree(self.makePackageTree(packages))
+     end
+    end
+
+    @Operation makePackageTree(packages)
+      let packageTree = Seq{}
+      in
+        @For package in packages
+        do
+          let classTree = Seq{}
+          in
+            @For e in package.getInstantiableClasses()->asSeq->sortNamedElements_CaseIndependent()
+            do 
+              if e.isKindOf(Package)
+              then
+                classTree := classTree + self.makePackageTree(Seq{e})
+              else
+                classTree := classTree->including(Seq{e})
+              end
+            end;
+            packageTree := packageTree + Seq{Seq{package,"*"}.makeTree(classTree)}
+          end
+        end;
+        packageTree
+      end
+    end
+
+    @Operation nameChanged(element,newName,oldName)
+      newName := Symbol(newName.toString());
+      oldName := Symbol(oldName.toString());
+      if newName <> oldName
+      then
+        contents.remove(newName);
+        contents.remove(oldName);
+        contents.put(newName,element)
+      end
+    end
+    
+    @Operation nameFor(element:Element)
+      @Find(key,contents.keys())
+      when contents.get(key) = element
+      else null
+      end
+    end
+    
+    @Operation referencedPackages():Seq(Package)
+    
+      // Returns a sequence of packages such that the contents of
+      // the snapshot are all instances of the packages or
+      // its imports.
+      
+      let O = self.contents()->select(x | x.isReallyKindOf(Object)) then
+          C = O->collect(o | o.of())->asSet then
+          P = C->collect(c | c.owner())->excluding(null)
+      in P->asSeq
+      end
+    end
+    
+    @Operation putElement(name,element)
+      if not objects->includes(element)
+      then
+        super(name,element);
+        self.objects := self.objects->prepend(element)
+      end
+    end
+    
+    @Operation remove(element:Element)
+      let name = self.nameFor(element)
+      in
+        contents.remove(name);
+        self.objects := self.objects->excluding(element)
+      end
+    end
+
+    @Operation removeObject(typeString:String)
+      let objects = self.contents()->asSeq->qsort(@Operation(c1,c2) self.fullNameFor(c1) < self.fullNameFor(c2) end) then
+          names = let seq = Seq{}
+                  in
+                    @For o in objects do
+                      seq := seq + Seq{self.fullNameFor(o)}
+                    end;
+                    seq
+                  end then
+          choice = xmf.select("Remove From "+typeString,"Select an object to remove from the "+typeString.lowerCase(),names,null,null)
+      in if choice <> null
+         then 
+           let object = objects->at(names->indexOf(choice))
+           in
+             self.remove(object)
+           end
+         end
+      end
+    end
+
+    @Operation removeObject()
+      self.removeObject("Snapshot")
+    end
+
+  end

@@ -1,0 +1,92 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Image extends DisplayType
+  
+    @Attribute file      : String        (!,?)    end
+    @Attribute width     : Integer       = 30     end
+    @Attribute height    : Integer       = 30     end
+    
+    @Grammar extends DisplayType.grammar
+    
+      Image ::= 
+      
+        name      = Name 
+        atts      = Properties 
+        file      = Exp 
+        dsplAtts  = Atts
+        
+        defs = Exp* {
+      
+        defs->iterate(def exp = [| let image = Tools::DiagramTools::Types::DisplayTypes::Image(<OCL::StrExp(name)>) 
+           in image.hasPort    := <OCL::BoolExp(atts->includes("hasport"))>;
+              image.layout     := <OCL::StrExp(filterLayout(atts))>;
+              image.padLeft    := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              image.padRight   := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              image.padTop     := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              image.padBottom  := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              image.minWidth   := <OCL::IntExp(dsplAtts.lookup("minWidth",0))>;
+              image.minHeight  := <OCL::IntExp(dsplAtts.lookup("minHeight",0))>;
+              image.maxWidth   := <OCL::IntExp(dsplAtts.lookup("maxWidth",9999))>;
+              image.maxHeight  := <OCL::IntExp(dsplAtts.lookup("maxHeight",9999))>;
+              image.height     := <OCL::IntExp(dsplAtts.lookup("height",9999))>;
+              image.width      := <OCL::IntExp(dsplAtts.lookup("width",0))>;
+              image.file       := <file>;
+              image
+           end
+        |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+      end
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let image = Diagrams::Image(file,0,0,width,height)
+      in parent.add(image);
+         self.setGlobalMenu(image,tool,path + Seq{name.toString()});
+         image.setType(self);
+         image.setMinWidth(minWidth);
+         image.setMinHeight(minHeight);
+         image.setMaxWidth(maxWidth);
+         image.setMaxHeight(maxHeight);
+         image.setPadLeft(padLeft);
+         image.setPadRight(padRight);
+         image.setPadTop(padTop);
+         image.setPadBottom(padBottom);
+         image.setDeleteHandler(DisplayType::mkDeleteHandler(tool,root,path,name));
+         if hasPort then root.addPortAssociation(image) end;
+         image
+      end
+      
+    end
+    
+    @Operation setFile()
+    
+      // Browse for a suitable file...
+      
+      let path = xmf.openFile(xmf.projDir(),"*")
+      in if path.fileExists()
+         then self.setFile(path)
+         end
+      end
+    end
+    
+  end

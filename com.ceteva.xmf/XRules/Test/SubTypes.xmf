@@ -1,0 +1,35 @@
+parserImport XOCL;
+parserImport XRules;
+
+context Root
+  @Package P
+    @Class X
+      @Attribute v : Element end
+      @Constructor(v) ! end
+    end
+
+    @Class Y extends X
+      @Attribute w : Element end
+      @Constructor(v,w) ! end
+    end
+    
+    @Class A
+      @Attribute x : X end
+      @Constructor(x) ! end
+    end
+    
+    @Class B extends A
+    end
+  end
+  
+context Test
+  @Rule P(P::A[x=P::X[v=V] ],V) end
+
+context Test
+  @Rule Q(V) P(P::A[x=P::X[v="Q"] ],V) end
+
+context Test
+  @Rule R(V) P(P::B[x=P::X[v="R"] ],V) end
+
+context Test
+  @Rule S(V) P(P::B[x=P::Y[v="S";w=W] ],V) end

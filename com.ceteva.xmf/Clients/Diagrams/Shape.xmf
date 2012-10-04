@@ -1,0 +1,99 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+
+context Diagrams
+
+  @Class Shape extends Display
+  
+    @Attribute points    : Seq(Point) (?) end
+    @Attribute outline   : Boolean (?,!) end
+    @Attribute lineColor : Color = static Color() (?) end //#
+    @Attribute fillColor : Color = static Color() (?) end //#
+  
+    @Constructor(x,y,width,height,points,outline,lineColor,fillColor) end
+
+    @Operation addPoint(point)
+      self.points := self.points->append(Seq{point})
+    end
+    
+    @Operation expandHeight()
+      let maxHeight = self.maxHeight()
+      in if maxHeight > height
+         then self.resize(width,maxHeight)
+         end
+      end
+    end
+    
+    @Operation expandWidth()
+      let maxWidth = self.maxWidth()
+      in if maxWidth > width
+         then self.resize(maxWidth,height)
+         end
+      end
+    end
+     
+    @Operation maxHeight()
+      points->iterate(p h = 0 | h.max(p.y()))  
+    end
+    
+    @Operation maxWidth()
+      points->iterate(p w = 0 | w.max(p.x()))   
+    end
+    
+    @Operation minHeight()
+      self.maxHeight()
+    end
+    
+    @Operation minWidth()
+      self.maxWidth()
+    end
+    
+    @Operation new(parent,setMenu) 
+      self.setOwner(parent);
+      @Command(self) newShapeCommand(parent,self) end;
+      if setMenu
+      then self.setRightClickMenu()
+      end;
+      self
+    end
+    
+    @Operation packHeight()
+      self.resize(width,self.maxHeight())
+    end
+    
+    @Operation packWidth()
+      self.resize(self.maxWidth(),height)
+    end
+    
+    @Operation resetShape()
+      self.points := Seq{}
+    end
+    
+    @Operation redrawShape()
+      @Command(self) redrawShapeCommand(self) end
+    end
+    
+    @Operation renew(parent)
+      @Command(self) newShapeCommand(parent,self) end;
+      self.setRightClickMenu();
+      self
+    end
+  
+    @Operation resize(width,height)
+      self.width := width;
+      self.height := height;
+      @Command(self) resizeCommand(self,width,height) end
+    end
+    
+    @Operation setFillColor(fillColor:Color)
+      self.fillColor := fillColor;
+      @Command(self) setFillColor(self,fillColor) end
+    end
+    
+    @Operation setLineColor(lineColor:Color)
+      self.lineColor := lineColor;
+      @Command(self) setLineColor(self,lineColor) end
+    end
+  end

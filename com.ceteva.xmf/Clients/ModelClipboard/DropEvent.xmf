@@ -1,0 +1,40 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class DropEvent
+  
+    @Attribute dragSources : Seq(DragHandler) (?,!,+,-) end
+    @Attribute dropTarget : DropHandler (?) end
+    @Attribute mode		  : String (?) end
+    
+    @Constructor(dragSources,dropTarget,mode)
+    end
+    
+    @Operation perform(clipboard)
+      clipboard.clear();
+      if not (self.dragSources->size=1 andthen dropTarget=dragSources->at(0))
+      then
+        if dropTarget.acceptMultipleDrop(dragSources,mode)
+        then
+          clipboard.setTransactionMode(mode);
+          @For source in dragSources do
+            source.drag()
+          end;
+          if not clipboard.isEmpty()
+          then
+            dropTarget.drop()
+          end
+        else
+          if self.dragSources->size = 1
+          then xmf.warning("Cannot drop the dragged element here.")
+          else xmf.warning("Cannot drop the dragged elements here.")
+          end
+        end
+      end
+    end
+  
+  end

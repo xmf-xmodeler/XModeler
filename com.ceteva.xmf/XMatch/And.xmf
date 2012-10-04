@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import XMatch;
+
+context XMatch
+
+  @Class And extends Pattern
+  
+    @Doc
+      Matches when the left hand pattern matches before the right
+      hand pattern. The results of the two patterns are appen-ded on
+      the stack.
+    end
+  
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation match(chars,env,stack,succ,fail)
+      left.match(chars,env,stack, 
+        @Operation(chars,env,stack,fail)
+          right.match(chars,env,stack,
+            @Operation(chars,env,stack,fail)
+              succ(chars,env,Seq{stack->at(1) + stack->at(0) | stack->drop(2)},fail)
+            end,
+            fail)
+        end,
+        fail)
+    end
+    
+    @Operation vars():Set(String)
+      // Returns the set of vars bound in the receiver.
+      left.vars() + right.vars()
+    end
+    
+  end

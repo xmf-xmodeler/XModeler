@@ -1,0 +1,40 @@
+parserImport XOCL;
+parserImport XBNF::Scanning::Structure;
+
+import IO;
+import XBNF::Scanning::Structure;
+import Parser::Machine;
+
+
+context Root
+  @Operation test()
+    let t = 0
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XBNF/Scanning/Test/Data.xmf")
+         let scan = OCL::Scanner.scan(fin)
+         in @While not scan->at(1) = 0 do
+              scan := OCL::Scanner.scan(fin); //.println();
+              t := t + 1
+            end;
+            t
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation testExtension()
+    let t = 0
+    in OCL::ExtendedScanner.reset();
+       @WithOpenFile(fin <- xmf.homeDir() + "/XBNF/Scanning/Test/ExtensionData.xmf")
+         let scan = OCL::ExtendedScanner.scan(fin)
+         in @While not scan->at(1) = 0 do
+              scan.println();
+              scan := OCL::ExtendedScanner.scan(fin);
+              t := t + 1
+            end;
+            scan.println();
+            t
+         end
+       end
+    end
+  end

@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XRules;
+
+context ! Root::XRules
+
+  @Class Throw extends Action 
+  
+    // This class throws a term to the most recently established
+    // exception clause...
+
+    @Attribute term      : Term   (?) end
+    
+    @Constructor(term) ! end
+    
+    @Operation perform(rules,vars,indent,env,succ,fail,cut,exception)
+      exception(recons(term.build(rules,vars),env))
+    end
+    
+    @Operation vars(vars)
+      vars := term.vars(vars);
+      vars
+    end
+
+  end

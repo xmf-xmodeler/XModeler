@@ -1,0 +1,48 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XRules;
+
+context XRules
+
+  @Class WithRules
+  
+    @Grammar extends Rule.grammar
+    
+      WithRules ::= '(' n = Name ')' as = Action* results = Results t = Term {
+      
+        [| let rules = <OCL::Var(n)>;
+               actions = <OCL::SetExp("Seq",as)>;
+               return = <t> then
+               V = actions->iterate(action V = Seq{} | action.vars(V)) then
+               V = return.vars(V) then
+               vars = V->iterate(v vars = Seq{} | Seq{Seq{v.name() | XRules::Var(v.name(),v.type())} | vars}) then
+               env = Seq{};
+               succ = 
+                 @Operation(env,fail) 
+                   let value = XRules::recons(return.build(rules,vars),env) 
+                   in <if results = "return"
+                      then [| value |]
+                      else 
+                        [| let rest = fail()
+                           in if rest = "FAIL"
+                              then Seq{value}
+                              else Seq{value | rest}
+                              end
+                           end |]
+                      end>
+                   end  
+                 end;
+               fail = @Operation() "FAIL" end;
+               exception = @Operation(term) self.error("Unhandled exception for " + term) end
+           in rules.performs(actions,vars,0,env,succ,fail,fail,exception)
+           end
+        |]
+        
+      }.
+      
+      Results ::= 'return' { "return" } | 'returnAll' { "returnAll" }.
+      
+    end
+    
+  end

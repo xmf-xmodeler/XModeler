@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import IO;
+import XBNF::Tokens;
+
+context Root
+
+  @Operation test(file:String,terminals,trace:Boolean)
+      let fin = IO::FileInputChannel(file) then
+          tokens = Tokenizer(fin);
+          time = Time();
+          count = 0
+      in @While tokens.type <> Tokenizer::EOF do
+           if trace
+           then 
+             tokens.pprintToken(stdout);
+             format(stdout,"~%")
+           end;
+           tokens.nextToken(terminals);
+           count := count + 1
+         end;
+         (Time() - time).pprint(stdout);
+         count
+      end
+    end

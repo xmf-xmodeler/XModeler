@@ -1,0 +1,32 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Quit extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Quit ::= exp = Exp { Quit(exp) }.
+      
+    end 
+    
+    @Attribute exp : Performable end
+    
+    @Constructor(exp) end 
+    
+    @Operation desugar()  
+      [| @Operation(c) @Operation(d) <exp> end end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Quit ");
+      exp.pprint(out,indent+2);
+      format(out," end")
+    end
+    
+  end

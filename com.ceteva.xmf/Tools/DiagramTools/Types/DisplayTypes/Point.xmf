@@ -1,0 +1,22 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import Menus;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Point extends DisplayType
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Point ::= '(' x = Int ',' y = Int ')' { [| Clients::Point(<OCL::IntExp(x)>,<OCL::IntExp(y)>) |] }.
+      
+    end
+     
+  end   

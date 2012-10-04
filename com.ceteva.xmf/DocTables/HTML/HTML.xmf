@@ -1,0 +1,278 @@
+parserImport XOCL;
+
+import IO;
+import DocTables;
+import Basic;
+import Forms;
+
+// Basic HTML aspects
+
+context Big
+  @Operation html(out:OutputChannel)
+    format(out,"<big>");
+    entry.html(out);
+    format(out,"</big>")
+  end
+  
+context Bold
+  @Operation html(out:OutputChannel)
+    format(out,"<b>");
+    entry.html(out);
+    format(out,"</b>")
+  end
+  
+context Break
+  @Operation html(out:OutputChannel)
+    format(out,"<br>")
+  end
+  
+context Centre
+  @Operation html(out:OutputChannel)
+    format(out,"<center>");
+    entry.html(out);
+    format(out,"</center>")
+  end
+  
+context Code
+  @Operation html(out:OutputChannel)
+    format(out,"<pre>~S</pre>",Seq{text})
+  end
+  
+context Col
+  @Operation html(out:OutputChannel)
+    format(out,"<td");
+    if properties.binds("bgcolor")
+    then format(out," bgcolor='~S'",Seq{properties.lookup("bgcolor")})
+    end;
+    if properties.binds("colspan")
+    then format(out," colspan='~S'",Seq{properties.lookup("colspan")})
+    end;
+    if properties.binds("rowspan")
+    then format(out," rowspan='~S'",Seq{properties.lookup("rowspan")})
+    end;
+    format(out,">");
+    entry.html(out);
+    format(out,"</td>")
+  end  
+  
+context Entries    
+  @Operation html(out:OutputChannel)
+    @For entry in entries do
+      entry.html(out)
+    end
+  end
+  
+context Font    
+  @Operation html(out:OutputChannel)
+    format(out,"<font face='~S' size='~S' color='~S'>",Seq{face,size,colour});
+    entry.html(out);
+    format(out,"</font>")
+  end
+  
+context Heading
+  @Operation html(out:OutputChannel)
+    format(out,"<h~S>~S</h~S>",Seq{level,text,level})
+  end
+  
+context HTML
+  @Operation html(out:OutputChannel)
+    format(out,"~S",Seq{text})
+  end
+  
+context Image
+  @Operation html(out:OutputChannel)
+    if width = 0 or height = 0
+    then format(out,"<img src=~S>",Seq{file})
+    else format(out,"<img src=~S width=~S height=~S align=~S>",Seq{file,width,height,align})
+    end
+  end
+  
+context Link
+  @Operation html(out:OutputChannel)
+    format(out,"<a href=" + ref.toString() + ">");
+      entry.html(out);
+    format(out,"</a>")
+  end  
+  
+context LinkAnchor
+  @Operation html(out:OutputChannel)
+    format(out,"<a name=" + ref.toString()+ ">");
+    @For entry in entries do
+      entry.html(out)
+    end;
+    format(out,"</a>")
+  end  
+  
+context List    
+  @Operation html(out:OutputChannel)
+    if ordered
+    then format(out,"<OL>")
+    else format(out,"<UL>")
+    end;
+    @For entry in entries
+    do
+      if not entry.isKindOf(List) then 
+        format(out,"<LI>")
+      end;
+      entry.html(out)
+    end;
+    if ordered
+    then format(out,"</OL>")
+    else format(out,"</UL>")
+    end
+  end  
+  
+context Page
+  @Operation html()
+    let sout = StringOutputChannel()
+    in self.html(sout);
+       sout.getString()
+    end
+  end
+  
+context Page
+  @Operation html(out:OutputChannel)
+    format(out,"<html>");
+    format(out,"<head>");
+    if stylesheet <> ""
+    then
+      format(out,"<link rel=StyleSheet href=\"~S\" TYPE=\"text/css\" media=\"screen, print\">",Seq{stylesheet})
+    end;
+    format(out,"<title>~S</title>",Seq{title});
+    format(out,"</head>");
+    format(out,"<body>");
+    @For entry in entries do
+      entry.html(out)
+    end;
+    format(out,"</body>");
+    format(out,"</html>")
+  end
+  
+context Para
+  @Operation html(out:OutputChannel)
+    format(out,"<para>");
+    @For entry in entries do
+      entry.html(out)
+    end;
+    format(out,"</para>")
+  end
+  
+context Row  
+  @Operation html(out:OutputChannel)
+    format(out,"<tr>");
+    @For col in cols do
+      @TypeCase(col)
+        Col do
+          col.html(out)
+        end
+        else
+          format(out,"<td>");
+          col.html(out);
+          format(out,"</td>")
+      end
+    end;
+    format(out,"</tr>")
+  end
+  
+context Section
+  @Operation html(out:OutputChannel)
+    format(out,"<div class=\"~S\">",Seq{name});
+    @For entry in entries do
+      entry.html(out)
+    end;
+    format(out,"</div>")
+  end
+  
+context Table
+  @Operation html(out:OutputChannel)
+    format(out,"<table border=~S width='100%'>",Seq{borderSize});
+    // format(out,"<tr bgcolor='~S' class='TableHeadingColor'>",Seq{headerColor});
+    if header <> "" then
+      format(out,"<tr bgcolor='~S'>",Seq{headerColor});
+      format(out,"<td colspan='~S'>",Seq{self.maxRowWidth()});
+      format(out,"<big><big>~S</big></big>",Seq{header});
+      format(out,"</td>");
+      format(out,"</tr>")
+    end;
+    @For row in rows do
+      row.html(out)
+    end;
+    format(out,"</table>")
+  end
+  
+context Text    
+  @Operation html(out:OutputChannel)
+    format(out,"~X~%",Seq{text})
+  end
+  
+context Underline
+  @Operation html(out:OutputChannel)
+    format(out,"<u>");
+    entry.html(out);
+    format(out,"</u>")
+  end
+  
+// Forms HTML aspects
+
+context ActiveText
+  @Operation html(out:OutputChannel)
+    format(out,"<a href='XMFServer/~S.html'>~X</a>",Seq{id,text})
+  end
+  
+context Form
+  @Operation html(out:OutputChannel)
+    let name = xmf.clientManager().findClientByName("com.ceteva.xmf.enterprise")
+    in
+      if name <> null
+      then format(out,"<form method=\"post\" action=\"XMFServer\">")
+      else format(out,"<form method=\"get\" action=\"http:////XMFServer\">")
+      end
+    end;
+    @For entry in entries do
+      entry.html(out)
+    end;
+    format(out,"</form>")
+  end    
+  
+context FormButton
+  @Operation html(out:OutputChannel)
+    format(out,"<input type=\"submit\" name=\"~S\" value=\"~S\">",Seq{label,value})
+  end
+  
+context FormCheckBox
+  @Operation html(out:OutputChannel)
+    let checked = if checked then "checked" else "" end
+    in
+      format(out,"<input type=\"checkbox\" name=\"~S\" value=\"~S\">",Seq{label,checked})
+    end
+  end
+    
+context FormComboBox
+  @Operation html(out:OutputChannel)
+    format(out,"<select name=\"~S\">",Seq{label});
+    @For display in displays
+    do
+      if display = self.selected
+      then format(out,"<option selected>~X",Seq{display})
+      else format(out,"<option>~X",Seq{display})
+      end
+    end;
+    format(out,"</select>")
+  end  
+  
+context FormTextField    
+  @Operation html(out:OutputChannel)
+    if hideInput
+    then
+      format(out,"<input type=\"~S\" name=\"~S\" size=\"~S\" value=\"~X\">",Seq{"password",label,size,value})
+    else
+      format(out,"<input type=\"~S\" name=\"~S\" size=\"~S\" value=\"~X\">",Seq{"text",label,size,value})
+    end
+  end 
+  
+context FormTextArea   
+  @Operation html(out:OutputChannel)
+    format(out,"<textarea name=\"~S\" cols=\"~S\" rows=\"~S\"> ~S </textarea>",Seq{label,cols,rows,value})
+  end  
+  
+    

@@ -1,0 +1,24 @@
+parserImport Manifests;
+
+@Manifest Basic
+
+  Basic = @File Basic             end
+          @File ToolType          end
+          @File ToolDescriptor    end
+          @File Tool              end
+          @File Extensions        end
+          @File Classifier        end
+          @File WithoutEvents     end
+          @File WithEvents        end
+          @File ObjectManager     end
+          @File DefinitionManager end
+          @File XToolsBrowser     end
+          @File ToolManager       end
+          @File XMF               end
+          @File SavedTools        end
+          @File XToolsRefNameSpace    end
+          @File XToolsRefNamedElement end
+          @File RegistryContributions end
+do Basic
+  
+end;

@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+context Object
+  @Constraint AllSlotsTypeCorrect
+    self.of().allAttributes()->forAll(a |
+      let value = self.get(a.name)
+      in  value.isKindOf(a.type) andthen a.mult().check(value)
+      end )
+    fail
+      let report = ""
+      in @For att in self.of().allAttributes() do
+           let value = self.get(att.name);
+               type = att.type;
+               mult = att.mult();
+               message = ""
+           in if not value.isKindOf(type)
+              then message := att.name + " = " + value.toString() + ":" +
+                              value.of().path() + " is not of type " + type.path()
+              elseif not mult.check(value)
+              then message := att.name + " = " + value.toString() + ":" +
+                              value.toString() + " does not conform to the multiplicity '" + mult.multString() + "'"
+              end;
+              if message <> ""
+              then if report = ""
+                   then report := message
+                   else report := report + ", " + message
+                   end
+              end
+           end
+         end;
+         report
+       end    
+   end

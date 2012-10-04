@@ -1,0 +1,96 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools;
+import FormTools;
+import Types;
+import Structure;
+import Events;
+
+context Root
+  @Bind locations = Seq{
+    "A","B","C","D","E","F","G","Struan Road","Woodholm Road"
+  }
+  end
+
+context Root
+  @Bind roads = Set{
+    Seq{"Struan Road","Woodholm Road",1},
+    Seq{"A","B",10},
+    Seq{"B","C",20},
+    Seq{"B","D",30}
+  }
+  end
+  
+context Root
+  @Operation route(start,finish)
+    let allRoutes = roads->power
+    in @Find(route,allRoutes)
+         when 
+           route->exists(road | road->at(0) = start) and
+           route->exists(road | road->at(1) = finish) and
+           route->forAll(road | connected(route))
+       end
+    end
+  end
+          
+context Root
+  @Operation connected(route)
+    roots(route)->size = 1 and
+    terminals(route)->size = 1
+  end
+  
+context Root
+  @Operation roots(route)
+    route->select(road1 | not route->exists(road2 | road2->at(1) = road1->at(0)))
+  end
+  
+context Root
+  @Operation terminals(route)
+    route->select(road1 | not route->exists(road2 | road2->at(0) = road1->at(1)))
+  end
+  
+context Root
+  @Operation pprintRoute(route)
+    if route->isEmpty
+    then "... you arrive."
+    else
+      let root = roots(route)->sel
+      in "Go from " + root->at(0) + " to " + root->at(1) + " for " + root->at(2) + " miles\n" +
+         pprintRoute(route->excluding(root))
+      end
+    end
+  end
+
+context Root
+  @ToolType RoutePlanner(HORIZONTAL) 
+    @TextBox Route ""
+      minWidth = 300
+      minHeight = 200
+    end
+    @Box Controls(VERTICAL)
+      @ComboBox Start locations end
+      @ComboBox End locations end
+      @Button Calculate 
+        minHeight = 50
+        do tool.form().ref1(Seq{"Route"}).setTextIn(pprintRoute(route(start,last))) 
+      end
+    end
+  end
+  
+context Root
+  @ElementManager RouteManager
+    @EventHandler RoutePlanner_Controls_Start_Changed()
+      Root::start := event.new()
+    end
+    @EventHandler RoutePlanner_Controls_End_Changed()
+      Root::last := event.new()
+    end
+  end
+    
+    
+context Root
+  @Bind tool = Tool(RoutePlanner,"tool",RouteManager,null) end
+  

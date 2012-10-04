@@ -1,0 +1,44 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+
+import Walkers;
+
+context Walkers
+
+  @Class FindBound extends Find
+  
+    @Doc
+      An instance of this class can be used to find all element in a given XMF
+      value that satisfy the first supplied predicate AND whose walk tree is bound by
+      the second supplied predicate (i.e. if an object does not satisfy the boundary
+      predicate, the walk stops at that branch. To use this, construct with two 
+      predicate arguments (match followed by boundary predicates) and supply the
+      root of the walk to the 'walk' operation. The second argument to 'walk' may
+      be an integer to limit the depth of the walk or null for no limit.
+    end
+  
+    @Attribute boundaryPredicate : Operation end      // An operation.
+    
+    @Constructor(predicate,boundaryPredicate) ! 
+      self.initWalker()
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+      FindBound ::= n = Name 'in' v = Exp 'when' p = Exp 'stop' 'walk' 'when' bound = Exp 'limit' l = (Exp | { [| null |] }) b = ('do' Exp | { OCL::Var(n) }) {
+        [| let walker = Walkers::FindBound(@Operation(<n>) <p> end, @Operation(<n>) <bound> end) 
+           in walker.walk(<v>,<l>);
+              walker.results->collect(<n> | <b>)
+           end |] 
+      }.
+    end
+  
+    @Operation walk(element:Element,limit:Element):Element
+      if not boundaryPredicate(element)
+      then
+        super(element,limit)
+      end
+    end
+     
+  end
+     

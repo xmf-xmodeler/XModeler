@@ -1,0 +1,11 @@
+import OCL;
+
+context Iterate
+  @Operation eval(target,env,imports)
+    let op = 
+      @Operation(v,a)
+        body.eval(target,env.bind(name,v).bind(accumulator,a),imports)
+      end
+    in collection.eval(target,env,imports).iter(op,value.eval(target,env,imports))
+    end
+  end

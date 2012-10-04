@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Constp in PPrint(aConstp,out,seen)
+  format(out,"[ ");
+  self.dispatch(aConstp.const,out);
+  format(out," ]")
+end;

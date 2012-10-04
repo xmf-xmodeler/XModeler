@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import MApProjects;
+import Documents;
+
+context Forward
+
+  @Interface
+  
+    @Image "FileBrowser/Forward" end
+    
+    @MenuRoot MApProjects::Documents::Forward end
+     
+    @Delete elements end
+        
+  end

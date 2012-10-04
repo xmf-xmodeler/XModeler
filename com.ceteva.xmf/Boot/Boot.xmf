@@ -1,0 +1,44 @@
+parserImport XOCL;
+
+try 
+  Kernel_loadbin("Kernel/Boot.o");
+  ("Exceptions/Boot.o").loadBin(false);
+  ("Channels/Boot.o").loadBin(false);
+  ("Comms/Boot.o").loadBin(false);
+  ("Lib/Boot.o").loadBin(false);
+  ("Constraints/Boot.o").loadBin(false);
+  ("Boot/Preference.o").loadBin(true);
+  ("Boot/PreferenceManager.o").loadBin(true);
+  ("Boot/XMF.o").loadBin(true)
+catch(exception)
+  print("Exception booting kernel: " + exception.message + "\n");
+  @For frame in exception.backtrace do
+    print(frame);
+    print("\n")
+  end
+end;
+
+let startup = saveMachineState("Images/xmf.img")
+in if startup = true
+   then "XMF Build Completed."
+   else 
+     let hasArg = @Operation(name) startup->exists(pair | pair->head = name) end;
+         getArg = @Operation(name) startup->select(pair | pair->head = name)->head->tail end
+     in if hasArg("filename") 
+        then 
+          if hasArg("home")
+          then 
+            let filename = getArg("filename");
+                home = getArg("home")
+            in xmf.setHomeDir(home);
+               Kernel_loadbin(filename)
+            end
+          else self.error("Must specify a home directory")
+          end
+        else self.error("Must specify a filename when loading base xmf image")
+        end
+     end
+   end
+end;
+
+ 

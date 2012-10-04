@@ -1,0 +1,27 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Send in PPrint(aSend,out,seen)
+  self.mark(
+    @Operation()
+      self.dispatch(aSend.target,out);
+      self.indent(
+        @Operation()
+          format(out,".");
+          if aSend.message.isKindOf(Drop)
+          then self.dispatch(aSend.message,out)
+          else format(out,"~S",Seq{aSend.message})
+          end;
+          format(out,"(");
+          @For arg in aSend.args do
+            self.dispatch(arg,out);
+            if not isLast 
+            then format(out,",")
+            end
+          end;
+          format(out,")")
+        end)
+     end)
+end;

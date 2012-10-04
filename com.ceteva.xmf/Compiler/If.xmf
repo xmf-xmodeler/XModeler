@@ -1,0 +1,62 @@
+import OCL;
+import Instrs;
+
+context If
+  @Operation FV():Element
+    test.FV()->union(self.get("then").FV()->union(self.get("else").FV()))
+  end
+
+context If
+  @Operation maxLocals():Element 
+    let testLocals = test.maxLocals();
+        thenLocals = self.get("then").maxLocals();
+        elseLocals = self.get("else").maxLocals()
+    in testLocals.max(thenLocals.max(elseLocals))
+    end
+  end
+
+context If
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if self.isTrueTest()
+    then self.get("then").compile(env,frame,isLast,saveSource)
+    elseif self.isFalseTest()
+    then self.get("else").compile(env,frame,isLast,saveSource)
+    else self.compileTest(env,frame,isLast,saveSource)
+    end
+  end
+  
+context If
+  @Operation compileTest(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let testCode = test.compile(env,frame,false,saveSource); 
+        thenCode = self.get("then").compile(env,frame,isLast,saveSource); 
+        elseCode = Compiler::label(self.get("else"),env,frame,isLast,saveSource);
+        noop = Seq{NoOp(Compiler::newLabel())}
+    in testCode + 
+       Seq{SkipFalse(elseCode->head.label())} + 
+       thenCode + 
+       Seq{Skip(noop->head.label())} + 
+       elseCode +
+       noop
+    end
+  end
+  
+context If
+  @Operation isTrueTest():Boolean
+    if test.isKindOf(BoolExp)
+    then test.value
+    else false
+    end
+  end
+  
+context If
+  @Operation isFalseTest():Boolean
+    if test.isKindOf(BoolExp)
+    then not test.value
+    else false
+    end
+  end
+  
+context If
+  @Operation lift()
+    Apply(self.typeExp(),Seq{test.lift(),self.get("then").lift(),self.get("else").lift()})
+  end

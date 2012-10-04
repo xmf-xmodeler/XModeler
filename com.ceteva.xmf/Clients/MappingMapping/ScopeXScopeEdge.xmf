@@ -1,0 +1,44 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import Menus;
+import MappingDiagrams;
+import MappingMapping;
+//import XSync;
+import Network;
+
+context MappingMapping
+
+  @Class ScopeXScopeEdge extends ElementXEdge, RightClickableProxy
+  
+    @Attribute sync : Synchronizer end
+    @Attribute type : Classifier end
+    @Attribute edge : ScopeEdge (?) end
+    
+    @Constructor(sync,type,edge,owner)
+      self.setHotLoad(true);
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()})
+    end
+
+    @Operation checkDaemons()
+      self
+    end
+
+    @Operation hotLoaded()
+      self.checkDaemons();
+      self.setGlobalMenu(edge,Set{Element,edge.of()},false)
+    end
+
+    @Operation removeDaemons()
+      self
+    end
+
+    @Operation element()
+      Seq{sync,type}
+    end
+
+  end  

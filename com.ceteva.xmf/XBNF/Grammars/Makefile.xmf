@@ -1,0 +1,28 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Action",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/And",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/At",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Bind",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/BindVar",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Boot",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Call",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Clause",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Char",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/ConsAction",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Empty",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/EOF",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Grammar",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Grammars",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Int",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/ImportAt",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Line",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Name",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/NilAction",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Str",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Or",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/OCLAction",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Paren",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Star",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Terminal",true,true);
+compileFile(xmf.homeDir() + "/XBNF/Grammars/Recognizer",true,true);

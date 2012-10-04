@@ -1,0 +1,16 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest J2EE
+  J2EE = @File J2EE end
+  @File XCoreToJ2EE end
+  @File ClassToEntityBean end
+  @File ClassesToSessionBean end
+  @File ConstraintsToJ2EE end
+  @File PackageToJ2EE end
+do
+  J2EE
+end;
+

@@ -1,0 +1,38 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckFails extends TypeCheckReport
+  
+    @Attribute message : String (?) end
+    @Attribute report  : TypeCheckReport (?) end
+    
+    @Constructor(message,report) end
+    
+    @Constructor(message) ! end
+    
+    @Operation children():Seq(TypeCheckReport)
+      // NB failure may be due to an exception in which case there is
+      // no report.
+      if report = null
+      then Seq{}
+      else Seq{report}
+      end
+    end
+    
+    @Operation element()
+      null
+    end
+    
+    @Operation label():String
+      message
+    end
+    
+    @Operation ok():Boolean
+      false
+    end
+    
+  end

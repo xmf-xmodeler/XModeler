@@ -1,0 +1,514 @@
+parserImport XOCL;
+
+import Clients;
+
+context Forms
+
+  @Class FormCommandInterpreter extends XMLCommandInterpreter
+  
+    @Doc
+       This class defines a command interpreter over forms. It can be used as the basis
+       for defining event driven mappings. The mapping handles the following output
+       commands by sen-ding them in the appropriate format to the client connected to the
+       output channel:
+           [newFormCommandCommand(form)] 
+       end
+
+    @Operation addComboBoxItem(combo:FormComboBox,text:String)
+      let comboId = combo.id() in
+        @SendCommand(self)
+          addItem(comboId,text)
+        end;
+        comboId
+      end
+    end
+
+    @Operation setFormTool(form:Form,toolText:String,enabled:Boolean)
+      let formId = form.id() in
+        @SendCommand(self)
+          setTool(formId,toolText,enabled)
+        end;
+        formId
+      end
+    end
+
+    @Operation addItem(list:FormList,item:ListElement)
+      let itemId = self.allocateId(item) in
+        @SendCommand(self)
+          addItem(list.id(),itemId,item.text())
+        end;
+        itemId
+      end
+    end
+
+    @Operation addTableRowCommand(table,row)
+      let tableId = table.id()
+      in
+        @SendCommand(self)
+          addTableRow(tableId,row)
+        end;
+        tableId
+      end
+    end
+
+    @Operation addTextBoxRule(textbox:FormTextBox,rule,colour)
+      let textboxId = textbox.id() in
+        @SendCommand(self)
+          addRule(textboxId,rule,colour)
+        end;
+        textboxId
+      end
+    end
+    
+    @Operation changesMade(textbox:FormTextBox,value:Boolean)
+      let textboxId = textbox.id() in
+        @SendCommand(self)
+          changesMade(textboxId,value)
+        end;
+        textboxId
+      end
+    end
+
+    @Operation clear(list:FormList)
+      let listId = list.id() in
+        @SendCommand(self)
+          clear(listId)
+        end;
+        listId
+      end
+    end
+
+    @Operation clearFormCommand(form:Form)
+      let formId = form.id() in
+        @SendCommand(self)
+          clearForm(formId)
+        end;
+        formId
+      end
+    end
+
+    @Operation closeFormCommand(form:Form)
+      let formId = form.id() in
+        @SendCommand(self)
+          closeForm(formId)
+        end;
+        formId
+      end
+    end
+    
+    @Operation delete(element)
+      let elementId = element.id()
+      in
+        @SendCommand(self)
+          delete(elementId)
+        end;
+        elementId
+      end
+    end
+
+    @Operation deleteTableRowCommand(table,row)
+      let tableId = table.id()
+      in
+        @SendCommand(self)
+          deleteTableRow(tableId,row)
+        end;
+        tableId
+      end
+    end
+
+    @Operation deselectTreeNodeCommand(node:TreeNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          deselectNode(nodeId)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation disable(element:FormElement)
+      let elementId = element.id() in
+        @SendCommand(self)
+          disable(elementId)
+        end;
+        elementId
+      end
+    end
+
+    @Operation enable(element:FormElement)
+      let elementId = element.id() in
+        @SendCommand(self)
+          enable(elementId)
+        end;
+        elementId
+      end
+    end
+
+    @Operation expandTreeNodeCommand(node:TreeNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          expandNode(nodeId)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation forceFocusCommand(textComponent)
+      let textComponentId = textComponent.id() in
+        @SendCommand(self)
+          forceFocus(textComponentId)
+        end;
+        textComponentId
+      end
+    end
+    
+    @Operation getText(textBox:FormTextBox)
+      self.call("getText",Seq{textBox.id()})
+    end
+    
+    @Operation getTextDimension(text)
+      let result = self.call("getTextDimension",Seq{text})
+      in Seq{result->at(0),result->at(1)}
+      end
+    end
+
+    @Operation maximiseToCanvas(component)
+      @SendCommand(self)
+        maximiseToCanvas(component.id())
+      end
+    end
+
+    @Operation move(component)
+      @SendCommand(self)
+        move(component.id(),component.x(),component.y())
+      end
+    end
+
+    @Operation moveTreeNodeCommand(node:TreeNode,parent:TreeNode,index)
+      let
+        nodeId = node.id();
+        parentId = parent.id();
+        icon = node.icon()
+      in
+        @SendCommand(self)
+          removeNode(nodeId)
+        end;
+        if icon <> null
+        then
+          @SendCommand(self)
+            addNodeWithIcon(parentId,nodeId,node.text(),node.isEditable(),icon,index)
+          end
+        else
+          @SendCommand(self)
+            addNode(parentId,nodeId,node.text(),index)
+          end;
+          @SendCommand(self)
+            setEditable(nodeId,node.isEditable())
+          end
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newButtonCommand(parent,button:FormButton)
+      let buttonId = self.allocateId(button) in
+        @SendCommand(self)
+          newButton(parent.id(),buttonId,button.label(),button.x(),button.y(),button.width(),button.height())
+        end;
+        buttonId
+      end
+    end
+
+    @Operation newCheckBoxCommand(parent,checkBox:FormCheckBox)
+      let checkBoxId = self.allocateId(checkBox) in
+        @SendCommand(self)
+          newCheckBox(parent.id(),checkBoxId,checkBox.x(),checkBox.y(),checkBox.value())
+        end;
+        checkBoxId
+      end
+    end
+    
+    @Operation newComboBoxCommand(parent,combobox:FormComboBox)
+      let comboboxId = self.allocateId(combobox) in
+        @SendCommand(self)
+          newComboBox(parent.id(),comboboxId,combobox.x(),combobox.y(),combobox.width(),combobox.height())
+        end;
+        comboboxId
+      end
+    end
+ 
+    @Operation newFormCommand(form:Form)
+      let formId = self.allocateId(form) in
+        @SendCommand(self)
+          newForm(formId,form.type(),form.name())
+        end;
+        formId
+      end
+    end
+    
+    @Operation newIconedTreeNodeCommand(parent,node:TreeNode)
+      let nodeId = self.allocateId(node) in
+        @SendCommand(self)
+          addNodeWithIcon(parent.id(),nodeId,node.text(),node.isEditable(),node.icon())
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newIconedTreeNodeCommand(parent,node:TreeNode,index)
+      let nodeId = self.allocateId(node) in
+        @SendCommand(self)
+          addNodeWithIcon(parent.id(),nodeId,node.text(),node.isEditable(),node.icon(),index)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newListCommand(parent,list:FormList)
+      let listId = self.allocateId(list) in
+        @SendCommand(self)
+          newList(parent.id(),listId,list.x(),list.y(),list.width(),list.height())
+        end;
+        listId
+      end
+    end 
+
+    @Operation newTextBoxCommand(parent,textbox:FormTextBox)
+      let textboxId = self.allocateId(textbox) in
+        @SendCommand(self)
+          newTextBox(parent.id(),textboxId,textbox.x(),textbox.y(),textbox.width(),textbox.height(),textbox.isEditable())
+        end;
+        textboxId
+      end
+    end
+  
+    @Operation newTextCommand(parent,text:FormLabel)
+      let textId = self.allocateId(text) in
+        @SendCommand(self)
+          newText(parent.id(),textId,text.text(),text.x(),text.y())
+        end;
+        textId
+      end
+    end
+
+    @Operation newTextFieldCommand(parent,textfield:FormTextField)
+      let textfieldId = self.allocateId(textfield) in
+        @SendCommand(self)
+          newTextField(parent.id(),textfieldId,textfield.x(),textfield.y(),textfield.width(),textfield.height(),textfield.isEditable())
+        end;
+        textfieldId
+      end
+    end
+
+    @Operation newRightClickMenuCommand(parent,menuItem:MenuItem)
+      let menuItemId = self.allocateId(menuItem) in
+        @SendCommand(self)
+          addMenuItem(parent.id(),menuItemId,menuItem.name())
+        end;
+        menuItemId
+      end
+    end
+
+    @Operation newTreeCommand(parent,tree:FormTree)
+      let treeId = self.allocateId(tree) in
+        @SendCommand(self)
+          newTree(parent.id(),treeId,tree.x(),tree.y(),tree.width(),tree.height(),tree.editable())
+        end;
+        treeId
+      end
+    end
+    
+    @Operation newTreeNodeCommand(parent,node:TreeNode)
+      let nodeId = self.allocateId(node) in
+        @SendCommand(self)
+          addNode(parent.id(),nodeId,node.text())
+        end;
+        @SendCommand(self)
+          setEditable(nodeId,node.isEditable())
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newTreeNodeCommand(parent,node:TreeNode,index)
+      let nodeId = self.allocateId(node) in
+        @SendCommand(self)
+          addNode(parent.id(),nodeId,node.text(),index)
+        end;
+        @SendCommand(self)
+          setEditable(nodeId,node.isEditable())
+        end;
+        nodeId
+      end
+    end
+
+    @Operation newTableCommand(parent,table:FormTable)
+      let tableId = self.allocateId(table) in
+        @SendCommand(self)
+          newTable(parent.id(),tableId,table.x(),table.y(),table.width(),table.height(),table.cols(),table.rows())
+        end;
+        tableId
+      end
+    end 
+
+    @Operation setTableItemCommand(table:FormTable,col:Integer,row:Integer,item:FormElement)
+      let itemId = item.id() in
+        @SendCommand(self)
+          setTableItem(table.id(),itemId,col,row)
+        end;
+        itemId
+      end
+    end 
+
+    @Operation setTableColumnWidthCommand(table:FormTable,col:Integer,width:Integer)
+      let tableId = table.id() in
+        @SendCommand(self)
+          setTableColumnWidth(table.id(),col,width)
+        end;
+        tableId
+      end
+    end 
+
+    @Operation setTableColumnTitleCommand(table:FormTable,col:Integer,title:String)
+      let tableId = table.id() in
+        @SendCommand(self)
+          setTableColumnTitle(table.id(),col,title)
+        end;
+        tableId
+      end
+    end 
+
+    @Operation removeItem(item:ListElement)
+      let itemId = item.id() in
+        @SendCommand(self)
+          removeItem(itemId)
+        end;
+        itemId
+      end
+    end
+
+    @Operation removeNode(node:TreeNode)
+      @SendCommand(self)
+        removeNode(node.id())
+      end
+    end
+
+    @Operation selectTreeNodeCommand(node:TreeNode)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          selectNode(nodeId,false)
+        end;
+        nodeId
+      end
+    end
+    
+    @Operation setBackground(component,red,green,blue)
+      let componentId = component.id() in
+        @SendCommand(self)
+          setBackground(componentId,red,green,blue)
+        end;
+        componentId
+      end
+    end
+
+    @Operation setBooleanCommand(checkBox:FormCheckBox,value)
+      let checkBoxId=checkBox.id() in
+        if value then
+          @SendCommand(self)
+            check(checkBoxId)
+          end
+        else
+          @SendCommand(self)
+            uncheck(checkBoxId)
+          end
+        end;
+        checkBoxId
+      end
+    end
+
+    @Operation setComboBoxSelection(combo:FormComboBox,pos:Integer)
+      let comboId = combo.id() in
+        @SendCommand(self)
+          setSelection(comboId,pos)
+        end;
+        comboId
+      end
+    end
+
+    @Operation enableDrag(clientElement)
+      let clientElementId=clientElement.id() in
+        //@SendCommand(self)
+        //  enableDrag(clientElementId)
+        //end;
+        clientElementId
+      end
+    end
+
+    @Operation enableDrop(clientElement)
+      let clientElementId=clientElement.id() in
+        @SendCommand(self)
+          enableDrop(clientElementId)
+        end;
+        clientElementId
+      end
+    end
+
+    @Operation setEditableTextCommand(textcomponent,text:String)
+      let textcomponentId=textcomponent.id() in
+        @SendCommand(self)
+          setEditableText(textcomponentId,text)
+        end;
+        textcomponentId
+      end
+    end
+    
+    @Operation setFocus(form:Form)
+      let formId=form.id() in
+        if xmf.clientManager().idManager.hasId(formId)
+        then
+          @SendCommand(self)
+            setFocus(formId)
+          end
+        end
+      end
+    end
+
+    @Operation setFormText(form:Form,text:String)
+      let formId=form.id() in
+        @SendCommand(self)
+          setText(formId,text)
+        end;
+        formId
+      end
+    end
+
+    @Operation setNodeIconCommand(node:TreeNode,icon)
+      let nodeId = node.id() in
+        @SendCommand(self)
+          setNodeIcon(nodeId,icon)
+        end;
+        nodeId
+      end
+    end
+
+    @Operation setSize(component)
+      @SendCommand(self)
+        setSize(component.id(),component.width(),component.height())
+      end
+    end
+
+    @Operation setText(textcomponent,text:String)
+      let textcomponentId=textcomponent.id() in
+        @SendCommand(self)
+          setText(textcomponentId,text)
+        end;
+        textcomponentId
+      end
+    end
+
+    @Operation setVisible(form:Form)
+      @SendCommand(self)
+        setVisible(form.id())
+      end
+    end
+
+  end

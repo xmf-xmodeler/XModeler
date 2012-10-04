@@ -1,0 +1,1481 @@
+parserImport XOCL;
+parserImport Tools::FormTools::Types;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+
+import Tools::DiagramTools::Types::DisplayTypes::DisplayType;
+import Clients::Diagrams::Line;
+import Clients::Diagrams::Edge;
+import MDC;
+import Types;
+
+context MDC
+  @Bind BackgroundColourMenu =
+    @MenuAction "Background Colour"
+      let color = tool.find(self).displayType().backgroundColor()
+      in if color = ""
+         then color := xmf.getColor("Background Colour")
+         else color := xmf.getColor("Background Color",parseColor(color))
+         end;
+         if color <> null
+         then 
+           let colorStr = color.red() + "," + color.green() + "," + color.blue()
+           in tool.find(self).displayType().setBackgroundColor(colorStr)
+           end
+         end
+      end
+     end
+   end
+
+context MDC
+  @Bind LineColourMenu =
+    @MenuAction "Line Colour"
+      let color = tool.find(self).displayType().lineColor()
+      in if color = ""
+         then color := xmf.getColor("Line Colour")
+         else color := xmf.getColor("Line Color",parseColor(color))
+         end;
+         if color <> null
+         then 
+           let colorStr = color.red() + "," + color.green() + "," + color.blue()
+           in tool.find(self).displayType().setLineColor(colorStr)
+           end
+         end
+      end
+     end
+   end
+         
+context MDC
+  @Bind FillColourMenu =
+    @MenuAction "Fill Colour"
+      let color = tool.find(self).displayType().fillColor()
+      in if color = ""
+         then color := xmf.getColor("Fill Colour")
+         else color := xmf.getColor("Fill Color",parseColor(color))
+         end;
+         if color <> null
+         then 
+           let colorStr = color.red() + "," + color.green() + "," + color.blue()
+           in tool.find(self).displayType().setFillColor(colorStr)
+           end
+         end
+      end
+     end
+   end
+   
+context MDC
+  @Bind ColourMenu =
+    @MenuItems Color
+      LineColourMenu
+      FillColourMenu
+    end
+  end
+
+context MDC
+  @Bind PadMenu =
+    @MenuItems Pad
+      @MenuAction Decrease
+        tool.find(self).decreasePadding()
+      end
+      @MenuAction Increase
+        tool.find(self).increasePadding()
+      end
+    end
+  end
+
+context MDC
+  @Bind LayoutMenu =
+    @MenuItems Layout
+      @MenuAction Centre
+        tool.find(self).displayType().layout := "CENTRE"
+      end
+      @MenuAction Left
+        tool.find(self).displayType().layout := "LEFT"
+      end
+      @MenuAction Right
+        tool.find(self).displayType().layout := "RIGHT"
+      end
+      @MenuAction Top
+        tool.find(self).displayType().layout := "TOP"
+      end
+      @MenuAction Bottom
+        tool.find(self).displayType().layout := "BOTTOM"
+      end
+      @MenuAction Align
+        tool.find(self).displayType().layout := "ALIGN"
+      end
+    end
+  end
+      
+context MDC
+  @Bind BoxMenu =
+    @MenuItems Box
+      @MenuAction Filled       
+        self.newNode("Displays:Box")
+      end
+      @MenuAction Invisible
+        self.newNode("Displays:InvisibleBox") 
+      end
+      @MenuAction Empty
+        self.newNode("Displays:EmptyBox")
+      end
+      @MenuAction TopBars
+        self.newNode("Displays:TopBars")
+      end
+      @MenuAction SideBars
+        self.newNode("Displays:SideBars")
+      end
+    end
+  end
+  
+context MDC
+  @Bind ShapeMenu =
+    @MenuItems Shapes
+      @MenuAction Shape   
+        self.newNode("Displays:Shape") 
+      end
+    end
+  end
+
+context MDC
+  @Bind NewMenu = 
+    @MenuItems New
+      @MenuAction Attribute 
+        self.newNode("Displays:Attribute") 
+      end
+      BoxMenu
+      @MenuAction Ellipse   
+        self.newNode("Displays:Ellipse") 
+      end
+      @MenuAction Image     
+        self.newNode("Displays:Image") 
+      end
+      ShapeMenu
+      @MenuAction Text      
+        self.newNode("Displays:Text") 
+      end
+    end
+  end
+  
+context MDC
+  @Bind AttributeMenu =
+    @MenuItems Change
+      BoxMenu
+      @MenuAction Ellipse   
+        self.newNode("Displays:Ellipse") 
+      end
+      @MenuAction Image     
+        self.newNode("Displays:Image") 
+      end
+      ShapeMenu
+      @MenuAction Text      
+        self.newNode("Displays:Text") 
+      end
+      @MenuAction Diagram
+        self.newNode("Displays:RootElementType")
+      end
+      @MenuAction Ref
+        self.newNode("Displays:Ref")
+      end
+      @MenuItems Import
+        @MenuAction File
+          tool.importToolDefFile(self)
+    end
+  end
+    end
+  end
+  
+context MDC
+  @Bind ToolMenu =
+    @MenuItems New
+      @MenuItems "User Item"
+        @MenuAction "Menu Group"
+          self.newNode("Items:Items")
+        end
+        @MenuAction "Menu Item"
+          self.newNode("Items:Item")
+        end
+      end
+      @MenuAction "Zoom"
+        let zoomNode = self.newNode("Items:Items")
+        in  zoomNode.setTextIn("Zoom");
+            zoomNode.newNode("Items:ZoomIn");
+            zoomNode.newNode("Items:ZoomOut");
+            zoomNode.newNode("Items:ZoomTo");
+            zoomNode.newNode("Items:ZoomToFit")
+        end
+      end
+//      @MenuItems Zoom
+//        @MenuAction "To Fit"
+//          self.newNode("Items:ZoomToFit")
+//        end
+//        @MenuAction "In/Out"
+//          self.newNode("Items:ZoomIn");
+//          self.newNode("Items:ZoomOut")
+//        end
+//        @MenuAction "To"
+//          self.newNode("Items:ZoomTo")
+//        end
+//      end
+      @MenuAction "Themes"
+        let themesNode = self.newNode("Items:Items")
+        in  themesNode.setTextIn("Themes");
+            themesNode.newNode("Items:NewTheme");
+            themesNode.newNode("Items:ApplyTheme");
+            themesNode.newNode("Items:DeleteTheme");
+            themesNode.newNode("Items:RemoveTheme");
+            themesNode.newNode("Items:EditTheme");
+            themesNode.newNode("Items:SaveTheme");
+            themesNode.newNode("Items:LoadTheme")
+        end
+      end
+      @MenuAction "Check"
+        self.newNode("Items:Check")
+      end
+      @MenuItems Rendering
+        @MenuAction "Hide/Show"
+          self.newNode("Items:Hide");
+          self.newNode("Items:Show")
+        end
+      end
+      @MenuAction "Copy Diagram"
+        self.newNode("Items:CopyDiagramToClipboard")
+      end
+      @MenuItems Clipboard
+        @MenuAction "Copy"
+          self.newNode("Items:ClipboardCopy")
+        end
+        @MenuAction "Cut"
+          self.newNode("Items:ClipboardCut")
+        end
+        @MenuAction "Paste"
+          self.newNode("Items:ClipboardPaste")
+        end
+      end
+      @MenuAction "Browse"
+        self.newNode("Items:Browser")
+      end
+      @MenuAction "Delete"
+        self.newNode("Items:Delete")
+      end
+      @MenuAction "Edit"
+        self.newNode("Items:Editor")
+      end
+    end
+  end
+
+context MDC
+  @Bind DefaultMenuMenu =
+    @MenuItems "Default Menu Items"
+      @MenuAction Enable
+        tool.find(self).applyDefault(true)
+      end
+      @MenuAction Disable
+        tool.find(self).applyDefault(false)
+      end
+    end
+  end
+
+context MDC
+  @Bind MenuItemDeleteMenuAction = 
+    @MenuAction Delete
+      self.delete()
+    end
+  end
+
+context MDC
+  @Bind MenuItemEditMenuAction = 
+    @MenuAction Edit
+      tool.find(self).action.edit()
+    end
+  end
+
+context MDC
+  @Bind MenuItemMoveMenuAction = 
+    @MenuAction Move
+      let item = tool.find(self);
+          menu = tool.find(self.owner())
+      in
+        if menu.reorder(item) <> null
+        then
+          self.setIndex(menu.items().indexOf(item))
+        end
+      end
+    end
+  end
+
+
+context MDC
+  @Bind BasicEditMenuAction =
+    @MenuAction Edit
+      tool.find(self).edit()
+    end
+  end
+
+context MDC
+  @Bind SetNameMenuAction =
+    @MenuAction "Set Name"
+      let element = tool.find(self) then
+          name = xmf.getString("Enter Name","Enter new name",element.name.toString())
+      in
+        if name <> null
+        then
+          self.setText(name);
+          if element.name.isKindOf(Symbol)
+          then name := Symbol(name)
+          end;
+          element.name := name
+        end
+      end
+    end
+  end
+
+context MDC
+  @Bind SetNodeTypeNameMenuAction =
+    @MenuAction "Set Name"
+      let element = tool.find(self).type().nodeType() then
+          name = xmf.getString("Enter Name","Enter new name",element.name.toString())
+      in
+        if name <> null
+        then
+          self.setText(name);
+          if element.name.isKindOf(Symbol)
+          then name := Symbol(name)
+          end;
+          element.name := name
+        end
+      end
+    end
+  end
+
+context MDC
+  @Bind SetEdgeTypeNameMenuAction =
+    @MenuAction "Set Name"
+      let element = tool.find(self).edgeType then
+          name = xmf.getString("Enter Name","Enter new name",element.name.toString())
+      in
+        if name <> null
+        then
+          self.setText(name);
+          if element.name.isKindOf(Symbol)
+          then name := Symbol(name)
+          end;
+          element.name := name
+        end
+      end
+    end
+  end
+
+context MDC
+  @Bind EditEdgeHandlersMenu =
+    @MenuItems "Edit Edge Handlers"
+      @MenuAction "Creation Handler"
+        tool.find(self).creationHandler.edit()
+      end
+      @MenuAction "Deletion Handler"
+        tool.find(self).deletionHandler.edit()
+      end
+      @MenuAction "Source Reconnection Handler"
+        tool.find(self).sourceReconnectHandler.edit()
+      end
+      @MenuAction "Target Reconnection Handler"
+        tool.find(self).targetReconnectHandler.edit()
+      end
+    end
+  end
+
+context MDC
+  @Bind LineStyleMenu =
+    @MenuItems Line
+      @MenuItems Style
+        @MenuAction Solid
+          tool.find(self).edgeType().setLineStyle(solidLine) 
+        end
+        @MenuAction Dashed
+          tool.find(self).edgeType().setLineStyle(dashLine) 
+        end
+        @MenuAction Dotted
+          tool.find(self).edgeType().setLineStyle(dottedLine) 
+        end
+        @MenuAction DashDotted
+          tool.find(self).edgeType().setLineStyle(dashDottedLine) 
+        end
+        @MenuAction DashDotDot
+          tool.find(self).edgeType().setLineStyle(dashDotDotLine) 
+        end
+      end
+      @MenuItems Arrow
+        @MenuItems Source
+          @MenuItems Arrow
+            @MenuAction None
+              tool.find(self).edgeType.setSourceHead(noArrow) 
+            end
+            @MenuAction Simple
+              tool.find(self).edgeType.setSourceHead(arrow) 
+            end
+            @MenuAction Black
+              tool.find(self).edgeType.setSourceHead(blackArrow) 
+            end
+            @MenuAction White
+              tool.find(self).edgeType.setSourceHead(whiteArrow) 
+            end
+          end
+          @MenuItems Diamond
+            @MenuAction Black 
+              tool.find(self).edgeType.setSourceHead(blackDiamond) 
+            end
+            @MenuAction White
+              tool.find(self).edgeType.setSourceHead(whiteDiamond) 
+            end
+          end
+        end
+        @MenuItems Target
+          @MenuItems Arrow
+            @MenuAction None
+              tool.find(self).edgeType.setTargetHead(noArrow) 
+            end
+            @MenuAction Simple
+              tool.find(self).edgeType.setTargetHead(arrow) 
+            end
+            @MenuAction Black
+              tool.find(self).edgeType.setTargetHead(blackArrow) 
+            end
+            @MenuAction White
+              tool.find(self).edgeType.setTargetHead(whiteArrow) 
+            end
+          end
+          @MenuItems Diamond
+            @MenuAction Black 
+              tool.find(self).edgeType.setTargetHead(blackDiamond) 
+            end
+            @MenuAction White
+              tool.find(self).edgeType.setTargetHead(whiteDiamond) 
+            end
+          end
+        end
+      end
+    end
+  end
+  
+context MDC
+  @Bind LinkMenu =
+    @MenuItems New
+      @MenuAction "Delete"
+        self.newNode("Items:Delete")
+      end
+      @MenuItems "User Item"
+        @MenuAction "Menu Group"
+          self.newNode("Items:Items")
+        end
+        @MenuAction "Menu Item"
+          self.newNode("Items:Item")
+        end
+      end
+      @MenuItems Rendering
+        @MenuAction "Render Mode"
+          self.newNode("Items:RenderMode")
+        end
+        @MenuAction "Hide"
+          self.newNode("Items:Hide")
+        end
+      end
+    end
+  end
+  
+context MDC
+  @Bind AssociationMenu =
+    @MenuItems New
+      @MenuAction "Delete"
+        self.newNode("Items:Delete")
+      end
+      @MenuAction "Edit"
+        self.newNode("Items:Editor")
+      end
+      @MenuItems "User Item"
+        @MenuAction "Menu Group"
+          self.newNode("Items:Items")
+        end
+        @MenuAction "Menu Item"
+          self.newNode("Items:Item")
+        end
+      end
+      @MenuItems Rendering
+        @MenuAction "Render Mode"
+          self.newNode("Items:RenderMode")
+        end
+        @MenuAction "Hide"
+          self.newNode("Items:Hide")
+        end
+      end
+      @MenuItems Clipboard
+        @MenuAction "Copy"
+          self.newNode("Items:ClipboardCopy")
+        end
+        @MenuAction "Cut"
+          self.newNode("Items:ClipboardCut")
+        end
+        @MenuAction "Paste"
+          self.newNode("Items:ClipboardPaste")
+        end
+      end
+    end
+  end
+
+context MDC
+  @Bind MoveMenu =
+    @MenuItems Move
+      @MenuAction Up tool.moveUp(self) end
+      @MenuAction Down tool.moveDown(self) end
+    end
+  end
+          
+context MDC
+  @Bind EventsMenu =
+    @MenuItems Events
+      @MenuAction Clicks
+        tool.find(self).displayType().clickHandler().edit()
+      end
+      @MenuAction Move
+        tool.find(self).displayType().moveHandler().edit()
+      end
+      @MenuAction Resize
+        tool.find(self).displayType().resizeHandler().edit()
+      end
+      @MenuAction Selection
+        tool.find(self).displayType().selectionHandler().edit()
+      end
+    end
+  end 
+          
+context MDC
+  @Bind TextEventsMenu =
+    @MenuItems Events
+      @MenuAction Clicks
+        tool.find(self).displayType().clickHandler().edit()
+      end
+      @MenuAction Move
+        tool.find(self).displayType().moveHandler().edit()
+      end
+      @MenuAction Resize
+        tool.find(self).displayType().resizeHandler().edit()
+      end
+      @MenuAction Selection
+        tool.find(self).displayType().selectionHandler().edit()
+      end
+      @MenuAction "Text Changed"
+        tool.find(self).displayType().textChangedHandler().edit()
+      end
+    end
+  end 
+          
+context MDC
+  @Bind NodeEventsMenu =
+    @MenuItems Events
+      @MenuAction Clicks
+        tool.find(self).type().nodeType().clickHandler().edit()
+      end
+      @MenuAction Move
+        tool.find(self).type().nodeType().moveHandler().edit()
+      end
+      @MenuAction Resize
+        tool.find(self).type().nodeType().resizeHandler().edit()
+      end
+      @MenuAction Selection
+        tool.find(self).type().nodeType().selectionHandler().edit()
+      end
+    end
+  end 
+          
+context MDC
+  @Bind MenuItems =
+    @Nodes Items
+      @TreeNode Item "Menu Item"
+        icon = "MDC/Item.gif"
+        @Menu
+          MenuItemEditMenuAction
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Editor(readonly) "Edit"
+        icon = "User/TickBoxed.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ZoomTo(readonly) "Zoom To ..."
+        icon = "MDC/ZoomTo.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ZoomToFit(readonly) "Zoom To Fit"
+        icon = "MDC/ZoomToFit.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ZoomIn(readonly) "Zoom In"
+        icon = "MDC/ZoomIn.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ZoomOut(readonly) "Zoom Out"
+        icon = "MDC/ZoomOut.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Hide(readonly) Hide
+        icon = "MDC/Hide.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Show(readonly) "Show"
+        icon = "MDC/Show.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+//      @TreeNode Themes(readonly) "Themes"
+//        icon = "MDC/Themes.gif"
+//        @Menu
+//          MenuItemDeleteMenuAction
+//          MenuItemMoveMenuAction
+//        end
+//      end
+      @TreeNode NewTheme(readonly) "New"
+        icon = "MDC/NewTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ApplyTheme(readonly) "Apply"
+        icon = "MDC/ApplyTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end      
+      @TreeNode DeleteTheme(readonly) "Delete"
+        icon = "MDC/DeleteTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end      
+      @TreeNode RemoveTheme(readonly) "Remove"
+        icon = "MDC/RemoveTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end      
+      @TreeNode EditTheme(readonly) "Edit"
+        icon = "MDC/EditTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end      
+      @TreeNode SaveTheme(readonly) "Save"
+        icon = "MDC/SaveTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end      
+      @TreeNode LoadTheme(readonly) "Load"
+        icon = "MDC/LoadTheme.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Check(readonly) "Check"
+        icon = "MDC/Check.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode CopyDiagramToClipboard(readonly) "Copy Diagram"
+        icon = "MDC/CopyToClipboard.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCopy(readonly) "Copy"
+        icon = "MDC/Copy.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCut(readonly) "Cut"
+        icon = "MDC/Cut.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardPaste(readonly) "Paste"
+        icon = "MDC/Paste.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Add(readonly) ""
+        icon = "User/ArithPlus.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Browser(readonly) "Browse"
+        icon = "MDC/Browser.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Delete(readonly) "Delete"
+        icon = "MDC/Delete.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Items "Menu Group"
+        icon = "MDC/Items.gif"
+        @Ref Items end
+        @Menu
+          ToolMenu
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+    end
+  end
+   
+context MDC
+  @Bind LinkMenuItems =
+    @Nodes Items
+      @TreeNode Delete(readonly) "Delete"
+        icon = "MDC/Delete.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Item "Menu Item"
+        icon = "MDC/Item.gif"
+        @Menu
+          MenuItemEditMenuAction
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Items "Menu Group"
+        icon = "MDC/Items.gif"
+        @Ref Items end
+        @Menu
+          ToolMenu
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode RenderMode "RenderMode"
+        icon = "MDC/RenderMode.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Hide "Hide"
+        icon = "MDC/Hide.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCopy(readonly) "Copy"
+        icon = "MDC/Copy.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCut(readonly) "Cut"
+        icon = "MDC/Cut.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardPaste(readonly) "Paste"
+        icon = "MDC/Paste.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+    end
+  end
+   
+context MDC
+  @Bind AssociationMenuItems =
+    @Nodes Items
+      @TreeNode Delete(readonly) "Delete"
+        icon = "MDC/Delete.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Editor(readonly) "Edit"
+        icon = "User/TickBoxed.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Item "Menu Item"
+        icon = "MDC/Item.gif"
+        @Menu
+          MenuItemEditMenuAction
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Items "Menu Group"
+        icon = "MDC/Items.gif"
+        @Ref Items end
+        @Menu
+          ToolMenu
+          SetNameMenuAction
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode RenderMode "RenderMode"
+        icon = "MDC/RenderMode.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode Hide "Hide"
+        icon = "MDC/Hide.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCopy(readonly) "Copy"
+        icon = "MDC/Copy.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardCut(readonly) "Cut"
+        icon = "MDC/Cut.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+      @TreeNode ClipboardPaste(readonly) "Paste"
+        icon = "MDC/Paste.gif"
+        @Menu
+          MenuItemDeleteMenuAction
+          MenuItemMoveMenuAction
+        end
+      end
+    end
+  end
+   
+context MDC
+  @Bind MenuNode = 
+    @TreeNode Menu(readonly) "Menu"
+        icon = "MDC/Menu.gif"
+      @Menu
+        BasicEditMenuAction
+        DefaultMenuMenu
+        ToolMenu
+      end
+      MenuItems
+    end
+  end
+  
+context MDC
+  @Bind LinkMenuNode = 
+    @TreeNode Menu(readonly) "Menu"
+        icon = "MDC/Menu.gif"
+      @Menu
+        BasicEditMenuAction
+        DefaultMenuMenu
+        LinkMenu
+      end
+      LinkMenuItems
+    end
+  end
+  
+context MDC
+  @Bind AssociationMenuNode = 
+    @TreeNode Menu(readonly) "Menu"
+        icon = "MDC/Menu.gif"
+      @Menu
+        BasicEditMenuAction
+        DefaultMenuMenu
+        AssociationMenu
+      end
+      AssociationMenuItems
+    end
+  end
+  
+context MDC
+  @Bind DisplayTypes =
+    @Nodes Displays
+      @TreeNode Box(readonly) "Box"
+        icon = "MDC/FilledBox.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Add tool.addElement(self) end
+          MoveMenu
+          EventsMenu
+          NewMenu
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        MenuNode
+        @Ref Displays end
+      end
+      @TreeNode EmptyBox(readonly) "EmptyBox"
+        icon = "MDC/FilledBox.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Add tool.addElement(self) end
+          MoveMenu
+          EventsMenu
+          NewMenu
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        MenuNode
+        @Ref Displays end
+      end
+      @TreeNode InvisibleBox(readonly) "InvisibleBox"
+        icon = "MDC/FilledBox.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Add tool.addElement(self) end
+          MoveMenu
+          EventsMenu
+          NewMenu
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        MenuNode
+        @Ref Displays end
+      end
+      @TreeNode SideBars(readonly) "SideBars"
+        icon = "MDC/FilledBox.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Add tool.addElement(self) end
+          MoveMenu
+          EventsMenu
+          NewMenu
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        MenuNode
+        @Ref Displays end
+      end
+      @TreeNode TopBars(readonly) "TopBars"
+        icon = "MDC/FilledBox.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Add tool.addElement(self) end
+          MoveMenu
+          EventsMenu
+          NewMenu
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        MenuNode
+        @Ref Displays end
+      end
+      @TreeNode Attribute(readonly) ""
+        icon = "User/Arrow4Right.gif"
+        @Menu
+          @MenuAction Delete self.delete() end
+          @MenuItems Containment
+            @MenuAction Immediate 
+              tool.find(self).changeContainment(tool,ContainerType::Immediate)
+            end
+            @MenuAction Sequence 
+              tool.find(self).changeContainment(tool,ContainerType::Box)
+            end
+            @MenuAction Diagram 
+              tool.find(self).changeContainment(tool,ContainerType::Diagram)
+            end
+          end
+          MoveMenu
+          AttributeMenu
+        end
+        @Ref Displays end
+      end
+      @TreeNode Image(readonly) "Image"
+        icon = "Documents/Image.gif"
+        MenuNode
+        @Menu
+          MoveMenu
+          EventsMenu
+          @MenuAction Set tool.find(self).displayType().setFile() end
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Delete self.delete() end
+          LayoutMenu
+          PadMenu
+        end
+      end
+      @TreeNode Text "Text"
+        icon = "Documents/Text.gif"
+        MenuNode
+        @Menu
+          MoveMenu
+          TextEventsMenu
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Delete self.delete() end
+          @MenuAction Filter tool.find(self).filter().edit() end
+          @MenuAction Font 
+            let font = xmf.getFont("")
+            in if font <> ""
+               then tool.find(self).displayType().setFont(font)
+               end
+            end
+          end
+          LayoutMenu
+          PadMenu
+        end
+      end
+      @TreeNode Ellipse(readonly) "Ellipse"
+        icon = "MDC/FilledEllipse.gif"
+        MenuNode
+        @Menu
+          MoveMenu
+          EventsMenu
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Delete self.delete() end
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+      end
+      @TreeNode Ref(readonly) "Ref"
+        icon = "MDC/Ref.gif"
+        @Menu
+          MoveMenu
+          @MenuAction Delete self.delete() end
+        end
+      end
+      @TreeNode Shape(readonly) "Shape"
+        icon = "MDC/Shape.gif"
+        MenuNode
+        @Menu
+          MoveMenu
+          EventsMenu
+          @MenuAction Edit tool.find(self).displayType().edit() end
+          @MenuAction Delete self.delete() end
+          @MenuAction "New Point" self.newNode("Points:Point") end
+          LayoutMenu
+          PadMenu
+          ColourMenu
+        end
+        @Nodes Points
+          @TreeNode Point "(0,0)"
+            icon = "MDC/Point.gif"
+            @Menu
+              MoveMenu
+              @MenuAction Edit tool.find(self).displayType().edit() end
+              @MenuAction Delete self.delete() end
+              LayoutMenu
+              PadMenu
+            end
+          end
+        end
+      end
+      @Ref RootElementType end
+    end
+ end
+ 
+context MDC 
+  @Bind Label =
+    @TreeNode Label "Label"
+      icon = "User/Pencil.gif"
+      @Menu
+        @MenuAction Edit tool.find(self).edit() end
+        @MenuAction Delete self.delete() end
+        @MenuItems New
+          @MenuAction Listener
+            self.newNode("Listeners:Listener")
+          end
+        end
+      end
+      @Nodes Listeners 
+        @TreeNode Listener "Listener"
+          icon = "MDC/Listener.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).edit() end
+            @MenuAction Delete self.delete() end
+          end
+        end
+      end
+    end
+  end
+ 
+context MDC
+  @Bind LinkLabels =
+    @Nodes Labels
+      Label
+    end
+  end
+  
+context MDC
+  @Bind AttributeLabel =
+    @TreeNode AttributeLabel(readonly) ""
+      icon = "MDC/Attribute.gif"
+      @Menu
+        @MenuAction Edit tool.find(self).edit() end
+        @MenuAction Delete self.delete() end
+        @MenuItems New
+          @MenuAction Listener
+            self.newNode("Listeners:Listener")
+          end
+        end
+      end
+      @Nodes Listeners 
+        @TreeNode Listener "Listener"
+          icon = "MDC/Listener.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).edit() end
+            @MenuAction Delete self.delete() end
+          end
+        end
+      end
+    end
+  end
+  
+context MDC
+  @Bind AssociationLabels =
+    @Nodes Labels
+      Label
+      AttributeLabel
+    end
+  end
+
+@ToolType RootElementType::Editor::Type(VERTICAL)
+  @Tree Tree
+    minWidth  = 500
+    minHeight = 500
+    @TreeNode RootElementType(readonly) "RootType"
+      icon = "MDC/RootElementType.gif"
+      @Menu
+        @MenuItems Edit
+          @MenuAction "Tool Definition (Basic Edit)"
+            tool.find(self).oldEdit()
+          end
+          @MenuAction "Display Type"
+            tool.find(self).displayType().edit()
+          end
+          @MenuAction "Browser Tool"
+            tool.find(self).edit()
+          end
+        end
+        @MenuAction "Set Name"
+          tool.find(self).changeName()
+        end
+        @MenuAction Save
+          tool.find(self).save()
+        end
+        @MenuAction Browse
+          tool.find(self).browse()
+        end
+        @MenuItems New
+          @MenuItems Node
+            @MenuAction "Root Node"
+              self.newNode("RootNodes:RootNode")
+            end
+            @MenuAction "Free Node"
+              self.newNode("RootNodes:FreeNode")
+            end
+          end
+          @MenuItems Edge
+            @MenuAction Link
+              self.newNode("RootNodes:Link")
+            end
+            @MenuAction Association
+              self.newNode("RootNodes:Association")
+            end
+            @MenuAction "IntelliLink (Specify Edge Types)"
+              self.newNode("RootNodes:Intellilink")
+            end
+            @MenuAction "IntelliLink (All Edge Types)"
+              self.newNode("RootNodes:Alledgesintellilink")
+            end
+          end
+          @MenuItems Monitor
+            @MenuAction "Slot"
+              self.newNode("RootNodes:SlotMonitor")
+            end
+            @MenuAction "Creation"
+              self.newNode("RootNodes:CreationMonitor")
+            end
+          end
+        end
+        @MenuItems "Multiple Diagrams"
+          @MenuAction "Enable"
+            tool.find(self).enableMultipleDiagrams(true)
+          end
+          @MenuAction "Disable"
+            tool.find(self).enableMultipleDiagrams(false)
+          end
+        end
+        @MenuItems "Drag and Drop"
+          @MenuAction "Enable Drop"
+            tool.find(self).enableDrop(true)
+          end
+          @MenuAction "Disable Drop"
+            tool.find(self).enableDrop(false)
+          end
+        end
+        BackgroundColourMenu
+      end
+      @Nodes RootNodes
+        @TreeNode RootNode(readonly) ""
+          icon = "User/Diamond1.gif"
+          MenuNode
+          @Menu
+            @MenuAction "Edit Mapping" tool.find(self).type().edit() end
+            @MenuAction "Edit Node Type" tool.find(self).type().nodeType().edit() end
+            SetNodeTypeNameMenuAction
+            @MenuAction Delete self.delete() end
+            @MenuAction Add tool.addElement(self) end
+            NewMenu
+            NodeEventsMenu
+          end
+          DisplayTypes
+        end
+        @TreeNode FreeNode(readonly) ""
+          icon = "User/Diamond3.gif"
+          MenuNode
+          @Menu
+            @MenuAction "Edit Mapping" tool.find(self).type().edit() end
+            @MenuAction "Edit Node Type" tool.find(self).type().nodeType().edit() end
+            SetNodeTypeNameMenuAction
+            @MenuAction Delete self.delete() end
+            @MenuAction Add tool.addElement(self) end
+            NewMenu
+            NodeEventsMenu
+          end
+          DisplayTypes
+        end
+        @TreeNode Link(readonly) ""
+          icon = "User/Arrow4TwoWay.gif"
+          @Menu
+            @MenuAction "Edit Mapping" tool.find(self).edit() end
+            @MenuAction "Edit Edge Type" tool.find(self).edgeType().edit() end
+            EditEdgeHandlersMenu
+            SetEdgeTypeNameMenuAction
+            @MenuAction Delete self.delete() end
+            @MenuItems New
+              @MenuAction Label
+                self.newNode("Labels:Label")
+              end
+            end
+            LineStyleMenu
+          end
+          LinkMenuNode
+          LinkLabels
+        end
+        @TreeNode Association(readonly) ""
+          icon = "User/Arrow3TwoWay.gif"
+          @Menu
+            @MenuAction "Edit Mapping" tool.find(self).edit() end
+            @MenuAction "Edit Edge Type" tool.find(self).edgeType().edit() end
+            EditEdgeHandlersMenu
+            SetEdgeTypeNameMenuAction
+            @MenuAction Delete self.delete() end
+            LineStyleMenu
+            @MenuItems New
+              @MenuAction Label
+                self.newNode("Labels:Label")
+              end
+              @MenuAction Attribute
+                self.newNode("Labels:AttributeLabel")
+              end
+            end
+          end
+          AssociationMenuNode
+          AssociationLabels
+        end
+        @TreeNode Intellilink(readonly) ""
+          icon = "User/Arrow2TwoWay.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).edit() end
+            SetNameMenuAction
+            @MenuAction Delete self.delete() end
+            @MenuAction "Set Edge Types"
+              tool.find(self).setEdgeTypes(tool.element().displayType().edgeTypes())
+            end
+          end
+        end
+        @TreeNode Alledgesintellilink(readonly) ""
+          icon = "User/Arrow2TwoWay.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).edit() end
+            SetNameMenuAction
+            @MenuAction Delete self.delete() end
+          end
+        end
+        @TreeNode SlotMonitor ""
+          icon = "MDC/SlotMonitor.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).handler().edit() end
+            @MenuAction Delete self.delete() end
+          end
+        end
+        @TreeNode CreationMonitor ""
+          icon = "MDC/CreationMonitor.gif"
+          @Menu
+            @MenuAction Edit tool.find(self).handler().edit() end
+            @MenuAction Delete self.delete() end
+          end
+        end
+      end
+      MenuNode
+      @TreeNode ToolBar(readonly) "Tool Bar"
+        icon = "MDC/ToolBar.gif"
+        @Menu
+          @MenuAction "New Group"
+            self.newNode("Groups:Group")
+          end
+        end
+        @Nodes Groups
+          @TreeNode Group ""
+            icon = "MDC/Group.gif"
+            @Menu
+              @MenuAction Edit
+                tool.find(self).edit()
+              end
+              SetNameMenuAction
+              @MenuAction Delete
+                self.delete()
+              end
+              @MenuAction Move
+                let group = tool.find(self);
+                    toolBar = tool.element().displayType().toolBar()
+                in
+                  if toolBar.reorder(group) <> null
+                  then
+                    self.setIndex(toolBar.groups().indexOf(group))
+                  end
+                end
+              end
+              @MenuItems New
+                @MenuAction "Node Button"
+                  self.newNode("Buttons:NodeButton")
+                end
+                 @MenuAction "Edge Button"
+                  self.newNode("Buttons:EdgeButton")
+                end
+              end
+            end
+            @Nodes Buttons
+              @TreeNode NodeButton ""
+                icon = "User/Diamond1.gif"
+                @Menu
+                  @MenuAction Edit
+                    tool.find(self).edit()
+                  end
+                  SetNameMenuAction
+                  @MenuAction Icon
+                    tool.find(self).setIconFile()
+                  end
+                  @MenuAction Move
+                    let button = tool.find(self);
+                        group = tool.find(self.owner())
+                    in
+                      if group.reorder(button) <> null
+                      then
+                        self.setIndex(group.buttons().indexOf(button))
+                      end
+                    end
+                  end
+                  @MenuAction Delete
+                    self.delete()
+                  end
+                end
+              end
+              @TreeNode EdgeButton ""
+                icon = "User/Arrow4TwoWay.gif"
+                @Menu
+                  @MenuAction Edit
+                    tool.find(self).edit()
+                  end
+                  SetNameMenuAction
+                  @MenuAction Icon
+                    tool.find(self).setIconFile()
+                  end
+                  @MenuAction Move
+                    let button = tool.find(self);
+                        group = tool.find(self.owner())
+                    in
+                      if group.reorder(button) <> null
+                      then
+                        self.setIndex(group.buttons().indexOf(button))
+                      end
+                    end
+                  end
+                  @MenuAction Delete
+                    self.delete()
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+end;

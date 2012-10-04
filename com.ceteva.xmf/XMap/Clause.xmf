@@ -1,0 +1,90 @@
+parserImport XOCL;
+
+import Exceptions;
+
+context XMap
+
+  @Class Clause extends NamedElement
+  
+    @Doc
+      This class manages the original concrete syntax of
+      a mapping clause. It allows mappings to be dynamically
+      changed.
+    end
+    
+    @Attribute source : String (?) end
+    
+    @Constructor(name,source) 
+      self.name := name.asSymbol()
+    end
+    
+    @Constructor(name) ! 
+      self.name := name.asSymbol()
+    end
+    
+    @Operation reGenerate():Clause
+    
+      // Produces a new clause by re-parsing the
+      // source code. This is necessary in case the
+      // name of the clause has changed.
+      
+      try
+        let clause = OCL::OCL.grammar.parseString(source,"Exp1",Seq{XOCL})
+        in Clause(clause.name,source)
+        end
+      catch(exception)
+        format(stdout,"~S~%",Seq{exception});
+        self
+      end
+    end
+    
+    /* @Operation reGenerate()
+      if self.hasElement("invoke")
+      then 
+        let oldInvoke = self::invoke then
+            dynamics = oldInvoke.dynamics() then
+            newInvoke = self.reGenerateInvoke(dynamics)
+        in
+          newInvoke.importNameSpace(owner);
+          newInvoke.importNameSpaces(owner.allOwners());
+          newInvoke.importNameSpace(XCore);
+          oldInvoke.update(newInvoke)
+          //self.remove(oldInvoke);
+          //self.add(newInvoke)
+        end
+      else 
+        let invoke = self.reGenerateInvoke(Seq{})
+        in invoke.importNameSpace(owner);
+           invoke.importNameSpaces(owner.allOwners());
+           invoke.importNameSpace(XCore);
+           self.add(invoke)
+        end
+      end
+    end */
+    
+    @Operation setSource(source:String)
+    
+      // Updates the source string for the clause and
+      // informs the parent mapping that the clause
+      // has changed.
+      
+      self.source := source;
+      if owner <> null
+      then owner.sourceChanged(self)
+      end
+    end
+    
+    @Operation syntax()
+    
+      // Returns an XOCL::Clause by re-parsing the
+      // source code.
+      
+      let clause = OCL::OCL.grammar.parseString(source,"Exp",Seq{XOCL})
+      in if clause.isKindOf(XOCL::Clause)
+         then clause
+         else throw TypeError(clause,XOCL::Clause)
+         end
+      end
+    end
+    
+  end

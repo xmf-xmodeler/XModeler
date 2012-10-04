@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+
+context XOCL
+
+  @Class Undoable extends Sugar
+  
+     @Grammar extends OCL::OCL.grammar
+    
+      Undoable ::= body = Exp { 
+        Undoable(body)
+      }.
+      
+    end
+    
+    @Attribute body : Performable end
+    
+    @Constructor(body)
+    end
+    
+    @Operation desugar():Performable
+      [| 
+        let engine = xmf.undoEngine()
+        in
+          engine.startUndoContext();
+          let result = <body>
+          in
+            engine.endUndoContext();
+            result
+          end
+        end  
+      |]
+    end
+  
+  end

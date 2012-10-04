@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Projects/Boot",true,true);
+compileFile(xmf.homeDir() + "/Projects/Projects",true,true);
+compileFile(xmf.homeDir() + "/Projects/Project",true,true);
+compileFile(xmf.homeDir() + "/Projects/ProjectStub",true,true);
+compileFile(xmf.homeDir() + "/Projects/ProjectManager",true,true);
+compileFile(xmf.homeDir() + "/Projects/ProjectManagerContainer",true,true);
+compileFile(xmf.homeDir() + "/Projects/XMF",true,true);
+compileFile(xmf.homeDir() + "/Projects/Manifest",true,true);

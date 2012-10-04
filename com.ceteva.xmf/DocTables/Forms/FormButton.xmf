@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import DocTables;
+import Basic;
+import Forms;
+
+context Forms
+
+  @Class FormButton extends Entry
+
+    @Attribute label : String (?,!) end
+    @Attribute value : String (?,!) end
+
+    @Constructor(label,value)
+    end
+    
+    @Operation bind(vEnv,fEnv)
+      if fEnv.binds(label)
+      then vEnv.bind(label,value)
+      else vEnv
+      end
+    end
+    
+    @Operation contents()
+      Seq{}
+    end
+
+  end

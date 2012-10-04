@@ -1,0 +1,232 @@
+parserImport XOCL;
+
+context SetOfElement
+  // Turn a set into a sequence.
+  @Operation asSeq():Seq(Element)
+    @Doc
+      Turns a set into a sequence.
+    end
+    Kernel_asSeq(self)
+  end
+  
+context SetOfElement
+  @Operation asSet():Set(Element)
+    @Doc
+      Turns a set into a set.
+    end
+    self
+  end
+  
+context SetOfElement
+  @Operation contains(element:Element):Boolean
+    @Doc
+      Returns true if a set contains the element.
+    end
+    self->asSeq->contains(element)
+  end
+
+context SetOfElement
+  @Operation default():Set(Element)
+    @Doc 
+      Returns the default value of a set: the empty set. 
+    end
+    Set{}
+  end
+  
+context SetOfElement
+  @Operation dot(name:String):Set(Element)
+    @Doc
+      Returns the result of iterating over
+      a set and applying dot to the slot named
+      name.
+    end
+    self->collect(namedElement | 
+      Kernel_getSlotValue(namedElement,name))
+    ->iterate(element set = Set{} |
+      if element.isKindOf(SetOfElement)
+      then set->union(element)
+      else set->including(element)
+      end)
+  end
+  
+context SetOfElement
+  // 'exists' is as for SeqOfElement
+  @Operation exists(pred)
+    @Doc
+      Returns true if an element satisfying
+      the predicate exists in a set.
+    end
+    self->asSeq.exists(pred)
+  end
+  
+context SetOfElement
+  // Flatten a set of sets to a set.
+  @Operation flatten():Set(Element)
+    @Doc
+      Turns a set of sets into a set.
+    end
+    self->collect(s | s->asSeq)->asSeq->flatten->asSet
+  end
+  
+context SetOfElement
+  // 'forAll' is as for SeqOfElement
+  @Operation forAll(pred)
+    @Doc
+      Returns true if all elements in the
+      set satisfy the predicate.
+    end
+    self->asSeq.forAll(pred)
+  end
+  
+context SetOfElement
+  // Test whether a set includes an element.
+  @Operation includes(element:Element):Boolean
+    @Doc
+      Returns true if a set includes element.
+    end
+    self->asSeq->includes(element)
+  end
+  
+context SetOfElement
+  // Test whether a set includes all elements from
+  // another collection.
+  @Operation includesAll(c:Collection(Element)):Boolean
+    @Doc
+      Returns true if a set includes all elements from
+      another collection.
+    end
+    c->forAll(e | self->includes(e))
+  end
+
+context SetOfElement
+  // Produce the intersection of two sets.
+  @Operation intersection(set:Set(Element)):Set(Element)
+    @Doc
+      Returns the intersection of two sets.
+    end
+    if self->isEmpty
+    then self
+    else let value = self->sel
+         in if set->includes(value)
+            then self->excluding(value)->intersection(set)->including(value)
+            else self->excluding(value)->intersection(set)
+            end
+         end
+    end
+  end
+  
+context SetOfElement
+  @Operation isEmpty():Boolean
+    @Doc
+      Returns true if the set is empty.
+    end
+    self = Set{}
+  end
+  
+context SetOfElement
+  @Operation isKindOf(type:Classifier):Boolean
+    @Doc
+      Returns true if all elements in a set are of the
+      type.
+    end
+    if type.isKindOf(Set)
+    then self->forAll(e | e.isKindOf(type.elementType))
+    else type = Element
+    end
+  end
+
+context SetOfElement
+  // Iteration is defined as an operation that accepts an
+  // operation that is applied to two arguments. The first is
+  // successive elements of the set and second is the accumulating
+  // value. The second arguments is the current sccumulation value.
+  @Operation iter(iterator,value):Element
+    @Doc
+      Iterates over the set.
+    end
+    self->asSeq.iter(iterator,value)
+  end
+  
+context SetOfElement
+  @Operation map(message . args)
+    self->collect(x | x.send(message,args))
+  end
+  
+context SetOfElement
+  // Find the max element.
+  @Operation max():Integer
+    @Doc
+      Find the element with the maximum value in the set.
+      
+    end
+    self->asSeq->max
+  end
+  
+context SetOfElement
+  @Operation mul(s:Seq(Element)):Se1(Element)
+    @Doc
+      Generates a set containing all combinations of 
+      elements in the two sequences.
+    end
+    self->collect(x | s->collect(y | Seq{x,y}))->flatten
+  end
+  
+context SetOfElement
+  @Operation power():Set(Element)
+    @Doc
+      Returns the powerset of elements in
+      a set, i.e. all possible subsets of a set
+      including the empty set.
+    end
+    if self->isEmpty
+    then Set{Set{}}
+    else
+      let x = self->sel then
+          P = self->excluding(x)->power
+      in P + P->collect(S | S->including(x))
+      end
+    end
+  end
+  
+context SetOfElement
+  // Filter a set using a predicate.
+  @Operation select(predicate):Set(Element)
+    @Doc
+      Filters a set using a predicate.
+    end
+    self->asSeq.select(predicate)->asSet
+  end
+  
+context SetOfElement
+  @Operation size():Integer
+    @Doc
+      Returns the size of a set.
+    end
+    self->size
+  end
+  
+context SetOfElement
+  // Produce a printed representation of a set.
+  @Operation toString():String
+    @Doc
+      Produces a printed representation of a set.
+    end
+    "Set{" + self->asSeq->collect(s | s.toString())->separateWith(",") + "}"
+  end
+  
+context SetOfElement
+  // Union of two sets.
+  @Operation union(set:Set(Element)):Set(Element)
+    @Doc
+      Returns the union of two sets.
+    end
+    if self->size = 0
+    then set
+    else let element = self->sel
+         in if set->includes(element)
+            then self->excluding(element)->union(set)
+            else self->excluding(element)->union(set)->including(element)
+            end
+         end
+    end
+  end

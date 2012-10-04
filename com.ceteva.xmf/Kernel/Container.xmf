@@ -1,0 +1,214 @@
+parserImport XOCL;
+
+context Container
+  @AbstractOp add(element:Element):Container
+  end
+  
+context Container
+  @AbstractOp addContentDaemon(actionSource,daemon:Operation):Container
+    // Adds a daemon to the container that will be fired
+    // (invoked on the action source)
+    // whenever the contents change. The daemon should have
+    // the signature (newContents,oldContents).
+  end
+
+context Container
+  @Operation allContents():Set(Element)
+    @Doc 
+      Returns all the contents of the receiver and all the contents of all
+      containers that it contains.
+    end
+    let C = Seq{self};
+        allContents = Seq{}
+    in @While not C->isEmpty do
+         let container = C->head then
+             S = container.contents()
+         in C := C->tail;
+            @For e in S do
+              allContents := allContents->prepend(e);
+              if e <> container and e <> null and e <> self and e.isKindOf(Container)
+              then C := Seq{e | C}
+              end
+            end
+         end
+       end;
+       allContents->asSet
+    end
+  end
+  
+context Container
+  @Operation allContentsOf(type:Classifier):Set(Element)
+    @Doc 
+      Returns all the contents of the receiver and all the contents of all
+      containers that it contains. The elements are filtered by the classifier
+      suppplied as an argument.
+    end
+    let C = Seq{self};
+        allContents = Set{}
+    in @While not C->isEmpty do
+         let container = C->head then
+             S = container.contents()
+         in C := C->tail;
+            @For e in S do
+              if e <> null and e.isKindOf(type)
+              then allContents := allContents->including(e)
+              end;
+              if e <> self and e <> null and e.isKindOf(Container)
+              then C := Seq{e | C}
+              end
+            end
+         end
+       end;
+       allContents
+    end
+  end
+  
+context Container
+  @Operation allContentsThat(predicate:Operation):Set(Element)
+    @Doc 
+      Returns all the contents of the receiver and all the contents of all
+      containers that it contains. The elements are filtered using the
+      supplied predicate.
+    end
+    let C = Seq{self};
+        allContents = Set{}
+    in @While not C->isEmpty do
+         let container = C->head then
+             S = container.contents()
+         in C := C->tail;
+            @For e in S do
+              if predicate(e)
+              then allContents := allContents->including(e)
+              end;
+              if e <> self and e <> null and e.isKindOf(Container)
+              then C := Seq{e | C}
+              end
+            end
+         end
+       end;
+       allContents
+    end
+  end
+  
+context Container
+  @Operation checkConstraints()
+    let selfReport = Element::checkConstraints.invoke(self,Seq{});
+        elementReports = self.contents()->collect(e | e.checkConstraints())->asSeq
+    in @For report in elementReports do
+         selfReport.addToChildren(report)
+       end;
+       let childrenSatisfied = selfReport.children->forAll(r | r.satisfied()) in
+         selfReport.satisfied := selfReport.satisfied and childrenSatisfied
+       end;
+       selfReport
+    end 
+  end  
+
+context Container
+  @Operation checkConstraints(contents)
+    // used to check constraints on only a partial set of contents
+    let selfReport = Element::checkConstraints.invoke(self,Seq{});
+        elementReports = contents->collect(e | e.checkConstraints())->asSeq
+    in @For report in elementReports do
+         selfReport.addToChildren(report)
+       end;
+       let childrenSatisfied = selfReport.children->forAll(r | r.satisfied()) in
+         selfReport.satisfied := selfReport.satisfied and childrenSatisfied
+       end;
+       selfReport
+    end 
+  end  
+
+context Container
+  @AbstractOp contentDaemons():Seq(Operation)
+    // Returns the content daemons for the receiver.
+  end
+
+context Container
+  @AbstractOp contents():Collection(Element)
+  end
+  
+context Container
+  @Operation contentsOf(type:Classifier):Set(Element)
+    @Doc
+      Returns a set of contained elements of the
+      supplied type.
+    end
+    self.contents()->select(e | e.isKindOf(type))
+  end
+  
+context Container
+  @Operation contentsThat(predicate:Operation):Set(Element)
+    @Doc
+      Returns a set of contained elements that satisfy the
+      supplied predicate.
+    end
+    self.contents()->select(e | predicate(e))
+  end
+  
+context Container
+  // Recursively delete self and all contents
+  @Operation deleteRecursive()
+    super();
+    @For c in self.contents() do
+       c.deleteRecursive()
+    end;
+    self
+  end
+  
+context Container
+  @Operation includes(element)
+    self.contents()->includes(element)
+  end
+
+context Container
+  // Initialise a container by initialising the contents.
+  @Operation init()
+    self.initContents();
+    super()
+  end
+  
+context Container
+  // Initialise the contents of a container.
+  @Operation initContents()
+    @For e in self.contents() do
+      e.init()
+    end
+  end
+
+context Container
+  @AbstractOp remove(element:Element):Container
+  end
+  
+context Container
+  @AbstractOp removeContentDaemon(daemon:Operation):Container
+    // Removes the supplied content daemon from the receiver.
+  end
+  
+context Container
+  @Operation traceAll()
+    @Doc
+      Causes all the operations transitively contained in the
+      receiver to be traced.
+    end
+    @For op in self.contentsOf(Operation) when op <> null do
+      op.trace()
+    end;
+    @For container in self.contentsOf(Container)->excluding(self)  when container <> null do
+      container.traceAll()
+    end
+  end
+  
+context Container
+  @Operation untraceAll()
+    @Doc
+      Causes all the operations transitively contained in the
+      receiver to be untraced.
+    end
+    @For op in self.contentsOf(Operation) when op <> null do
+      op.untrace()
+    end;
+    @For container in self.contentsOf(Container)->excluding(self)  when container <> null do
+      container.untraceAll()
+    end
+  end

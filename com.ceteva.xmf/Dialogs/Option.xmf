@@ -1,0 +1,42 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Option extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Option ::= '(' message = Exp ')' guard = OptionalGuard dialog = Exp { Option(guard,message,dialog) }.
+      
+      OptionalGuard ::= 'when' Exp | { [| true |] }.
+    end 
+    
+    @Attribute message : Performable end
+    @Attribute guard : Performable end
+    @Attribute dialog : Performable end
+    
+    @Constructor(guard,message,dialog) end 
+    
+    @Operation desugar() 
+      [| if <guard>
+         then d.option(<message>,@Operation () <dialog> end) 
+         end
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Option(");
+      message.pprint(out,indent+2);
+      format(out,")~%~Vwhen ",Seq{indent+2});
+      guard.pprint(out,indent + 4);
+      format(out,"~%~V",Seq{indent + 2});
+      dialog.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

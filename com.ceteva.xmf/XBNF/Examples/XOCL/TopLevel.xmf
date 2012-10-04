@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import TopLevel;
+import Exceptions;
+
+context Loop
+
+  @Operation read(state)
+  
+    // Read a command by parsing using the OCL grammar...
+    // Throws an exception if a parse error occurs.
+    
+    OCL::OCL.grammar().reset();
+    try OCL::OCL.grammar().parse(stdin,"TopLevelExp",Seq{})
+    catch(x)
+      @TypeCase(x)
+        ParseError do
+          Root::xx := x;
+          x.pprint().edit();
+          null
+        end
+        else throw x
+      end
+    end
+    
+  end

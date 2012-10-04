@@ -1,0 +1,60 @@
+parserImport XOCL;
+
+import OCL;
+import Env;
+
+context OCL 
+
+  @Class Syntaxp extends Pattern
+  
+    @Doc
+      A syntax pattern is an expression that is used to match against XOCL
+      abstract syntax. Within the pattern, patterns can be 'dropped' using
+      pattern unquotes <| and |>.
+    end
+     
+     @Attribute exp    : Performable end
+     
+     @Constructor(exp) ! end
+     
+     @Operation bind(value:Element,target:Element,env:Env,imports:Seq(NameSpace)):Env
+       self.desugar().bind(value,target,env,imports)
+     end
+     
+     @Operation desugar()
+       // A syntax pattern is transformed to an equivalent object pattern
+       // using a walker.
+       Walkers::SyntaxPattern().walk(exp,null)
+     end
+     
+     @Operation lift()
+       [| OCL::Syntaxp(<exp.lift()>) |]
+     end
+     
+     @Operation matchCode(value:Performable,success:Performable,fail:Performable):Performable
+       self.desugar().matchCode(value,success,fail)
+     end
+     
+     @Operation needsBacktrack():Boolean
+       self.desugar().needsBacktrack()
+     end
+     
+     @Operation newParam()
+       self.desugar().newParam()
+     end
+     
+     @Operation newVar():String
+       self.desugar().newVar()
+     end
+     
+     @Operation pprint(out)
+       format(out,"[| ");
+       exp.pprint(out,0);
+       format(out," |]")
+     end
+     
+     @Operation toSig()
+       NamedType(Seq{"XCore","Performable"}).toSig()
+     end
+     
+   end

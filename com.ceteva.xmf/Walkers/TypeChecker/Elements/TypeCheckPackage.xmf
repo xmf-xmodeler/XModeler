@@ -1,0 +1,24 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Walkers;
+
+context Walkers
+
+  @Class TypeCheckPackage extends TypeCheckContainer
+  
+    @Attribute package : XCore::Package (?) end
+    
+    @Constructor(package,children) end
+    
+    @Constructor(package) ! end
+
+    @Operation element()
+      self.package
+    end
+    
+    @Operation label():String
+      "Type check " + package.name().toString()
+    end
+    
+  end

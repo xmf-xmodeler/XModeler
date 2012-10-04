@@ -1,0 +1,37 @@
+parserImport XOCL;
+
+import IO;
+import OCL;
+
+context Root
+
+  @Operation test()
+    let pp = PPrint(stdout);
+        ast = AST([| if true then 1 + 2 else Seq{1,2,3} end |]);
+        c = null
+    in @Repeat
+         format(stdout,"current = ~S root = ~S~%",Seq{ast.current().exp(),ast.root().exp()});
+         pp.setSelection(ast.current().exp());
+         pp.dispatch(ast.root().exp());
+         pp.flush();
+         c := stdin.read();
+         @Case c of
+           ["d"->at(0)] do
+             ast.down()
+           end
+           ["u"->at(0)] do
+             ast.up()
+           end
+           ["l"->at(0)] do
+             ast.left()
+           end
+           ["r"->at(0)] do
+             ast.right()
+           end
+           else null
+         end
+       until c = "x"->at(0)
+       end;
+       ast
+     end
+  end

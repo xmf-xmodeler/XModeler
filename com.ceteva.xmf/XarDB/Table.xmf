@@ -1,0 +1,7 @@
+parserImport XOCL;
+
+import XarDB;
+
+context XarDB
+  @Class Table extends IndexedInstr
+  end

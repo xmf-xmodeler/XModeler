@@ -1,0 +1,9 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler HeadUpdate in PPrint(aHeadUpdate,out,seen)
+  self.dispatch(aHeadUpdate.seq,out);
+  format(out,"->head := ");
+  self.dispatch(aHeadUpdate.value,out)
+end;

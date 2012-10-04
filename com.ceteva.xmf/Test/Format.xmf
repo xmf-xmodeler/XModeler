@@ -1,0 +1,4 @@
+"XMF provides the class Format that allows new formatters to be defined.".println();
+"A standard formatter is defined as the value of global variable 'format'".println();
+"You should see a variety of output from the basic formatter.".println();
+format(stdout,"A basic output line.~%");

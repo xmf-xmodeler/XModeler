@@ -1,0 +1,338 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import SnapshotDiagrams;
+import IO;
+
+context SnapshotDiagrams
+
+  @Class SnapshotDiagram extends SyncableDiagram, ThemableDiagram
+  
+    @Attribute objectNodes 		: Seq(ObjectNode) 		end
+    @Attribute slotEdges   		: Seq(SlotEdge) 		end
+    @Attribute dependencyEdges	: Seq(DependencyEdge)	end
+    @Attribute setEdges    		: Seq(SetEdge) 			end
+    @Attribute noteNodes   		: Seq(NoteNode)    		end
+    @Attribute lastPackage		: Package				end
+  
+    @Constructor(name)
+      self.graph := Graph()
+    end
+    
+    @Operation addDependencyEdge(edge)
+      self.dependencyEdges := self.dependencyEdges->prepend(edge)
+    end
+    
+    @Operation addEdge(edge)
+      @TypeCase(edge)
+        SetEdge do
+          self.addSetEdge(edge);
+          super(edge)
+        end
+        DependencyEdge do
+          self.addDependencyEdge(edge);
+          super(edge)
+        end
+        SlotEdge do
+          self.addSlotEdge(edge);
+          super(edge)
+        end
+        else self.error("I don't know how to add " + edge.toString() + " to a class diagram.")
+      end
+    end
+    
+    @Operation addNode(node)
+      @TypeCase(node)
+        ObjectNode do
+          self.addObjectNode(node);
+          super(node)
+        end
+        NoteNode do
+          self.addNoteNode(node);
+          super(node)
+        end
+        else self.error("I don't know how to add " + node.toString() + " to a class diagram.")
+      end
+    end
+    
+    @Operation addNoteNode(noteNode)
+      self.noteNodes := self.noteNodes->prepend(noteNode)
+    end
+    
+    @Operation addObjectNode(objectNode)
+      self.objectNodes := self.objectNodes->prepend(objectNode)
+    end
+    
+    @Operation addSlotEdge(slotEdge) 
+      self.slotEdges := self.slotEdges->prepend(slotEdge)
+    end
+    
+    @Operation addSetEdge(setEdge)
+      self.setEdges := self.setEdges->prepend(setEdge)
+    end
+    
+    @Operation cannotLinkDialog(sourceObjectName,targetObjectName)
+      let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+        let message = sourceObjectName + " has no available slot for " + targetObjectName in
+          dialog.newErrorDialog(message)
+        end
+      end
+    end
+    
+    @Operation checkConstraints()
+      owner.snapshot.checkConstraints().edit()
+    end
+    
+    @Operation defineEdgeToolGroups()
+      self.commandInterpreter().newToolCommand(self,"Snapshot","Slot Value","Slot Value",true,"XCore/Slot.gif");
+      self.commandInterpreter().newToolCommand(self,"Snapshot","Dependency","Dependency",true,"XCore/Dependency.gif")
+    end
+    
+    @Operation defineNodeToolGroups()
+      self.commandInterpreter().newToolCommand(self,"Snapshot","Object","Object",false,"XCore/Object.gif");
+      self.commandInterpreter().newToolCommand(self,"Snapshot","Note","Note",false,"XCore/Note.gif")
+    end
+    
+    @Operation defineToolGroupTypes()
+       self.defineToolGroup("Snapshot")
+    end
+    
+    @Operation deploySnapshotCode()
+      owner.snapshot.deploySnapshotCode()
+    end
+     
+    @Operation deployXAR()
+      owner.snapshot.deployXAR()
+    end
+    
+    @Operation deployXML()
+      owner.snapshot.deployXML()
+    end
+    
+    @Operation findClasses()
+      // legacy only
+      owner.snapshot.getInstantiableClassTree()
+    end
+    
+    @Operation findOfAttribute(sourceNode,targetNode)
+      let sourceClass = sourceNode.classOf() in
+        let targetClass = targetNode.classOf() in
+          let 
+            excludeAttributes = if self.owner.isKindOf(Clients::SnapshotMapping::SnapshotXSnapshotDiagram) then owner.excludeAttributes(sourceNode) else Set{} end 
+          then 
+            singletonAttributes = sourceClass.allAttributes()->select(e | 
+              targetClass.equals(e.type) or targetClass.inheritsFrom(e.type))->asSeq 
+          then 
+            setAttributes = sourceClass.allAttributes()->select(e |
+                 if 
+                   e.type.inheritsFrom(SetOfElement) or
+                   e.type.inheritsFrom(SeqOfElement)
+                 then
+                   targetClass.equals(e.type.elementType) 
+                   or targetClass.inheritsFrom(e.type.elementType)
+                 end
+               )->asSeq
+          then 
+            attributes = (singletonAttributes + setAttributes)->qsort(@Operation(x,y) x.name.toString() < y.name.toString() end)
+          in
+            @For exclude in excludeAttributes
+            do
+              attributes := attributes->excluding(exclude)
+            end;
+            if attributes.size() = 0 then
+              self.cannotLinkDialog(sourceNode.nameBox.name.text,targetNode.nameBox.name.text);
+              null
+            elseif attributes.size() > 1 then
+              let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+                let question = dialog.newSelectionDialog(false,"Attribute Selection","Please select an attribute to snapshot",attributes) in
+                  @Find(attribute,attributes)
+                    when attribute.toString() = question do
+                      attribute
+                    else
+                      null
+                  end
+                end
+              end
+            else
+              attributes.head()
+            end
+          end
+        end
+      end
+    end    
+    
+    @Operation getNameSpaceContents(namespace)
+      namespace.contents()->select(c | c <> null andthen c.isKindOf(XCore::Class) andthen not c.isAbstract)
+        - if namespace = XCore
+          then
+            Set{// the following cannot be created by raw instantiation
+              // or cannot supported by snapshot diagrams...
+              BasicArray,Bind,Buffer,Classifier,CodeBox,Collection,
+              CompiledOperation,Constructor,Daemon,Doc,Exception,
+              ForeignOperation,InitialisedAttribute,InterpretedOperation,
+              MachineException,Operation,Parameter,Seq,Set,Snapshot,SnapshotSet }
+          else Set{}
+          end
+    end
+    
+    @Operation makeTree(data,children)
+      if children->isEmpty then
+        Seq{data}
+      else
+        Seq{data,children}
+      end
+    end
+    
+    @Operation newDependencyEdge(sourcePort,targetPort)
+      let edge = DependencyEdge(sourcePort,targetPort,XCore::Dependency.pathSeq())
+      in 
+        edge.new(self,true);
+        self.addEdge(edge)
+      end
+    end
+    
+    @Operation newEdge(type,sourcePort,targetPort) 
+      @Case type of
+        "Slot Value" do self.newSlotEdge(sourcePort,targetPort) end
+        "Dependency" do self.newDependencyEdge(sourcePort,targetPort) end
+        // "Set Value" do self.newSetValueEdge(sourcePort,targetPort) end
+        else format(stdout,"Unknown type of snapshot diagram edge ~S~%",Seq{type})
+      end
+    end
+    
+    @Operation newNode(type,x,y)
+      @Case type of
+        "Object" do self.newObjectNode(x,y) end
+        "Note" do self.newNoteNode(x,y,true) end
+        else format(stdout,"Unknown type of state diagram node ~S~%",Seq{type})
+      end
+    end 
+    
+    @Operation newNoteNode(x,y,editable)
+      @WithoutRendering(self)
+        let note = NoteNode(x,y,editable)
+        in note.new(self,true);
+           self.addNode(note)
+        end
+      end
+    end
+    
+    @Operation newSlotEdge(sourcePort,targetPort)
+      let sourceNode = sourcePort.owner;
+          targetNode = targetPort.owner
+      in if sourceNode.isKindOf(ObjectNode) and targetNode.isKindOf(ObjectNode)
+         then
+           let attribute = self.findOfAttribute(sourceNode,targetNode) in
+             if attribute <> null then
+               if attribute.type.inheritsFrom(SetOfElement) or attribute.type.inheritsFrom(SeqOfElement)
+               then
+                 let edge = SetEdge(attribute.name,sourcePort,targetPort)
+      			 in 
+      			   edge.new(self);
+                   self.addEdge(edge);
+                   true
+                 end
+               else
+                 let edge = SlotEdge(attribute.name,sourcePort,targetPort)
+      			 in 
+      			   edge.new(self);
+        		   self.addEdge(edge);
+        		   true
+      			 end
+               end
+             else
+               false
+             end
+           end
+         else
+           false
+         end
+      end
+    end
+    
+    @Operation noSetDialog(sourceObjectName,targetObjectName)
+      let dialog = xmf.findClient(Clients::DialogBoxes::DialogBoxClient) in
+        let message = sourceObjectName + " has no set for " + targetObjectName in
+          dialog.newErrorDialog(message)
+        end
+      end
+    end
+
+    @Operation newObjectNode(x,y)
+      let 
+        rootName = "Available Classes";
+        snapshot = owner.snapshot then
+        tree = snapshot.getInstantiableClassTree() then
+        expand = if self.lastPackage = null then 
+                   Seq{rootName,snapshot.owner} 
+                 else 
+                   Seq{rootName,lastPackage} 
+                 end then
+        class = xmf.treeSelection("Please Select a Class to Instantiate",tree,expand,null)
+      in
+        if class <> rootName and class <> null
+        then
+          self.lastPackage := class.owner;
+          @WithoutRendering(self)
+            let node = ObjectNode(class,x,y) 
+            in 
+              node.new(self);
+              self.addNode(node)
+            end
+          end
+        end
+      end
+    end
+    
+    @Operation removeEdge(edge)
+      super(edge);
+      @TypeCase(edge)
+        SetEdge do
+          self.removeSetEdge(edge)
+        end
+        SlotEdge do
+          self.removeSlotEdge(edge)
+        end
+        DependencyEdge do
+          self.removeDependencyEdge(edge)
+        end
+        else self
+      end
+    end
+    
+    @Operation removeNode(node)
+      super(node);
+      @TypeCase(node)
+        ObjectNode do 
+          self.removeObjectNode(node)
+        end
+        NoteNode do
+          self.removeNoteNode(node)
+        end
+        else self
+      end
+    end
+
+    @Operation removeNoteNode(noteNode)
+      self.noteNodes := self.noteNodes->excluding(noteNode)
+    end
+    
+    @Operation removeObjectNode(objectNode)
+      self.objectNodes := self.objectNodes->excluding(objectNode)
+    end
+    
+    @Operation removeDependencyEdge(dependencyEdge)
+      self.dependencyEdges := self.dependencyEdges->excluding(dependencyEdge)
+    end
+    
+    @Operation removeSlotEdge(slotEdge)
+      self.slotEdges := self.slotEdges->excluding(slotEdge)
+    end
+    
+    @Operation removeSetEdge(setEdge)
+      self.setEdges := self.setEdges->excluding(setEdge)
+    end
+
+  end

@@ -1,0 +1,105 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Parser::BNF; 
+
+context XCore
+  
+  @Class AlienClass extends Class
+  
+    @Grammar extends OCL::OCL.grammar
+     
+       AlienClass ::= path = Str {
+         OCL::StrExp(path)
+       }.
+       
+    end
+  
+    @Attribute alienClass : String  end
+    @Attribute class	  : Element end
+    @Attribute atts 	  : Seq(String) end
+    @Attribute init		  : Boolean = false end  
+  
+    @Operation setAlienClass(alienClass:String)
+      self.alienClass := alienClass
+    end
+    
+    @Operation add(n:Element):Classifier
+      if n.isKindOf(String)
+      then 
+        self.setAlienClass(n)
+      else
+        super(n)
+      end
+    end
+  
+    @Operation init():Element
+      if alienClass <> ""
+      then
+        let
+          classpath = alienClass.splitBy("::",0,0) then
+          plugin = classpath->at(2);
+          klass = classpath->at(0) then
+          aklass = Kernel_forName2(klass,plugin)
+        in
+          format(stdout,"classpath: ~S~%",Seq{classpath});
+          format(stdout,"plugin   : ~S~%",Seq{plugin});
+          format(stdout,"klass    : ~S~%",Seq{klass});
+          format(stdout,"aklass   : ~S~%",Seq{aklass});
+          super();
+          self.class := aklass;
+          
+          if not init
+          then
+            
+            // We need to find what EMF accessible attributes there are in the class
+            // a new object is created and the API call 'allAttributes' returns the
+            // list.  This should only happen once and the object should be GC'ed.
+            
+            let object = aklass.newInstance()
+            in
+              Kernel_setOf(object,self);
+              self.atts := object.allAttributes()
+            end;
+            self.init := true
+          end;
+          
+          // add in new alien attributes
+          
+          @For a in atts
+          do self.addAttribute(AlienAttribute(a,Object))
+          end
+        end
+      else
+        super()
+      end
+    end
+    
+    @Operation new():Object
+      let 
+        o = class.newInstance();
+        A = self.allAttributes()
+      in
+        Kernel_setOf(o,self);
+        @While not A->isEmpty do
+         let a = A->sel
+         in 
+            if not a.isKindOf(AlienAttribute)
+            then
+              if a.init <> null
+              then Kernel_addAtt(o,a.name,a.init.invoke(o,Seq{}))
+              else Kernel_addAtt(o,a.name,a.type.default())
+              end
+            end;
+            A := A->excluding(a)
+         end
+       end;
+       if self.inheritsFrom(Classifier)
+       then o.parents := o.defaultParents()
+       else o
+       end;
+       o.init()
+      end
+    end
+  
+  end

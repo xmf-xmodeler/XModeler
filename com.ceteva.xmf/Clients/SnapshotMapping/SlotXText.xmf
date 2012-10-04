@@ -1,0 +1,125 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Diagrams;
+import DiagramsMapping;
+import SnapshotDiagrams;
+import SnapshotMapping;
+import XMap;
+
+context SnapshotMapping
+
+  @Class SlotXText extends ElementMap
+  
+    @Attribute attribute : Attribute end
+    @Attribute object    : Object end
+    @Attribute slot      : String end
+    @Attribute value     : Object end
+    @Attribute text      : SlotText end
+    
+    @Constructor(object,slot,value,text)
+      self.setHotLoad(true);
+      self.checkDaemons()
+    end
+    
+    @Operation attributeNameChanged(oldValue,newName)
+      if object.hasSlot(oldValue)
+      then
+        object.renameSlot(slot,newName)
+      end;
+      text.setName(newName);
+      self.slot := newName
+    end
+    
+    @Operation attributeNameChanged(element,slot,newValue,oldValue)
+      if newValue <> oldValue
+      then
+        self.attributeNameChanged(oldValue,newValue)
+      end
+    end
+    
+    @Operation checkDaemons()
+      self.checkTextDaemons();
+      self.checkSlotDaemons();
+      self.checkAttributeDaemons()
+    end
+    
+    @Operation checkAttributeDaemons()
+      self.attribute := object.of().getAttribute(slot);
+      @SlotValueChanged multi SlotXText::attributeNameChanged(attribute,"name") end
+    end
+    
+    @Operation checkTextDaemons()
+      @SlotValueChanged multi SlotXText::slotTextChanged(text.value,"text") end
+    end
+    
+    @Operation checkSlotDaemons()
+      @SlotValueChanged multi SlotXText::slotValueChanged(object,slot) end
+    end
+    
+    @Operation hotLoaded() 
+      self.checkDaemons()
+    end
+    
+    @Operation slotTextChanged(newValue,oldValue)
+      let type = self.attribute.type
+      in
+        try
+          self.value := newValue;
+          if type.inheritsFrom(String)
+          then
+            object.set(slot,newValue)
+          elseif type.inheritsFrom(Integer)
+          then
+            object.set(slot,newValue.asInt())
+          elseif type.inheritsFrom(Boolean)
+          then
+            object.set(slot,newValue.asBool())
+          elseif type.inheritsFrom(Float)
+          then
+            object.set(slot,newValue.asFloat())
+          else
+            object.set(slot,newValue)
+          end
+        catch(exception)
+          format(stdout,"Slot value change error~%");
+          xmf.warning( "Slot \"" + slot + "\" expects a value of type "
+              + type.name().toString() + ".\n" + exception.message )
+          // text.value.setText(oldValue)
+        end;
+        owner.elementChanged()
+      end
+    end
+    
+    @Operation slotTextChanged(element,slot,newValue,oldValue)
+      if newValue <> oldValue then
+        self.slotTextChanged(newValue,oldValue)
+      end
+    end
+    
+    @Operation slotValueChanged(slot,newValue)
+      text.setValue(newValue)
+    end
+    
+    @Operation slotValueChanged(element,slot,newValue,oldValue)
+      if newValue <> oldValue then
+        self.slotValueChanged(slot,newValue)
+      end
+    end
+
+    @Operation removeDaemons()
+      self.attribute.removeDaemonsWithTarget(self,true);
+      text.value.removeDaemonsWithTarget(self,true);
+      object.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation element()
+      Seq{object,slot}
+    end
+
+    @Operation diagramElement()
+      text
+    end
+
+  end

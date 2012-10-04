@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class DiagramNode extends Node
+  
+    @Attribute name    : String end
+    @Attribute box     : Box end
+    @Attribute diagram : Element end
+  
+    @Constructor(name,x,y)
+      self.init(Seq{x,y,300,300});
+      self.box := Box(0,0,300,300,0);
+      self.diagram := ClassDiagram(name,10,10,280,280)
+    end
+    
+    @Operation addDisplays()
+      self.add(box);
+      self.add(diagram)
+    end
+    
+    @Operation resize(width,height)
+      super(width,height);
+      box.resize(width,height);
+      diagram.resize(width-20,height-20)
+    end
+    
+    @Operation zoomIn()
+      diagram.zoomIn()
+    end
+    
+    @Operation zoomOut()
+      diagram.zoomOut()
+    end
+    
+    @Operation zoomToFit()
+      diagram.zoomToFit()
+    end
+    
+    @Operation zoomTo(percent:Integer)
+      diagram.zoomTo(percent)
+    end
+  
+  end

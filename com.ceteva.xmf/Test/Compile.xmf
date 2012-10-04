@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import Parser::BNF;
+import Parser::Machine;
+import Compiler;
+
+context Root
+  @Operation compile(grammar:Grammar)
+  
+    // Implements a simple compiler. A performable element
+    // is read from stdin and then compiled to produce
+    // an operation. The free variables referenced in the
+    // element are turned into arguments for the operation.
+    
+    let state = State(grammar,stdin) then
+        performable = state.run("TopLevelExp") then
+        // Calculate the free variables...
+        FV = performable.FV()->asSeq;
+        // Dynamics are the imported name spaces...
+        dynamics = Seq{}
+    in // Compiler::compileToFun takes a name, the performable
+       // element, the sequence of arg names, the dynamics and
+       // whether or not to save the source code. It returns an
+       // operation whose body performs the performable element.
+       compileToFun("",performable,FV,dynamics,true)
+    end
+  end

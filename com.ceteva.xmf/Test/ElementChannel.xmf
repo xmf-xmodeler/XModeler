@@ -1,0 +1,13 @@
+import IO;
+
+format(stdout,"Use ElementChannel to read and write binary encoded values to channels.~%");
+format(stdout,"This file will write a representative value out to a local file and.~%");
+format(stdout,"then read it back again. You should see the value printed before and after.~%");
+
+let value = Seq{1,true,"string",Set{1,2,3}};
+    fout = FileOutputChannel("Test/savedvalue")
+in format(stdout,"The value being saved is: ~S~%",Seq{value});
+   ElementOutputChannel(fout).write(value);
+   fout.close();
+   format(stdout,"The value read back is: ~S~%",Seq{ElementInputChannel(FileInputChannel("Test/savedvalue")).read()})
+end;

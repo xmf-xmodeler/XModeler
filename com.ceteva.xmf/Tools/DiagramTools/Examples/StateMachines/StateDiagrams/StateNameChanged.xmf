@@ -1,0 +1,11 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler State_box_name_Changed()
+    let state = find(event.root())
+    in state.setName(event.new());
+       event.root().setLayoutId(event.new())
+    end
+  end

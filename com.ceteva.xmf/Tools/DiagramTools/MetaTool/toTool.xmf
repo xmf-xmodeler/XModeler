@@ -1,0 +1,154 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context ToolType
+  @Operation toTool(id:String)
+    let tool = Tool(ToolBuilder,id,ToolBuilderManager,self)
+    in tool.showDiagram();
+       @Busy("Generating Tool")
+         @WithoutRendering(tool.diagram())
+           tool.setHandleEvents(false);
+           @For nodeType in nodeTypes do
+             nodeType.toTool(tool)
+           end;
+           @For nodeType in nodeTypes do
+             @For parent in nodeType.parents() do
+               let source = tool.find(nodeType).port();
+                   target = tool.find(self.nodeType(parent)).port()
+               in Inheritance.new(source,target,tool)
+               end
+             end
+           end;
+           @For edgeType in edgeTypes do
+             edgeType.toTool(tool)
+           end;
+           tool.setHandleEvents(true)
+         end
+       end
+    end
+  end
+  
+context Types::EdgeType
+  @Operation toTool(tool:Tool)
+    let node = EdgeType.new(10,10,tool);
+        name = self.name().toString();
+        env = Env::NullEnv() then
+        edgeType = node.ref1(Seq{"edgeType"})
+    in edgeType.ref1(Seq{"name"}).setText(name);
+       tool.register(node,self);
+       @For label in labels do
+         label.toTool(node,edgeType,Seq{"EdgeType","edgeType"},tool,env)
+       end;
+       Source.new(node.port(),tool.find(source).port(),tool);
+       Target.new(node.port(),tool.find(target).port(),tool)
+    end
+  end
+  
+context Types::Label
+  @Operation toTool(root,parent,path,tool,env)
+    let label = LabelType.new(root,parent,path,tool,env);
+        name = self.name().toString()
+    in label.new(parent);
+       tool.register(label,self);
+       label.ref1(Seq{"labelAttribute","name"}).setText(name);
+       label.ref1(Seq{"text"}).setText(text)
+    end
+  end
+       
+context Types::NodeType
+  @Operation toTool(tool:Tool)
+    let node = NodeType.new(10,10,tool);
+        name = self.name().toString();
+        env = displays->iterate(d e = Env::NullEnv() | d.bind(e)) then
+        nodeBox = node.ref1(Seq{"nodeBox"})
+    in node.ref1(Seq{"nodeBox","nameBox","name"}).setText(name);
+       tool.register(node,self);
+       tool.register(self,node);
+       @For displayType in displays do
+         displayType.toTool(node,nodeBox,Seq{"NodeType","nodeBox"},tool,env)
+       end
+    end
+  end
+  
+context DisplayTypes::Box
+  @Operation toTool(root,parent,path,tool,env)
+    if env.binds(self.name().toString()) andthen env.lookup(self.name().toString()) = self
+    then LabelType.new(root,parent,path,tool,env).new(parent)
+    else 
+      let box = BoxType.new(root,parent,path,tool,env);
+          name = self.name().toString() then
+          env = env.bind(name,self)
+      in box.new(parent);
+         @For displayType in contents do
+           displayType.toTool(root,box,path + Seq{name},tool,env)
+         end;
+         tool.register(box,self);
+         tool.register(box.ref1(Seq{"boxAttribute","name"}),self);
+         box.ref1(Seq{"boxAttribute","name"}).setText(name)
+      end
+    end
+  end
+  
+context DisplayTypes::DisplayType
+  @Operation toTool(root,parent,path,tool,env)
+    format(stdout,"toTool not implemented for ~S~%",Seq{self.toString()})
+  end
+  
+context DisplayTypes::Ellipse
+  @Operation toTool(root,parent,path,tool,env)
+    let ellipse = EllipseType.new(root,parent,path,tool,env)
+    in tool.register(ellipse,self);
+       ellipse.new(parent)
+    end
+  end
+  
+context DisplayTypes::Image
+  @Operation toTool(root,parent,path,tool,env)
+    let image = ImageType.new(root,parent,path,tool,env)
+    in tool.register(image,self);
+       tool.register(image.ref1(Seq{"imageAttribute","name"}),self);
+       tool.register(image.ref1(Seq{"file"}),self);
+       image.new(parent);
+       image.ref1(Seq{"file"}).setText(self.file());
+       image.ref1(Seq{"imageAttribute","image"}).setImage(self.file());
+       image.ref1(Seq{"imageAttribute","name"}).setText(self.name())
+    end
+  end
+  
+context DisplayTypes::Star
+  @Operation toTool(root,parent,path,tool,env)
+    if env.binds(self.name().toString()) andthen env.lookup(self.name().toString()) = self
+    then LabelType.new(root,parent,path,tool,env).new(parent)
+    else 
+      let star = StarType.new(root,parent,path,tool,env);
+          name = self.name().toString() then
+          env = env.bind(name,self)
+      in star.new(parent);
+         @For displayType in types do
+           displayType.toTool(root,star,path,tool,env)
+         end;
+         tool.register(star,self);
+         tool.register(star.ref1(Seq{"starAttribute","name"}),self);
+         star.ref1(Seq{"starAttribute","name"}).setText(name)
+      end
+    end
+  end
+  
+context DisplayTypes::Text
+  @Operation toTool(root,parent,path,tool,env)
+    let text = TextType.new(root,parent,path,tool,env)
+    in tool.register(text,self);
+       tool.register(text.ref1(Seq{"textAttribute","name"}),self);
+       tool.register(text.ref1(Seq{"text"}),self);
+       text.new(parent);
+       text.ref1(Seq{"text"}).setText(self.text());
+       text.ref1(Seq{"textAttribute","name"}).setText(self.name())
+    end
+  end
+  

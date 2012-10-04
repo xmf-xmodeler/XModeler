@@ -1,0 +1,29 @@
+<Layout>
+  <Node id='Activity' x='309' y='137' height='238' width='100' hidden='false'/>
+  <Node id='Operation' x='301' y='23' height='50' width='121' hidden='false'/>
+  <Node id='Exp' x='24' y='40' height='51' width='233' hidden='false'/>
+  <Node id='Actor' x='533' y='227' height='40' width='100' hidden='false'/>
+  <Node id='Pre' x='164' y='164' height='34' width='100' hidden='false'/>
+  <Node id='Body' x='105' y='236' height='34' width='100' hidden='false'/>
+  <Node id='Post' x='7' y='303' height='34' width='100' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Activity' targetId='Operation' hidden='false'/>
+  <Edge id='post' sourceId='Activity' targetId='Post' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='post' relx='9' rely='25'/>
+  </Edge>
+  <Edge id='body' sourceId='Activity' targetId='Body' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='body' relx='42' rely='-20'/>
+  </Edge>
+  <Edge id='pre' sourceId='Activity' targetId='Pre' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='pre' relx='16' rely='-38'/>
+  </Edge>
+  <Edge id='actor' sourceId='Activity' targetId='Actor' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='actor' relx='-51' rely='-20'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='Pre' targetId='Exp' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Body' targetId='Exp' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Post' targetId='Exp' hidden='false'/>
+</Layout>

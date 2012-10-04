@@ -1,0 +1,8 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler IntExp in TypeChecker(exp,env,encountered)
+  TypeCheckExp(exp,Integer,Seq{})
+end;

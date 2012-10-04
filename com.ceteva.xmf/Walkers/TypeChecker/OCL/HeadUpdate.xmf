@@ -1,0 +1,18 @@
+parserImport Walkers;
+
+import OCL;
+import Walkers;
+
+@Handler HeadUpdate in TypeChecker(exp,env,encountered)
+  let cType = self.dispatch(exp.seq,env);
+      vType = self.dispatch(exp.value,env)
+  in if cType.type().isKindOf(Seq)
+     then 
+       if vType.type().inheritsFrom(cType.elementType)
+       then TypeCheckExp(exp,vType.type(),Seq{cType,vType})
+       else TypeCheckFails("type mismatch",TypeCheckExp(exp,Element,Seq{cType,vType}))
+       end
+     else TypeCheckFails("expecting a collection",TypeCheckExp(exp,Element,Seq{cType,vType}))
+     end
+  end
+end;

@@ -1,0 +1,26 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Skip extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Skip ::= { Skip() }.
+      
+    end 
+    
+    @Operation desugar()  
+      [| @Operation(c) @Operation(d) c(d) end end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Skip end")
+    end
+    
+  end

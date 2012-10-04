@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Languages;
+import MicroJava;
+import Expressions;
+
+context Expressions
+
+  @Class BinExp extends JExp
+  
+    @Attribute left : JExp  (?) end
+    @Attribute op : String (?) end
+    @Attribute right : JExp (?) end
+    
+    @Constructor(left,op,right) ! end
+    
+    @Operation pprint(out)
+      left.pprint(out);
+      if op.isKindOf(String)
+      then format(out," ~S ",Seq{op})
+      else op.pprint(out,0)
+      end;
+      right.pprint(out)
+    end 
+    
+  end

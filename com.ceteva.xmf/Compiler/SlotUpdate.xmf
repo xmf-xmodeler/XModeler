@@ -1,0 +1,90 @@
+parserImport XOCL;
+
+import Compiler;
+import OCL;
+import Instrs;
+
+context SlotUpdate
+  @Operation FV():Element
+    target.FV()->union(value.FV())
+  end
+
+context SlotUpdate
+  @Operation maxLocals():Element
+    target.maxLocals().max(value.maxLocals())
+  end
+
+context SlotUpdate
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    if self.isIncSelfSlot()
+    then Seq{IncSelfSlot(Symbol(name))}
+    elseif self.isDecSelfSlot()
+    then Seq{DecSelfSlot(Symbol(name))}
+    elseif self.isLocalSlotUpdate(env) andthen self.localIndex(env) <= 255
+    then self.compileLocalSlotUpdate(env,frame,isLast,saveSource)
+    elseif self.isSelfSlotUpdate()
+    then self.compileSelfSlotUpdate(env,frame,isLast,saveSource)
+    else self.compileSlotUpdate(env,frame,isLast,saveSource)
+    end
+  end
+  
+context SlotUpdate
+  @Operation compileLocalSlotUpdate(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let valueCode = value.compile(env,frame,false,saveSource)
+    in valueCode + Seq{SetLocalSlot(target.name,self.localIndex(env),Symbol(name))}
+    end
+  end
+  
+context SlotUpdate
+  @Operation compileSelfSlotUpdate(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let valueCode = value.compile(env,frame,false,saveSource)
+    in valueCode + Seq{SetSelfSlot(Symbol(name))}
+    end
+  end
+  
+context SlotUpdate
+  @Operation compileSlotUpdate(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let targetCode = target.compile(env,frame,false,saveSource); 
+        valueCode = value.compile(env,frame,false,saveSource)
+    in valueCode + targetCode + Seq{SetSlot(Symbol(name))}
+    end
+  end
+  
+context SlotUpdate
+  @Operation isDecSelfSlot():Boolean
+    @Case self of
+      [| self.<| name1 |> := self.<| name2 |> - 1 |] do name1 = name2 end
+      else false
+    end
+  end
+  
+context SlotUpdate
+  @Operation isIncSelfSlot():Boolean
+    @Case self of
+      [| self.<| name1 |> := self.<| name2 |> + 1 |] do name1 = name2 end
+      else false
+    end
+  end
+  
+context SlotUpdate
+  @Operation isLocalSlotUpdate(env):Boolean
+    target.isKindOf(Var) andthen
+    env.isLocal(target.name)
+  end
+  
+context SlotUpdate
+  @Operation localIndex(env):Integer
+    env.localIndex(target.name)
+  end
+  
+context SlotUpdate
+  @Operation isSelfSlotUpdate()
+    target.isKindOf(OCL::Self)
+  end
+    
+context SlotUpdate
+  @Operation lift()
+    let nameExp = if name.isKindOf(OCL::Drop) then name.lift() else StrExp(name) end
+    in Apply(self.typeExp(),Seq{target.lift(),nameExp,value.lift()})
+    end
+  end

@@ -1,0 +1,179 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Associations;
+
+context Associations
+
+  @Class End extends Attribute, Constraint
+  
+    @Doc 
+      An association en-d is a specialization of Attribute including a
+      multiplicity. the multiplicity defines part of an invariant that
+      holds between instances of the two en-ds of an association and
+      the slot values for the attributes. An en-d is also a constraint
+      that is attached to its type. The constraint requires that the
+      round trip from an instance of the type using both association ends
+      returns to the source of the trip.
+    end
+    
+    @Grammar extends XOCL::Attribute.grammar//OCL::OCL.grammar
+      End ::= name = AttName  meta = MetaClass ':' mult = AttMult type = Apply init = AttInit mods = AttMods body = Exp* { EndDef(name,type,mods,init,null,mult).add(body).meta := meta }.
+    end
+  
+    @Attribute association : Element              (!) end
+    
+    @Constructor(name,type,mult) ! end 
+    
+    @Operation checkRoundTrip(object):Boolean
+      @Doc
+        Starting with object we navigate to the other en-d of the
+        association and back again. The round trip should return
+        us to the starting point (modulo the multiplicities involved).
+      end
+      if object.isKindOf(self.otherEnd().underlyingType()) and object <> null
+      then
+        let mult = self.mult();
+            value = object.get(self.name())
+        in
+          @TypeCase(mult)
+            SingleMult do
+              value = null orelse self.otherEnd().checkRoundTrip(value,object)
+            end
+            CollectionMult do
+              value->forAll(e |
+                self.otherEnd().checkRoundTrip(e,object))
+            end
+          else throw Exception("Don't know how to process this multiplicity type: " + mult.toString())
+          end
+        end
+      else
+        false
+      end
+    end
+    
+    @Operation checkRoundTrip(object,sourceObject)
+      if object.isKindOf(self.otherEnd().underlyingType()) and object <> null
+      then
+        let mult = self.mult();
+            value = object.get(self.name())
+        in
+          @TypeCase(mult)
+            SingleMult do
+              value = sourceObject
+            end
+            CollectionMult do
+              value->exists(value | value = sourceObject)
+            end
+          else throw Exception("Don't know how to process this multiplicity type: " + mult.toString())
+          end
+        end
+      else
+        false
+      end
+    end
+
+    @Operation init()
+    
+      @Doc
+        When an en-d is initialised we initialise as for an attribute
+        and then add the en-d to the type.
+      end
+      
+      // Set up the elements necessary to act as a constraint ...
+      self.setBody();
+      self.setSuccess();
+      self.setFail();
+      
+      // Set up the type ready for initialization as an attribute ...
+      self.setType();
+      if association <> null
+      then 
+        super();
+        if self.underlyingType().isKindOf(XCore::Class)
+        then 
+          // Make sure that this is added to the contents
+          // of the name space. Then add it as an attribute 
+          // and a constraint.
+          self.underlyingType().add(self.otherEnd());
+          self.updateTypeFromMult()
+          //self.underlyingType().addAttribute(self.otherEnd());
+          //self.underlyingType().addConstraint(self.otherEnd())
+        end;
+        self
+      else self
+      end
+      
+    end
+    
+    @Operation init(args)
+      // Attribute defines 'init/1' therefore constructors do not
+      // get invoked. This should be changed. But for now ....
+      if args->size = 3
+      then
+        self.name := args->at(0).asSymbol();
+        self.type := args->at(1);
+        self.mult := args->at(2)
+      else super(args)
+      end
+    end
+    
+    @Operation mult():Multiplicity
+      if self.mult.isReallyKindOf(Associations::Multiplicity)
+      then self.mult := mult.convertToStandardMult()
+      end;
+      super()
+    end
+    
+    @Operation otherEnd():End
+      if association <> null
+      then 
+        if association.end1 = self
+        then association.end2
+        else association.end1
+        end
+      else self.error("Cannot find other end.")
+      end
+    end
+    
+    @Operation remove()
+      // Remove the attribute and constraints...
+      self.underlyingType().removeAttribute(self.otherEnd());
+      self.underlyingType().removeConstraint(self.otherEnd());
+      self.underlyingType().remove(self.otherEnd());
+      self
+    end
+    
+    @Operation setBody()
+      let associationEnd = self
+      in self.body :=
+           @Operation(classifier)
+             associationEnd.checkRoundTrip(self)
+           end
+      end
+    end
+
+    @Operation setSuccess()
+      self.success :=
+        @Operation success(classifier)
+          "Round trip valid"
+        end
+    end
+
+    @Operation setFail()
+      self.fail :=
+        @Operation fail(classifier)
+          "Round trip failed"
+        end
+    end
+    
+    @Operation setType()
+      if type <> null and type.isKindOf(Operation)
+      then 
+        type.setOwner(self);
+        self.setOwner(association);
+        self.type := type()
+      end
+    end
+     
+  end

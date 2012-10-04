@@ -1,0 +1,29 @@
+parserImport XOCL;
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Structure
+  Structure = @File Structure end
+  @File Path end
+  @File Feature end
+  @File Type end
+  @File ArrayType end
+  @File Modifiers end
+  @File NamedType end
+  @File Field end
+  @File Formal end
+  @File MethodSig end
+  @File Method end
+  @File Import end
+  @File UnitDef end
+  @File CompilationUnit end
+  @File Interface end
+  @File Class end
+  @File Package end
+  @File Browse end
+  @File Void end
+do
+  Structure
+end;
+

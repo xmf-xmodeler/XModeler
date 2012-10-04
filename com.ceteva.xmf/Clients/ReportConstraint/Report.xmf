@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import ReportConstraint;
+
+context ReportConstraint
+
+  @Class Report isabstract extends LockableFormWithHistory
+  
+    @Attribute constraintReport : ConstraintReport end
+    
+    @Constructor(constraintReport)
+      self.typeName := "Constraint Check";
+      self.itemName := constraintReport.candidate.labelString();
+      self.initialize()
+    end
+  
+    @Operation addContents()
+      self.addElement(FormLabel(10,9,"Constraint Check for " + itemName));
+      let tree = ReportTree(10,30,640,400,constraintReport) in
+        self.addElement(tree)
+      end;
+      self.addElement(FormLabel(0,440," "))
+    end
+
+    @Operation historyDialogMessage():String
+      "Select a constraint check report to view"
+    end
+
+    @Operation historyDialogTitle():String
+      "Constraint Check History"
+    end
+    
+  end

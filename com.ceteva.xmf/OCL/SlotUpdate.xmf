@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class SlotUpdate extends OCL::OCL
+  
+    @Attribute target : OCL::OCL end
+    @Attribute name : String end
+    @Attribute value : OCL::OCL end
+    
+    @Constructor(target,name,value) ! end
+  
+    @Operation pprint(out,indent)
+      format(out,"~S.~S := ~S",Seq{target.pprint(indent),if name.isKindOf(Drop) then name.pprint() else name end,value.pprint(indent)})
+    end
+    
+  end

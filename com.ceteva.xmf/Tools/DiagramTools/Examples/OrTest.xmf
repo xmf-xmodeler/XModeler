@@ -1,0 +1,55 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+ 
+Root::type :=  
+
+@ToolType OrTest
+  @NodeType OrTest
+    @Box b
+    @Or alt
+      @Image image1 "Actor.gif" width = 100 height = 100
+        @Menu
+          @MenuAction Change
+            self.owner().changeTo("alt","image2")
+          end
+        end
+      end
+      @Image image2 "Class.gif"  width = 100 height = 100
+        @Menu
+          @MenuAction Change
+            self.owner().changeTo("alt","image3")
+          end
+        end
+      end
+      @Text image3 "Grammar.gif"  
+        @Menu
+          @MenuAction Change
+            self.owner().changeTo("alt","image1")
+          end
+        end
+      end
+    end
+    end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton OrTest             icon = "Tools/State.gif" end
+    end
+  end
+end;
+
+Root::manager :=
+@ElementManager
+end;
+
+Root::tool := Tool(type,"State Editor",manager,null);

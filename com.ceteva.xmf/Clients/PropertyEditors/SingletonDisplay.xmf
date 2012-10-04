@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import Clients;
+import Forms;
+import PropertyEditors;
+
+context PropertyEditors
+
+  @Class SingletonDisplay
+  
+    @Attribute label : FormLabel end
+    @Attribute field : SingletonTextField end
+  
+    @Constructor(label,field)
+    end
+
+    @Operation addToForm(form:Form,x,y,labelWidth,fieldWidth,fieldHeight)
+      self.addLabel(form,x,y);
+      self.addField(form,x+labelWidth,y,fieldWidth,fieldHeight)
+    end
+
+    @Operation addLabel(form,x,y)
+      self.label.setX(x);
+      self.label.setY(y);
+      form.addElement(self.label)
+    end
+    
+    @Operation addField(form,x,y,width,height)
+      self.field.setX(x);
+      self.field.setY(y);
+      self.field.setWidth(width);
+      self.field.setHeight(height);
+      form.addElement(self.field)
+    end
+
+  end

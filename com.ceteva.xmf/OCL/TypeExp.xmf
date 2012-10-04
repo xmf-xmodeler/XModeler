@@ -1,0 +1,27 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class TypeExp isabstract extends OCL::OCL
+  
+    @Doc
+      A type expression is either a path naming a type or is a
+      parametric type consisting of a path to a type constructor
+      such as Seq or Set and a sequence of type expression arguments.
+    end
+    
+    @Bind PARAMETRIC = 1 end
+    @Bind NAMED      = 2 end
+    @Bind OPTYPE     = 3 end
+    
+    @AbstractOp toSig()
+      @Doc
+        Transforms the receiver into a signature componentof
+        the form Seq{TYPE,...} where TYPE is one of PARAMETRIC
+        or NAMED.
+      end
+    end
+    
+  end

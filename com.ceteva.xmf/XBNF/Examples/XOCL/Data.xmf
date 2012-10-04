@@ -1,0 +1,143 @@
+parserImport XMap;
+parserImport XOCL;
+parserImport Env;
+
+f(g());
+
+@Operation m (x,y,z)
+  @AbstractOp test(x,y:String) end
+end;
+
+@Bind x = 100 end;
+
+@Busy("doing this")
+  @Bind x =
+    @AbstractOp test(a,b,c)
+    end
+  end
+end;
+
+@CallCommand(getInterpreter(100))
+  CommandName(x,10,true)
+end;
+
+@Case x of
+  100 do 100 end
+  S->including(10) do 101 end
+end;
+
+@CaseObj o of
+  Class[name] do 100 end
+end;
+
+@Constraint x
+  S->forAll(s | try s.p() catch(x) throw x end)
+end;
+
+//@Constructor(x,y,z) 100 end;
+
+@Count x from 0 to 100 do x end;
+
+@Enum X (A,B,C) end;
+
+@Env x = 10; y = S() end;
+
+@Find(x,X) when P( ) do E(x) else X(x,y,true) end;
+
+@For x in S do B(x) end;
+
+@For x inTableKeys T do B(x) end;
+
+@Find(x,S)
+  when @Find(y,x) do true else false end
+  do @For x in X do
+       @Count y from 0 to 1000 do
+         f(x.q,y.m(100,f()))
+       end
+     end;
+     100 + 2
+end;
+
+@Fork
+  @Fork(X)
+    @Fork(Y)
+      @Imports(x) 
+        @Letrec
+          f = @Operation(x) g(x) end;
+          g = @Operation(y) f(x) end
+        in f(x)
+        end
+      end
+    end
+  end
+end;
+
+@Class X 
+  @Attribute x : Integer end
+  @Constructor(x) !
+    x.println()
+  end
+end;
+
+@Map M(C,D) -> E
+  @Clause C 
+    C(10),100 do 
+      100 
+  end
+  @Clause D
+    S->including(100),Seq{x | y} do
+      100
+  end
+end;
+
+@NameSpace N
+  x = 10
+end;
+
+@Package P
+  @Package D end
+  @Bind x = 100 end
+  @Class C
+    @Attribute x : Integer (?,!) end
+    @Constructor(x) ! end
+    @Operation incx(y:Integer):Integer
+      @Repeat
+          self.x := x + y
+        until x > 100 
+      end;
+      y
+    end
+  end
+end;
+
+100;
+
+@Operation inheritanceEdgeAdded(inheritanceEdge,maps,mapClass)
+      @Find(childMap,maps)
+        when childMap.node = inheritanceEdge.sourceNode()
+        do @Find(parentMap,maps)
+              when parentMap.node = inheritanceEdge.targetNode()
+              do
+                if not inheritanceMaps->exists(map | map.edge = inheritanceEdge)
+                then
+                  let child = childMap.element();
+                      parent = parentMap.element() then
+                      inheritanceMap = mapClass(child,parent,inheritanceEdge)	in self.add(inheritanceMap);
+        			       child.addParent(parent)
+      			   end
+                end
+           end
+      end
+    end;
+
+@Class C
+  @Attribute x : Seq(P::Q::R) = 10 (+) end
+    @Constructor(x) ! end
+    @Operation incx(y:Integer):Integer
+      @Repeat
+          self.x := x + y
+        until x > 100 
+      end;
+      y
+    end
+  end;

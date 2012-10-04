@@ -1,0 +1,54 @@
+<Object id ='0' path='Root::Clients::Diagrams::DiagramLayout::Layout'><Slot name='nodes'><List id='1'><Object id ='2' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:10;Operations' x='I:529;' y='I:295;'></Object>
+<Object id ='3' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:102;' height='I:63;' layoutId='S:9;Operation' x='I:527;' y='I:417;'></Object>
+<Object id ='4' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:7;IStream' x='I:622;' y='I:39;'></Object>
+<Object id ='5' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:47;' layoutId='S:5;Instr' x='I:624;' y='I:151;'></Object>
+<Object id ='6' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:3;Env' x='I:329;' y='I:416;'></Object>
+<Object id ='7' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:6;Symbol' x='I:13;' y='I:415;'></Object>
+<Object id ='8' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:101;' height='I:47;' layoutId='S:12;NamedElement' x='I:74;' y='I:296;'></Object>
+<Object id ='9' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:12;NameSpaceRef' x='I:137;' y='I:530;'></Object>
+<Object id ='10' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:34;' layoutId='S:5;Local' x='I:19;' y='I:527;'></Object>
+<Object id ='11' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:50;' layoutId='S:6;Global' x='I:407;' y='I:533;'></Object>
+<Object id ='12' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:7;Dynamic' x='I:272;' y='I:533;'></Object>
+<Object id ='13' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:3;Var' x='I:132;' y='I:416;'></Object>
+<Object id ='14' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:15;CompilationUnit' x='I:38;' y='I:196;'></Object>
+<Object id ='15' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:101;' height='I:44;' layoutId='S:11;Performable' x='I:268;' y='I:121;'></Object>
+<Object id ='16' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:50;' layoutId='S:16;CompilationError' x='I:451;' y='I:26;'></Object>
+<Object id ='17' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:118;' height='I:95;' layoutId='S:9;Exception' x='I:443;' y='I:146;'></Object>
+<Object id ='18' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:31;' layoutId='S:6;Import' x='I:38;' y='I:122;'></Object>
+<Object id ='19' path='Root::Clients::Diagrams::DiagramLayout::Node' hidden='B:0' width='I:100;' height='I:44;' layoutId='S:3;OCL' x='I:38;' y='I:16;'></Object>
+</List></Slot><Slot name='edges'><List id='20'><Object id ='21' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:10;Operations' targetId='S:9;Operation' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:10;operations' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='22'><Object id ='23' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='I:11;' rely='N:29;'></Object>
+<Object id ='24' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:10;operations' relx='I:13;' rely='N:17;'></Object>
+</List></Slot></Object>
+<Object id ='25' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:7;IStream' targetId='S:5;Instr' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:12;instructions' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='26'><Object id ='27' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='N:55;' rely='N:31;'></Object>
+<Object id ='28' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:12;instructions' relx='N:62;' rely='N:16;'></Object>
+</List></Slot></Object>
+<Object id ='29' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:3;Env' targetId='S:3;Var' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:4;vars' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='30'><Object id ='31' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='I:10;' rely='I:6;'></Object>
+<Object id ='32' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:4;vars' relx='I:9;' rely='N:22;'></Object>
+</List></Slot></Object>
+<Object id ='33' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Symbol' targetId='S:12;NamedElement' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='34' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:12;NameSpaceRef' targetId='S:3;Var' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='35' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:5;Local' targetId='S:3;Var' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><List id='36'><Object id ='37' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:61;' y='I:500;'></Object>
+<Object id ='38' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:190;' y='I:500;'></Object>
+</List></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='39' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Global' targetId='S:3;Var' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><List id='40'><Object id ='41' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:463;' y='I:500;'></Object>
+<Object id ='42' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:190;' y='I:500;'></Object>
+</List></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='43' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:7;Dynamic' targetId='S:3;Var' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><List id='44'><Object id ='45' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:342;' y='I:500;'></Object>
+<Object id ='46' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:190;' y='I:500;'></Object>
+</List></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='47' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:3;Var' targetId='S:12;NamedElement' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='48' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:15;CompilationUnit' targetId='S:11;Performable' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:4;exps' hidden='B:0'><Slot name='waypoints'><List id='49'><Object id ='50' path='Root::Clients::Diagrams::DiagramLayout::WayPoint' x='I:312;' y='I:219;'></Object>
+</List></Slot><Slot name='labels'><List id='51'><Object id ='52' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='I:5;' rely='I:5;'></Object>
+<Object id ='53' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:4;exps' relx='N:33;' rely='I:6;'></Object>
+</List></Slot></Object>
+<Object id ='54' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:15;CompilationUnit' targetId='S:6;Import' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:7;imports' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='55'><Object id ='56' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;{ordered}' relx='I:5;' rely='I:5;'></Object>
+<Object id ='57' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:7;imports' relx='N:41;' rely='I:5;'></Object>
+</List></Slot></Object>
+<Object id ='58' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:16;CompilationError' targetId='S:9;Exception' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:9;exception' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='59'><Object id ='60' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='61' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;exception' relx='I:10;' rely='N:17;'></Object>
+</List></Slot></Object>
+<Object id ='62' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Import' targetId='S:3;OCL' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:11;Inheritance' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><Nil/></Slot></Object>
+<Object id ='63' path='Root::Clients::Diagrams::DiagramLayout::Edge' sourceId='S:6;Import' targetId='S:11;Performable' refx='N:1;' refy='N:1;' sourceHead='I:0;' targetHead='I:0;' lineStyle='I:1;' red='N:1;' green='N:1;' blue='N:1;' layoutId='S:9;nameSpace' hidden='B:0'><Slot name='waypoints'><Nil/></Slot><Slot name='labels'><List id='64'><Object id ='65' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:0;' relx='I:5;' rely='I:5;'></Object>
+<Object id ='66' path='Root::Clients::Diagrams::DiagramLayout::Label' text='S:9;nameSpace' relx='N:61;' rely='N:22;'></Object>
+</List></Slot></Object>
+</List></Slot></Object>

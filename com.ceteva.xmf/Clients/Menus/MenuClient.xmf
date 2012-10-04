@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Clients;
+import IO;
+import Menus;
+
+context Menus
+
+  @Class MenuClient extends Client
+
+    @Constructor(name)
+      self.setCommandInterpreter(MenuCommandInterpreter());
+      self.setEventHandler(MenuEventHandler())
+    end
+
+//    @Operation renew()
+//      @For menu in xmf.menuManager().menuTable.values() do
+//        menu.new()
+//      end
+//    end
+
+  end

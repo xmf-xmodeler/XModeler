@@ -1,0 +1,33 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+import Exceptions;
+
+@Handler Path in Eval(aPath,arg,seen)
+  let next = self.next;
+      result = self.result;
+      cont = self.cont;
+      env = self.env;
+      target = self.target;
+      imports = self.imports
+  in next(aPath.root,
+       @Operation(next,result,call,return)
+         self.eval(aPath.root,env,target,imports,next,result,call,return,
+           @Operation(nameSpace)
+             if nameSpace.isKindOf(NameSpace)
+             then 
+               let namedElement =
+                 aPath.names->iterate(name value = nameSpace |
+                   if value.hasElement(name)
+                   then value.getElement(name)
+                   else throw NameSpaceRef(value,name)
+                   end)
+               in result(aPath,namedElement,cont)
+               end
+             else throw TypeError(nameSpace,NameSpace)
+             end
+           end)
+      end)
+   end
+end;

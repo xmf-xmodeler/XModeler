@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+@Shape Star
+  minWidth = 40
+  minHeight = 40 
+  @Point(20,0) end
+  @Point(14,14) end
+  @Point(10,10) end
+  @Point(12,16) end
+  @Point(0,20) end
+  @Point(12,24) end
+  @Point(10,28) end
+  @Point(14,26) end
+  @Point(20,40) end
+  
+  @Point(26,26) end
+  @Point(30,28) end
+  @Point(28,24) end
+  @Point(40,20) end
+  @Point(28,16) end
+  @Point(30,10) end
+  @Point(26,14) end
+  
+end; 

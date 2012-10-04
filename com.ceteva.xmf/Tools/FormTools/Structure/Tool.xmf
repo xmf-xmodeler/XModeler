@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Tools;
+import FormTools;
+import Types;
+import Forms;
+import Structure;
+import Env;
+
+context Structure
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+@Class Tool extends Basic::Tool
+
+  @Attribute form : Form (?) end
+  
+  @Constructor(type,id,elementManager,element) 
+    self.form := Form(id);
+    form.setType(type);
+    type.addMenuItems(self)
+  end
+  
+  @Operation layout()
+    self.form().layout(0,0)
+  end
+  
+  @Operation showForm()
+    
+      // Display the form associated with the tool. This can be
+      // called when the form is first shown or in order to change
+      // client focus to the form.
+      
+      @Find(client,xmf.clientManager().clients)
+        when client.name = "com.ceteva.forms"
+        do if not client.hasForm(form) then type.new(self) end;
+           client.showForm(form);
+           self.layout()
+      end
+    end       
+    
+end

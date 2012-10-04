@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Exceptions
+  
+    @Doc
+      This package defines a collection of exception classes. Instances
+      of these classes are created when an exception occurs in XMF code.
+      The exception is raised by throwing it to the most recently established
+      catch.
+    end
+     
+   end

@@ -1,0 +1,186 @@
+parserImport XOCL;
+
+import Tools::DiagramTools::Types::DisplayTypes;
+import IO;
+import Compiler;
+import Tools::Menus;
+
+context ! Root
+
+@Package MDC 
+
+  // The library shape is set when a shape is
+  // added from a menu that has been loaded in 
+  // from a file. It is a way of hooking into
+  // the basic shape creation mechanism via a
+  // global variable...
+
+  @Bind LibraryShape = null end
+  
+  @Operation MDCGetAttribute(object,name)
+    @Find(a,object.of().allAttributes())
+      when a.name() = name
+      else null
+    end
+  end
+  
+  @Operation MDCExtendSlot(object,slot,value)
+  
+    // Add in the value to a collection slot.
+    
+    if not object.get(slot).contains(value)
+    then
+      object.set(slot,object.get(slot)->including(value));
+      let attribute = MDCGetAttribute(object,slot)
+      in if attribute = null
+         then self.error("Cannot find slot " +slot + " of object " + object.toString())
+         elseif attribute.isComposite and value.isReallyKindOf(XCore::Contained)
+         then value.setOwner(object)
+         end
+      end
+    end;
+    object
+  end
+  
+  @Operation MDCReduceSlot(object,slot,value)
+  
+    // Remove the value from a collection slot. Does not
+    // play around with anything in the object, but provided
+    // for completeness in case we ever extend the functionality.
+    
+    if object.get(slot).contains(value)
+    then
+      object.set(slot,object.get(slot)->excluding(value))
+    end;
+    object
+  end
+  
+  @Operation MDCReplaceSlot(object,slot,newValue,oldValue)
+  
+    // Remove oldValue and add in newValue...
+    
+    if object.get(slot).contains(oldValue)
+    then
+      object.set(slot,object.get(slot)->excluding(oldValue)->including(newValue));
+      let attribute = MDCGetAttribute(object,slot)
+      in if attribute = null
+         then self.error("Cannot find slot " +slot + " of object " + object.toString())
+         elseif attribute.isComposite and newValue.isReallyKindOf(XCore::Contained)
+         then newValue.setOwner(object)
+         end
+      end
+    end;
+    object
+  end
+  
+  @Operation MDCSetSlot(object,slot,value)
+  
+    // Set the value of an atomic slot.
+    // If the attribute is composite and the
+    // value is a contained element then 
+    // update the owner...
+    
+    if object.get(slot) <> value
+    then
+      object.set(slot,value);
+      let attribute = MDCGetAttribute(object,slot)
+      in if attribute = null
+         then self.error("Cannot find slot " +slot + " of object " + object.toString())
+         elseif attribute.isComposite and value.isReallyKindOf(XCore::Contained)
+         then value.setOwner(object)
+         end
+      end
+    end;
+    object
+  end
+  
+  // Use the shapeDir operation to add a directory
+  // and its sub-directories to the shapes menu. Each
+  // file should be a shape definition. Sub-directories
+  // add sub-menus to the shapes menu...
+
+  @Operation shapeDir(path:String)
+    MDC::shapeDir0(MDC::ShapeMenu,path)
+  end
+  
+  @Operation shapeDir0(menuItem,path)
+    let dir = Directory(path,Seq{".*"}) then
+        contents = dir.getContents()
+    in @For file in contents do
+         if file.hasSuffix(".xmf")
+         then
+           let name = file.subst("",".xmf",true);
+               sourceFile = dir.fullPath() + "/" + file then
+               binFile = sourceFile.subst(name + ".o",name + ".xmf",true)
+            in compileFile(sourceFile,true,true);
+               let shapeType = binFile.loadBin() then
+                   menuAction = 
+                     MenuAction(name,
+                       @Operation(tool,action,path) 
+                         try
+                           MDC::LibraryShape := shapeType;
+                           self.newNode("Displays:Shape");
+                           MDC::LibraryShape := null
+                         catch(x)
+                           MDC::LibraryShape := null;
+                           throw x
+                         end
+                       end)
+               in menuItem.add(menuAction)
+               end
+            end
+         end
+       end;
+       @For file in contents do
+         let path = dir.fullPath() + "/" + file 
+         in if Directory::isDir(path) andthen not MDC::isEmptyShapeDir(path)
+            then 
+              let items = Tools::Menus::MenuItems(file)
+              in menuItem.add(items);
+                 MDC::shapeDir0(items,path)
+              end
+            end
+         end
+       end
+    end
+  end
+
+  @Operation isEmptyShapeDir(path)
+    let dir = Directory(path,Seq{".*"}) then
+        contents = dir.getContents();
+        fullDirPath = dir.fullPath()
+    in
+      if contents->isEmpty
+      then true
+      else
+        let validContent = 
+          @Find(file,contents)
+            when file.hasSuffix(".xmf") orelse
+                 let fullFilePath = fullDirPath + "/" + file
+                 in
+                   Directory::isDir(fullFilePath) andthen not MDC::isEmptyShapeDir(fullFilePath)
+                 end
+            else null
+          end
+        in
+          validContent = null
+        end
+      end
+    end
+  end
+
+  // Called when a new shape node event fires. It looks
+  // for a new shape type. If the library shape has been
+  // set via a menu then it uses a copy of the library
+  // shape, otherwise a new shape is created...
+  
+  @Operation shapeType(tool)
+    if MDC::LibraryShape = null
+    then Shape(tool.newName("Shape"))
+    else 
+      let shapeType = MDC::LibraryShape.copy()
+      in shapeType.setPoints(shapeType.points()->collect(point | point.copy()))
+      end  
+    end
+  end
+end

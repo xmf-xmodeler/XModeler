@@ -1,0 +1,5 @@
+context Parameter
+  @Operation init(args)
+    self.name := args->at(0);
+    self.type := args->at(1)
+  end

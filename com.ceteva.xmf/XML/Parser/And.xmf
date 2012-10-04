@@ -1,0 +1,96 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class And extends Pattern
+  
+    @Doc
+      Succeeds when both the left and the right pattern succeeds.
+      Binds any names bound by the left and right and returns the
+      value of the right hand pattern.
+    end
+    
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation binds():Seq(String)
+      left.binds() + right.binds()
+    end
+    
+    @Operation BNF():Pattern
+      And(left.BNF(),right.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      left.checkForMissingClauses(grammar);
+      right.checkForMissingClauses(grammar)
+    end
+    
+    @Operation CNF(handler:Operation)
+      left.CNF(
+        @Operation(left,newClauses1)
+          right.CNF(
+            @Operation(right,newClauses2)
+              handler(And(left,right),newClauses1 + newClauses2)
+            end)
+        end)
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      left.flatten() + right.flatten()
+    end
+    
+    @Operation first(grammar):Set(String)
+      if left.nullable(grammar)
+      then left.first(grammar) + right.first(grammar)
+      else left.first(grammar)
+      end
+    end
+    
+    @Operation NNF(handler:Operation)
+      left.NNF(
+        @Operation(left,newClauses1)
+          right.NNF(
+            @Operation(right,newClauses2)
+              handler(And(left,right),newClauses1 + newClauses2)
+            end)
+        end)
+    end
+    
+    @Operation ONF():Pattern
+      And(left.ONF(),right.ONF())
+    end
+    
+    @Operation nullable(grammar):Boolean
+      left.nullable(grammar) and right.nullable(grammar)
+    end
+    
+    @Operation pprint(out,indent)
+      left.pprint(out,indent);
+      format(out," ");
+      right.pprint(out,indent)
+    end
+    
+    @Operation SNF(handler:Operation)
+      left.SNF(
+        @Operation(left,newClauses1)
+          right.SNF(
+            @Operation(right,newClauses2)
+              handler(And(left,right),newClauses1 + newClauses2)
+            end)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      left.terminals() + right.terminals()
+    end
+    
+  end

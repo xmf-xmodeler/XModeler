@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+import Statements;
+
+context Statements
+
+  @Class Declaration isabstract extends Statement
+  
+    @Attribute name : String end
+    
+  end

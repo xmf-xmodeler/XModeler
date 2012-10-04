@@ -1,0 +1,77 @@
+parserImport XOCL;
+
+context Root
+
+  @Package Compiler 
+  
+    @Doc
+      The compiler package defines operations and classes that are used for compiling.
+      Loading the compiler package also exten-ds the OCL abstract syntax classes with
+      operations that support the compilation of OCL. Use the operations defined in
+      this package to compile files and compile abstract syntax directly to core.
+    end
+    
+    @Bind labelCount = 0 end     // Used to allocate jump labels.
+    
+    @Bind errors     = Set{} end // Keeps track of compilation errors.
+    
+    @Bind compileAll = false end // Set to compile a file whether out of date or not.
+    
+    @Bind saveSource = true end  // Unset to omit source code from build.
+    
+    @Bind sourcePos  = true end  // Determines whether SOURCEPOS instructions are emitted.
+    
+    @Operation compilationError(message,resource . rest)
+      if rest->isEmpty
+      then Compiler::errors := Compiler::errors->including(Compiler::CompilationError(message,resource))
+      else Compiler::errors := Compiler::errors->including(Compiler::CompilationError(message,resource,rest->at(0)))
+      end
+    end
+    
+    @Operation compilationErrors():Boolean
+      not errors->isEmpty
+    end
+    
+    @Operation label(p:Performable,env,frame,isLast,saveSource)
+      @Doc
+        Compile the performable object p and label the first instruction
+        with a new label. Returns a sequence of machine instructions for p.
+      end
+      Compiler::labelInstrs(p.compile(env,frame,isLast,saveSource),Compiler::newLabel())
+    end
+    
+    @Operation labelInstrs(instrs,label)
+      @Doc
+        Set the label of the first instruction.
+      end
+      instrs->head.setLabel(label);
+      instrs
+    end
+    
+    @Operation newLabel():String
+      @Doc
+        Allocates a label to be used as the symbolic address of a
+        machine instruction.
+      end
+      Compiler::labelCount := Compiler::labelCount + 1;
+      "label" + Compiler::labelCount.toString()
+    end
+    
+    @Operation pprintCompilationErrors(out)
+      if Compiler::compilationErrors()
+      then
+        format(out,"~%The following compilation errors occurred:~%");
+        @For error in errors do
+          format(out,"  ");
+          error.pprint(out);
+          format(out,"~%")
+        end
+      else format(out,"~%There were no compilation errors.~%") 
+      end
+    end
+    
+    @Operation resetCompilationErrors()
+      Compiler::errors := Set{}
+    end
+  
+  end

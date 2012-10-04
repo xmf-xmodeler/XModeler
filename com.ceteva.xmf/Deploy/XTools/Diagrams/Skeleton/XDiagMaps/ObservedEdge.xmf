@@ -1,0 +1,167 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class ObservedEdge extends ObservedClass
+  
+    @Attribute edge : ClassEdge (?,!) end
+    
+    @Constructor(edge) ! end
+
+    @Operation writeHandlers(dir,toolDescriptorType,map,manifest)
+      self.writeSourceChangedHandler(dir,toolDescriptorType,map,manifest);
+      self.writeTargetChangedHandler(dir,toolDescriptorType,map,manifest);
+      self.writeLabelChangedHandlers(dir,toolDescriptorType,map,manifest)
+    end
+    
+    @Operation writeLabelChangedHandlers(dir,toolDescriptorType,map,manifest)
+      null
+    end
+    
+    @Operation writeSourceChangedHandler(dir,toolDescriptorType,map,manifest)
+      let class = edge.class() then
+          handlerName = class.name() + "_Object_" + edge.sourceAtt().name() + "_Changed"
+      in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@Observer ~S::~S::Manager (~S) ~S !~%",Seq{map.class().path(),toolDescriptorType,class.path(),edge.sourceAtt().name()});
+           format(out,"  @WithoutEvents(tool)~%");
+           format(out,"    @WithoutRendering(tool.diagram())~%");
+           format(out,"      if isRegistered(object)~%");
+           format(out,"      then~%");
+           format(out,"        let edge = find(object) then~%");
+           format(out,"            rec = find(edge) then~%");
+           format(out,"            target = rec->at(2)~%");
+           format(out,"        in if isRegistered(new)~%");
+           format(out,"           then~%");
+           format(out,"             let sourceNode = find(new)~%");
+           format(out,"             in edge.sourceReconnected(sourceNode.port());~%");
+           format(out,"                register(edge,Seq{object,new,target})~%");
+           format(out,"             end~%");
+           format(out,"           else~%");
+           format(out,"             if new <> null then~%");
+           format(out,"               let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.sourceAtt().type.name()});
+           format(out,"               in register(node,new);~%");
+           format(out,"                  register(new,node);~%");
+           format(out,"                  edge.sourceReconnected(node.port());~%");
+           format(out,"                  register(edge,Seq{object,new,target})~%");
+           format(out,"               end~%");
+           format(out,"             end~%");
+           format(out,"           end~%");
+           format(out,"        end~%");
+           format(out,"      else~%");
+           format(out,"        let source = object.~S;~%",Seq{edge.sourceAtt().name()});
+           format(out,"            target = object.~S~%",Seq{edge.targetAtt().name()});
+           format(out,"        in if source <> null and target <> null~%");
+           format(out,"           then~%");
+           format(out,"             let sourceNode = ~%");
+           format(out,"                  if isRegistered(source)~%");
+           format(out,"                  then find(source)~%");
+           format(out,"                  else~%");
+           format(out,"                    let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.sourceAtt().type.name()});
+           format(out,"                    in register(source,node);~%");
+           format(out,"                       register(node,source);~%");
+           format(out,"                       node~%");
+           format(out,"                    end~%");
+           format(out,"                  end;~%");
+           format(out,"                targetNode = ~%");
+           format(out,"                  if isRegistered(target)~%");
+           format(out,"                  then find(target)~%");
+           format(out,"                  else~%");
+           format(out,"                    let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.targetAtt().type.name()});
+           format(out,"                    in register(target,node);~%");
+           format(out,"                       register(node,target);~%");
+           format(out,"                       node~%");
+           format(out,"                    end~%");
+           format(out,"                  end then~%");
+           format(out,"                edge = ~S::~S::Editor.edgeType(\"~S\").new(sourceNode.port(),targetNode.port(),tool)~%",Seq{map.class().path(),toolDescriptorType,edge.class().name()});
+           format(out,"             in register(edge,Seq{object,source,target});~%");
+           format(out,"                register(object,edge)~%");
+           format(out,"             end~%");
+           format(out,"           end~%");
+           format(out,"        end~%");
+           format(out,"      end~%");
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end
+
+    @Operation writeTargetChangedHandler(dir,toolDescriptorType,map,manifest)
+      let class = edge.class() then
+          handlerName = class.name() + "_Object_" + edge.targetAtt().name() + "_Changed"
+      in @WithOpenFile(out -> dir + "/ElementManager/" + handlerName + ".xmf")
+           writeToolHeader(out);
+           writeHandlerComment(out);
+           format(out,"@Observer ~S::~S::Manager (~S) ~S !~%",Seq{map.class().path(),toolDescriptorType,class.path(),edge.targetAtt().name()});
+           format(out,"  @WithoutEvents(tool)~%");
+           format(out,"    @WithoutRendering(tool.diagram())~%");
+           format(out,"      if isRegistered(object)~%");
+           format(out,"      then~%");
+           format(out,"        let edge = find(object) then~%");
+           format(out,"            rec = find(edge) then~%");
+           format(out,"            source = rec->at(1)~%");
+           format(out,"        in if isRegistered(new)~%");
+           format(out,"           then~%");
+           format(out,"             let targetNode = find(new)~%");
+           format(out,"             in edge.targetReconnected(targetNode.port());~%");
+           format(out,"                register(edge,Seq{object,source,new})~%");
+           format(out,"             end~%");
+           format(out,"           else~%");
+           format(out,"             if new <> null then~%");
+           format(out,"               let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.targetAtt().type.name()});
+           format(out,"               in register(node,new);~%");
+           format(out,"                  register(new,node);~%");
+           format(out,"                  edge.targetReconnected(node.port());~%");
+           format(out,"                  register(edge,Seq{object,source,new})~%");
+           format(out,"               end~%");
+           format(out,"             end~%");
+           format(out,"           end~%");
+           format(out,"        end~%");
+           format(out,"      else~%");
+           format(out,"        let source = object.~S;~%",Seq{edge.sourceAtt().name()});
+           format(out,"            target = object.~S~%",Seq{edge.targetAtt().name()});
+           format(out,"        in if source <> null and target <> null~%");
+           format(out,"           then~%");
+           format(out,"             let sourceNode = ~%");
+           format(out,"                  if isRegistered(source)~%");
+           format(out,"                  then find(source)~%");
+           format(out,"                  else~%");
+           format(out,"                    let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.sourceAtt().type.name()});
+           format(out,"                    in register(source,node);~%");
+           format(out,"                       register(node,source);~%");
+           format(out,"                       node~%");
+           format(out,"                    end~%");
+           format(out,"                  end;~%");
+           format(out,"                targetNode = ~%");
+           format(out,"                  if isRegistered(target)~%");
+           format(out,"                  then find(target)~%");
+           format(out,"                  else~%");
+           format(out,"                    let node = ~S::~S::Editor.nodeType(\"~S\").new(10,10,tool)~%",Seq{map.class().path(),toolDescriptorType,edge.targetAtt().type.name()});
+           format(out,"                    in register(target,node);~%");
+           format(out,"                       register(node,target);~%");
+           format(out,"                       node~%");
+           format(out,"                    end~%");
+           format(out,"                  end then~%");
+           format(out,"                edge = ~S::~S::Editor.edgeType(\"~S\").new(sourceNode.port(),targetNode.port(),tool)~%",Seq{map.class().path(),toolDescriptorType,edge.class().name()});
+           format(out,"             in register(edge,Seq{object,source,target});~%");
+           format(out,"                register(object,edge)~%");
+           format(out,"             end~%");
+           format(out,"           end~%");
+           format(out,"        end~%");
+           format(out,"      end~%");
+           format(out,"    end~%");
+           format(out,"  end~%");
+           format(out,"end;~%");
+           manifest.add("ElementManager/" + handlerName)
+         end
+      end
+    end
+
+  end

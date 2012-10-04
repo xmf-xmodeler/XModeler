@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+context OCL
+
+  @Class Apply extends OCL::OCL
+  
+    @Doc
+       An application expression consists of an operator and some operands, all of
+       which are expressions. Each expression is performed and the operator expression
+       should result in a value that supports the operation 'invoke/2'. Typically,
+       the operator will be an instance of the class XCore::Operation whose invoke
+       operation is supported natively by the XMF machine. The effect of the application
+       is to invoke the operator on the operands by supplying them as arguments.
+       
+     Constructor: Apply(operator,operands)
+     
+       The operator is an expression and the operands are a sequence of expressions.
+     
+    end
+  
+    @Attribute operator : OCL::OCL end
+    @Attribute args : Seq(OCL::OCL) end
+    
+    @Constructor(operator,args) ! end
+    
+    @Operation pprint(out,indent)
+      operator.pprint(out,indent);
+      format(out,"(");
+      let A = args
+      in @While not A->isEmpty do
+           A->head.pprint(out,indent);
+           A := A->tail;
+           if not A->isEmpty
+           then format(out,",")
+           else self
+           end
+         end
+      end;
+      format(out,")")
+    end
+    
+  end

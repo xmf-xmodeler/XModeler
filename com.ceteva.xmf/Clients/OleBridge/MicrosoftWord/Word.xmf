@@ -1,0 +1,57 @@
+parserImport XOCL;
+
+import Clients;
+import OleBridge;
+import MicrosoftWord;
+
+context MicrosoftWord
+
+  @Class Word extends OleTopLevel
+  
+    @Attribute documents : OleObject end
+    @Attribute docs      : Seq(Document) (+,-) end
+  
+    @Constructor()
+      self.init(Seq{"Word.Application"})
+    end
+    
+    @Operation close(saveChanges)
+      self.call("Quit",Seq{saveChanges})
+    end
+    
+    @Operation connect()
+      super();
+      self.documents := self.getObject("Documents")
+    end
+    
+    @Operation hide()
+      self.setProperty("Visible",false)
+    end
+    
+    @Operation newDocument()
+      let document = Document(self)
+      in
+        document.setOwner(self);
+        self.commandInterpreter().callAndStore(documents,"Add",Seq{},document);
+        self.addToDocs(document);
+        document.new();
+        document
+      end
+    end
+    
+    @Operation openDocument(filename:String)
+      let document = Document(self)
+      in
+        document.setOwner(self);
+        self.commandInterpreter().callAndStore(documents,"Open",Seq{filename},document);
+        self.addToDocs(document);
+        document.new();
+        document
+      end
+    end
+    
+    @Operation show()
+      self.setProperty("Visible",true)
+    end
+  
+  end

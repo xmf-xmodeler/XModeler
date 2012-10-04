@@ -1,0 +1,18 @@
+parserImport XOCL;
+
+context Evaluator
+
+  @Class Call
+  
+    @Attribute name : String (?) end
+    @Attribute exp : Performable (?,!) end
+    @Attribute target : Element (?,!) end
+    @Attribute nameSpaces : Seq(NameSpace) (?,!) end
+    @Attribute env : Env::Env (?,!) end
+    @Attribute previous : Call (?,!) end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,previous) end
+    
+  end

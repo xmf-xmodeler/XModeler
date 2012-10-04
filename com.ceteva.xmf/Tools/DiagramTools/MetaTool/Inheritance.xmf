@@ -1,0 +1,25 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import Types; 
+import DisplayTypes;
+import MetaTool;
+ 
+context MetaTool
+
+  @EdgeType Inheritance NodeType -> NodeType
+    targetHead = whiteArrow
+    @Menu
+      @MenuAction Delete
+        self.delete()
+      end
+    end
+  end

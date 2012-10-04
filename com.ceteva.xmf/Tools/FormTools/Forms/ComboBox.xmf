@@ -1,0 +1,34 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Tools;
+import FormTools;
+import Forms;
+
+context Forms
+
+  @Class ComboBox extends Clients::Forms::FormComboBox, FormElement
+  
+    @Attribute selectedHandler : Operation (?,!) end
+  
+    @Constructor(contents) 
+      self.addDaemon()
+    end
+  
+    @Operation actualHeight():Integer
+      50
+    end
+    
+    @Operation actualWidth():Integer
+      100
+    end
+    
+    @Operation addDaemon()
+      @SlotValueChanged multi ComboBox::selectedEvent(self,"selected") end
+    end
+    
+    @Operation selectedEvent(box,slot,new,old)
+      selectedHandler(self,new,old)
+    end
+    
+  end

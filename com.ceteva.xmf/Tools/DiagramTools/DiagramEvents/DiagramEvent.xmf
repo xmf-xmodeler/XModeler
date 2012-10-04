@@ -1,0 +1,11 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Events;
+
+context DiagramEvents
+
+  @Class DiagramEvent extends Event
+  
+  end

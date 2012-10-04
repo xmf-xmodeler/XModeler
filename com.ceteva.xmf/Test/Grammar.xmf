@@ -1,0 +1,47 @@
+import IO;
+import Parser::Machine;
+import Parser::BNF;
+
+"The grammar for Grammar can load and construct a grammar.".println();
+"This test loads a definition of the XBNF grammar and then uses that".println();
+"to parse itself.".println();
+let grammar = Parser::BNF::Grammar.grammar;
+    input = FileInputChannel("Test/Grammar.xbnf")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      let g = state.run();
+          moreInput = FileInputChannel("Test/Grammar.xbnf")
+      in g.startingSymbol := "Start";
+         g.dynamics := Seq{Seq{2|Root.contents},Seq{2|Parser::BNF.contents}};
+         //g.debug := true;
+         g.pprint(stdout,0);
+         g.parents := Set{OCL::OCL.grammar};
+         g.transform();
+         let state = State(g,moreInput)
+         in let h = state.run();
+                lastInput = FileInputChannel("Test/Grammar.xbnf")
+            in h.startingSymbol := "Start";
+               h.dynamics := Seq{Seq{2|Root.contents},Seq{2|Parser::BNF.contents}};
+               h.parents := Set{OCL::OCL.grammar};
+               h.transform();
+               //h.debug := true;
+               h.pprint(stdout,0);
+               State(h,lastInput).run().pprint(stdout,0)
+            end
+         end
+      end
+   end
+end; 
+
+format(stdout,"A grammar can be translated into an expression.");
+let grammar = Parser::BNF::Grammar.grammar;
+    input = FileInputChannel("Test/Grammar.xbnf")
+in let state = State(grammar,input)
+   in //grammar.debug := true;
+      let g = state.run();
+          moreInput = FileInputChannel("Test/Grammar.xbnf")
+      in g.startingSymbol := "Start";
+         g.lift().pprint(stdout,0)
+      end
+   end
+end;

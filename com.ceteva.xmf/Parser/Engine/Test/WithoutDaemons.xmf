@@ -1,0 +1,14 @@
+parserImport XBNF::Grammars;
+parserImport XOCL;
+
+import XOCL;
+
+context WithoutDaemons
+
+  @Grammar extends OCL::OCL.grammar()
+    
+      WithoutDaemons ::= '(' object = Exp ')' body = Exp { WithoutDaemons(object,body) }.
+      
+    end 
+    
+   

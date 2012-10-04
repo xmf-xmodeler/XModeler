@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import Clients;
+import Enterprise;
+
+context Enterprise
+
+  @Class SessionEventHandler
+  
+    // if a handler chooses to accept a request then it is contracted
+    // to respond to the request by calling EnterpriseClient.writeHTML/2
+  
+    @AbstractOp urlRequest(request):Boolean
+    end
+  
+  end

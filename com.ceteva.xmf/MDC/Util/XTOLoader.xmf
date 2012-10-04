@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import MDC;
+
+context MDC
+
+  @Class XTOLoader isabstract
+  
+    @Operation loadXTO()
+      let file = xmf.openFile(xmf.projDir(),"*.xto") 
+      in if file <> "" 
+         then self.loadXTO(file)
+         else null
+         end
+      end
+    end
+    
+    @Operation loadXTO(file)
+      @Busy("Loading ...")
+        let element = xmf.toolManager().loadXTO(file)
+        in // Store the element's current file location so that we
+           // can use it when saving
+           XMF::resources.put(element,file);
+           self.postXTOLoad(element);
+           element
+        end
+      end
+    end
+    
+    @Operation postXTOLoad(element)
+      // Install the element and perform any required
+      // initialization...
+      null
+    end
+    
+  end

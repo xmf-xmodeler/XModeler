@@ -1,0 +1,20 @@
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Events;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs;
+import DiagramEvents;
+import MetaTool;
+import Types;
+import DisplayTypes;
+
+context MetaTool
+@ElementManager ToolBuilderManager
+  
+  
+end
+
+
+Root::tool := Tool(ToolBuilder,"toolBuilder",ToolBuilderManager,ToolType("New Tool"));

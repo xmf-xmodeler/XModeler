@@ -1,0 +1,233 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import DiagramTools;
+import Types;
+import DisplayTypes;
+import DisplayType;
+import Diagrams;
+import DiagramEvents;
+import Menus;
+import Layout;
+import Env;
+
+context Types
+
+  @Class NodeType extends AbstractDisplayType, Formatted
+
+    @Doc
+      A node type names and describes the display structure for
+      a class of nodes on a diagram. Node types may inherit which
+      allows edges to be defined between multiple node types.
+      Nodes are containers of display elements and as such define
+      the layout of their contents.
+    end
+  
+    @Attribute parents     : Seq(String)                          (+,-,?,!) end
+    @Attribute menu        : Menu = Menu()                        (?)       end
+    @Attribute displays    : Seq(DisplayType)                     (+,-,?,!) end
+    @Attribute layout      : String    = "ALIGN"                  (?)       end
+    @Attribute hasPort     : Boolean                              (?)       end
+    @Attribute minWidth    : Integer                              (?,!)     end
+    @Attribute minHeight   : Integer                              (?,!)     end
+    @Attribute maxWidth    : Integer   = 9999                     (?,!)     end
+    @Attribute maxHeight   : Integer   = 9999                     (?,!)     end
+    
+    @Constructor(name,parents) 
+      self.init(Seq{name})
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      NodeType ::= name = Name props = Properties parents = NodeTypeParents atts = Atts defs = Exp* {
+       
+         [| let node = <defs->iterate(def exp = [| Tools::DiagramTools::Types::NodeType(<OCL::StrExp(name)>,<OCL::SetExp("Seq",parents)>) |] |
+           
+                          [| <exp>.add(<def>) |])>
+            in node.contentLayout := <OCL::StrExp(filterContentLayout(props))>;
+               node.hasPort       := <OCL::BoolExp(props->includes("hasport"))>;
+               node.minWidth      := <OCL::IntExp(atts.lookup("minWidth",0))>;
+               node.minHeight     := <OCL::IntExp(atts.lookup("minHeight",0))>;
+               node.maxWidth      := <OCL::IntExp(atts.lookup("maxWidth",9999))>;
+               node.maxHeight     := <OCL::IntExp(atts.lookup("maxHeight",9999))>;
+               node
+            end
+         |]
+         
+      }.
+      
+      NodeTypeParents ::= SomeParents | NoParents.
+      
+      SomeParents ::= 'extends' parent = Name parents = (',' Name)* { 
+      
+        Seq{ OCL::StrExp(parent) | parents->collect(p | OCL::StrExp(p)) }
+        
+      }.
+      
+      NoParents ::= { Seq{} }.
+      
+      Properties ::= '(' name = Name names = (',' Name)* ')' { Seq{name | names} } | { Seq{} }.
+      
+      Atts ::= atts = Att* { atts->iterate(att e = AttEnv() | att + e) }.
+      
+      Att ::= name = Name '=' value = AttValue { AttEnv().bind(name,value) }.
+      
+      AttValue ::= Str | Name | Int.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+        DisplayType do
+          element.setOwner(self);
+          self.addToDisplays(element)
+        end
+        else self.error("Unknown node type component: " + element.toString())
+      end
+    end
+
+    @Operation allDisplayTypes(T:Seq(AbstractDisplayType)):Seq(AbstractDisplayType)
+      T := super(T);
+      @For d in self.displays do
+        T := d.allDisplayTypes(T)
+      end;
+      T
+    end
+
+    @Operation contains(type:DisplayType):Boolean
+      displays->includes(type) orelse
+      displays->exists(display | display.contains(type))
+    end
+    
+    @Operation deployDef(dir:String,toolName:String)
+      @WithOpenFile(fout -> dir + "/" + name + ".xmf")
+        format(fout,"parserImport XOCL;~%");
+        format(fout,"parserImport Tools::DiagramTools::Types;~%~%");
+        format(fout,"context ~S~%",Seq{toolName});
+        format(fout,"  @NodeType ~S(~S,~S)~%",Seq{name,layout,contentLayout});
+        @For type in displays do
+          null //display.deployDef(fout)
+        end;
+        format(fout,"  end~%")
+      end
+    end
+    
+    @Operation deref(env)
+      let env = displays->iterate(d env = env | d.bind(env))
+      in self.displays := displays->collect(d | d.deref(env))
+      end
+    end
+    
+    @Operation inheritsFrom(typeName:String,tool)
+      name.toString() = typeName orelse
+      parents->exists(parentName | 
+        tool.nodeType(parentName).inheritsFrom(typeName,tool))
+    end
+    
+    @Operation merge(inherited)
+      menu.merge(inherited.menu());
+      @For inheritedDisplay in inherited.displays() do
+        @Find(localDisplay,displays)
+          when inheritedDisplay.name().toString() = localDisplay.name().toString()
+          do localDisplay.merge(inheritedDisplay)
+          else self.add(inheritedDisplay)
+        end
+      end
+    end
+    
+    @Operation mkClicksHandler(tool,node)
+      @Operation[closure="Tools::DiagramTools::Types::NodeType::mkClicksHandler"](clicks)
+        tool.raise(Tools::DiagramTools::DiagramEvents::Clicks(node,clicks))
+      end.setOwner(null)
+    end
+    
+    @Operation mkDeselectionHandler(tool,node)
+      @Operation[closure="Tools::DiagramTools::Types::NodeType::mkDeselectionHandler"]()
+        tool.raise(Tools::DiagramTools::DiagramEvents::Selection(node,false))
+      end.setOwner(null)
+    end
+    
+    @Operation mkMoveHandler(tool,node)
+      @Operation[closure="Tools::DiagramTools::Types::NodeType::mkMoveHandler"](nx,ny,ox,oy)
+        tool.raise(Tools::DiagramTools::DiagramEvents::Move(node,nx,ny,ox,oy))
+      end.setOwner(null)
+    end
+    
+    @Operation mkResizeHandler(tool,node)
+      @Operation[closure="Tools::DiagramTools::Types::NodeType::mkResizeHandler"](nw,nh,ow,oh)
+        tool.raise(Tools::DiagramTools::DiagramEvents::Resize(node,nw,nh,ow,oh))
+      end.setOwner(null)
+    end
+    
+    @Operation mkSelectionHandler(tool,node)
+      @Operation[closure="Tools::DiagramTools::Types::NodeType::mkSelectionHandler"]()
+        tool.raise(Tools::DiagramTools::DiagramEvents::Selection(node,true))
+      end.setOwner(null)
+    end
+    
+    @Operation new(x:Integer,y:Integer,tool)
+      self.new(x,y,tool,tool.diagram())
+    end
+    
+    @Operation new(x:Integer,y:Integer,tool,diagram)
+    
+      // The node is to be created at (x,y). A new event is raised
+      // after the node is created.
+      
+      let node = self.newNode(x,y); 
+          env = displays->iterate(d env = NullEnv() | env.bind(d.name().toString(),d)) then
+          selectionHandler = NodeType::mkSelectionHandler(tool,node);
+          deselectionHandler = NodeType::mkDeselectionHandler(tool,node);
+          clickHandler = NodeType::mkClicksHandler(tool,node);
+          moveHandler = NodeType::mkMoveHandler(tool,node);
+          resizeHandler = NodeType::mkResizeHandler(tool,node)
+      in @WithoutRendering(tool.diagram())
+           node.setType(self);
+           node.setMinWidth(minWidth);
+           node.setMinHeight(minHeight);
+           node.setMaxWidth(maxWidth);
+           node.setMaxHeight(maxHeight);
+           @For display in displays do
+             display.new(node,node,Seq{name.toString()},tool,env)
+           end;
+           if hasPort then node.addPortAssociation(node) end;
+           node.new(diagram);
+           node.initDiagrams(tool);
+           self.setGlobalMenu(node,tool,Seq{self.name.toString()});
+           node.setSelectionHandler(selectionHandler);
+           node.setDeselectionHandler(deselectionHandler);
+           node.setClickHandler(clickHandler);
+           node.setMoveHandler(moveHandler);
+           node.setResizeHandler(resizeHandler);
+           diagram.add(node);
+           node.layout();
+           node
+         end
+      end
+    end
+    
+    @Operation newNode(x,y)
+    
+      // Allows sub-classes of NodeType to modify the specific
+      // class that is used to represent a node...
+      
+      Node(x,y)
+    end
+
+    @Operation setGlobalMenu(node,tool,path,sendSetCommand:Boolean)
+      self.menu.setGlobalMenu(node,node,tool,path,Set{self,tool},sendSetCommand)
+    end
+
+    @Operation setGlobalMenu(node,tool,path)
+      self.setGlobalMenu(node,tool,path,true)
+    end
+
+    @Operation toolTypes(T):Seq(ToolType)
+      displays->iterate(d T = T | d.toolTypes(T))
+    end
+    
+  end

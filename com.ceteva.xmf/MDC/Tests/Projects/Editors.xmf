@@ -1,0 +1,110 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients;
+import Forms;
+import BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package Editors
+  
+    @Class NoteEditor extends Form
+    
+      @Attribute note : Note  end
+      @Attribute text : FormTextBox end
+      
+      @Constructor(note)
+        xmf.findClient(FormClient).newForm(self);
+        self.setName(note.toString())
+      end
+      
+      @Operation addContents()
+        let handler = @Operation() self.done(); self.closeCommand() end
+        in self.text := FormTextBox(10,20,500,200,note.text(),true);
+           self.addElement(text);
+           self.addElement(FormButton(10,220,500,20,"Done",handler))
+        end
+      end
+      
+      @Operation done()
+        note.setText(text.getText())
+      end
+      
+    end
+  
+    @Class RequirementEditor extends Form
+    
+      @Attribute requirement : Specs::Requirement end
+      @Attribute responsible : FormTextField end
+      @Attribute label       : FormTextField end
+      @Attribute date        : FormTextField end
+      @Attribute description : FormTextBox end
+      
+      @Constructor(requirement) 
+        xmf.findClient(FormClient).newForm(self);
+        self.setName(requirement.toString())
+      end
+      
+      @Operation addContents()
+        self.addElement(self.labelLabel());
+        self.addElement(self.labelField());
+        self.addElement(self.responsibleLabel());
+        self.addElement(self.responsibleField());
+        self.addElement(self.dateLabel());
+        self.addElement(self.dateField());
+        self.addElement(self.descriptionBox());
+        self.addElement(self.doneButton())
+      end
+      
+      @Operation doneButton()
+        let handler = @Operation() self.update(); self.closeCommand() end
+        in FormButton(10,110,200,40,"Done",handler)
+        end
+      end
+      
+      @Operation descriptionBox()
+        self.description := FormTextBox(250,20,500,200,requirement.description(),true);
+        description
+      end
+      
+      @Operation labelLabel()
+        FormLabel(10,20,"Label")
+      end
+      
+      @Operation labelField()
+        self.label := FormTextField(100,20,100,20,requirement.label(),true);
+        label
+      end
+      
+      @Operation responsibleLabel()
+        FormLabel(10,80,"Responsible")
+      end
+      
+      @Operation responsibleField()
+        self.responsible := FormTextField(100,80,100,20,requirement.responsible(),true);
+        responsible
+      end
+      
+      @Operation dateLabel()
+        FormLabel(10,50,"Date")
+      end
+      
+      @Operation dateField()
+        self.date := FormTextField(100,50,100,20,requirement.date(),true);
+        date
+      end
+      
+      @Operation update()
+        requirement.setLabel(label.text);
+        requirement.setDescription(description.getText());
+        requirement.setDate(date.text);
+        requirement.setResponsible(responsible.text)
+      end
+      
+    end
+    
+  end
+      
+      

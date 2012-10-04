@@ -1,0 +1,24 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class TableDropDownOption extends Option
+  
+    @Attribute id : String end
+    
+    @Constructor(id,display,value) end
+  
+    @ToXML(TABLE_DROPDOWN_OPTION)[Id=id,Display_Member=display,Value_Member=value] end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

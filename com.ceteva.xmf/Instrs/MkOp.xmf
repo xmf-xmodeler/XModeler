@@ -1,0 +1,61 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+ @Class MkOp extends Instr
+ 
+    @Doc
+      This machine instruction constructs an operation. The
+      machine instruction word has two operands being the
+      indices in the constants array of the current machine
+      stack frame for the name of the operation and the code
+      box of the function. The instruction expects a number of
+      values on the stack corresponding to the globals that are
+      popped into a freshly allocated array. The array is linked to
+      the globals array in the current stack frame and becomes the
+      globals array for the new operation. The new operation is
+      pushed onto the stack.
+    end
+ 
+    @Attribute name : String end            // The name of the operation.
+    @Attribute arity : Integer end          // The arity of the operation.
+    @Attribute isMultiArgs : Boolean end    // Operation will take variable args.
+    @Attribute free : Integer end           // The number of free vars in the body.
+    @Attribute locals : Integer end         // The number of local vars required by the op (not including args).
+    @Attribute source : String end          // The source code (if recorded).
+    @Attribute code : Seq(Element) end      // A sequence of instructions.
+    @Attribute nameOffset : Integer end     // Constant offset for name.
+    @Attribute codeBoxOffset : Integer end  // Constant offset for code.
+    
+    @Constructor(name,arity,isMultiArgs,free,locals,source,code) end
+    
+    @Operation toString():String
+      "<MkOp " + name + "," + arity + "," + isMultiArgs + "," + free + "," + locals + "," + codeBoxOffset + ">"
+    end
+    
+    @Operation assemble(codeBox)
+      let newBox = Assembler::assemble(code,locals,source)
+      in self.codeBoxOffset := codeBox.constOffset(newBox);
+         self.nameOffset := codeBox.constOffset(name);
+         if codeBoxOffset > 255 or nameOffset > 255
+         then
+           //MkOpE(name,arity,isMultiArgs,free,locals,source,code).assemble(codeBox)
+           MkOpE(name,arity,isMultiArgs,free,locals,source,code).assemble(codeBox,newBox)
+         else
+           newBox.name := name;
+           codeBox.addInstr(self)
+         end
+      end 
+    end
+    
+    @Operation operands():Integer
+      // The high bit of arity is set if the operation
+      // takes a variable number of arguments.
+      let arityByte = if isMultiArgs then 1.lsh(7) or arity else arity end
+      in Kernel_mk24bit(arityByte,free,codeBoxOffset)
+      end
+    end
+    
+  end

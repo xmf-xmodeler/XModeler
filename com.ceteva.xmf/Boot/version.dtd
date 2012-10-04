@@ -1,0 +1,13 @@
+<!ELEMENT XMF (Version)*>
+
+<!ELEMENT Version (Release)*>
+<!ATTLIST Version id CDATA #REQUIRED>
+<!ATTLIST Version comment CDATA #REQUIRED>
+
+<!ELEMENT Release (Delta)*>
+<!ATTLIST Release id CDATA #REQUIRED>
+<!ATTLIST Release comment CDATA #REQUIRED>
+
+<!ELEMENT Delta EMPTY>
+<!ATTLIST Delta id CDATA #REQUIRED>
+<!ATTLIST Delta comment CDATA #REQUIRED>

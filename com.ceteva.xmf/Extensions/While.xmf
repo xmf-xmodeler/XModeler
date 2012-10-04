@@ -1,0 +1,67 @@
+parserImport XOCL;
+
+import Instrs;
+import OCL;
+
+context XOCL
+
+  @Class While extends Performable
+  
+    @Doc
+      A basic loop with a test. The test is performed at least once before the
+      loop is entered each time. When the loop test returnes false, the loop terminates.
+      The return value of a while expression is undefined.
+      
+      Constructor: While(test,body)
+        Both args should be expressions. The test should return a boolean value.
+    end
+    
+    @Attribute test : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(test,body) ! end
+    
+    @Operation compile(env,frame,isLast,saveSource)
+      let testCode = test.compile(env,frame,false,saveSource);
+          bodyCode = body.compile(env,frame,false,saveSource);
+          testLabel = Compiler::newLabel();
+          endLabel = Compiler::newLabel() then
+          returnValue = Compiler::labelInstrs(Seq{PushTrue()},endLabel)
+      in Compiler::labelInstrs(testCode,testLabel) +
+         Seq{SkipFalse(endLabel)} +
+         bodyCode + Seq{Pop()} +
+         Seq{SkipBack(testLabel)} +
+         returnValue
+      end
+    end
+    
+    @Operation eval(target,env,imports)
+      @While test.eval(target,env,imports) do
+        body.eval(target,env,imports)
+      end
+    end
+   
+    @Operation FV():Set(String)
+      test.FV()->union(body.FV())
+    end
+    
+    @Operation lift()
+      Apply(Path(Var("Root"),Seq{"XOCL",self.of().name}),Seq{test.lift(),body.lift()})
+    end
+  
+    @Operation maxLocals():Integer
+       test.maxLocals().max(body.maxLocals())
+    end
+  
+    @Operation pprint(out,indent)
+      format(out,"@While ");
+      test.pprint(out,indent);
+      format(out," do~%~V",Seq{indent+2});
+      body.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end 
+    
+    
+     

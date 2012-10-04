@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import Clients;
+import Undo;
+
+context Undo
+
+  @Class UndoEventHandler extends EventHandler
+
+    @Operation dispatchEvent(message,parameters) 
+      @Case message.name of
+        "undo"   do self.undo() end
+        "redo"   do self.redo() end
+      end;
+      self
+    end
+    
+    @Operation undo()
+      owner.undo()
+    end
+    
+    @Operation redo()
+      owner.redo()
+    end 
+ end
+ 

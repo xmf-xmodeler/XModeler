@@ -1,0 +1,155 @@
+parserImport XOCL;
+
+context XCore::Package
+  @Operation createSelfSnapshot()
+    let 
+      name = self.newName("snapshot") then
+      snapshot = XCore::Snapshot(Symbol(name),Seq{self});
+      mappingClient = xmf.findClient(Clients::SnapshotMapping::MappingClient);
+      diagramManager = xmf.diagramManager()
+    in
+      self.add(snapshot);
+      let name = diagramManager.newDiagramName(snapshot)
+      in
+        diagramManager.newDiagram(snapshot,name,"Snapshot Diagram")
+      end
+    end
+  end
+
+context XCore::NameSpace
+  @Operation createSnapshot()
+    let 
+      packages = Root.allContentsOf(Package)->asSeq.sortNamedElements() then
+      selected = xmf.selects("Create Snapshot","Choose packages to snapshot",packages,null,null)
+    in
+      if selected <> 0-1 andthen not selected->isEmpty
+      then
+        let 
+          name = self.newName("snapshot") then
+          snapshot = XCore::Snapshot(Symbol(name),selected);
+      	  diagramManager = xmf.diagramManager()
+        in
+          self.add(snapshot); 
+      	  let name = diagramManager.newDiagramName(snapshot)
+      	  in
+        	diagramManager.newDiagram(snapshot,name,"Snapshot Diagram")
+      	  end
+        end
+      end
+    end
+  end  
+  
+context XCore::Snapshot
+  @Operation setPackages()
+    let 
+      available = Root.allContentsOf(Package)->asSeq.sortNamedElements() then
+      current = self.packages then
+      selected = xmf.selects("Create Snapshot","Choose packages to snapshot",available,current,null)
+    in
+      if selected <> 0-1
+      then
+        let
+          added = selected - current;
+      	  removed = current - selected
+    	in
+      	  @For p in added
+      	  do 
+        	self.packages := self.packages->prepend(p)
+      	  end;
+      	  @For p in removed
+      	  do 
+        	self.packages := self.packages->excluding(p) 
+          end
+        end
+      end
+    end
+  end
+
+context XCore::Snapshot
+  @Operation createAndLayoutDiagram(file)
+    self.createAndLayoutDiagram(file,null)
+  end
+
+context XCore::Snapshot
+  @Operation createAndLayoutDiagram(file,name,showDiagram)
+    let diagram = xmf.diagramManager().newDiagram(self,name,"Snapshot Diagram (Total View)",showDiagram)
+    in
+      @WithoutRendering(diagram)
+        diagram.loadLayout(file)
+      end
+    end
+  end
+
+context XCore::Snapshot
+  @Operation createAndLayoutDiagram(file,name)
+    self.createAndLayoutDiagram(file,name,true)
+  end
+
+context XCore::Snapshot
+  @Operation showAndLayoutDiagram(file)
+    let mappingClient = xmf.findClient(Clients::SnapshotMapping::MappingClient) in
+      if mappingClient <> null
+      then 
+        mappingClient.showAndLayoutDiagram(self,file)
+      else
+        format(stdout,"Snapshot client not available.~%")
+      end
+    end 
+  end
+  
+context Snapshot
+  @Operation deployXML()
+    @Doc
+      This operation prompts for a target XML file and writes the
+      receiver to an XML file in standard XMF XML format. Name spaces
+      are always saved as references.
+    end
+    let file = xmf.saveFile(xmf.projDir(),"*.xml")
+    in
+      if file <> ""
+      then
+        let nameSpaces = Seq{self} then
+            fout = IO::XMLOutputChannel(IO::FileOutputChannel(file),IO::NameSpaceXMLFormatter(nameSpaces))
+        in  fout.writeValue(self);
+            fout.close();
+            xmf.message("Written " + self.toString() + " to " + file)
+        end
+      end
+    end
+  end
+  
+context Snapshot
+  @Operation deployXAR()
+    @Doc
+      This operation prompts for a target XAR file and writes the
+      receiver to a XAR file. Name spaces are always saved as references.
+    end
+    let file = xmf.openFile(xmf.projDir(),"*.xar");
+        nameSpaces = Root.allContentsOf(NameSpace)->including(Root)->asSeq then
+        fout = IO::ElementOutputChannel(IO::FileOutputChannel(file));
+        owner = self.owner()
+    in try
+    
+         // De-link the snapshot from its owner so that the save machine
+         // does not try to save the snapshot as a reference. Make sure we
+         // re-link the snapshot to the owner on success or fail of this
+         // operation.
+         
+         if owner.isReallyKindOf(Container)
+         then owner.remove(self)
+         end;
+         fout.write(self,nameSpaces);
+         fout.close();
+         xmf.message("Written " + self.toString() + " to " + file);
+         if owner.isReallyKindOf(Container)
+         then owner.add(self)
+         end
+       catch(x)
+         if owner.isReallyKindOf(Container)
+         then owner.remove(self)
+         end;
+         throw x
+       end
+    end
+  end
+  

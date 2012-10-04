@@ -1,0 +1,391 @@
+parserImport XOCL;
+parserImport XMap;
+
+import Clients;
+import Forms;
+import XMap;
+import PropertyEditors;
+import PropertyEditorXCore;
+
+context PropertyEditorXCore
+
+  @Class ObjectXForm extends Contained, Commandable
+  
+    @Attribute element           : Object (?,!) end
+    @Attribute form              : ObjectPE (?,!) end
+    @Attribute collectionDaemons : Seq(Seq(Element)) (+,-) end
+    @Attribute singletonSlotNameChangedDaemons : Table = Table(10) end
+    @Attribute currentSlotName   : String end
+
+    @Constructor(element,form,owner)
+      self.setHotLoad(true);
+      self.collectionDaemons := Seq{};
+      self.init(Seq{element,form})
+    end
+    
+    @Constructor(element,form)     
+      form.setOwner(self)
+    end
+
+    @Operation addMappings()
+      self.checkDaemons();
+      self
+    end
+
+    // daemon operations
+
+    @Operation daemons_selfNameChanged(e,slot,newName,oldName)
+      self.form.setName("Properties - " + element.labelString());
+      self.form.setTextOut("self",element)
+    end
+
+    @Operation daemons_selfTypeChanged(e,slot,newType,oldType)
+      self.form.setName("Properties - " + element.labelString());
+      self.form.setTextOut("self",element);
+      oldType.removeDaemonsWithTarget(self,true);
+      @SlotValueChanged multi once ObjectXForm::daemons_selfNameChanged(newType,"name") end
+    end
+
+    @Operation daemons_ownerChanged(e,slot,newOwner,oldOwner)
+      if newOwner=null andthen not xmf.clientManager().saving andthen oldOwner<>null
+      then
+        oldOwner.removeDaemonsWithTarget(self,true);
+        form.closeCommand()
+      end
+    end
+
+    @Operation daemons_ownerNameChanged(e,slot,newName,oldName)
+      self.form.setTextOut("owner",element.owner())
+    end
+
+    @Operation daemons_ofAttributesChanged(elementOf,slot,newValue,oldValue)
+      self.refreshForm()
+    end
+
+    @Operation daemons_ofNameChanged(elementOf,slot,newName,oldName)
+      self.form.setTextOut("of",element.of())
+    end
+
+    @Operation daemons_ofParentsChanged(elementOf,slot,newValue,oldValue)
+      self.refreshForm()
+    end
+
+    @Operation daemons_slotChanged(e,slot,newVal,oldVal)
+      let
+        slotName = slot.toString() then
+        att = e.of().getAttribute(slotName)
+      in
+        if form.singletonAttributes->includes(att) then
+          self.form.setTextOut(slotName,newVal);
+          self.removeSlotValueNameChangedDaemon(oldVal);
+          self.addSlotValueNameChangedDaemon(slot.toString(),newVal)
+        elseif form.enumerationAttributes->includes(att) then
+          self.form.setEnumerationOut(slotName,newVal)
+        elseif form.booleanAttributes->includes(att) then
+          self.form.setBooleanOut(slotName,newVal)
+        end
+      end
+    end
+
+    @Operation daemons_collectionListChanged(display,slot,newName,oldName)
+      self.resetCollectionDaemons(newName,oldName)
+    end
+
+    @Operation daemons_collectionSlotChanged(e,slot,newVal,oldVal)
+      if (newVal.isKindOf(SetOfElement) and oldVal.isKindOf(SetOfElement)) or
+        (newVal.isKindOf(SeqOfElement) and oldVal.isKindOf(SeqOfElement)) then
+        self.resetList(slot.toString())
+      end
+    end
+
+    @Operation daemons_collectionElementNameChanged(e,slot,newVal,oldVal)
+      slot := slot.toString();
+      if slot="name" or slot="type" then
+        self.resetList(currentSlotName)
+      end
+    end
+
+    @Operation daemons_docChanged(e,slot,newValue,oldValue)
+      if not oldValue.isKindOf(Null) then
+        oldValue.removeDaemonsWithTarget(self,true)
+      end;
+      if newValue.isKindOf(Null) then
+        self.form.setTextOut("documentation","")
+      else
+        self.form.setTextOut("documentation",newValue.docString());
+        @SlotValueChanged multi once ObjectXForm::daemons_docStringChanged(newValue,"doc") end
+      end
+    end
+
+    @Operation daemons_docStringChanged(newValue,slot,newText,oldText)
+      self.form.setTextOut("documentation",newText)
+    end
+
+    @Operation daemons_formClosed(display,slot,newIsOpen,oldIsOpen)
+      if not newIsOpen then
+        owner.remove(self)
+      end
+    end
+
+    @Operation dispose()
+      self.removeDaemons();
+      form.dispose();
+      self.owner := null;
+      self.form := null
+    end
+
+    @Operation addClosingDaemon()
+      @SlotValueChanged multi once ObjectXForm::daemons_formClosed(form,"isOpen") end      
+    end
+
+    @Operation checkDaemons()
+      
+      if element.hasSlot("name") then
+        @SlotValueChanged multi once ObjectXForm::daemons_selfNameChanged(element,"name") end
+      end;
+      if element.slotAffectsLabel("type")
+      then
+        @SlotValueChanged multi once ObjectXForm::daemons_selfTypeChanged(element,"type") end;
+        @SlotValueChanged multi once ObjectXForm::daemons_selfNameChanged(element.type,"name") end
+      end;
+      if element.hasSlot("owner") then
+        @SlotValueChanged multi once ObjectXForm::daemons_ownerChanged(element,"owner") end
+      end;
+      @SlotValueChanged multi once ObjectXForm::daemons_slotChanged(element,"*") end;
+      
+      @SlotValueChanged multi once ObjectXForm::daemons_ofNameChanged(element.of(),"name") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofAttributesChanged(element.of(),"attributes") end;
+      @SlotValueChanged multi once ObjectXForm::daemons_ofParentsChanged(element.of(),"parents") end;
+            
+
+      let collectionComboBoxDisplay = form.collectionComboBoxDisplay in
+        if not collectionComboBoxDisplay = null then
+          let slotName = collectionComboBoxDisplay.slotName in
+            self.resetCollectionDaemons(slotName,slotName)
+          end;
+          @SlotValueChanged multi once ObjectXForm::daemons_collectionListChanged(collectionComboBoxDisplay,"slotName") end
+        end
+      end;
+
+      if element.hasSlot("documentation") then
+        @SlotValueChanged multi once ObjectXForm::daemons_docChanged(element,"documentation") end;
+        if element.documentation.isReallyKindOf(Doc) then
+          @SlotValueChanged multi once ObjectXForm::daemons_docStringChanged(element.documentation,"doc") end
+        end
+      end;
+
+      @For att inSeq self.form.singletonAttributes do
+        let slotName = att.name.toString()
+        then slotValue = element.get(slotName)
+        in
+          self.addSlotValueNameChangedDaemon(slotName,slotValue)
+        end
+      end;
+      
+      self
+    end
+
+    @Operation removeClosingDaemon()
+      form.removeDaemonsWithTarget(self,true)
+    end
+
+    @Operation removeDaemons()
+      self.removeClosingDaemon();
+      element.removeDaemonsWithTarget(self,true);
+      element.of().removeDaemonsWithTarget(self,true);
+      self.removeCollectionDaemons();
+      
+      if element.slotAffectsLabel("type")
+      then
+        element.type.removeDaemonsWithTarget(self,true)
+      end;
+
+      let comboDisplay = form.collectionComboBoxDisplay
+      in
+        if comboDisplay <> null
+        then
+          comboDisplay.removeDaemonsWithTarget(self,true)
+        end
+      end;
+
+      @For att inSeq self.form.singletonAttributes do
+        let slotName = att.name.toString()
+        in
+          if element.hasSlot(slotName)
+          then
+            let slotValue = element.get(slotName) in
+              self.removeSlotValueNameChangedDaemon(slotValue)
+            end
+          end
+        end
+      end;
+
+      if element.hasSlot("documentation") andthen element.documentation.isReallyKindOf(Doc)
+      then
+        element.documentation.removeDaemonsWithTarget(self,true)
+      end;
+
+      self
+    end
+    
+    @Operation renew()
+      form.renew()
+    end
+
+    @Operation resetList(slotName:String)
+      let att = element.of().getAttribute(slotName) in
+        form.collectionComboBoxDisplay.resetList(att,true);
+        self.resetCollectionDaemons(slotName,slotName)
+      end
+    end
+
+    @Operation resetCollectionDaemons(slotName:String,oldSlotName:String)
+      slotName := slotName.toString();
+      oldSlotName := oldSlotName.toString();
+      self.currentSlotName := slotName;
+      self.removeCollectionDaemons();
+
+      let collection = element.get(slotName) in
+
+        // Tables
+        if collection.isKindOf(Table) then
+          let
+            op = @Operation(key,value) self.resetList(slotName) end then
+            addedDaemon = collection.addNewKeyDaemon(op,self);
+            removedDaemon = collection.addKeyRemovedDaemon(op,self)
+          in
+            self.addToCollectionDaemons(Seq{collection,addedDaemon});
+            self.addToCollectionDaemons(Seq{collection,removedDaemon})
+          end;
+          
+          self.addCollectionNameChangedDaemons(collection.values()->asSeq)
+        
+        // Sets and sequences
+        else
+          let daemon =
+            @SlotValueChanged multi ObjectXForm::daemons_collectionSlotChanged(element,slotName) end
+          in
+            self.addToCollectionDaemons(Seq{element,daemon})
+          end;
+          self.addCollectionNameChangedDaemons(collection->asSeq)
+        end
+      end
+    end
+
+    @Operation addCollectionNameChangedDaemons(collection:Seq(Element))
+      let att = element.of().getAttribute(currentSlotName) in
+        @For e inSeq collection do
+          if e.isReallyKindOf(Object) then
+            let daemon =
+              @SlotValueChanged multi once ObjectXForm::daemons_collectionElementNameChanged(e,"*") end
+            in
+              self.addToCollectionDaemons(Seq{e,daemon})
+            end
+          end;
+          if e.slotAffectsLabel("type") andthen e.type.isKindOf(NamedElement)
+          then
+            let daemon = 
+              @SlotValueChanged multi once ObjectXForm::daemons_collectionElementNameChanged(e.type,"*") end
+            in
+              self.addToCollectionDaemons(Seq{e.type,daemon})
+            end
+          end
+        end
+      end
+    end
+
+    @Operation refreshForm()
+      owner.addAndShowElement(element,form)
+    end
+
+    @Operation removeCollectionDaemons()
+      @For daemonSeq inSeq collectionDaemons do
+        let e = daemonSeq->at(0);
+            daemon = daemonSeq->at(1)
+        in  e.removeDaemon(daemon,self) end
+      end;
+      self.collectionDaemons := Seq{}
+    end
+
+    @Operation addSlotValueNameChangedDaemon(slotName,slotValue)
+      if slotValue.isReallyKindOf(NamedElement) andthen not singletonSlotNameChangedDaemons.hasKey(slotValue) then
+        let d =
+          @SlotValueChanged daemons_slotNameChanged(slotValue,"*",newName,oldName)
+            self.form.setTextOut(slotName,slotValue)
+          end
+        in
+          singletonSlotNameChangedDaemons.put(slotValue,d)
+        end
+      end;
+      self
+    end
+
+    @Operation removeSlotValueNameChangedDaemon(slotValue)
+      if slotValue.isReallyKindOf(NamedElement) andthen singletonSlotNameChangedDaemons.hasKey(slotValue) then
+        let daemon = singletonSlotNameChangedDaemons.get(slotValue) in
+          slotValue.destroyDaemon(daemon)
+        end;
+        singletonSlotNameChangedDaemons.remove(slotValue)
+      end
+    end
+
+    @Operation collectionDisplayNamed(name)
+      @Find(display,self.form.collectionDisplays)
+        when display.label.text.toString() = name
+        else null
+      end
+    end
+
+    @Operation singletonDisplayNamed(name)
+      @Find(display,self.form.singletonDisplays)
+        when display.label.text.toString() = name
+        else null
+      end
+    end
+
+    @Operation elementAdded(slotName:String,e:Element)
+      let display = self.form.collectionComboBoxDisplay in
+        if not display=null then
+          let
+            item = CollectionListElement(e.labelString(),e);
+            list = display.list
+          in
+            list.addItem(item);
+            item.new(list)
+          end
+        end
+      end
+    end
+
+    @Operation elementRemoved(slotName:String,e:Element)
+      let display = self.form.collectionComboBoxDisplay in
+        if not display=null then
+          let item = display.getListElementFor(e) in
+            display.list.removeItem(item);
+            self.commandInterpreter().removeItem(item)
+          end
+        end
+      end
+    end
+
+    @Operation commandInterpreter()
+      if owner <> null
+      then owner.commandInterpreter()
+      else
+        xmf.findClient(FormClient).commandInterpreter
+      end
+    end
+    
+    @Operation debug(debug)
+      owner.debug(debug)
+    end
+    
+    @Operation save(form,fileName)
+      owner.save(self,fileName)
+    end
+    
+    @Operation hotLoaded() 
+      self.checkDaemons()
+    end
+
+  end

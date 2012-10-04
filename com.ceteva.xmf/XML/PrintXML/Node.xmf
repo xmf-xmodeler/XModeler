@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context XML::PrintXML
+
+// Class deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Class Node 
+
+  @AbstractOp desugar(out:Performable):Performable
+  end
+  
+end

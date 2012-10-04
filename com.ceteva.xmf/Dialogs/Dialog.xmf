@@ -1,0 +1,60 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Dialog extends Sugar
+  
+    @Doc
+      A dialog defines an interation with the user. Dialog components
+      are written in the dialog language defined in the package Dialogs.
+    end
+  
+    @Grammar extends OCL::OCL.grammar import Dialogs
+    
+      Dialog ::= name = DialogName args = DialogArgs dialogs = (Exp:Dialog)* body = Exp
+      { Dialog(name,args,dialogs,body) }.
+      DialogName ::= Name | { "no name" }.
+      DialogArgs ::= '(' arg = Pattern args = (',' Pattern)* ')' { Seq{arg | args} } | { Seq{} }.
+      
+    end 
+    
+    @Attribute name : String end
+    @Attribute args : Seq(String) end
+    @Attribute dialogs : Seq(Dialog) end
+    @Attribute body : Performable end
+    
+    @Constructor(name,args,dialogs,body) end 
+    
+    @Operation desugar() 
+      Letrec(Seq{ValueBinding(name,self.desugarOperation())},Var(name,0,0))
+    end
+    
+    @Operation desugarDialogs()
+      Letrec(dialogs->collect(d | ValueBinding(d.name,d)),[| (<body>(c))(d) |])
+    end
+    
+    @Operation desugarOperation()
+      let dialogOp = [| @Operation <name>(c) @Operation(d) <self.desugarDialogs()> end end |]
+      in if args->isEmpty
+         then dialogOp
+         else Operation(name,args,NamedType(),dialogOp)
+         end
+      end 
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Dialog ~S (~{,~;~S~})~%~V",Seq{name,args,indent+2});
+      @For d in dialogs do
+        d.pprint(out,indent+2);
+        format(out,"~%~V",Seq{indent+2})
+      end;
+      body.pprint(out,indent + 2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

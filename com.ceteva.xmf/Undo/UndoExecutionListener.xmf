@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+context Undo
+  
+  @Class UndoExecutionListener
+  
+    @AbstractOp redoExecuted()
+    end
+  
+    @AbstractOp undoExecuted() 
+    end
+    
+  end

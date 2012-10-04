@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import PackageTextEditor;
+
+context PackageTextEditor
+
+  @Class PackageEditor extends Editor
+  
+    @Attribute parent : Element end
+  
+    @Operation setCode(code,parent)
+      self.setText(code);
+      self.parent := parent
+    end
+
+    @Operation save(text)
+      self.textCommitted(text)
+    end
+
+    @Operation textCommitted(code)
+      let p = "parserImport XOCL;\n\ncontext "+parent.name.toString()+"\n"+code then
+          u = OCL::OCL.grammar.parseString(p,"CompilationUnit",Seq{}) then
+          f = u.compileToFun("",Seq{},Seq{},true)
+      in f() 
+      end
+    end
+  
+  end

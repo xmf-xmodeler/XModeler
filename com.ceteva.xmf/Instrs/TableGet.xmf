@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import Instrs;
+
+context Instrs
+
+  @Class TableGet extends Instr
+  
+    @Doc
+      Expects a table above a key on the stack. Pops these and pushes
+      the value of the key in the table on the stack. Raises an exception
+      if the key is not defined.
+    end
+     
+    @Operation toString():String
+      "<TableGet>"
+    end
+    
+    @Operation assemble(codeBox)
+      codeBox.addInstr(self)
+    end
+    
+  end
+  
+  

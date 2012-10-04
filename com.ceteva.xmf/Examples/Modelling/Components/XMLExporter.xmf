@@ -1,0 +1,77 @@
+parserImport XOCL;
+parserImport XML::PrintXML;
+
+import Components;
+import IO;
+
+context ComponentModel
+
+  @Operation exportXML()
+    let file = xmf.saveFile(xmf.projDir(),"*.xml")
+    in if file <> ""
+       then
+         if not file.fileExists() orelse xmf.question("Overwrite " + file)
+         then
+           @WithOpenFile(fout -> file)
+              self.exportXML(fout);
+              xmf.message("Written " + self.toString() + " to " + file)
+           end
+         else xmf.message("Deployment Cancelled")
+         end
+       else xmf.message("Deployment Cancelled")
+       end
+    end
+  end
+  
+context ComponentModel 
+  @Operation exportXML(out:OutputChannel)
+    @XML(out)
+      <ComponentModel>
+        @For component in components do
+          component.exportXML(out)
+        end;
+        @For connector in connectors do
+          connector.exportXML(out,self)
+        end
+      </ComponentModel>
+    end
+  end
+  
+context ComponentModel
+  @Operation portId(port:Port):String
+    @Find(component,components)
+      when component.ports->includes(port)
+      do component.name + ":" + port.name
+      else self.error("Cannot find port " + port.toString())
+    end
+  end
+  
+context Component
+  @Operation exportXML(out:OutputChannel)
+    @XML(out)
+      <Component name=name>
+        @For port in ports do
+          port.exportXML(out,self)
+        end
+      </Component>
+    end
+  end
+  
+context Port
+  @Operation exportXML(out:OutputChannel,component:Component)
+    let portId = component.name + ":" + name
+    in @XML(out)
+         <Port name=name type=type id=portId/>
+       end
+    end
+  end
+  
+context Connector
+  @Operation exportXML(out:OutputChannel,model:ComponentModel)
+    let sourceId = model.portId(source);
+        targetId = model.portId(target)
+    in @XML(out)
+         <Connector source=sourceId target=targetId/>
+       end
+    end
+  end

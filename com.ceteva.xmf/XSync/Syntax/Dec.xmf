@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Dec isabstract
+  
+    @AbstractOp addExp(net:Performable):Performable end
+  
+  end

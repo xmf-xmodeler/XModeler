@@ -1,0 +1,20 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class Layout isabstract
+  
+    @Attribute x : Integer end
+    @Attribute y : Integer end
+    @Attribute width : Integer end
+    @Attribute height : Integer end
+    
+    @Constructor(x,y,width,height) end
+    
+    @ToXML(Layout)[x,y,width,height] end 
+    
+  end

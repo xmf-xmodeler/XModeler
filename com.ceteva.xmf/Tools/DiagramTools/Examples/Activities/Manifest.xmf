@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Wed Feb 16 21:46:20 GMT 2005
+
+@Manifest Activities
+  p = @File Activities  end
+  @File Post            end
+  @File Body            end
+  @File Pre             end
+  @File Actor           end
+  @File Activity        end
+  @File ActivityGrammar end
+do p
+end;

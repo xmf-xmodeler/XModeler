@@ -1,0 +1,18 @@
+parserImport XOCL;
+parserImport XBNF::Grammars;
+
+import XOCL;
+
+context Repeat
+
+  @Grammar extends OCL::OCL.grammar()
+     
+       Repeat ::= body = Exp 'until' test = Exp {
+       
+         Repeat(body,test)
+         
+       }.
+       
+    end
+    
+    

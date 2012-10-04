@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Clients::Diagrams;
+
+import XDiagMaps;
+
+context ! Root::XDiagMaps
+
+  @Class ObservedClass 
+
+    @AbstractOp writeHandlers(dir,toolDescriptorType,map,manifest)
+    end
+
+  end

@@ -1,0 +1,12 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler Parentheses in PPrint(aParentheses,out,seen)
+  format(out,"(");
+  self.mark(
+    @Operation()
+      self.dispatch(aParentheses.exp,out)
+    end);
+  format(out,")")
+end;

@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import Languages;
+import Commands;
+
+context Values
+
+  @Class Value
+  
+    @Attribute value : Element end
+    
+    @Constructor(value) ! end
+  
+  end

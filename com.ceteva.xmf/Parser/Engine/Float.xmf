@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+import Parser::BNF;
+
+context Float
+  @Operation nullable(grammar):Boolean
+     false
+  end
+  
+context Float
+    @Operation first(grammar)
+      Set{"Builtin(Float)"}
+    end

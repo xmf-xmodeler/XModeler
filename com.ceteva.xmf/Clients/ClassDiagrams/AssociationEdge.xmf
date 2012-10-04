@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AssociationEdge extends Edge
+  
+    @Attribute name     : Label          end
+    @Attribute end1     : AssociationEnd end
+    @Attribute end2     : AssociationEnd end
+    @Attribute typePath : Seq(String)    end
+  
+    @Constructor(name,end1,end2,source,target,typePath) 
+      self.init(Seq{null,source,target,0,Edge::noArrow,Set{},Seq{},Color()});
+      if name.isKindOf(String)
+      then self.name := Label(name,"",0,0-16,true)
+      end;
+      if typePath->asSet <> Associations::Association.pathSeq()->asSet
+      then self.add(StereotypeLabel(typePath->last))
+      end;
+      //self.add(self.name);
+      self.add(end1.name);
+      self.add(end1.mult);
+      self.add(end2.name);
+      self.add(end2.mult)
+    end
+    
+    @Operation layoutId():String
+      self.name()
+    end
+    
+    @Operation name()
+      name.text()
+    end
+
+    @Operation setName(name)
+      self.name.text := name
+    end
+    
+  end
+  

@@ -1,0 +1,55 @@
+parserImport XOCL;
+
+import Clients;
+import ModelBrowsers;
+import ModelBrowserXCore;
+
+context ModelBrowserXCore
+
+  @Class MappingClient extends AbstractMappingClient
+    
+    @Operation add(element)
+      if element.isReallyKindOf(BrowserTreeMapping)
+      then
+        self.mappings := mappings + Seq{element};
+        element.setOwner(self)
+      else
+        self.addContainer(element)
+      end
+    end
+    
+    @Operation add(container,tree)
+      let mapping = BrowserTreeMapping(container,tree,self)
+      in self.mappings := mappings + Seq{mapping};
+         mapping
+      end
+    end
+    
+    @Operation addContainer(container)
+      if not mappings->exists(m | m.element = container)
+      then
+        let tree = ModelBrowser(container) then
+            mapping = self.add(container,tree)
+        in tree.new();
+           mapping.addMappings();
+           mapping 
+        end
+      end
+    end
+    
+    @Operation synchronise()
+      
+      // Produces an XML document of the browser client's state
+      // this is communicated and the remote client is expected
+      // it to use as a basis for synchronising its state
+
+      @Command(self) startDocument() end;
+      @For mapping in mappings
+      do
+        mapping.tree.synchronise()
+      end;
+      @Command(self) endDocument() end
+      
+    end
+
+  end

@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import IO;
+import Arrays;
+
+context Arrays
+    @Operation importAndEditCSV()
+      let array = Arrays::importCSV()
+      in
+        if array <> null
+        then array.edit()
+        end
+      end
+    end
+
+context Arrays
+    @Operation importCSV()
+
+      // Imports data from a csv (comma separated values) text file
+      // and generates an instance of Simple2DArray.
+
+      let file = xmf.openFile(xmf.projDir(),"*.csv")
+      in if file.fileExists()
+         then Arrays::importCSVFile(file)
+         end
+      end
+    end
+
+context Arrays
+    @Operation importCSVFile(file):Simple2DArray
+       @WithOpenFile(fin <- file)
+         let text = fin.asString() then
+             textSeq = text.splitBy(Seq{10},0,0) // new line token
+         in
+           if not textSeq->isEmpty
+           then
+             let firstRowHeader = xmf.question("Do you want to use the first row of data as column headers?");
+                 cols = textSeq->at(0).splitBy(",",0,0)->size;
+                 rows = textSeq->size then
+                 array = Simple2DArray(cols,rows)
+             in
+               array.setFirstRowHeader(firstRowHeader);
+               @Count row from 0 to rows do
+                 let line = textSeq->at(row) then
+                     lineSeq = line.splitBy(Seq{44},0,0) // comma token
+                 in
+                   @Count col from 0 to cols do
+                     array.put(col,row,lineSeq->at(col))
+                   end
+                 end
+               end;
+               array
+             end
+           else null
+           end
+         end
+       end
+    end

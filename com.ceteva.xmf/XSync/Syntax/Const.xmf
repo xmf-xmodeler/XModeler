@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XSync;
+import Syntax;
+import Env;
+
+context Syntax
+
+  @Class Const extends Value
+  
+    @Attribute value : Element (?) end
+    
+    @Constructor(value) ! end
+    
+    @Operation code(varEnv:Env):Performable
+      [| Const(<value.lift()>) |]
+    end
+    
+    @Operation relocate(direction:String):Value
+      self
+    end
+    
+    @Operation source():String
+      @TypeCase(value)
+        String do
+          "\"" + value + "\""
+        end
+        else value.toString()
+      end
+    end
+    
+    @Operation vars():Set(String)
+      Set{}
+    end
+    
+  end

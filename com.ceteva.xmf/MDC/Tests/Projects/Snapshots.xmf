@@ -1,0 +1,391 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import Clients::BrowserInterface;
+import MyProjects;
+import Env;
+
+context MyProjects
+
+  @Package Snapshots
+        
+      @Class Object metaclass BrowsedClass extends Contained
+      
+        @Attribute slots : Seq(Slot) (+,-,^) end
+        @Attribute type : String (?,!) end
+        @Attribute id : String (?) end
+        @Attribute notes : Seq(ObjectNote) (+,-,^) end
+        @Attribute state : Seq(String) (?,!) end
+        
+        @Constructor(id) end
+        
+        @Constructor(id,type) ! end
+        
+        @Constructor(id,type,slots) end
+        
+        @Interface
+          @Child slots end
+          @Child notes end
+          @MenuRoot MyProjects::Snapshots::Object end
+          @Menu Assign Element::assignToGlobal end
+          @Menu Delete delete end
+          @Menu New::Slot newSlot end
+          @Menu New::Note newNote end
+          @Menu SetType setType end
+          @Menu Send send0 end
+        end
+        
+        UniqueConstraint("AllSlotsHaveUniqueNames","slots","name")
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromObjects(self)
+          end
+        end
+        
+        @Operation dot(name)
+          @Find(slot,slots)
+            when slot.name() = name
+            do let class = self.getClass()
+               in if class <> null
+                  then class.convertValue(name,slot.value())
+                  else slot.value()
+                  end
+               end
+            else null
+          end
+        end
+        
+        @Operation evalEnv()
+          slots->iterate(s e = self.snapshotEnv() | e.bind(s.name(),s.value()))
+        end
+        
+        @Operation getClass()
+          if owner <> null
+          then owner.getClass(type)
+          else null
+          end
+        end
+        
+        @Operation newSlot()
+          let name = xmf.getString("Slot Name","Name","s" + slots->size) then
+              value = xmf.getString("Slot Value","Value","<VALUE>")
+          in self.addToSlots(Snapshots::Slot(name,value))
+          end
+        end
+        
+        @Operation newNote()
+          self.addToNotes(Snapshots::ObjectNote())
+        end
+        
+        @Operation send(message)
+          let class = self.getClass()
+          in if class <> null
+             then class.processMessage(message,self)
+             else xmf.message("Canot find class " + type)
+             end
+          end
+        end
+        
+        @Operation send0()
+          let class = self.getClass()
+          in if class = null
+             then xmf.message("Cannot find class.")
+             else
+               let ops = class.ops()->select(op | op.args()->isEmpty)->asSeq
+               in if ops->isEmpty
+                  then xmf.message("No 0-arity operations available for " + class.name())
+                  else
+                    let name = xmf.select("Message Name","Select Name",ops->map("name"),null,null)
+                    in if name <> null
+                       then self.send(Actions::Message(name,Seq{}))
+                       end
+                    end
+                  end
+               end
+             end
+          end
+        end
+        
+        @Operation setSlot(name,value)
+          @Find(slot,slots)
+            when name = slot.name()
+            do slot.setValue(value.toString())
+          end
+        end
+        
+        @Operation setType()
+          if owner <> null
+          then self.setType(owner.className())
+          else xmf.message("No classes available")
+          end
+        end
+        
+        @Operation snapshot()
+          if owner = null
+          then null
+          else owner.owner()
+          end
+        end
+        
+        @Operation snapshotEnv()
+          if owner = null
+          then NullEnv()
+          else owner.snapshotEnv()
+          end
+        end
+        
+      end
+      
+      @Class ObjectNote metaclass BrowsedClass extends Note 
+      
+        @Interface
+          @Image "Projects/Note" end
+          @MenuRoot MyProjects::Note end
+        end
+        
+      end
+      
+      @Class SnapshotNote metaclass BrowsedClass extends Note 
+      
+        @Interface
+          @Image "Projects/Note" end
+          @MenuRoot MyProjects::Note end
+        end
+        
+      end
+      
+      @Class Slot metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String (?) end
+        @Attribute type : Type end
+        @Attribute value : String (?,!) end
+        
+        @Constructor(name,value) ! end
+        
+        @Interface
+          @Image "XCore/Attribute" end
+          @MenuRoot MyProjects::Snapshots::Slot end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromSlots(self)
+          end
+        end
+
+      end
+      
+      @Class Link metaclass BrowsedClass extends Contained
+      
+        @Attribute type : String (?) end
+        @Attribute end1 : End (?) end
+        @Attribute end2 : End (?) end
+        
+        @Constructor(type) end
+        
+        @Constructor(type,end1,end2) end
+        
+        @Interface
+          @Child end1 end
+          @Child end2 end
+          @Image "XCore/Association" end
+          @MenuRoot MyProjects::Snapshots::Link end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromLinks(self)
+          end
+        end
+        
+        @Operation toString()
+          try type + ":(" + end1.object().id() + "," + end2.object().id() + ")"
+          catch(x) "HUH?"
+          end
+        end
+
+      end
+      
+      @Class End metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String (?,!) end
+        @Attribute object : Object (?,!) end
+        
+        @Constructor(name,object) end
+        
+        @Interface
+          @MenuRoot MyProjects::Snapshots::End end
+        end
+        
+      end
+      
+      @Class Snapshot metaclass BrowsedClass extends Contained
+      
+        @Attribute name : String (?) end
+        @Attribute model : Model = Model(self) (?) end
+        @Attribute notes : Seq(SnapshotNote) (+,-,^) end
+        
+        @Constructor(name) ! end
+        
+        @Interface
+          @Child model end
+          @Child notes end
+          @Image "XCore/Snapshot" end
+          @MenuRoot MyProjects::Snapshots::Snapshot end
+          @Menu New::Note newNote end
+          @Menu Delete delete end
+        end
+        
+        @Operation delete()
+          if owner <> null
+          then owner.deleteFromSnapshots(self)
+          end
+        end
+        
+        @Operation newLink(type,ends)
+          model.newLink(type,ends)
+        end
+        
+        @Operation newObj(type,slots)
+          model.newObj(type,slots)
+        end
+        
+        @Operation newNote()
+          self.addToNotes(Snapshots::SnapshotNote())
+        end
+        
+      end
+      
+      @Class Model metaclass BrowsedClass extends Contained
+      
+        @Attribute objects : Seq(Object) (?,+,-,^) end
+        @Attribute links : Seq(Link) (+,-,^) end
+        
+        @Constructor(owner) end
+        
+        @Constructor() end
+        
+        @Interface
+          @Child objects end
+          @Child links end
+          @Image "XCore/Package" end
+          @MenuRoot MyProjects::Snapshots::Model end
+          @Menu New::Object newObject end
+          @Menu New::Link newLink end
+        end
+        
+        @Operation associationName()
+          let A = self.associationNames()
+          in if A->isEmpty
+             then "<TYPE>"
+             else xmf.select("Association Name","Select type of link",A,"<TYPE>",null)
+             end
+          end
+        end
+        
+        @Operation associationNames():Set(String)
+          let model = self.rootModels()
+          in if model = null
+             then Set{}
+             else model.associationNames()
+             end
+          end
+        end
+        
+        @Operation className()
+          if owner <> null
+          then 
+            if owner.owner() <> null
+            then 
+              let models = owner.owner() then
+                  C = models.classNames()
+              in if C->isEmpty
+                 then "<CLASS>"
+                 else 
+                   let c = xmf.select("Class Name","Select name",C->asSeq,"<CLASS>",null)
+                   in c
+                   end
+                 end
+              end
+            end
+         end
+        end
+        
+        @Operation getClass(name)
+          if owner <> null
+          then
+            if owner.owner() <> null
+            then owner.owner().getClass(name)
+            else null
+            end
+          else null
+          end
+        end
+        
+        @Operation newLink(type,ends)
+          let end1 = Snapshots::End(ends->at(0).name(),ends->at(0).value());
+              end2 = Snapshots::End(ends->at(1).name(),ends->at(1).value()) then
+              link = Snapshots::Link(type,end1,end2)
+          in self.addToLinks(link);
+             link
+          end
+        end
+        
+        @Operation newObj(type,slots)
+          let id = "o" + objects->size then
+              obj = Snapshots::Object(id,type,slots)
+          in self.addToObjects(obj);
+             obj
+          end
+        end
+        
+        @Operation newObject()
+          let id = xmf.getString("Object Id","Id","o" + objects->size) then
+              type = self.className()
+          in self.addToObjects(Snapshots::Object(id,type))
+          end
+        end
+        
+        @Operation newLink()
+          let a = self.associationName();
+              object1 = self.selectObject("End1")
+          in if object1 <> null
+             then 
+               let object2 = self.selectObject("End2")
+               in if object2 <> null
+                  then 
+                    let end1 = Snapshots::End("<NAME>",object1);
+                        end2 = Snapshots::End("<NAME>",object2)
+                    in self.addToLinks(Snapshots::Link(a,end1,end2))
+                    end
+                  end
+               end
+             end
+          end
+        end
+        
+        @Operation rootModels()
+          if owner = null
+          then null
+          else owner.owner()
+          end
+        end
+        
+        @Operation selectObject(message:String)
+          xmf.select(message,message,objects,null,null)
+        end
+        
+        @Operation snapshotEnv()
+          let C = objects->map("type")->asSet;
+              L = links->map("type")->asSet
+          in C->iterate(n e = NullEnv() | e.bind(n,objects->asSet->select(o | o.type() = n))) +
+             L->iterate(n e = NullEnv() | e.bind(n,links->asSet->select(l | l.type() = n)))
+          end
+        end
+        
+      end
+      
+    end

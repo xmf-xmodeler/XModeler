@@ -1,0 +1,10 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/Deploy/Java/Boot",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/AttributeDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/ClassDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/DefaultDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/JavaDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/OperationDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/PackageDeployer",true,true);
+compileFile(xmf.homeDir() + "/Deploy/Java/TypeConverter",true,true);

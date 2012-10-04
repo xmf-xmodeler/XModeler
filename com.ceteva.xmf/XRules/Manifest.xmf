@@ -1,0 +1,38 @@
+parserImport XOCL;
+parserImport Manifests;
+
+// Manifest deployed by Tony Clark on Wed May 11 11:11:07 BST 2005
+
+@Manifest XRules
+  p = @File XRules end
+  @Ref XInstrs end
+  @File Recons end
+  @File Field end
+  @File Const end
+  @File Record end
+  @File Terms end
+  @File Var end
+  @File Term end
+  @File Call end
+  @File Cut end
+  @File Fail end
+  @File Catch end
+  @File Throw end
+  @File Try end
+  @File If end
+  @File FunCall end
+  @File EvalCall end
+  @File Action end
+  @File Relation end
+  @File BinExp end
+  @File Clause end
+  @File RuleDef end
+  @File Rule end
+  @File Rules end
+  @File WithRules end
+  @File Builtin end
+do @Manifest NestedXRules
+     @File Relate end
+   do p
+   end
+end;

@@ -1,0 +1,17 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+
+import MApProjects;
+import Documents;
+
+context Text
+
+  @Interface
+  
+    @Image "FileBrowser/Text" end
+    
+    @MenuRoot MApProjects::Documents::Text end
+     
+    @Delete elements end
+        
+  end

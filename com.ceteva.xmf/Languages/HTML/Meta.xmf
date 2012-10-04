@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:32 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class Meta extends Root::HTML::HTMLElement
+
+    @Attribute scheme : Root::XCore::String (?,!) end
+    @Attribute name : Root::XCore::String (?,!) end
+    @Attribute lang : Root::XCore::String (?,!) end
+    @Attribute httpEquiv : Root::XCore::String (?,!) end
+    @Attribute dir : Root::XCore::String (?,!) end
+    @Attribute content : Root::XCore::String (?,!) end
+    @Attribute charSet : Root::XCore::String (?,!) end
+
+    @Constructor(charSet,content,dir,httpEquiv,lang,name,scheme,contents) ! end
+
+  end

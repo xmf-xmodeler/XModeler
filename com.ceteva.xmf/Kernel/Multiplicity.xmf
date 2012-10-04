@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+context XCore
+
+  @Class Multiplicity isabstract
+
+    @Doc
+      This captures the multiplicity for attributes, giving the information about whether the a single or
+      collection type is defined, whether the type is mandatory, ordered and any range constraints.
+    end
+
+    @AbstractOp check(value):Boolean end             // Op used by type check constraint
+
+    @AbstractOp multString():String end              // Specifies how the string is displayed
+
+    @Operation toString()
+      "Multiplicity<" + self.multString() + ">"
+    end
+  
+  end

@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+context ! Root::HTML
+
+  // Class deployed by Tony Clark on Tue Jun 28 16:16:33 BST 2005
+
+  // Note that the ! above means that the definitions in this
+  // file may contain forward references. Any namespace defined
+  // using ! must be initialised (either directly or via its 
+  // containing name space) when loaded. The initialisation
+  // will occur automatically if you build and load the deployed
+  // model using the deployed manifest.
+
+  @Class InputFile extends Root::HTML::NamedDisplayedInput
+
+    @Attribute size : Root::XCore::Integer (?,!) end
+    @Attribute onFocus : Root::XCore::String (?,!) end
+    @Attribute onChange : Root::XCore::String (?,!) end
+    @Attribute onBlur : Root::XCore::String (?,!) end
+    @Attribute maxLength : Root::XCore::Integer (?,!) end
+    @Attribute accept : Root::XCore::String (?,!) end
+
+    @Constructor(accessKey,value,noTab,tabIndex,tabOrder,disabled,size,onFocus,onChange,onBlur,maxLength,accept,name,contents) ! end
+
+  end

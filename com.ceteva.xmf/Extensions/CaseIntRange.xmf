@@ -1,0 +1,33 @@
+parserImport XOCL;
+
+import XOCL;
+
+context XOCL
+
+  @Class CaseIntRange extends CaseIntValue
+  
+    @Attribute lower : Performable end
+    @Attribute upper : Performable end
+    
+    @Constructor(lower,upper) ! end
+    
+    @Operation addLabel(label,jumpTable)
+      try
+        let lower = lower.eval(null,Env::NullEnv(),Seq{Root,XCore});
+            upper = upper.eval(null,Env::NullEnv(),Seq{Root,XCore})
+        in @Count i from lower to upper + 1 do
+             jumpTable.put(i,label)
+           end
+        end
+      catch(exception)
+        self.error("Ranges must evaluate at compile time: " + self.toString() + " " + exception.message)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      lower.pprint(out,indent);
+      format(out," to ");
+      upper.pprint(out,indent)
+    end    
+    
+  end

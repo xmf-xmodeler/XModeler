@@ -1,0 +1,64 @@
+parserImport XOCL;
+
+import Clients;
+import Diagrams;
+import Menus;
+import ClassDiagrams;
+
+context ClassDiagrams
+
+  @Class AttributeEdge extends Edge
+  
+    @Attribute name     : AttributeLabel end
+    @Attribute mult     : Multiplicity end
+    @Attribute typePath : Seq(String) end
+  
+    @Constructor(name,source,target,typePath) 
+      self.init(Seq{null,source,target,0,Edge::arrow,Set{},Seq{},Color()});
+      if name.isKindOf(String)
+      then //self.name := AttributeLabel(name)
+        // Calculate position of attribute label
+        let y = if source.owner.y > target.owner.y then 15 else 0-30 end;
+          x = if source.owner.x > target.owner.x then 15 else 0-35 end in
+          self.name := AttributeLabel(name,x,y)
+        end
+      end;
+      if typePath->asSet <> XCore::Attribute.pathSeq()->asSet
+      then self.add(StereotypeLabel(typePath->last))
+      end;
+      //Calculate position of multiplicity label
+      let y = if source.owner.y > target.owner.y then 10 else 0-15 end;
+          x = if source.owner.x > target.owner.x then 10 else 0-15 end  in
+          self.mult := Multiplicity("end",x,y)
+      end;
+      //self.mult := Multiplicity();
+      self.add(self.name);
+      self.add(self.mult)
+    end
+    
+    @Operation multTarget()
+      mult
+    end
+    
+    @Operation layoutId():String
+      self.name()
+    end
+    
+    @Operation mult()
+      mult.multiplicity()
+    end
+    
+    @Operation name()
+      name.name()
+    end
+    
+    @Operation setMult(mult)
+      self.mult.setMultiplicity(mult)
+    end
+    
+    @Operation setName(name)
+      self.name.setName(name)
+    end
+    
+  end
+  

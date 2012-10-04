@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+import IO;
+import OCL;
+
+context Root
+
+  @Operation test()
+    let sout = StringOutputChannel() then
+        w = PPrint(sout);
+        e = [| 10 |] then
+        x = [| let x = @For x in S do 100 end in 100 end |]
+    in w.dispatch(x);
+       sout.getString()
+    end
+  end

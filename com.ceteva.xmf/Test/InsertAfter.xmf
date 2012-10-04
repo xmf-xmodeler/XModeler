@@ -1,0 +1,53 @@
+parserImport XOCL;
+parserImport BNF;
+
+import Parser::BNF;
+
+import Frames;
+
+// describe an InsertAfter expression within the context of the namespace Frames
+context Frames
+
+	// the class InsertAfter provides the Frame import + extend service
+    @Class InsertAfter extends Copy
+		// create an instance of the class an bind the appropriate attributes
+		// note that this class requires the provision of the 'ref' attribute
+		@Constructor(theSubframe,ref) end
+		
+		// grammar describing CS of a (copy and) InsertAfter expression
+		@Grammar extends OCL::OCL.grammar
+			InsertAfter ::= theSubframe=Exp theBreak=Exp elements=Exp*
+				{
+				import OCL
+				in elements->iterate(element concept = 
+					[| import Frames in InsertAfter(Set{ <theSubframe> }, Set{ <theBreak> }) end |] |
+					[| <concept>.add(<element>) |] )
+				end
+				}.
+		end
+		
+		// query operation
+		@Operation isInsertAfter():Boolean
+			true
+		end
+		
+		// return the string representation of the adapted frame
+		// copy each FrameExpression belonging to theSubframe until encountering
+		// the referenced Break, then insert this frame's FrameExpression
+		// after the Break section before continuing to copy all remaining 
+		// FrameExpressions belonging to theSubframe
+		@Operation asStringSequence():Seq(String)
+			self.theSubframe->sel.expr->iterate(item elements=Seq{} | 
+				if item = self.ref->sel
+				then
+					// process the FrameExpression(s) delimited by the Break
+					// then process the FrameExpression(s) delimited by the InsertAfter
+					elements + 
+						item.asStringSequence() + 
+						self.expr->iterate(fe s=Seq{} | s + fe.asStringSequence())
+				else
+					// copy the FrameExpression(s) of the subframe
+					elements + item.asStringSequence()
+				end)
+		end
+    end

@@ -1,0 +1,45 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class Let extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      Let ::= name = Name '=' value = Exp 'in' body = Exp { Let(name,value,body) }.
+      
+    end 
+    
+    @Attribute name : String end
+    @Attribute value : Performable end
+    @Attribute body : Performable end
+    
+    @Constructor(name,value,body) end 
+    
+    @Operation desugar() 
+      [| @Operation(c) 
+           @Operation(d) 
+             (<value>(@Operation(<name>) 
+                        @Operation(d) 
+                          (<body>(c))(d) 
+                        end 
+                      end))(d)
+           end  
+         end 
+      |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Let ~S = ",Seq{name});
+      value.pprint(out,indent);
+      format(out,"~%~Vin ",Seq{indent});
+      body.pprint(out,indent + 2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

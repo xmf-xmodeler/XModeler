@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import Layout;
+
+context Layout
+
+  @Class StandardLayoutManager extends LayoutManager
+  
+    @Doc
+      The standard layout manager handles container types that
+      use the HORIZONTAL, VERTICAL and OVERLAY container types 
+      and which use the layout attribute on display attribute
+      types.
+    end
+  
+     @Operation layout(type,container,x,y,width,height)
+     
+       width := width.max(container.minWidth).min(container.maxWidth);
+       height := height.max(container.minHeight).min(container.maxHeight);
+       
+       container.move(x,y);
+       container.layoutResize(width,height);
+      
+      @Case type.contentLayout of
+      
+        "HORIZONTAL" do
+          self.horizontalLayout(type,container,width,height)
+        end
+        "OVERLAY" do
+          self.overlayLayout(type,container,width,height)
+        end
+        "VERTICAL" do
+          self.verticalLayout(type,container,width,height)
+        end
+        else self.error("Unknown layout format: " + type.contentLayout)
+      
+      end
+      
+    end
+    
+    
+    
+    
+   end
+    

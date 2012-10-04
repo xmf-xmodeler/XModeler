@@ -1,0 +1,41 @@
+parserImport XOCL;
+parserImport Aspects;
+
+import Languages;
+import Automata;
+
+context AllAspects::Inspect
+
+  @Class Automaton
+  
+    @Operation inspectDialog(level)
+      @Dialog
+        @Commands
+          @Separator end
+          @Show "Inspect[" + level + "]" self end
+          @Separator end
+          @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Refresh") self.inspectDialog(level) end
+            @Option("Show diagram")
+              if Clients.hasElement("StateMapping")
+              then
+                format(stdout,"Getting client.....~%");
+                let client = xmf.findClient(Clients::StateMapping::MappingClient)
+                in if client <> null
+                   then 
+                     format(stdout,"Showing diagram.....~%");
+                     client.showDiagram(self);
+                     self.inspectDialog(level)
+                   else self.inspectDialog(level)
+                   end
+                end
+              else self.inspectDialog(level)
+              end
+            end
+          end
+        end
+       end
+     end
+   end

@@ -1,0 +1,35 @@
+parserImport XOCL;
+
+context Clients
+
+  @Class Registry
+  
+    @Attribute points : Table = Table(10) end
+    
+    @Operation addExtensionPoint(point)
+      points.put(point.id(),point)
+    end
+    
+    @Operation getExtensionPoint(id)
+      points.get(id)
+    end
+    
+    @Operation addContribution(id,contribution)
+      let point = points.get(id)
+      in point.contribute(contribution) 
+      end
+    end
+    
+    @Operation removeContribution(id,contribution)
+      let point = points.get(id)
+      in point.removeContribution(contribution)
+      end
+    end
+    
+    @Operation replaceContribution(id,contribution)
+      let point = points.get(id)
+      in point.replace(contribution) 
+      end
+    end
+  
+  end

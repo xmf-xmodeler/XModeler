@@ -1,0 +1,25 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import Languages;
+import Wizard;
+
+context Wizard
+
+  @Class ToolBarDivider
+  
+    @Attribute id       : String end
+    @Attribute parent   : String end
+    
+    @Constructor(id,parent) end
+    
+    @ToXML(TOOLBAR_DIVIDER)[Id=id,ref_ToolBar_Item = parent] end
+    
+    @Operation find(id)
+      if self.id = id
+      then self
+      else null
+      end
+    end
+    
+  end

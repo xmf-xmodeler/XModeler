@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import Clients;
+import Tools;
+
+context Tools
+
+  @Class ToolBar
+  
+    @Attribute groups : Seq(ToolGroup) (+,-) end
+    
+    @Operation addEdgeCreationButton(group,node)
+      let group = self.findGroup(group)
+      in if group <> null
+         then group.addEdgeCreationButton(node)
+         end
+      end
+    end
+    
+    @Operation addNodeCreationButton(group,node)
+      let group = self.findGroup(group)
+      in if group <> null
+         then group.addNodeCreationButton(node)
+         end
+      end
+    end
+    
+    @Operation groupNames()
+      groups.name
+    end
+    
+    @Operation findGroup(name)
+      @Find(group,groups)
+        when group.name = name
+        else null
+      end
+    end
+    
+    @Operation new(tool)
+      @For group in groups do
+        group.new(tool)
+      end
+    end
+    
+    @Operation newGroup(name)
+      self.addToGroups(ToolGroup(name))
+    end
+    
+  end

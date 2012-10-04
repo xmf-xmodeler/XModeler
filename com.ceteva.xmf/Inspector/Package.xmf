@@ -1,0 +1,136 @@
+parserImport XOCL;
+parserImport Aspects;
+parserImport Dialogs;
+
+import TopLevel;
+import Dialogs;
+import Env;
+
+context AllAspects::Inspect
+
+  @Class XCore::Package
+  
+    @Operation inspectDialog(level)
+      @Dialog
+        @Dialog showNames(names)
+          if names->isEmpty 
+          then @Skip end
+          else 
+            @Commands
+              @Show names->sel self.getElement(names->sel) end
+              showNames(names->excluding(names->sel))
+            end
+          end
+        end
+        @Commands
+          @Separator end
+          @Show "Inspect[" + level + "]" self end
+          @Separator end
+          showNames(self.names()->sortNames)
+          @Separator end
+          @Options
+            @Option("Return") @Skip end end
+            @Option("Quit") @Quit self end end
+            @Option("Command Loop")
+              format(stdout,"~%Enter top level command loop for ~S.~%~%",Seq{self});
+              Loop(self.toString() + " ",NullEnv(),self,stdin,stdout).loop();
+              self.inspectDialog(level)
+            end
+            @Option("Refresh") self.inspectDialog(level) end
+            @Option("Change name")
+              @Let name = @Value Symbol end
+               in self.setName(name);
+                  self.inspectDialog(level)
+              end
+            end
+            @Option("Show diagram")
+              if Clients.hasElement("ClassMapping")
+              then
+                format(stdout,"Getting client.....~%");
+                let client = xmf.findClient(Clients::ClassMapping::MappingClient)
+                in if client <> null
+                   then 
+                     format(stdout,"Showing diagram.....~%");
+                     client.showDiagram(self);
+                     self.inspectDialog(level)
+                   else self.inspectDialog(level)
+                   end
+                end
+              else self.inspectDialog(level)
+              end
+            end
+            @Option("Load saved package")
+              if Clients.hasElement("ClassMapping")
+              then
+                format(stdout,"Getting client.....~%");
+                let client = xmf.findClient(Clients::ClassMapping::MappingClient)
+                in if client <> null
+                   then 
+                     @Let name = @Value String end
+                      in let fileName = xmf.saveDir() + "/" + name + ".xar"
+                         in if fileName.fileExists()
+                            then
+                              format(stdout,"Loading diagram.....~%");
+                              client.load(fileName);
+                              self.inspectDialog(level)
+                            else self.inspectDialog(fileName)
+                            end
+                         end
+                     end
+                  else self.inspectDialog(level)
+                  end
+                end
+              else self.inspectDialog(level)
+              end
+            end
+            @Option("New class")
+              @Let name = @Value Symbol end
+               in let class = XCore::Class(name)
+                  in self.add(class);
+                     self.inspectDialog(level)
+                  end
+              end
+            end
+            @Option("New package")
+              @Let name = @Value Symbol end
+               in let package = XCore::Package(name)
+                  in self.add(package);
+                     self.inspectDialog(level)
+                  end
+              end
+            end
+            @Option("Remove an element")
+              @Let name = @Value Symbol end
+               in if self.hasElement(name)
+                  then 
+                    self.remove(self.getElement(name));
+                    self.inspectDialog(level)
+                  else
+                    @Commands
+                      @Show "No named element" name end
+                      self.inspectDialog(level)
+                    end
+                  end
+              end
+            end
+            @Option("Inspect an element")
+              @Let name = @Value Symbol end
+               in if self.hasElement(name)
+                  then 
+                    @Commands
+                      self.getElement(name).inspectDialog(level + 1)
+                      self.inspectDialog(level)
+                    end
+                  else  
+                    @Commands
+                      @Show "No named element" name end
+                      self.inspectDialog(level)
+                    end
+                  end
+              end
+            end
+          end
+        end
+       end
+     end
+   end

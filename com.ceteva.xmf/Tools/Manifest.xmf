@@ -1,0 +1,18 @@
+parserImport Manifests;
+
+import Projects;
+
+@Manifest Tools
+
+  Tools =
+    @File Tools       end
+    @Ref Menus        end
+    @Ref Data         end
+    @Ref Events       end
+    @Ref Basic        end
+    @Ref DiagramTools end
+    @Ref FormTools    end
+    
+do Project(Tools,dir,self)
+  
+end;

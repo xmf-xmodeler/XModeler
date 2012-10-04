@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import Parser::BNF;
+import XMap;
+
+context XMap
+
+  @Class AddRight extends AddAction
+  
+    @Doc
+      See AddLeft. this is identical except that the daemon fires when an element
+      is added to the right hand container.
+    end
+  
+    @Grammar extends AddAction.grammar
+    
+      AddRight ::= addAction = AddAction { AddRight(addAction.arg,addAction.body) }.
+      
+    end
+     
+   end    

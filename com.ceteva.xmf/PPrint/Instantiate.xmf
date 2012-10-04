@@ -1,0 +1,17 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import Root::OCL;
+
+@Handler Instantiate in PPrint(aInstantiate,out,seen)
+  self.dispatch(aInstantiate.class,out);
+  format(out,"[");
+  self.indent(
+    @Operation()
+      @For arg in aInstantiate.args do
+        self.dispatch(arg,out);
+        if not isLast then format(out,",") end
+      end
+    end);
+  format(out,"]")
+end;

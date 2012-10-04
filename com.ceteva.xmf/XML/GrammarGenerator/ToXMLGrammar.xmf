@@ -1,0 +1,75 @@
+// toXMLGrammar() is designed to support the generation of XML 
+// grammars from XCore models. Once a grammar has been defined
+// it can be used to import XML that conforms to the syntax thereby
+// populating the model. Note, you must use toXMLGrammarOp() to generate
+// the support operations used by this grammar.
+//
+// Note, the grammar generation rules make the assumption that only the
+// leaf classes in an XCore model are concrete. Thus, for a class
+// X specialised by Y and Z, the rule X ::= Y | Z. will be generated.
+// Rules for parsing the attributes of X will not be defined by X, but will
+// be inherited by Y and Z.
+
+parserImport Parser::BNF;
+parserImport XML::Parser;
+parserImport XOCL;
+parserImport Associations;
+import Languages;
+ 
+import Parser::BNF;
+ 
+context Class
+  @Operation toXMLGrammar(package):String
+    let p = package.allContentsOf(Class)->select(c | c.parents->includes(self)) in
+      if not p->isEmpty then
+        self.name + " ::= " + p->collect(pp | pp.name)->asSeq()->separateWith(" | ") + ".\n" 
+      else
+        self.ElementDef(package) + "\n" 
+      end
+    end
+  end
+ 
+context Class
+  @Operation ElementDef(package)
+    let tag = self.pathSeq()->last();
+        childrenTypes = self.childrenTypes(package);
+        attributeTypes = self.attributeTypes(package)
+    in tag + " ::= \n" + 
+        "<" + tag + " " + "endName = endName " + attributeTypes + "> \n" +
+        if childrenTypes <> Seq{} then
+          "data = (" + childrenTypes->separateWith(" | ") + ")*\n"
+        else ""
+        end +
+        "</" + tag + ">\n" + 
+        "{Root::" + package.name + "Parser" + "::" + self.name + 
+        "Body(" + (Seq{"data","endName"} +
+        self.allAttributes()->asSeq->select(a | a.underlyingType().isKindOf(DataType))->
+        collect(a | a.name))->separateWith(",") +
+         ")}."
+    end
+  end
+
+context Class
+  @Operation childrenTypes(package)
+    let attributes = self.allAttributes()
+    in attributes
+         ->reject(a | a.underlyingType().isKindOf(DataType))
+         ->collect(a | a.underlyingType().pathSeq()->last())->asSeq()
+    end
+  end
+
+context Class
+  @Operation attributeTypes(package)
+    let attributes = self.allAttributes()
+    in attributes->asSeq
+         ->select(a | a.underlyingType().isKindOf(DataType))
+         ->iterate(a s = "" | s + a.name + " = " + a.name + " ")
+    end
+  end
+
+context Package
+  @Operation toXMLGrammar()
+    self.allContentsOf(Class)->reject(c | c.isKindOf(Package))->collect(c | c.toXMLGrammar(self))->asSeq()->separateWith("\n")
+  end
+
+ 

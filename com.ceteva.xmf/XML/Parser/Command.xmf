@@ -1,0 +1,23 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+import XML::Parser;
+
+context XML::Parser
+
+  @Class Command isabstract extends Syntax
+  
+    @Grammar
+    
+      Args ::= NoArgs | SomeArgs.
+      
+      NoArgs ::= '(' ')' { Seq{} }.
+      
+      SomeArgs ::= '(' arg = Arg args = (',' Arg)* ')' { Seq{arg | args} }.
+      
+      Arg ::= n = Name { CommandVar(n) } | s = Str { CommandConst(s) }.
+      
+    end
+  
+  end

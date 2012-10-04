@@ -1,0 +1,42 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class GlobalMenu extends PopupMenu, ContainedClientElement
+
+    @Operation dispose()
+      self.disposeCollection(items);
+      super() // Note: this calls ContainedClientElement::dispose
+    end
+    
+    @Operation delete()
+      self.commandInterpreter().deleteGlobalMenu(self);
+      self.removeFromOwner();
+      self.dispose()
+    end
+
+    @Operation new()
+      self.new(xmf.findClient(Menus::MenuClient))
+    end
+    
+    @Operation new(parent)
+      self.setOwner(parent);
+      self.commandInterpreter().newGlobalMenuCommand(self);
+      @For item inSeq items do
+        item.new(self)
+      end
+    end
+    
+    @Operation renew(parent)
+      self.dispose();
+      @For item inSeq items do
+        item.renew(self)
+      end
+    end
+
+  end
+    
+   

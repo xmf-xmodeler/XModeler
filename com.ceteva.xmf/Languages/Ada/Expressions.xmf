@@ -1,0 +1,142 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+ @Package Expressions
+    @Class Expression extends AdaObject
+    end
+    @Class Binary extends Expression
+      @Attribute op : String end
+      @Attribute left : Expression end
+      @Attribute right : Expression end
+      @Operation code(indent:Element):Element
+        "(" + left.code(indent) + ") " + op + " (" + right.code(indent) + ")"
+      end
+    end
+    @Class ExpressionName extends Expression
+      @Attribute name : Names::Name end
+      @Operation code(indent:Element):Element
+        name.code(indent)
+      end
+    end
+    @Class Unary extends Expression
+      @Attribute op : String end
+      @Attribute arg : Expression end
+      @Operation code(indent:Element):Element
+        op + "(" + arg.code(indent) + ")"
+      end
+    end
+    @Class Literal extends Expression
+    end
+    @Class NumericLiteral extends Literal
+      @Attribute value : String end
+      @Operation code(indent:Element):Element
+        value
+      end
+    end
+    @Class NullLiteral extends Literal
+      @Operation code(indent:Element):Element
+        "null"
+      end
+    end
+    @Class UsedChar extends Literal
+      @Attribute charLiteral : Integer end
+    end
+    @Class Allocator isabstract extends Expression
+    end
+    @Class AllocatorName extends Allocator
+      @Attribute name : Names::Name end
+      @Operation code(indent:Element):Element
+        name.code(indent)
+      end
+    end
+    @Class AllocatorQualified extends Allocator
+      @Attribute qualified : Qualified end
+      @Operation code(indent:Element):Element
+        "new " + qualified.code(0)
+      end
+    end
+    @Class QualifiedExpression extends Expression
+      @Attribute qualified : Qualified end
+    end
+    @Class Qualified
+      @Attribute name : Names::Name end
+      @Attribute parenthesizedPrimary : ParenthesizedPrimary end
+      @Operation code(indent:Element):Element
+        name.code(0) + "'" + parenthesizedPrimary.code(0)
+      end
+    end
+    @Class ParenthesizedPrimary isabstract extends Expression
+    end
+    @Class PPExp extends ParenthesizedPrimary
+      @Attribute expr : Expression end
+    end
+    @Class PPCompAssoc extends ParenthesizedPrimary
+      @Attribute expr : Expression end
+      @Attribute choices : Seq(Choice) end
+    end
+    @Class Choice isabstract extends AdaObject
+      //@Attribute body : Seq(Statements::Statement) end
+      @Attribute body : Element end
+    end
+    @Class ChoiceExp extends Choice
+      @Attribute expr : Expression end
+      @Operation code(indent:Element):Element
+        expr.code(indent)
+      end
+    end
+    @Class ChoiceDiscreteWithRange extends Choice
+      @Attribute withRange : DiscreteWithRange end
+    end
+    @Class DiscreteWithRange extends Object
+      @Attribute name : Set(Names::Name) end
+      //@Attribute range : Types::Range end
+      @Attribute range : Element end
+      @Operation code(indent:Element):Element
+        if name->isEmpty
+        then ""
+        else name->sel.code(indent) + " "
+        end + range.code(indent)
+      end
+    end
+    @Class ChoiceOthers extends Choice
+    end
+    @Class PPValues extends ParenthesizedPrimary
+      @Attribute values : Seq(Value) end
+      @Operation code(indent:Element):Element
+        "(" + values->collect(v |
+          v.code(0))->asSeq->separateWith(", ") + ")"
+      end
+    end
+    @Class Value isabstract
+    end
+    @Class PPExpWithValues extends PPValues,PPExp
+    end
+    @Class PPExpWithNullRecord extends PPExp
+    end
+    @Class PPNullRecord extends ParenthesizedPrimary
+    end
+    @Class ValueExpr extends Value
+      @Attribute expr : Expression end
+      @Operation code(indent:Element):Element
+        expr->code(indent)
+      end
+    end
+    @Class ValueCompAssoc extends Value
+      @Attribute expr : Expression end
+      @Attribute choices : Seq(Choice) end
+      @Operation code(indent:Element):Element
+        choices->collect(c |
+          c.code(0))->asSeq->separateWith(" | ") + " => " + expr.code(0)
+      end
+    end
+    @Class ValueDiscreteWithRange extends Value
+      @Attribute withRange : DiscreteWithRange end
+      @Operation code(indent:Element):Element
+        withRange.code(indent)
+      end
+    end
+  end

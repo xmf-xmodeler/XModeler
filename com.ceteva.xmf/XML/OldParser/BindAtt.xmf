@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class BindAtt extends Attribute
+  
+    @Doc
+      Succeeds when the element has an attribute with the given
+      name and binds the name to the value of the attribute. If
+      the class is initialised with a single argument then the 
+      name of the var is the same as the name of the attribute.
+    end
+    
+    @Attribute var : String end
+    @Attribute att : String end
+     
+    @Constructor(var) 
+      self.att := var
+    end
+    
+    @Constructor(var,att) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::BindAtt(<StrExp(var)>,<StrExp(att)>) |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      if element.hasAtt(att)
+      then 
+        grammar.debug(indent,"Bind attribute ~S ~S = ~S~%",Seq{var,att,element.getAtt(att)});
+        succ(env.bind(var,element.getAtt(att)),element.getAtt(att),fail)
+      else 
+        grammar.fail(indent,"No attribute named ~S~%",Seq{att},fail)
+      end
+    end
+    
+  end

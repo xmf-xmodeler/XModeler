@@ -1,0 +1,46 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+    @Class ProcessBody isabstract extends ProcessComponent
+
+      // A process has a body that is an action. Body instances
+      // know how to evaluate themselves in a given context.
+      // The language of body actions is defined as a new executable
+      // XMT language. Rather than reinvent many expresion types that
+      // are already available via the OCL package we define actions
+      // as an extension of the OCL language. The extension points are
+      // explicitly noted in the various body action class definitions.
+      
+      @Attribute owner : Process end
+
+      @Operation addTo(p:Process)
+        self.owner := p;
+        p.body := self
+      end
+
+      @Operation lookup(name,env)
+        if env->exists(pair | pair->head = name)
+        then env->select(pair | pair->head = name)->at(0)->tail
+        else self.error("Cannot find name " + name)
+        end
+      end
+      
+      @Operation code(indent:Integer):String
+        " ".repeat(indent) + "// I don't know how to turn " + self + " into code"
+      end
+      
+      @Operation contextCode():String
+        // This operation is used to display a collection of
+        // commands that will allow the body to be evaluated
+        // in context. It includes the necessary imports and
+        // context statement.
+        "import Languages::DFD::Syntax;\n\ncontext " + owner.path() + "\n  " + self.code(2)
+      end
+
+    end

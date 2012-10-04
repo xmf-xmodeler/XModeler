@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import OCL;
+
+context OCL
+
+  @Class Drop extends OCL::OCL
+  
+     @Doc
+        A drop expression may occur within a lift expression [| ... |]. A lift
+        expression is shorthand for the construction of an expression that will
+        build the AST for the expression contained in the [| ... |]. Drop 
+        expressions occur between < ... > in lift expressions, the syntax is not
+        constructed for a drop expression, the expression is evaluated to produce a
+        syntax value that is used at that point in the lift expression value being 
+        constructed.
+        
+        Constructor: Drop(exp)
+    end
+    
+    @Attribute exp : OCL::OCL end
+    
+    @Constructor(exp) ! end
+     
+    @Operation pprint(out,indent)
+      format(out,"<~S>",Seq{exp.pprint(indent)})
+    end
+    
+  end

@@ -1,0 +1,36 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+
+context Dialogs
+
+  @Class StandardDialog extends Sugar
+  
+    @Grammar extends OCL::OCL.grammar 
+    
+      StandardDialog ::= dialog = Exp { StandardDialog(dialog) }.
+      
+    end 
+    
+    @Attribute dialog : Performable end
+    
+    @Constructor(dialog) end
+    
+    @Operation desugar() 
+      [| let dialog = <dialog>;
+             continuation = @Operation(d) d end; 
+             display = Dialogs::TextDisplay(stdin,stdout)
+         in (dialog(continuation))(display)
+         end |]
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@StandardDialog~%~V",Seq{indent+2});
+      dialog.pprint(out,indent+2);
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

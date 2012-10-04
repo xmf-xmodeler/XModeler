@@ -1,0 +1,75 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class PackageXMLFormatter extends NameSpaceXMLFormatter
+  
+    @Doc 
+      A package formatter writes the package out as a model.
+      The name spaces in the package are written out external
+      name spaces are written as references.
+    end
+    
+    @Operation write(object:Object,out:ElementOutputChannel)
+      @CaseObj object of
+        XCore::Package[ ] do
+          self.writePackage(object,out)
+        end
+        XCore::Class[ ] do
+          self.writeClass(object,out)
+        end
+        XCore::Attribute[ ] do
+          self.writeAttribute(object,out)
+        end
+        else super(object,out)
+      end
+    end
+    
+    @Operation writeAttribute(attribute,out)
+      let modifier = if attribute.hasAtomicType() then "1" elseif attribute.hasSeqType() then "$" else "*" end
+      in @XML(out)
+           <Attribute id=out.id(attribute) name = attribute.name() type = attribute.underlyingType().path() modifier=modifier>
+           </Attribute>
+         end
+      end
+    end
+    
+    @Operation writeClass(class,out)
+      if nameSpaces->includes(class)
+      then
+        let parents = class.parents->collect(p | p.path()) then
+            encoded = out.encodeValueString(parents)
+        in @XML(out)
+             <Class id=out.id(class) name=class.name() isabstract=class.isAbstract parents=encoded>
+               @For attribute in class.attributes do
+                 self.writeAttribute(attribute,out)
+               end;
+               @For operation in class.operations do
+                 out.writeValue(operation)
+               end
+             </Class>
+           end
+        end
+      else self.writeNameSpace(class,out)
+      end
+    end
+    
+    @Operation writePackage(package,out)
+      if nameSpaces->includes(package)
+      then 
+        @XML(out)
+          <Package id=out.id(package) name=package.name()>
+            @For class in package.classes do
+              self.writeClass(class,out)
+            end;
+            @For package in package.packages do
+              self.writePackage(package,out)
+            end
+          </Package>
+        end
+      else self.writeNameSpace(package,out)
+      end
+    end
+  end

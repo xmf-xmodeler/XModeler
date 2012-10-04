@@ -1,0 +1,55 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Tools;
+import FormTools;
+import Types;
+import FormEvents;
+
+context Types
+
+// Class deployed by Tony Clark on Mon Feb 28 21:25:01 GMT 2005
+
+  @Class Nodes extends TreeElement
+ 
+    @Attribute nodeTypes : Seq(FormElement) (?) end
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      Nodes ::= name = Name nodeTypes = NodeTypes {
+      
+        [| Tools::FormTools::Types::Nodes(<OCL::StrExp(name)>).nodeTypes := <nodeTypes> |]
+        
+      }.
+      
+      NodeTypes ::= e = Exp es = NodeTypes { [| <es>->prepend(<e>) |] } | { [| Seq{} |] }.
+      
+    end
+    
+    @Operation new(parent,path,env,tool)
+      @For type in nodeTypes do
+        self.defineNewHandler(parent,path,env,tool,type)
+      end;
+      null
+    end
+    
+    @Operation defineNewHandler(parent,path,env,tool,type)
+      parent.defineNewHandler(name.toString() + ":" + type.name().toString(),
+        @Operation()
+          let node = type.new(parent,path,env,tool)
+          in node.new(parent,env);
+             node.setDeleteHandler(@Operation(node) tool.raise(DeleteNode(path + Seq{type.name().toString()},node,parent)) end);
+             node.setChangedHandler(@Operation(node,new,old) tool.raise(NodeChanged(path + Seq{type.name().toString()},node,new,old)) end);
+             tool.raise(NewNode(path + Seq{type.name().toString()},parent,node));
+             node
+          end
+        end);
+      null
+    end
+    
+    @Operation underlyingTypes(env):Seq(TreeNode)
+      nodeTypes->iterate(nodeType types = Seq{} | 
+        types + nodeType.underlyingTypes(env))
+    end
+  
+  end

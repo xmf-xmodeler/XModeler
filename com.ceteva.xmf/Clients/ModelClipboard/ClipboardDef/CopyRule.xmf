@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+import XOCL;
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class CopyRule extends ClipboardRule
+
+    @Attribute elementType : Classifier end
+    @Attribute action : Exp end
+    
+    @Constructor(elementVar,widgetVar,description,elementType,condition,action)
+    end
+
+    @Operation desugar():Performable
+	  [|
+	    let 
+  		   registry = xmf.registry();
+  		   id = "com.ceteva.xmf.clipboard.copy"
+		 in
+	      registry.addContribution(id,
+	        Clients::ExtensionPoints::Contribution(
+	          <elementType>,
+	          Seq{
+	            <description>,
+	            @Operation copyCondition(<elementVar>,<widgetVar>) <condition> end,
+	            @Operation copyAction(<elementVar>,<widgetVar>) <action> end	            
+	          }))
+	    end
+	  |]
+    end
+
+  end

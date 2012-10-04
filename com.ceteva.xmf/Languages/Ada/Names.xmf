@@ -1,0 +1,43 @@
+parserImport XOCL;
+
+import Languages;
+import Ada;
+
+context Ada
+
+  @Package Names
+    @Class Name isabstract extends AdaObject
+    end
+    @Class SimpleName extends Name
+      @Attribute name : String end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        name
+      end
+    end
+    @Class IndexedComp extends Name
+      //@Attribute values : Seq(Expressions::Value) end
+      @Attribute values : Element end
+      @Attribute name : Name end
+      @Constructor(name) ! end
+      @Operation code(indent:Integer):String
+        name.code(indent) + "(" + values->collect(v |
+          v.code(indent))->separateWith(", ") + ")"
+      end
+    end
+    @Class SelectedComp extends Name
+      @Attribute name : Name end
+      @Attribute scname : String end
+      @Operation code(indent:Integer):String
+        name.code(indent) + "." + scname
+      end
+    end
+    @Class Attribute extends Name
+      @Attribute attribute : String end
+      @Attribute name : Name end
+      @Constructor(name) ! end
+      @Operation code(indent:Element):Element
+        name.code(indent) + "'" + attribute
+      end
+    end
+  end

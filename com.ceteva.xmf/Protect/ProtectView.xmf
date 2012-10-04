@@ -1,0 +1,51 @@
+parserImport XOCL;
+
+import Clients::DiagramsMapping;
+
+// EDIT
+
+context Element
+  let edit = Element::edit
+  in @Operation edit()
+       if self.isViewProtected()
+       then xmf.warning("This is a protected element and cannot be edited.")
+       else edit.invoke(self,Seq{})
+       end
+     end
+  end
+  
+context Object
+  let edit = Object::edit
+  in @Operation edit()
+       if self.isViewProtected()
+       then xmf.warning("This is a protected element and cannot be edited.")
+       else edit.invoke(self,Seq{})
+       end
+     end
+  end
+
+
+// BROWSE
+
+context Element
+  let browse = Element::browse
+  in @Operation browse()
+       if self.isViewProtected()
+       then xmf.warning("This is a protected element and cannot be browsed.")
+       else browse.invoke(self,Seq{})
+       end
+     end
+  end
+
+
+// DIAGRAM
+
+context DiagramContribution
+  let diagramOp = DiagramContribution::newDiagram
+  in @Operation newDiagram(element,name,showDiagram)
+       if element.isViewProtected()
+       then xmf.warning("This is a protected element and cannot be viewed as a diagram.")
+       else diagramOp.invoke(self,Seq{element,name,showDiagram})
+       end
+     end
+  end

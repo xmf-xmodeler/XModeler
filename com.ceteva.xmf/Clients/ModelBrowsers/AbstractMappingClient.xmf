@@ -1,0 +1,182 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import ModelBrowsers;
+
+context ModelBrowsers
+
+  @Class AbstractMappingClient isabstract extends Client
+
+    @Bind implementedClients = Seq{} end
+    //@Bind inhibitModelBrowserSelection = false end
+
+    @Attribute modelBrowserClient : ModelBrowserClient end
+    @Attribute mappings : Seq(Element) (+) end
+  
+    @Constructor(name,modelBrowserClient) 
+      self.setCommandInterpreter(modelBrowserClient.commandInterpreter);
+      self.setEventHandler(modelBrowserClient.eventHandler);
+      AbstractMappingClient::implementedClients := AbstractMappingClient::implementedClients
+        ->including(self);
+      self
+    end
+
+    @AbstractOp add(Element)
+      @Doc 
+        Implelement this operation to specify how to handle the addition
+        off different types of element.
+      end
+    end
+    
+    @AbstractOp add(container,tree)
+      @Doc 
+        Implement this operation to specify how to handle the
+        addition of a container to a given tree.
+      end
+    end
+
+    @Operation load(fileName)
+      let input = ElementInputChannel(FileInputChannel(fileName)) then
+          mapping = input.read()
+      in input.close();
+         mapping.container.owner.add(mapping.container);
+         self.add(mapping);
+         mapping.tree.renew()
+      end
+    end
+
+    @Operation preSave()
+      @For mapping in mappings do
+        mapping.setOwner(null)
+      end
+    end
+    
+    @Operation postSave()
+      @For mapping in mappings do
+        mapping.setOwner(self)
+      end
+    end
+
+    @Operation remove(mapping)
+      self.mappings := mappings.excluding(mapping);
+      mapping.dispose()
+    end
+
+    @Operation renew()
+      @For map in mappings do
+        map.renew()
+      end
+    end
+
+/*    @Operation save(mapping,fileName)
+      let out = ElementOutputChannel(FileOutputChannel(fileName));
+          containerOwner = mapping.container.owner
+      in try
+      
+           // The mapping and the container must be de-linked from their owners
+           // in order to define the save boundary.
+           
+           mapping.setOwner(null);
+           mapping.container.owner.remove(mapping.container);
+           mapping.container.setOwner(containerOwner);
+           out.write(mapping,Seq{Root,XCore,Clients,ModelBrowserXCore});
+           out.close();
+           format(stdout,"Saved container and tree in ~S~%",Seq{fileName});
+           mapping.setOwner(self);
+           containerOwner.add(mapping.container)
+         catch(exception)
+           format(stdout,"~S~%",Seq{exception});
+           mapping.setOwner(self);
+           containerOwner.add(mapping.container)
+         end
+      end
+    end */
+
+    @Operation modelBrowserMappingsFor(element)
+      let matched = Seq{}
+      in
+        @For mapping in mappings do
+          let map = mapping.rootElementMap.findModelBrowserMapping(element)
+          in
+            if map <> null
+            then
+              matched := matched->prepend(map)
+            end
+          end
+        end;
+        matched
+      end
+    end
+
+    @Operation selectModelBrowserNode(element,doSelected:Boolean)
+    
+      // Call this to find a node for an element in any 
+      // open model browsers and give it focus.
+      
+      //if not AbstractMappingClient::inhibitModelBrowserSelection
+      //then
+      let foundNode = null;
+          foundMapping = null
+      in
+        @For mapping in mappings do
+          if foundNode = null
+          then
+            foundNode := mapping.rootElementMap.findModelBrowserNode(element);
+            foundMapping := mapping
+          end
+        end;
+        if foundNode <> null
+        then
+          if doSelected
+          then
+            @SendCommand(commandInterpreter)
+              setVisible(foundMapping.tree.id())
+            end;
+            foundNode.setSelected(true)
+          else
+            if not foundNode = foundMapping.tree.rootNode
+            then
+              foundNode.setDeselected()
+            end
+          end
+        end;
+        foundNode <> null
+      end
+      //end
+    end
+
+    @Operation setClosable(element,closable:Boolean)
+      @Find(map,mappings)
+        when map.element = element
+        do
+          map.tree.closable := closable;
+          self.commandInterpreter().setModelBrowserClosableCommand(map.tree)
+      end
+    end
+
+    @Operation showModelBrowser(element)
+      //self.addContainer(element)
+      @Find(map,mappings)
+        when map.element = element
+        do
+          let tree = map.tree in
+            if not tree.isOpen then
+              self.remove(map);
+              let mapping = self.add(element) 
+              in
+                mapping.tree.setFocus()
+              end
+            else
+              tree.setFocus()
+            end
+          end
+        else 
+          let mapping = self.add(element) 
+          in
+            mapping.tree.setFocus()
+          end
+      end
+    end
+
+  end

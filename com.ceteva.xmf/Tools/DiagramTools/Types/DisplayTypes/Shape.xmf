@@ -1,0 +1,91 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import Tools;
+import Menus;
+import Clients;
+import Diagrams;
+import DiagramTools;
+import DiagramEvents;
+import Types;
+import DisplayTypes;
+import DisplayType;
+
+context DisplayTypes
+
+  @Class Shape extends DisplayType
+  
+    @Attribute points    : Seq(Clients::Point) (!,?,+,-) end
+    @Attribute outline   : Boolean (?)   end
+    @Attribute lineColor : String  (?,!) end //#
+    @Attribute fillColor : String  (?,!) end //#
+    
+    @Grammar extends DisplayType.grammar
+    
+      Shape ::= 
+      
+        name = Name 
+        atts = Properties 
+        dsplAtts  = Atts
+        
+        defs = Exp* {
+      
+        defs->iterate(def exp = [| 
+           let shape = Tools::DiagramTools::Types::DisplayTypes::Shape(<OCL::StrExp(name)>) 
+           in shape.hasPort    := <OCL::BoolExp(atts->includes("hasport"))>;
+              shape.outline    := not <OCL::BoolExp(atts->includes("noOutline"))>;
+              shape.layout     := <OCL::StrExp(filterLayout(atts))>;
+              shape.padLeft    := <OCL::IntExp(dsplAtts.lookup("padLeft",0))>;
+              shape.padRight   := <OCL::IntExp(dsplAtts.lookup("padRight",0))>;
+              shape.padTop     := <OCL::IntExp(dsplAtts.lookup("padTop",0))>;
+              shape.padBottom  := <OCL::IntExp(dsplAtts.lookup("padBottom",0))>;
+              shape.minWidth   := <OCL::IntExp(dsplAtts.lookup("minWidth",0))>;
+              shape.minHeight  := <OCL::IntExp(dsplAtts.lookup("minHeight",0))>;
+              shape.maxWidth   := <OCL::IntExp(dsplAtts.lookup("maxWidth",9999))>;
+              shape.maxHeight  := <OCL::IntExp(dsplAtts.lookup("maxHeight",9999))>;
+              shape.fillColor  := <OCL::StrExp(dsplAtts.lookup("fillColor",""))>;
+              shape.lineColor  := <OCL::StrExp(dsplAtts.lookup("lineColor",""))>;
+              shape
+           end
+        |] | [| <exp>.add(<def>) |])
+        
+      }.
+      
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Menu do
+          self.menu := element
+        end
+        Clients::Point do
+          self.addToPoints(element)
+        end
+      end
+    end
+    
+    @Operation new(root,parent,path,tool,env)
+      let color = Clients::Diagrams::Color() then
+          shape = Diagrams::Shape(0,0,0,0,points,true,color,color)
+      in parent.add(shape);
+         self.setGlobalMenu(shape,tool,path + Seq{name.toString()});
+         shape.setType(self);
+         shape.setPadLeft(padLeft);
+         shape.setPadRight(padRight);
+         shape.setPadTop(padTop);
+         shape.setPadBottom(padBottom);
+         shape.setMinWidth(minWidth);
+         shape.setMinHeight(minHeight);
+         shape.setMaxWidth(maxWidth);
+         shape.setMaxHeight(maxHeight);
+         shape.setDeleteHandler(DisplayType::mkDeleteHandler(tool,root,path,name));
+         shape.lineColor := self.parseColor(lineColor);
+         shape.fillColor := self.parseColor(fillColor);
+         shape.setOutline(outline);
+         if hasPort then root.addPortAssociation(shape) end;
+         shape
+      end
+      
+    end
+    
+  end

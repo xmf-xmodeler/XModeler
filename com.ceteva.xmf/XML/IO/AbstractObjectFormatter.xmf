@@ -1,0 +1,17 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class AbstractObjectFormatter isabstract
+  
+    @Doc
+      An object XML formatter is used to control how objects are
+      written out as XML. 
+    end
+  
+    @AbstractOp write(object:Object,out:ElementOutputChannel)
+    end
+    
+  end

@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+context Walkers
+
+  @Class TypeCheckReport
+  
+    @Attribute object : Object end
+    @Attribute name : String end
+    @Attribute value : Element end
+    @Attribute type : Classifier end
+    @Attribute ok : Boolean end
+    
+    @Constructor(object,name,value,type,ok) ! end
+    
+  end

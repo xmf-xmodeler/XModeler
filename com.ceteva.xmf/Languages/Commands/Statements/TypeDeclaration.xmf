@@ -1,0 +1,41 @@
+parserImport XOCL;
+
+import OCL;
+import Languages;
+import Commands;
+import Statements;
+import Values;
+
+context Statements
+
+  @Class TypeDeclaration extends Declaration
+  
+    @Attribute names : Seq(String) end
+    
+    @Constructor(name,names) ! end
+    
+    @Operation compile(typeEnv,varEnv,next)
+      next(typeEnv.bind(name,Type(names)),varEnv)
+    end
+    
+    @Operation desugar1(next:Performable):Performable
+      [| let <name> = Languages::Commands::Values::Type(<names.lift()>) in <next> end |]
+    end
+    
+    @Operation desugar2(typeEnv,next):Performable
+      next(typeEnv.bind(name,Type(names)))
+    end
+    
+    @Operation eval(target,env,imports)
+      env.bind(name,Type(names))
+    end
+    
+    @Operation maxLocals(locals,maxLocals,next)
+      next(locals,maxLocals)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"type ~S is ~{,~;~S~} end",Seq{name,names})
+    end
+    
+  end

@@ -1,0 +1,131 @@
+parserImport XOCL;
+
+import Clients;
+import Menus;
+
+context Menus
+
+  @Class RightClickable isabstract
+
+    @Attribute rightClickMenu : PopupMenu = null end
+    @Attribute menuKey : Element (?,!) end
+
+    @Operation addRightClickMenuItem(item:MenuItem)
+      // legacy only
+      if rightClickMenu = null
+      then 
+        self.rightClickMenu := PopupMenu();
+        self.rightClickMenu.setOwner(self)
+      end;
+      rightClickMenu.add(item)
+    end
+
+    @Operation addRightClickMenuItems()
+      // legacy only
+      self
+    end
+
+    @Operation buildGlobalMenu()
+      // must be overridden in subclasses
+      let menu = GlobalMenu()
+      in
+        xmf.menuManager().addMenu(menuKey,menu);
+        menu
+      end
+    end
+
+    @Operation buildMenuTreeFromRegistry(element)
+      if rightClickMenu = null
+      then self.rightClickMenu := PopupMenu()
+      end;
+      xmf.menuRegistryHandler().buildMenuTreeFromRegistry(rightClickMenu,element.of(),element)
+    end
+
+    @Operation clearRightClickMenu(dispose:Boolean)
+      if rightClickMenu <> null
+      then rightClickMenu.dispose()
+      end;
+      let menuManager = xmf.menuManager()
+      in if not menuManager.protected andthen dispose andthen menuManager.hasMenu(self)
+         then let globalMenu = menuManager.getMenu(self)
+              in  menuManager.removeMenu(self);
+                  globalMenu.delete()
+              end
+         end
+      end;
+      self.rightClickMenu := null
+    end
+    
+    @Operation clearRightClickMenu()
+      self.clearRightClickMenu(true)
+    end
+
+    @Operation globalMenu()
+      self.globalMenu(true)
+    end
+
+    @Operation globalMenu(doNew : Boolean)
+      self.globalMenu(doNew,false)
+    end
+
+    @Operation globalMenu(doNew : Boolean,makeEmpty:Boolean)
+      if self.menuKey <> null
+      then
+        let menuManager = xmf.menuManager()
+        in
+          if menuManager.hasMenu(menuKey)
+          then
+            menuManager.getMenu(menuKey)
+          else
+            let newMenu = 
+              if makeEmpty
+              then RightClickable::buildGlobalMenu.invoke(self,Seq{})
+              else self.buildGlobalMenu()
+              end
+            in
+              if doNew
+              then newMenu.new()
+              end;
+              newMenu
+            end
+          end
+        end
+      else
+        null
+      end
+    end
+
+    @Operation newRightClickMenu(parent)
+      // legacy only
+      if rightClickMenu = null
+      then self.error("rightClickMenu not set in " + self.toString())
+      else rightClickMenu.new(self)
+      end
+    end
+    
+    @Operation renewRightClickMenu(parent)
+      // legacy only    
+      if not rightClickMenu = null andthen not rightClickMenu.isEmpty()
+      then rightClickMenu.renew(self)
+      end
+    end
+
+    @Operation selfTarget()
+      self
+    end
+
+    @Operation setRightClickMenu()
+    
+      // override if necessary in subclasses
+
+      let globalMenu = self.globalMenu()
+      in
+        if globalMenu <> null
+        then
+          self.clearRightClickMenu(false);
+          globalMenu.commandInterpreter().setGlobalMenuCommand(globalMenu,self)
+        end
+      end
+    end
+
+  end

@@ -1,0 +1,233 @@
+parserImport XOCL;
+parserImport Clients::BrowserInterface;
+parserImport Parser::BNF;
+
+import Clients::BrowserInterface;
+import MyProjects;
+
+context MyProjects
+
+  @Package STM
+  
+    @Class StateMachine metaclass BrowsedClass extends Contained
+    
+      @Attribute name : String (!,?) end
+      @Attribute initialState : InitialState = InitialState() (?,!) end
+      @Attribute states : Seq(State) (+,-,^) end
+      @Attribute trans : Seq(Trans) (+,-,?,^) end
+      
+      @Constructor(name) !
+      end
+      
+      @Interface
+        @Image "StateMachines/StateMachine" end
+        @Child states end
+        @Child trans end
+        @Child initialState end
+        @MenuRoot MyProjects::STM::StateMachine end
+        @Menu New::State newState end
+        @Menu New::Transition newTransition end
+        @Menu New::Start newStart end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+      end
+      
+      @Operation checkFinal(state,target)
+        if self.isFinal(state)
+        then 
+          if owner <> null
+          then 
+            if owner.isKindOf(State)
+            then 
+              target.setState(target.state()->butLast);
+              owner.owner().checkFinal(owner,target)
+            end
+          end
+        end
+      end
+      
+      @Operation isFinal(state)
+        not trans->exists(t | t.source() = state)
+      end
+      
+      @Operation makeTransition(state,message,target)
+        @Find(t,trans)
+          when t.source() = state andthen
+               t.parseMessage()->head = message.name() andthen
+               t.guardSatisfied(message,target)
+          do t.performAction(message,target);
+             target.setState(target.state()->butLast + Seq{t.target().name()});
+             self.checkFinal(t.target(),target)
+        end
+      end
+      
+      @Operation newState()
+        let name = xmf.getString("State Name","Name","<NAME>")
+        in self.addToStates(STM::State(name))
+        end
+      end
+      
+      @Operation newTransition()
+        let source = self.selectState("Source")
+        in if source <> null
+           then
+             let target = self.selectState("Target")
+             in if target <> null
+                then 
+                  self.addToTrans(STM::Trans(source,target))
+                end
+             end
+           end
+        end
+     end
+      
+      @Operation selectState(message:String)
+        if states->isEmpty
+        then
+          xmf.message("No States available");
+          null
+        else xmf.select(message,message,states,null,null)
+        end
+      end
+      
+      @Operation processMessage(message,target)
+        if target.state()->isEmpty
+        then 
+          if initialState.start() = null
+          then self.error("Machine has no initial state.")
+          else target.setState(Seq{initialState.start().name()})
+          end
+        end;
+        self.processMessage(message,target,target.state())
+      end
+      
+      @Operation processMessage(message,target,path)
+        @Find(state,states)
+          when state.name() = path->head
+          do let path = path->tail
+             in if path->isEmpty
+                then self.makeTransition(state,message,target)
+                else state.processMessage(message,target,path->tail)
+                end
+             end
+          else self.error("No state named " + path->head)
+        end
+      end
+      
+      @Operation newStart()
+        let state = self.selectState("Starting State")
+        in if state <> null
+           then initialState.setStart(state)
+           end
+        end
+      end
+      
+    end
+    
+    @Class State metaclass BrowsedClass extends Contained
+    
+      @Attribute name : String (?,!) end
+      @Attribute machine : StateMachine = StateMachine("",self) end
+      
+      @Constructor(name) ! 
+        machine.setName(name)
+      end
+      
+      @Constructor(name,owner) end
+      
+      @Interface
+        @Image "StateMachines/State" end
+        @Child machine end
+        @MenuRoot MyProjects::STM::State end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Delete delete end
+      end
+      
+      @Operation delete()
+        if owner <> null
+        then owner.deleteFromStates(self)
+        end
+      end
+      
+      @Operation processMessage(message,target,path)
+        machine.processMessage(message,target,path)
+      end
+        
+    end
+    
+    @Class InitialState metaclass BrowsedClass 
+    
+      @Attribute start : State (?,!) end
+      
+      @Interface
+      end
+      
+      @Operation toString()
+        if start = null
+        then "Start Unknown"
+        else "Start " + start.name()
+        end
+      end
+    end
+    
+    @Class Trans metaclass BrowsedClass extends Contained
+     
+      @Attribute source : State (?) end
+      @Attribute target : State (?) end
+      @Attribute guard : String = "true" end
+      @Attribute action : String = "noop" end
+      @Attribute message : String = "m()" end
+      
+      @Constructor(source,target) end
+      
+      @Interface
+        @Image "StateMachines/Transition" end
+        @MenuRoot MyProjects::STM::Trans end
+        @Menu Edit Element::edit_redirect end
+        @Menu Assign Element::assignToGlobal end
+        @Menu Delete delete end
+      end
+      
+      @Grammar
+      
+        Message ::= n = Name '(' a = Args ')' { Seq{n|a} }.
+        
+        Args ::= n = Name ns = (',' Name)* { Seq{n|ns} } | { Seq{} }.
+        
+      end
+      
+      @Operation delete()
+        if owner <> null
+        then owner.deleteFromTrans(self)
+        end
+      end
+      
+      @Operation guardSatisfied(message,target)
+        let guard = Guards::Guard.grammar().parseString(guard,"Guard1",Seq{}) then
+            args = self.parseMessage()->tail then
+            env = message.values().zip(args)->iterate(p e = target.evalEnv() | e.bind(p->tail,p->head))
+        in guard.eval(target,env)
+        end
+      end
+      
+      @Operation parseMessage()
+        self.of().grammar().parseString(message,"Message",Seq{})
+      end
+      
+      @Operation performAction(message,target)
+        let action = Actions::Action.grammar().parseString(action,"Action1",Seq{});
+            args = self.parseMessage()->tail then
+            env = message.values().zip(args)->iterate(p e = target.evalEnv() | e.bind(p->tail,p->head));
+            snapshot = target.snapshot()
+        in action.eval(target,env,snapshot)
+        end
+      end
+      
+      @Operation toString()
+        source.name() + "-->" + target.name()
+      end
+    end
+    
+  end
+  

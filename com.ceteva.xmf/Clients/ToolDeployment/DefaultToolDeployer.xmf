@@ -1,0 +1,252 @@
+parserImport XOCL;
+
+import IO;
+import Clients;
+import ToolDeployment;
+
+context ToolDeployment
+
+  @Class DefaultToolDeployer extends ToolDeployer
+  
+    // Properties understood by this deployer
+    //
+    // o ToolName
+    // o DeploymentTarget
+    // o XMFMosaicPlugins
+    // o XMFMosaicVersion
+    // o IncludeUpdateManager
+    // o IncludeHelp
+    // o IncludeConsole
+    // o WindowImage16
+    // o WindowImage32
+    // o AboutImage
+    // o Splash
+    
+  
+    @Operation copyBranding(target,iconImage16,iconImage32,aboutImage,splash)
+      if iconImage16.fileExists() andthen iconImage16.hasSuffix(".gif")
+      then iconImage16.copyFile(target + "/icons/mosaic16.gif")
+      else format(stdout,"Warning: tool icon must be a gif image~%")
+      end;      
+      if iconImage32.fileExists() andthen iconImage32.hasSuffix(".gif")
+      then iconImage32.copyFile(target + "/icons/mosaic32.gif")
+      else format(stdout,"Warning: tool icon must be a gif image~%")
+      end;
+      if aboutImage.fileExists() andthen aboutImage.hasSuffix(".gif") 
+      then aboutImage.copyFile(target + "/icons/mosaicLogo.gif")
+      else format(stdout,"Warning: about branding must be a gif image~%")
+      end;
+      if splash.fileExists() andthen splash.hasSuffix(".bmp")
+      then splash.copyFile(target + "/splash/splash.bmp")
+      else format(stdout,"Warning: splash must be a bmp image~%")
+      end
+    end
+  
+    @Operation deploy()
+      
+      let
+        toolName = self.lookupProperty("ToolName");
+        dir = self.lookupProperty("DeploymentTarget") then
+        target = (dir + "/" + toolName);
+        eclipsePlugins = self.lookupProperty("EclipsePlugins");
+        xmfMosaicPlugins = self.lookupProperty("XMFMosaicPlugins");
+        xmfMosaicVersion = self.lookupProperty("XMFMosaicVersion")
+      in
+      
+        // create directory
+        
+        target.mkDir();
+      
+        // create plugins/feature/configuration directory
+      
+        // (target + "/plugins").mkDir();
+        (target + "/features").mkDir();
+        (target + "/configuration").mkDir();
+        
+        let plugintarget = target + "/plugins"
+        in
+        
+          // copy across the required eclipse plugins
+        
+          eclipsePlugins.copyFile(plugintarget);
+        
+          /* (eclipsePlugins + "/org.eclipse.core.commands_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.commands_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.core.expressions_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.expressions_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.core.resources.win32_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.resources.win32_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.core.resources_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.resources_3.1.0.jar");
+		  (eclipsePlugins + "/org.eclipse.core.runtime.compatibility_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.runtime.compatibility_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.core.runtime_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.core.runtime_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.core.variables_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.core.variables_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.draw2d_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.draw2d_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.gef_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.gef_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.help.appserver_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.help.appserver_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.help.base_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.help.base_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.help.ui_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.help.ui_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.help_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.help_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.jface.text_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.jface.text_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.jface_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.jface_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.osgi_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.osgi_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.swt.win32.win32.x86_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.swt.win32.win32.x86_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.swt_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.swt_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.ui.forms_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.ui.forms_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.ui.views_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.ui.views_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.ui.win32_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.ui.win32_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.ui.workbench.texteditor_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.ui.workbench.texteditor_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.ui.workbench_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.ui.workbench_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.ui_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.ui_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.text_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.text_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.update.configurator_3.1.0.jar").copyFile(plugintarget + "/org.eclipse.update.configurator_3.1.0.jar");
+          (eclipsePlugins + "/org.eclipse.update.core_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.update.core_3.1.1.jar");
+          (eclipsePlugins + "/org.eclipse.update.ui_3.1.1.jar").copyFile(plugintarget + "/org.eclipse.update.ui_3.1.1.jar");
+          (eclipsePlugins + "/org.apache.lucene_1.4.3").copyFile(plugintarget + "/org.apache.lucene_1.4.3");
+          (eclipsePlugins + "/org.eclipse.help.webapp_3.1.0").copyFile(plugintarget + "/org.eclipse.help.webapp_3.1.0");
+          (eclipsePlugins + "/org.eclipse.tomcat_4.1.30.1").copyFile(plugintarget + "/org.eclipse.tomcat_4.1.30.1"); */
+          
+          // copy across the required XMF-Mosaic plugins
+          
+          xmfMosaicPlugins.copyFile(plugintarget)
+          
+          /* (xmfMosaicPlugins + "/com.ceteva.client_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.client_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.console_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.console_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.diagram_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.diagram_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.dialogs_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.dialogs_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.forms_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.forms_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.help_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.help_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.menus_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.menus_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.modelBrowser_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.modelBrowser_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.mosaic_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.mosaic_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.text_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.text_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.undo_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.undo_" + xmfMosaicVersion);
+          (xmfMosaicPlugins + "/com.ceteva.xmf_" + xmfMosaicVersion).copyFile(plugintarget + "/com.ceteva.xmf_" + xmfMosaicVersion) */
+        end;
+        
+        // copy across the startup jar
+        
+        (eclipsePlugins + "/org.eclipse.platform_3.1.1/startup.jar").copyFile(target + "/startup.jar");
+        
+        // make the configuration and startup file
+        
+        self.writeConfigurationInitFile(target + "/configuration");
+        self.writeMosaicInitFile(target);
+        self.writeMosaicProductFile(target,xmfMosaicVersion);
+        self.writeMosaicStartup(target,toolName);
+        
+        // write the mosaic plugin with the branding properties
+        
+        let
+          target = target + "/plugins/com.ceteva.mosaic_" + xmfMosaicVersion;
+          includeUpdateManager = self.lookupProperty("IncludeUpdateManager");
+          includeHelp = self.lookupProperty("IncludeHelp");
+          iconImage16 = self.lookupProperty("WindowImage16");
+          iconImage32 = self.lookupProperty("WindowImage32");
+          aboutImage = self.lookupProperty("AboutImage");
+          splash = self.lookupProperty("Splash")
+        in
+          self.copyBranding(target,iconImage16,iconImage32,aboutImage,splash);
+          self.writeBranding(target,includeHelp,includeUpdateManager,toolName)
+        end;
+        
+        // write the tool definition files
+        
+        let 
+          tooldefinition = self.lookupProperty("ToolDefinition");
+          toolinterface = self.lookupProperty("ToolInterface") then
+          toolinterfaceTarget = (target + "/plugins/com.ceteva.xmf_" + xmfMosaicVersion + "/Boot/Mosaic/ToolInterface")
+        in
+          tooldefinition.copyFile(target + "/plugins/com.ceteva.xmf_" + xmfMosaicVersion + "/ToolDefinition");
+          self.writeToolLoader(target + "/plugins/com.ceteva.xmf_" + xmfMosaicVersion);
+          self.writeToolInterface(toolinterface,toolinterfaceTarget)
+        end
+      end
+    end
+    
+    @Operation writeBranding(target,includeHelp,includeUpdateManager,toolName)
+      @WithOpenFile(fout -> target + "/plugin.xml")
+        format(fout,"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>~%");
+  		format(fout,"<?eclipse version=\"3.0\"?>~%");
+		format(fout,"<plugin>~%");
+		format(fout,"  <extension id=\"XMF-Mosaic\" point=\"org.eclipse.core.runtime.applications\">~%");
+		format(fout,"    <application>~%");
+		format(fout,"      <run class=\"com.ceteva.mosaic.Boot\"/>~%");
+  		format(fout,"    </application>~%");
+  		format(fout,"  </extension>~%");
+        if includeUpdateManager
+        then
+  		  format(fout,"  <extension point=\"org.eclipse.ui.actionSets\">~%");
+		  format(fout,"    <actionSet label=\"%UpdateActionSet.label\" visible=\"true\" id=\"org.eclipse.update.ui.softwareUpdates\">~%");
+		  format(fout,"      <menu label=\"Software Updates\" path=\"help/helpEnd\" id=\"org.eclipse.update.ui.updateMenu\">~%");
+  		  format(fout,"	     <separator name=\"group0\" />~%"); 
+  		  format(fout,"	     <separator name=\"group1\" />~%");
+  		  format(fout,"	   </menu>~%");
+  		  format(fout,"      <action label=\"Manage Configuration\" icon=\"icons/configs.gif\" helpContextId=\"org.eclipse.update.ui.newUpdates\" class=\"com.ceteva.mosaic.actions.ConfigurationManagerAction\" menubarPath=\"help/org.eclipse.update.ui.updateMenu/group0\" id=\"org.eclipse.update.ui.configManager\"/>~%");
+  		  format(fout,"      <action label=\"Find and Install\" icon=\"icons/usearch_obj.gif\" helpContextId=\"org.eclipse.update.ui.newUpdates\" class=\"com.ceteva.mosaic.actions.InstallWizardAction\" menubarPath=\"help/org.eclipse.update.ui.updateMenu/group0\" id=\"org.eclipse.update.ui.newUpdates\" />~%");
+  		  format(fout,"    </actionSet>~%");
+  		  format(fout,"  </extension>~%")
+  		end;
+  		format(fout,"  <extension point=\"org.eclipse.ui.startup\" />~%");
+		format(fout,"  <extension id=\"XMFMosaic\" point=\"org.eclipse.core.runtime.products\">~%");
+		format(fout,"    <product application=\"com.ceteva.mosaic.XMF-Mosaic\" name=\"~S\">~%",Seq{toolName});
+  		format(fout,"      <property name=\"windowImages\" value=\"icons/mosaic16.gif,icons/mosaic32.gif\"/> ~%");
+  		format(fout,"      <property name=\"aboutImage\" value=\"icons/mosaicLogo.gif\"/>~%");
+  		format(fout,"      <property name=\"appName\" value=\"XMF-Mosaic\" />~%");
+  		format(fout,"      <property name=\"preferenceCustomization\" value=\"help_customization.ini\" />~%");
+  		format(fout,"    </product>~%");
+  		format(fout,"  </extension>~%");
+  		format(fout,"</plugin>~%");
+        fout.close()
+      end
+    end
+    
+    @Operation writeConfigurationInitFile(target)
+      @WithOpenFile(fout -> target + "/config.ini")
+         format(fout,"eclipse.product=com.ceteva.mosaic.XMFMosaic~%");
+         format(fout,"osgi.bundles=org.eclipse.core.runtime@2:start,org.eclipse.update.configurator@3:start~%");
+         format(fout,"osgi.bundles.defaultStartLevel=4~%");
+         fout.close()
+      end
+    end
+    
+    @Operation writeMosaicInitFile(target)
+      @WithOpenFile(fout -> target + "/XMF-Mosaic.ini")
+        format(fout,"-vmargs~%");
+        format(fout,"-Xmx150m~%");
+        fout.close()
+      end
+    end
+    
+    @Operation writeToolLoader(target)
+      let target = target + "/Patches/toolLoader"
+      in
+        @WithOpenFile(fout -> target + ".xmf")
+          format(fout,"(xmf.homeDir() + \"/ToolDefinition/Manifest.o\").loadBin().load(xmf.homeDir() + \"/ToolDefinition\");~%");
+          fout.close()
+        end;
+        Compiler::compileFile(target,true,true);
+        (target + ".xmf").deleteFile()
+      end
+    end
+    
+    @Operation writeMosaicProductFile(target,version)
+      @WithOpenFile(fout -> target + "/.eclipseproduct")
+        format(fout,"version=~S~%",Seq{version});
+        format(fout,"name=XMF-Mosaic~%");
+        format(fout,"id=com.ceteva.mosaic.XMFMosaic~%");
+        fout.close()
+      end
+    end
+    
+    @Operation writeMosaicStartup(target,toolname)
+      @WithOpenFile(fout -> target + "/" + toolname + ".bat")
+        format(fout,"javaw -Xmx150m -cp startup.jar org.eclipse.core.launcher.Main ");
+        format(fout,"-os win32 -ws win32 -arch x86 -nl en_US -product com.ceteva.mosaic.XMFMosaic~%");
+        fout.close()
+      end
+    end
+    
+    @Operation writeToolInterface(toolinterface,target)
+      toolinterface.copyFile(target + ".xmf");
+      Compiler::compileFile(target,true,true);
+      (target + ".xmf").deleteFile()
+    end
+  
+  end

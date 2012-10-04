@@ -1,0 +1,21 @@
+parserImport XOCL;
+
+import XBNF;
+import Grammars;
+
+context Grammars
+
+  @Class Line extends Recognizer
+  
+    @Constructor() end
+    
+    @Operation FV():Set(String)
+      Set{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"Line")
+    end
+    
+    
+  end

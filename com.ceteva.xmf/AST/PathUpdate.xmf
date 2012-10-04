@@ -1,0 +1,10 @@
+parserImport Walkers;
+
+import Root::OCL;
+
+@Handler PathUpdate in AST(aPathUpdate,arg,seen)
+  let value = self.dispatch(aPathUpdate.value,arg);
+      path = self.dispatch(aPathUpdate.path,arg)
+  in ASTNode(aPathUpdate,Seq{path,value})
+  end
+end;

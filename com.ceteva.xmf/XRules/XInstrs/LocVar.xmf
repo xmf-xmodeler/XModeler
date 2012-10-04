@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XRules;
+import Instrs;
+
+context Instrs
+
+  @Class LocVar extends Instr
+  
+    @Attribute index : Integer end
+    
+    @Constructor(index) ! end
+  
+  end

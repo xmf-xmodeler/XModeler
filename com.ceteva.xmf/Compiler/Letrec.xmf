@@ -1,0 +1,18 @@
+import OCL;
+import Instrs;
+
+context Root::OCL::OCL
+  @Operation FV():Element
+    self.error("I don't know how to calculate the FV of " + self)
+  end
+
+context Root::OCL::OCL
+  @Operation maxLocals():Element
+    self.error("I don't know how to calculate maxLocals for " + self)
+  end
+
+context Root::OCL::OCL
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    self.error("I don't know how to compile " + self)
+  end
+ 

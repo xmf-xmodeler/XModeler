@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import Exceptions;
+
+context Exception
+
+  @Operation stackFrames():Seq(StackFrame)
+    backtrace->collect(frame |
+      StackFrame[
+        codeBox   = frame->at(0),
+        codeIndex = frame->at(1),
+        globals   = frame->at(2),
+        dynamics  = frame->at(3),
+        locals    = frame->at(4),
+        target    = frame->at(5),
+        supers    = frame->at(6),
+        handler   = frame->at(7),
+        values    = frame->at(8),
+        line      = frame->at(9),
+        char      = frame->at(10)
+     ]
+   )
+ end

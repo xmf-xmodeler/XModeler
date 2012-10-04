@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import IO;
+
+context XCore::Enum
+  @Operation deployXOCL(dir:String)
+  
+    // Writes out the text that can be used to reconstruct
+    // the element.
+    
+    try
+      @WithOpenFile(fout -> dir + "/" + self.name() + ".xmf")
+         format(fout,"parserImport XOCL;~%~%");
+         format(fout,"context ~{::~;~S~}~%~%",Seq{self.owner().pathSeq()});
+         format(fout,"  // Class deployed by ~S on ~S~%~%",Seq{xmf.user(),xmf.date()});
+         format(fout,"  @Enum ~S(~{,~;~S~}) end ",Seq{name,names});
+         fout.close()
+      end
+    catch(exception)
+      format(stdout,"Error writing enumeration type source: ~S~%",Seq{exception})
+    end
+  end

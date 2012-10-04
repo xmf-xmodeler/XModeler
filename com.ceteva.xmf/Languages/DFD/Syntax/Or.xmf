@@ -1,0 +1,61 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Languages;
+import DFD;
+import Syntax;
+
+context Syntax
+
+  @Class Or extends ProcessBody
+
+    // Processes can be PARTIAL in the sense that they can fail when applied
+    // to messages and data outside their domain. An OR action performs all
+    // component actions in sequence until one succeeds.
+    // @Or
+    //   <ACTION1>
+    //   <ACTION2>
+    //   ...
+    //   <ACTIONN>
+    // end
+    //
+    // Since each action in the DFD language returns a value we use the special
+    // value "FAIL" to signify failure.
+
+    @Attribute actions : Seq(ProcessBody) end
+
+    @Grammar extends OCL::OCL.grammar
+      
+      Or ::= exps = Exp*
+      {
+        [| Languages::DFD::Syntax::Or(<exps>) |]
+      }.
+      
+    end
+     
+    @Constructor(actions) end
+
+    @Operation eval(env)
+      self.evalAlternatives(actions,env)
+    end
+
+    @Operation evalAlternatives(actions,env)
+      if actions->isEmpty
+      then "FAIL"
+      else let action = actions->at(0)
+           in let value = action.eval(env)
+              in if value = "FAIL"
+                 then self.evalAlternatives(actions->drop(1),env)
+                 else value
+                 end
+              end
+           end
+      end
+    end
+       
+    @Operation code(indent:Integer):String
+      "@Or" + actions->iterate(action code = "" | 
+        code + "\n" + " ".repeat(indent + 2) + action.code(indent + 2)) + "\n" +
+        " ".repeat(indent) + "end"
+    end
+  end

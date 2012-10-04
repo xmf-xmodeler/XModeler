@@ -1,0 +1,7 @@
+import OCL;
+
+context Order
+  @Operation eval(target,env,imports)
+    first.eval(target,env,imports);
+    second.eval(target,env,imports)
+  end

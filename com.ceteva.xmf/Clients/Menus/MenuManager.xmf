@@ -1,0 +1,268 @@
+parserImport XOCL;
+
+import Clients;
+import ExtensionPoints;
+import Menus;
+
+context Menus
+
+  @Class MenuManager extends ExtensionPointListener
+
+    @Attribute menuTable : Table = Table(10) end
+    @Attribute proxyTable : Table = Table(10) end
+    @Attribute handlerPointTable : Table = Table(10) end
+    @Attribute menusRegistryPoint : Element end
+    @Attribute menusMultiHandlerRegistryPoint : Element end
+    @Attribute protected : Boolean = false end
+    
+    @Constructor()
+      let registry = xmf.registry() then
+          menuPoint = registry.getExtensionPoint("com.ceteva.xmf.menus");
+          menuMultiPoint = registry.getExtensionPoint("com.ceteva.xmf.menus.multiHandler")
+      in
+        self.menusRegistryPoint := menuPoint;
+        self.menusMultiHandlerRegistryPoint := menuMultiPoint;
+        menuPoint.addNotification(self)
+      end
+    end
+
+    @Operation addMenu(key,menu)
+      menuTable.put(key,menu)
+    end
+
+    @Operation addProxy(rightClickable,proxy)
+      proxyTable.put(rightClickable,proxy)
+    end
+
+    @Operation contributionAdded(extensionPointId,contribution)
+      if extensionPointId = "com.ceteva.xmf.menus"
+      then
+        let elementType = contribution.type then
+            menus = self.getGlobalMenusAffectedBy(elementType);
+            allContributions = menusRegistryPoint.contributions->select(c | c.contributesTo(elementType))
+        in
+
+          // Remove any existing contributions that match the label sequence...
+          @Find (c,allContributions)
+            when c<>contribution andthen c.getValue(2).equals(contribution.getValue(2))
+            do menusRegistryPoint.removeContribution(c)
+          end;
+
+          // Update any existing menus affected...
+          @For menu in menus
+          do
+            xmf.menuRegistryHandler().buildMenu(menu,contribution,RightClickableWithElement::elementTarget)
+          end
+          
+        end
+      end
+    end
+    
+    @Operation contributionRemoved(extensionPointId,contribution)
+      if extensionPointId = "com.ceteva.xmf.menus"
+      then
+        let elementType = contribution.type;
+            labelSeq = contribution.getValue(2) then
+            itemLabel = labelSeq->last then
+            menus = self.getGlobalMenusAffectedBy(elementType)
+        in
+          labelSeq := labelSeq->excluding(itemLabel);
+          @For menu in menus
+          do
+            let parent = menu in
+              @For label in labelSeq do
+                parent := parent.findOrAddMenuItems(label)
+              end;
+              let item = parent.findItemNamed(itemLabel)
+              in
+                if item <> null
+                then item.delete()
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation getMenu(key)
+      menuTable.get(key)
+    end
+
+    @Operation getProxy(rightClickable)
+      proxyTable.get(rightClickable)
+    end
+
+    
+    @Operation getHandlerPoint(menuAction)
+      let handler = menuAction.action
+      in
+        if handlerPointTable.hasKey(handler)
+        then handlerPointTable.get(handler)
+        else handlerPointTable.put(handler,menuAction);
+             menuAction
+        end
+      end
+    end
+
+    @Operation handleMenuSelection(menuPairs)
+      if menuPairs->size = 1
+      then
+        let mp = menuPairs->at(0) then
+            menuAction = mp->head;
+            target = mp->tail
+        in
+          menuAction.select(target)
+        end
+      else
+        let menuHandler = menuPairs->at(0)->head.action then
+            con = menusMultiHandlerRegistryPoint.find(menuHandler) then
+            multiHandler = if con<>null
+                           then con.getValue(0)
+                           else null
+                           end
+        in
+          if multiHandler<>null
+          then
+            multiHandler(menuPairs->collect(mp |
+              let menuAction = mp->head;
+                  target = mp->tail
+              in
+                menuAction.getActualTarget(target)
+              end
+            ))
+          else
+            @For mp in menuPairs do
+              let menuAction = mp->head;
+                  target = mp->tail
+              in
+                menuAction.select(target)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    @Operation hasMenu(key)
+      menuTable.hasKey(key)
+    end
+
+    @Operation hasProxy(rightClickable)
+      proxyTable.hasKey(rightClickable)
+    end
+
+    @Operation protectProxyTable(protected : Boolean)
+
+      // the protectProxyTable transaction wrapper is needed
+      // in Graph::renew to prevent elements from being removed
+      // from the proxy table during a renew. This is not a tidy
+      // solution and should be refactored later. Paul 12/07/05
+
+      self.protected := protected
+
+    end
+
+    @Operation removeMenu(key)
+      menuTable.remove(key)
+    end
+
+    @Operation removeFromProxyTable(rightClickable)
+      if not protected andthen proxyTable.hasKey(rightClickable)
+      then proxyTable.remove(rightClickable)
+      end
+    end
+    
+    @Operation reset()
+      //self.menuTable := Table(10);
+      //self.proxyTable := Table(10);
+      //self
+      @For menu in xmf.menuManager().menuTable.values() do
+        menu.new()
+      end
+    end
+
+    @Operation setGlobalMenuItem(elementType,parameters,op,labelSeq,shortcut,supportsMulti,undoable)
+      let contribution = Contribution(elementType,Seq{parameters,op,labelSeq,shortcut,supportsMulti,undoable})
+      in
+        self.removeGlobalMenuItem(elementType,labelSeq);
+        menusRegistryPoint.contribute(contribution);
+        menusRegistryPoint.resetCacheTable()
+      end
+    end
+    
+    @Operation setGlobalMenuItem(elementType,parameters,op,labelSeq,shortcut)
+      self.setGlobalMenuItem(elementType,parameters,op,labelSeq,shortcut,true)
+    end
+
+    @Operation removeGlobalMenuItem(elementType,labelSeq)
+      let contributions = self.findMenuContributionsMatching(elementType,labelSeq)
+      in
+        if not contributions->isEmpty
+        then
+          @For con in contributions do
+            menusRegistryPoint.removeContribution(con)
+          end;
+          menusRegistryPoint.resetCacheTable()
+        end
+      end
+    end
+
+    @Operation findMenuContributionsMatching(elementType,labelSeq)
+      menusRegistryPoint.contributions->select(c | c.type = elementType andthen c.values->at(2).toString() = labelSeq.toString())
+    end
+
+    @Operation getGlobalMenusAffectedBy(elementType)
+      let affectedMenus = Seq{}
+      in
+        @For key inTableKeys menuTable do
+          if key.isKindOf(SetOfElement)
+          then
+            let keyElementType = key->asSeq->head
+            in
+              if keyElementType.isKindOf(Classifier) andthen
+                 self.affectsTypeMenu(elementType,keyElementType)
+              then affectedMenus := affectedMenus->including(menuTable.get(key))
+              end
+            end
+          end
+        end;
+        affectedMenus
+      end
+    end
+    
+    @Operation affectsTypeMenu(contributingType,targetType)
+      if targetType.inheritsFrom(contributingType)
+      then
+        let rootTypeCon = xmf.registry().getExtensionPoint("com.ceteva.xmf.menus.rootType").find(targetType)
+        in
+          if rootTypeCon = null
+          then true
+          else
+            let rootType = rootTypeCon.getValue(0).lookupPath(Root)
+            in contributingType.inheritsFrom(rootType)
+            end
+          end
+        end
+      else false
+      end   
+    end
+
+  end
+
+context ClientElement
+    @Operation dispose()
+    
+      @Doc 
+        It is important that when a client element is disposed it is removed
+        from the idTable (call removeFromIdManager()) and calls dispose() on
+        any of its contents. Over-ride this for subclasses with contents. It
+        must also remove itself from the menu managers proxy table if it is
+        referenced there.
+      end
+      
+      self.removeFromIdManager();
+      xmf.menuManager().removeFromProxyTable(self);
+      self.id := null
+      
+    end

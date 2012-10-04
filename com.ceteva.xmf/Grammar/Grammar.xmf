@@ -1,0 +1,8 @@
+parserImport XOCL;
+
+context Root
+  @Package Grammars
+    @Class PathRef 
+      @Attribute path : Seq(String) end
+    end
+  end

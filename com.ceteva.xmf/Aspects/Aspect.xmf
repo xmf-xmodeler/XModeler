@@ -1,0 +1,47 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+
+import OCL;
+import XOCL;
+import Parser::BNF;
+import Aspects;
+
+context Aspects
+
+  @Class Aspect extends Sugar
+  
+    @Doc
+      An aspect contains a collection of definitions that are added to
+      existing model elements. The definitions take the form of class
+      definitions where the names are paths to existing classes and
+      the component definitions are attributes and operations.
+     
+     Constructor: Aspect(name,components)
+     
+       Each element of the sequence components is a ComponentDef.
+    end
+  
+    @Grammar extends OCL::OCL.grammar import Aspects
+    
+      Aspect ::= name = Name components = (Exp:ComponentDef)* { Aspect(name,components) }.
+      
+    end 
+    
+    @Attribute name : Name end
+    @Attribute components : Seq(ComponentDef) end
+    
+    @Constructor(name,components) ! end
+    
+    @Operation desugar() 
+      components->iterate(c e = [| Aspects::Semantics::Aspect(<StrExp(name)>) |] | [| <e>.add(<c>) |])
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"@Aspect ~S~%~V",Seq{name,indent+2});
+      @For c in components do
+        c.pprint(out,indent+2)
+      end;
+      format(out,"~%~Vend",Seq{indent})
+    end
+    
+  end

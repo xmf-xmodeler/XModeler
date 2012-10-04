@@ -1,0 +1,261 @@
+parserImport Parser::BNF;
+parserImport XOCL;
+parserImport Languages::StateMachines;
+parserImport Languages::MicroJava;
+parserImport Languages::MicroJava::Statements;
+
+import Languages;
+import StateMachines;
+import MicroJava;
+import Structure;
+import Statements;
+import Expressions;
+import Parser::BNF;
+import Mappings;
+import IO;
+  
+context StateMachines
+
+  @Package JavaMapping 
+  
+    @Map StateMachinableClass2Java(StateMachinableClass)->Class
+    
+      @Clause Class2Class
+      
+         XCore::Class[
+           name=name,
+           operations=O,
+           attributes=A,
+           machine=m] 
+      do JavaMapping::classToMicroJava(name,m,O,A) 
+      end
+      
+    end
+    
+    @Operation classToMicroJava(name,machine,O,A) 
+  
+      let M = O->asSeq->collect(o | XCoretoMicroJava(o));
+          F = A->asSeq->collect(a | XCoretoMicroJava(a));
+          map = StateMachine2Class()
+      in [|
+        @Java 
+          import Values.*;
+          class <name> extends StateMachineObject {
+            <* M + F + map(machine) *>
+          }
+        end
+        |]
+      end
+    
+    end
+      
+  
+    @Map StateMachine2Class(StateMachine)->Feature
+    
+      @Attribute mapTrans : TransSet2Method = TransSet2Method() end
+    
+      @Clause Machine2Class
+      
+        StateMachine[
+          name = n,
+          startName = sn,
+          transitions = T,
+          states = S]
+      do
+        let stateDec = Seq{
+              [| @Java String state = <JString(sn)>; end |],
+              [| @Java boolean debug = true; end |]
+            };
+            changeState = Seq{[| 
+              @Java 
+                void changeState(String name) {
+                  if(debug)
+                    System.out.println("Changing state to " + name);
+                  this.state = name; 
+                }
+              end
+            |]};
+            methodNames = T->asSet.event.name then
+            transSets = methodNames->collect(n | T->select(t | t.event.name = n)) then
+            M = transSets->asSeq->collect(T | (mapTrans.setName(T->sel.event.name))(T))
+        in stateDec + changeState + M
+        end
+      end
+      
+    end
+    
+    @Map TransSet2Method(Transition)->Method
+    
+      @Attribute name    : String                                      (!) end
+      @Attribute mapBody : TransSet2MethodBody = TransSet2MethodBody()     end
+      
+      @Clause CreateMethod 
+        S
+      do
+        [| @Java void <name>() { <* mapBody(S) *> } end |]
+      end
+      
+    end
+    
+    @Map TransSet2MethodBody(Transition)->Statement
+    
+      @Clause Empty
+        Set{}
+      do Seq{[| @Statement throw new Error("No transition possible."); end |]}
+      end
+      
+      @Clause CheckGuard
+        S->including(t)
+      do 
+        OCLtoMicroJava(t.guard.property("source"),Seq{}) +  
+        Seq{[| 
+          @Statement 
+            if(popStack().isTrue()) 
+              { <* Act *>  }
+            else { <* Alt *> } 
+          end 
+        |]}
+          where 
+            Act = Seq{[| @Statement changeState(<JString(t.targetName)>); end |]} +
+                  OCLtoMicroJava(t.action.property("source"),Seq{});
+            Alt = self(S)
+      end
+      
+    end
+    
+    @Operation test()
+    
+      let m =
+        @StateMachine(TrafficLight,Red)
+          @State Red self end
+          @State RedAmber self end
+          @State Green self end
+          @State Amber self end
+          @Transition ReadyToGo()(Red,RedAmber)
+          end
+          @Transition Go()(RedAmber,Green)
+          end
+          @Transition ReadyToStop() (Green,Amber)
+          end
+          @Transition Stop()(Amber,Red) end
+        end
+      in m
+      end
+    end
+           
+    
+  end
+  
+context Root
+  @Class X metaclass StateMachinableClass
+    @StateMachine(TrafficLight,Red)
+      @State Red self end
+      @State RedAmber self end
+      @State Green self end
+      @State Amber self end
+      @Transition ReadyToGo()(Red,RedAmber)
+      end
+      @Transition Go()(RedAmber,Green)
+      end
+      @Transition ReadyToStop() (Green,Amber)
+      end
+      @Transition Stop()(Amber,Red) end
+     end
+     @Operation test() 10 end
+     @Attribute plap : String end
+  end
+  
+context StateMachinableClass
+  @Operation toJava()
+    let m = JavaMapping::StateMachinableClass2Java()
+    in m(self)
+    end
+  end
+  
+context StateMachinableClass
+  @Operation deploy(dir:String)
+    let fout = FileOutputChannel(dir + "/" + name + ".java");
+        java = self.toJava()
+    in java.pprint(fout,0);
+       fout.close()
+    end
+  end
+
+  
+
+/*
+ 
+  @Map SM2Class(StateMachine)->Java::Class
+    @Clause SM2Class
+      s = StateMachine
+        [name = N,
+         transitions = T,
+         states = S] do
+      Java::Class
+        [name = N,
+         members = M->including(
+           Field
+             [name = "state", 
+              type = "String" ])]
+      where M = T->collect(t | Transition2Method()(t))
+    end     
+  end   
+  
+  @Map Transition2Method(Transition)->Java::Method
+    @Clause Transition2Method
+      t = Transition
+        [event = Event[name = N] ] do
+      Java::Method
+        [name = N,
+         body = B]
+      where
+        B = "if (" + Exp2String()(t.guardexp.performable) + ")\n" + 
+        "  this.state := " + "\"" + t.targetName + "\"" + "; \n"
+        
+    end
+  end 
+  
+  @Map Exp2String(OCL::BinExp)->String
+    @Clause BinExp2String
+      OCL::BinExp
+      [binOp = N,
+       left = L,
+       right = R] do
+       self(L) + " " + N + " " + self(R)
+    end
+    @Clause IntExp2String
+      OCL::IntExp
+      [value = V] do
+       V
+    end 
+    @Clause Dot2String
+      OCL::Dot
+      [name = N,
+       target = S] do
+       if S->isKindOf(OCL::Self) then 
+         "self" 
+       else 
+         self(S)
+       end + "." + N
+    end
+    @Clause BoolExp2String
+      OCL::BoolExp
+        [value = V] do
+        V
+    end
+  end    
+   
+  @Operation testMap1()
+    let s1 = StateMachine("X");
+    m = JavaMapping::SM2Class() in 
+      m(s1).println() 
+    end
+  end
+   
+  @Operation testMap2(s1:StateMachine)
+  let m = JavaMapping::SM2Class() in 
+      m(s1).println() 
+    end
+  end
+  
+  */

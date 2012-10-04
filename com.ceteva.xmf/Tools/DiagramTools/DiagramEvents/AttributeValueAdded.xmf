@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import Tools;
+import DiagramTools;
+import DiagramEvents;
+import Diagrams;
+
+context DiagramEvents
+
+  @Class AttributeValueAdded extends Change
+  
+    @Attribute root  : Node        (?) end
+    @Attribute path  : Seq(String) (?) end 
+    @Attribute value : Element     (?) end
+    
+    @Constructor(root,path,value) ! end   
+    
+    @Operation raisedName():String
+      "Add_To_" + path->separateWith("_")
+    end
+  
+  end

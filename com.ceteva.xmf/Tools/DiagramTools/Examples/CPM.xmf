@@ -1,0 +1,246 @@
+parserImport XOCL;
+parserImport Tools::DiagramTools::Types;
+parserImport Tools::DiagramTools::Structure;
+parserImport Tools::Menus;
+parserImport Tools::Events;
+parserImport Tools::DiagramTools::Types::DisplayTypes;
+
+import Tools;
+import DiagramTools;
+import Structure;
+import Graphs; 
+import DiagramEvents;
+import Graphs;
+
+context Root
+  @Class Event extends NamedElement
+    @Attribute earliest : Integer (?,!) end
+    @Attribute latest   : Integer (?,!) end
+    @Operation timing():String
+      "(" + earliest + "," + latest + ")"
+    end
+  end
+  
+context Root
+  @Class Activity extends NamedElement
+    @Attribute duration : Integer (?,!) end
+  end
+
+context Root
+
+@ToolType CPM
+  @EdgeType Activity Event -> Event targetHead = arrow 
+    @Label name(end,20,20) "name" end
+    @Label duration(middle,10,10) "0" end 
+    @Menu 
+      @MenuAction Delete self.delete() end 
+      @MenuAction Edit tool.find(self).edit() end
+    end
+  end
+  @NodeType Event(OVERLAY,hasport)
+    @Box box(OVERLAY,ALIGN,nofill,hideTop,hideRight,hideLeft,hideBottom)
+      @Ellipse ellipse(ALIGN)   width = 20 height = 20 end
+      @Box data(VERTICAL,ALIGN,nofill,hideTop,hideRight,hideLeft,hideBottom)
+        @PaddedText name(CENTRE) "Event Name" pad = 10 end
+        @PaddedText timing(CENTRE,readonly) "(0,0)" pad = 2 end
+      end
+    end
+    @Menu 
+      @MenuAction Delete self.delete(true) end 
+      @MenuAction Edit tool.find(self).edit() end
+    end
+  end
+  @ToolBar 
+    @ToolGroup Operations
+      @ToolButton Activity isEdge icon = "Tools/Attribute.gif" end
+      @ToolButton Event           icon = "Tools/Activity.gif"    end
+    end
+  end
+  @Menu
+    @MenuAction Calculate 
+      tool.performPasses()
+    end
+  end
+  
+end
+
+context Root
+@ElementManager CPMManager !
+  @EventHandler New_Event()
+    let e = Event("E")
+    in e.observeBy(tool);
+       register(event.node(),e);
+       register(event.node().ref1(Seq{"box","data","name"}),e);
+       register(e,event.node());
+       tool.element().add(Node(e))
+    end
+  end
+  @EventHandler Event_Removed()
+    tool.element().remove(tool.element().nodeFor(find(event.node())))
+  end
+  @EventHandler New_Activity()
+    let source = find(event.source());
+        target = find(event.target());
+        a = Activity("A") then
+        e = Edge(a,tool.element().nodeFor(source),tool.element().nodeFor(target))
+    in a.observeBy(tool);
+       tool.element().add(e);
+       register(event.edge(),a);
+       register(event.edge().ref("name"),a);
+       register(event.edge().ref("duration"),a);
+       register(a,event.edge())
+    end
+  end
+  @EventHandler Activity_Removed()
+    tool.element().remove(tool.element().edgeFor(find(event.edge())))
+  end
+  @EventHandler Event_box_data_name_Changed()
+    let e = find(event.value())
+    in if e.name().toString() <> event.new()
+       then e.setName(event.new())
+       end
+    end
+  end
+  @EventHandler Activity_name_Changed()
+    let a = find(event.value())
+    in a.setName(event.new())
+    end
+  end
+  @EventHandler Activity_duration_Changed()
+    let a = find(event.value());
+        d = event.new().asInt()
+    in if a.duration() <> d
+       then a.setDuration(d)
+       end
+    end
+  end
+  @EventHandler Event_box_data_timing_Changed()
+    null
+  end
+  @EventHandler Event_Object_name_Changed()
+    let node = find(event.object()) then
+        name = node.ref1(Seq{"box","data","name"})
+    in if name.text() <> event.new()
+       then name.setText(event.new())
+       end
+    end
+  end
+  @EventHandler Event_Object_latest_Changed()
+    null
+  end
+  @EventHandler Event_Object_earliest_Changed()
+    null
+  end
+  @EventHandler Activity_Object_duration_Changed()
+    let edge = find(event.object());
+        d = event.new().toString() then 
+        duration = edge.ref("duration")
+    in if duration.text() <> d
+       then duration.textChanged(d)
+       end
+    end
+  end
+  @EventHandler Activity_Object_name_Changed()
+    let edge = find(event.object())then 
+        name = edge.ref("name")
+    in if name.text() <> event.new()
+       then name.textChanged(event.new())
+       end
+    end
+  end
+end
+
+context Root
+  @Class CPMTool extends Tool
+    @Operation resetEdges()
+      @For edge in self.diagram().edges() do
+        edge.setStyle(1)
+      end
+    end
+    @Operation performPasses()
+      self.resetEdges();
+      self.forwardPass();
+      self.backwardPass();
+      self.showCriticalPath()
+    end
+    @Operation forwardPass()
+      let graph = self.element() then
+          roots = graph.roots() then
+          visited = roots
+      in @While visited <> graph.nodes() do
+           @For node in graph.nodes() do
+             if graph.predecessors(node)->forAll(n | visited->includes(n)) and not visited->includes(node)
+             then 
+               let preds = graph.predecessors(node);
+                   earliest = 0
+               in @For pred in preds do
+                    @For edge in graph.edgesBetween(pred,node) do
+                      earliest := earliest.max(pred.data().earliest() + edge.data().duration())
+                    end
+                  end;
+                  node.data().setEarliest(earliest);
+                  visited := visited->including(node)
+               end
+             end
+           end
+         end;
+         @For node in graph.nodes() do
+           self.find(node.data()).ref1(Seq{"box","data","timing"}).setText(node.data().timing())
+         end
+      end
+    end
+    @Operation backwardPass()
+      let graph = self.element() then
+          terminals = graph.terminals() then
+          visited = terminals
+      in if terminals->size <> 1
+         then self.error("A CPM network must have 1 termnial event.")
+         else terminals->sel.data().setLatest(terminals->sel.data().earliest())
+         end;
+         @While visited <> graph.nodes() do
+           @For node in graph.nodes() do
+             if graph.successors(node)->forAll(n | visited->includes(n)) and not visited->includes(node)
+             then 
+               let succs = graph.successors(node);
+                   latest = 9999
+               in @For succ in succs do
+                    @For edge in graph.edgesBetween(node,succ) do
+                      latest := latest.min(succ.data().latest() - edge.data().duration())
+                    end
+                  end;
+                  node.data().setLatest(latest);
+                  visited := visited->including(node)
+               end
+             end
+           end
+         end;
+         @For node in graph.nodes() do
+           self.find(node.data()).ref1(Seq{"box","data","timing"}).setText(node.data().timing())
+         end
+      end
+    end 
+    @Operation showCriticalPath()
+      let graph = self.element() then
+          root = graph.roots()->sel then
+          paths = graph.paths(root)->select(p | graph.terminals()->includes(p->last)) then
+          criticalPath = paths->select(p | p->forAll(n | n.data().latest() - n.data().earliest() = 0))->sel
+      in @Letrec showPath =
+           @Operation(path)
+             if not (path->isEmpty orelse path->tail->isEmpty)
+             then 
+               let source = path->head;
+                   target = path->tail->head then
+                   edges = graph.edgesBetween(source,target)
+               in self.find(edges->sel.data()).setStyle(2);
+                  showPath(path->tail)
+               end
+             end
+           end
+         in showPath(criticalPath)
+         end
+       end
+     end
+           
+  end
+
+Root::tool := CPMTool(CPM,"CPM Editor",CPMManager,Graph());

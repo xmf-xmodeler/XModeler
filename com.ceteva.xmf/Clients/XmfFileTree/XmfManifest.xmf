@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import Clients;
+import SearchReport;
+import IO;
+import XmfFileTree;
+import Manifests;
+
+context XmfFileTree
+
+  @Class XmfManifest extends XmfFile
+  
+    @Attribute manifest : Manifest (?,!) end
+    
+    @Operation getChildren()
+      if manifest = null
+      then Seq{}
+      else manifest.getChildren()
+      end
+    end
+    
+    @Operation getChildrenToolTips()
+      if manifest = null
+      then Seq{}
+      else manifest.getChildrenToolTips()
+      end
+    end
+  
+  end

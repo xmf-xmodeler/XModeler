@@ -1,0 +1,62 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import Clients;
+import Mosaic;
+
+context Mosaic
+
+  @Class Perspective extends ContainedClientElement
+  
+    @Grammar extends OCL::OCL.grammar
+  
+      Perspective ::= '(' title = Str ',' icon = Exp ')' contents = Exp* {
+        let p = contents->iterate(element exp = [| Clients::Mosaic::Perspective(<OCL::StrExp(title)>,<icon>) |] | [| <exp>.add(<element>) |])
+		in [| let client = xmf.clientManager().findClientByName("com.ceteva.mosaic")
+        	  in client.addPerspective(<p>)
+         	  end |]
+		end
+      }.
+      
+    end
+  
+    @Attribute title : String (?) end
+    @Attribute image : String (?) end
+    @Attribute placeholders : Seq(PlaceHolder) (+,-) end
+    
+    @Constructor(title,image)
+    end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        PlaceHolder do self.addPlaceHolder(element) end
+      end
+    end
+    
+    @Operation addPlaceHolder(placeholder)
+      self.placeholders := self.placeholders->prepend(placeholder);
+      placeholder.setOwner(self);
+      self
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newPerspective(self);
+      @For holder in placeholders->reverse()
+      do
+        holder.new()
+      end
+    end
+    
+    @Operation resolvePlaceholder(name)
+      @Find(holder,placeholders)
+        when holder.name = name
+      else
+        ""
+      end
+    end
+    
+    @Operation show()
+      self.commandInterpreter().showPerspective(self)
+    end
+    
+  end

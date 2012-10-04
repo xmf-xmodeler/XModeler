@@ -1,0 +1,37 @@
+parserImport XOCL;
+parserImport XRules;
+  
+context Root::Test
+  @Rule GetName(NamedElement[name=n],n) end
+  
+context Root::Test
+  @Rule GetName(N,N) end
+
+context Root::Test
+  @Rule GetNames(Package[classes=C;packages=P],N) 
+    GetNames(C,N1)
+    GetNames(P,N2)
+    Append(N1,N2,N)
+  end
+  
+context Root::Test
+  @Rule GetNames(Class[attributes=A;operations=O],N) 
+    GetNames(A,N1)
+    GetNames(O,N2)
+    Append(N1,N2,N)
+  end
+  
+context Root::Test
+  @Rule GetNames(Seq{X|S},Seq{XN|N})
+    GetName(X,XN)
+    GetNames(X,N1)
+    GetNames(S,N2)
+    Append(N1,N2,N)
+  end
+ 
+context Root::Test
+  @Rule GetNames(Seq{},Seq{}) end
+
+context Root::Test
+  @Rule GetNames(X,Seq{}) end
+  

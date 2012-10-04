@@ -1,0 +1,17 @@
+parserImport Tools::Events;
+
+import StateMachines;
+
+context StateMachines::StateMachine::StateDiagrams::StateManager
+  @EventHandler New_State()
+    let stateNode = event.node() then
+        nameBox = stateNode.ref1(Seq{"box","name"});
+        stateName = "S" + event.tool().element().states()->size then
+        state = State(stateName)
+    in register(stateNode,state);
+       register(state,stateNode);
+       stateNode.setLayoutId(stateName);
+       event.tool().element().add(state);
+       nameBox.setText(stateName)
+    end
+  end

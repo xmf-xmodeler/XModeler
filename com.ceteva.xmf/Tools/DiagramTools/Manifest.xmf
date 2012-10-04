@@ -1,0 +1,18 @@
+parserImport Manifests;
+
+@Manifest DiagramTools
+
+  DiagramTools =
+    @File DiagramTools end
+    @Ref Layout        end
+    @Ref Diagrams      end
+    @Ref DiagramEvents end
+    @Ref Types         end
+    @Ref Structure     end
+    @File Classifier   end
+    @File Element      end
+    @File Object       end
+    @File Package      end
+do DiagramTools
+  
+end;

@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import OCL;
+import Instrs;
+
+context SetExp
+  @Operation FV():Element
+    elements->collect(e |
+      e.FV()->asSeq)->flatten->asSet
+  end
+
+context SetExp
+  @Operation maxLocals():Element
+    elements->collect(e |
+      e.maxLocals())->max
+  end
+
+context SetExp
+  @Operation compile(env:Element,frame:Element,isLast:Element,saveSource:Element):Element
+    let elCode = elements->collect(e | e.compile(env,frame,false,saveSource))->flatten
+    in if collType = "Set"
+       then elCode + Seq{MkSet(elements->size)}
+       else elCode + Seq{MkSeq(elements->size)}
+       end
+    end
+  end
+  
+context SetExp
+  @Operation lift()
+    Apply(self.typeExp(),Seq{StrExp(collType),SetExp("Seq",elements->collect(element | element.lift()))})
+  end

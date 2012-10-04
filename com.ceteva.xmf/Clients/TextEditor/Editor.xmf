@@ -1,0 +1,172 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+import IO;
+import Menus;
+
+context TextEditor
+
+  @Class Editor extends RightClickableWithElement, ContainedClientElement
+  
+    @Bind red   = "red"   end
+    @Bind blue  = "blue"  end
+    @Bind green = "green" end
+    
+    @Attribute name      : String (?)  end
+    @Attribute tooltip   : String (?) end
+    @Attribute editable  : Boolean (?) end
+    @Attribute dirty     : Boolean (?) end
+    
+    @Constructor(name,tooltip,editable)
+      self.element := self
+    end
+    
+    @Operation addWordRule(word,colour)
+      self.commandInterpreter().addWordRule(self,word,colour)
+    end
+    
+    @Operation addMultilineRule(startRule,endRule,colour)
+      self.commandInterpreter().addMultilineRule(self,startRule,endRule,colour)
+    end
+    
+    @Operation addLineHighlight(line)
+      self.commandInterpreter().addLineHighlight(self,line)
+    end
+    
+    //@Operation addRightClickMenuItems()
+    //  self.buildMenuTreeFromRegistry(self)
+    //end
+    
+    @Operation clearHighlights()
+      self.commandInterpreter().clearHighlights(self)
+    end
+    
+    @Operation close()
+      // xmf.undoEngine().clearCommands(self);
+      owner.removeEditor(self);
+      self.removeDaemons()
+    end
+    
+    @Operation closeOpenEditor()
+      self.commandInterpreter().delete(self)
+    end
+
+    @Operation dispose()
+      self.owner := null;
+      self.clearRightClickMenu();
+      super()
+    end
+    
+    @Operation focusGained()
+      self
+    end
+    
+    @Operation focusLost()
+      self
+    end
+    
+    @Operation getCursorPosition()
+      self.commandInterpreter().getCursorPosition(self)
+    end
+    
+    @Operation getText()
+      self.commandInterpreter().getText(self)
+    end
+    
+    @Operation getTextAt(position,length)
+      self.commandInterpreter().getTextAt(self,position,length)
+    end
+    
+    @Operation new()
+      self.commandInterpreter().newTextEditorCommand(self);
+      self.setRightClickMenu();
+      //self.addRightClickMenuItems();
+      //self.newRightClickMenu(self);
+      self.setSyntaxHighlightRules();
+      self
+    end
+    
+    @Operation removeDaemons()
+      self // override in subclasses
+    end
+    
+    @Operation renew()
+      self.removeFromIdManager();
+      self.commandInterpreter().newTextEditorCommand(self);
+      self.setRightClickMenu();
+      //self.renewRightClickMenu(self);
+      self.setSyntaxHighlightRules();
+      self
+    end
+    
+    /* @Operation save(text)
+      self // override in subclasses
+    end */
+    
+    @Operation setClean()
+      if self.dirty <> false
+      then
+        self.commandInterpreter().setClean(self)
+      end;
+      self.dirty := false
+    end
+    
+    @Operation setCursorPosition(position)
+      self.commandInterpreter().setCursorPosition(self,position)
+    end
+    
+    @Operation setDirty()
+      if self.dirty <> true
+      then
+        self.commandInterpreter().setDirty(self)
+      end;
+      self.dirty := true
+    end
+    
+    @Operation setFocus()
+      self.commandInterpreter().setFocus(self)
+    end
+    
+    @Operation setName(name)
+      self.name := name;
+      self.commandInterpreter().setName(self)
+    end
+    
+    @Operation setSyntaxHighlightRules()
+      self
+    end
+    
+    @Operation setText(text)
+      self.commandInterpreter().setText(self,text)
+    end
+    
+    @Operation setTextAt(text,position,length)
+      self.commandInterpreter().setTextAt(self,text,position,length)
+    end
+    
+    @Operation setTooltip(tooltip)
+      self.tooltip := tooltip;
+      self.commandInterpreter().setTooltip(self,tooltip)
+    end
+    
+    @Operation show()
+    
+      // Used to show the editor.
+      
+      let client = xmf.clientNamed("com.ceteva.text")
+      in client.addEditor(self);
+         self.new();
+         self
+      end
+    end
+    
+    @Operation showLine(line)
+      self.commandInterpreter().showLine(self,line)
+    end
+    
+    @Operation undoStacked()
+      self
+    end
+    
+  end

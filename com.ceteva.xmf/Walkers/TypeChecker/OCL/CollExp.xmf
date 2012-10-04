@@ -1,0 +1,24 @@
+parserImport Walkers;
+parserImport XOCL;
+
+import OCL;
+import Walkers;
+
+@Handler CollExp in TypeChecker(exp,env,encountered)
+  let cType = self.dispatch(exp.collection,env);
+      argTypes = exp.args->collect(arg | self.dispatch(arg,env))
+  in if cType.type().isKindOf(Seq) or cType.type().isKindOf(Set)
+     then 
+       @Find(op,cType.type().allOperations())
+         when op.name().toString() = exp.collOp
+         do
+           if self.typesMatch(argTypes,op.paramTypes())
+           then TypeCheckExp(exp,op.type(),Seq{cType | argTypes})
+           else TypeCheckFails("argument types do not match",TypeCheckExp(exp,Element,Seq{cType | argTypes}))
+           end
+         else TypeCheckFails("unknown collection operation " + exp.collOp,TypeCheckExp(exp,Element,Seq{cType | argTypes}))
+       end
+     else TypeCheckFails("expecting a collection",TypeCheckExp(exp,Element,Seq{cType | argTypes}))
+     end
+   end
+end;

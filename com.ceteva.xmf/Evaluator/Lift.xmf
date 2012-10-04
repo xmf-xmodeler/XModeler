@@ -1,0 +1,18 @@
+parserImport Walkers;
+
+import Root::OCL;
+import Root::Evaluator;
+
+/*
+
+@Handler Lift in Eval(aLift,arg,seen)
+  if seen
+  then aLift
+  else
+    let exp = self.dispatch(aLift.exp,arg)
+    in aLift
+    end
+  end
+end;
+
+*/

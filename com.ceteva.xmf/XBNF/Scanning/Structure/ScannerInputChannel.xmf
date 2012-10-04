@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import XBNF::Scanning;
+import Structure;
+import IO;
+
+context Structure
+
+  @Class ScannerInputChannel
+  
+    // Legacy grammars and parsers use a token input channel
+    // that returns tokens in the form:
+    // Seq{type,value,pos,line,char,rawChars}
+    // In order to bootstrap XBNF and allow it to be used 
+    // alongside legacy parsing machinery, we wrap a scanner
+    // with this class so that it can be used as a token
+    // generator.
+    
+    @Attribute scanner : Scanner      end
+    @Attribute input   : InputChannel end
+    
+    @Constructor(scanner,input) ! end
+    
+    @Operation nextToken():Seq(Element)
+      if scanner.nextToken(input)
+      then
+        if scanner.legacyType = 1 // EOF
+        then null
+        else
+          Seq{scanner.legacyType,
+            if scanner.legacyType = 7 // INT
+            then scanner.legacyValue
+            else scanner.legacyToken.toString()
+            end,
+            scanner.charIndex,
+            0, // Line
+            0, // Char
+            scanner.legacyToken.toString()}
+        end
+      else self.error("Error in scanner")
+      end
+    end
+    
+  end
+    

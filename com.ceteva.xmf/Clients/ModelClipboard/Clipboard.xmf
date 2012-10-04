@@ -1,0 +1,103 @@
+parserImport XOCL;
+
+import Clients;
+import ModelClipboard;
+
+context ModelClipboard
+
+  @Class Clipboard
+  
+    @Doc
+      The model clipboard facilitates the cut or copy and paste of any model element,
+      effectively enabling model elements to be moved or copied where appropriate.
+    end
+    
+    @Attribute sources : Seq(ClipboardSource) (?,!,+,-) end
+    @Attribute isCopy : Boolean (?,!) end
+    @Attribute transactionMode : String = null (?,!) end
+
+    @Operation acceptDrop(dragSource:DragHandler, dropTarget:DropHandler, mode:String)
+      dropTarget <> dragSource andthen dropTarget.acceptDrop(dragSource,mode)
+    end
+
+    @Operation acceptMultipleDrop(dragSources:Set(DragHandler), dropTarget:DropHandler, mode:Boolean)
+      let accept = true
+      in
+        @For dragSource in dragSources do
+          if not self.acceptDrop(dragSource,dropTarget,mode)
+          then accept := false
+          end
+        end;
+        accept
+      end
+    end
+
+    @Operation clear()
+      self.setSources(Seq{});
+      self.setTransactionMode(null)
+    end
+
+    @Operation copy(source : ClipboardSource)
+      self.addToSources(source);
+      self.setIsCopy(true)
+    end
+
+    @Operation copys(sources : Seq(ClipboardSource))
+      self.setSources(sources);
+      self.setIsCopy(true)
+    end
+
+    @Operation cut(source : ClipboardSource)
+      if source.acceptCut()
+      then
+        self.addToSources(source);
+        self.setIsCopy(false)
+      else
+        xmf.warning("Cannot cut the selected element to the clipboard.")
+      end
+    end
+
+    @Operation cuts(sources : Seq(ClipboardSource))
+      let accept = true
+      in
+        @For source in sources do
+          if not source.acceptCut()
+          then accept := false
+          end
+        end;
+        if accept
+        then
+          self.setSources(sources);
+          self.setIsCopy(false)
+        else
+          xmf.warning("Cannot cut the selected elements to the clipboard.")
+        end
+      end
+    end
+    
+    @Operation dragAndDrop(event:DropEvent)
+      event.perform(self)
+    end
+
+    @Operation isEmpty()
+      self.sources->isEmpty
+    end
+
+    @Operation paste(target)
+      if self.isEmpty()
+      then
+        xmf.warning("The clipboard is empty.")
+      else
+        if target.acceptPaste(sources,isCopy)
+        then
+          target.paste(sources,isCopy);
+          if not self.isCopy()
+          then self.clear()
+          end
+        else
+          xmf.warning("Cannot paste the clipboard element to " + target.elementString() + ".")
+        end
+      end
+    end
+  
+  end

@@ -1,0 +1,13 @@
+parserImport XOCL;
+
+// This file adds features to the XMF class that provides access
+// to the file editor manager
+
+let fileEditorManager = Clients::TextEditor::FileEditorManager() in
+  xmf.setProperty("fileEditorManager",fileEditorManager)
+end;
+
+context XMF
+  @Operation fileEditorManager()
+    self.property("fileEditorManager")
+  end

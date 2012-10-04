@@ -1,0 +1,79 @@
+<Layout>
+  <Node id='For' x='619' y='480' height='48' width='100' hidden='false'/>
+  <Node id='Performable' x='587' y='340' height='58' width='120' hidden='false'/>
+  <Node id='Return' x='583' y='224' height='38' width='100' hidden='false'/>
+  <Node id='Attribute' x='714' y='277' height='38' width='100' hidden='false'/>
+  <Node id='Attribute' x='691' y='130' height='58' width='120' hidden='false'/>
+  <Node id='Package' x='34' y='625' height='38' width='100' hidden='false'/>
+  <Node id='Package' x='35' y='456' height='58' width='120' hidden='false'/>
+  <Node id='Clock' x='55' y='368' height='38' width='100' hidden='false'/>
+  <Node id='StateMachine' x='94' y='181' height='107' width='100' hidden='false'/>
+  <Node id='Class' x='61' y='42' height='68' width='123' hidden='false'/>
+  <Node id='Transition' x='312' y='184' height='80' width='100' hidden='false'/>
+  <Node id='Exp' x='318' y='36' height='68' width='117' hidden='false'/>
+  <Node id='Arg' x='279' y='335' height='76' width='100' hidden='false'/>
+  <Node id='Syntax' x='454' y='301' height='58' width='117' hidden='false'/>
+  <Node id='SeqType' x='334' y='581' height='38' width='100' hidden='false'/>
+  <Node id='NamedType' x='466' y='577' height='48' width='100' hidden='false'/>
+  <Node id='Type' x='330' y='458' height='69' width='194' hidden='false'/>
+  <Node id='InitialState' x='181' y='549' height='48' width='100' hidden='false'/>
+  <Node id='State' x='178' y='439' height='48' width='100' hidden='false'/>
+  <Node id='ObjectWithState' x='481' y='51' height='48' width='103' hidden='false'/>
+  <Edge id='Inheritance' sourceId='For' targetId='Performable' hidden='false'/>
+  <Edge id='body' sourceId='For' targetId='Performable' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='body' relx='5' rely='21'/>
+  </Edge>
+  <Edge id='seq' sourceId='For' targetId='Performable' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='seq' relx='5' rely='21'/>
+  </Edge>
+  <Edge id='type' sourceId='For' targetId='Type' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='type' relx='20' rely='10'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='Return' targetId='Performable' hidden='false'/>
+  <Edge id='value' sourceId='Return' targetId='Performable' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='value' relx='-44' rely='-72'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='Attribute' targetId='Attribute' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Package' targetId='Package' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Clock' targetId='StateMachine' hidden='false'/>
+  <Edge id='Inheritance' sourceId='StateMachine' targetId='Class' hidden='false'/>
+  <Edge id='transitions' sourceId='StateMachine' targetId='Transition' hidden='false'>
+    <Label text='*' relx='-71' rely='-38'/>
+    <Label text='transitions' relx='-80' rely='-28'/>
+  </Edge>
+  <Edge id='states' sourceId='StateMachine' targetId='State' hidden='false'>
+    <Label text='*' relx='5' rely='5'/>
+    <Label text='states' relx='-78' rely='-147'/>
+  </Edge>
+  <Edge id='action' sourceId='Transition' targetId='Exp' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='action' relx='5' rely='21'/>
+  </Edge>
+  <Edge id='pred' sourceId='Transition' targetId='Exp' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='pred' relx='5' rely='21'/>
+  </Edge>
+  <Edge id='args' sourceId='Transition' targetId='Arg' hidden='false'>
+    <Label text='{ordered}' relx='9' rely='-55'/>
+    <Label text='args' relx='25' rely='-25'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='Arg' targetId='Syntax' hidden='false'/>
+  <Edge id='type' sourceId='Arg' targetId='Type' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='type' relx='22' rely='-30'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='SeqType' targetId='Type' hidden='false'/>
+  <Edge id='type' sourceId='SeqType' targetId='Type' hidden='false'>
+    <Label text='' relx='5' rely='5'/>
+    <Label text='type' relx='5' rely='21'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='NamedType' targetId='Type' hidden='false'/>
+  <Edge id='Inheritance' sourceId='Type' targetId='Syntax' hidden='false'>
+    <WayPoint x='553' y='482'/>
+  </Edge>
+  <Edge id='Inheritance' sourceId='InitialState' targetId='State' hidden='false'/>
+</Layout>

@@ -1,0 +1,20 @@
+parserImport XOCL;
+
+import Languages;
+import XOCL;
+import MicroJava;
+import Structure;
+
+context Structure
+
+  @Class NamedType extends Type
+  
+    @Attribute path : Seq(String) end
+    
+    @Constructor(path) ! end
+    
+    @Operation pprint(out)
+      format(out,"~{.~;~S~}",Seq{path})
+    end
+    
+  end

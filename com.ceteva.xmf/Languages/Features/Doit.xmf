@@ -1,0 +1,15 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XOCL;
+
+context ! Features
+
+  @Class Doit
+  
+    @Grammar extends XCore::Operation.grammar
+    
+      Doit ::= o = Operation.
+   
+    end
+  end

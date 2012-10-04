@@ -1,0 +1,5 @@
+// This file will compile the assembler.
+
+Compiler::compileFile("../../XMF/Assembler/Assembler",true,true);
+Compiler::compileFile("../../XMF/Assembler/Boot",true,true);
+Compiler::compileFile("../../XMF/Assembler/CodeBox",true,false);

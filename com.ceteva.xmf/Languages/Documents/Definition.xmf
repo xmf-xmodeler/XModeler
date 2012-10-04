@@ -1,0 +1,63 @@
+parserImport XOCL;
+
+import MApProjects;
+import Documents;
+import Clients::BrowserInterface;
+
+context ! Documents
+
+  @Class Definition metaclass BrowsedClass extends ElementRef
+
+  end
+
+context Definition
+  @Operation toHTML()
+      let
+        registry = xmf.registry();
+        id = "com.ceteva.styles"
+      in 
+        let contribution = 
+          registry.getExtensionPoint(id).find(styleName)
+        in
+          if contribution <> null then
+            contribution.values->sel.renderOp.invoke(refObject,Seq{})
+          else
+            let defaultContribution =
+              registry.getExtensionPoint(id).find("defaultStyle1")
+            in
+              defaultContribution.values->sel.renderOp.invoke(refObject,Seq{})
+            end
+          end
+        end
+      end
+    end
+
+context Definition
+  @Operation setStyle()
+    let
+      registry = xmf.registry();
+      id = "com.ceteva.styles" then
+      styles = registry.getExtensionPoint(id)
+    in 
+      let 
+        typeConformantStyles =
+        styles.contributions()->select(c | 
+          self.refObject.isKindOf(c.values->sel.type))->collect(c | c.values)->flatten
+      in
+        if typeConformantStyles->size > 1 then
+          let selected = xmf.select("Style Selection","Please select style",
+            typeConformantStyles,typeConformantStyles->select(s | s.name=styleName)->sel,@Operation(x) x.name + "(" + x.description + ")" end) 
+          in
+            if selected <> null then
+              self.styleName := selected.name
+            end
+          end
+        else
+          xmf.warning("No more styles to selected")
+        end
+      end     
+    end
+  end
+
+
+
