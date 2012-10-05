@@ -5,7 +5,7 @@
       version="2.0.0"
       provider-name="Xmodeler"
       image="xmfMosaic-update-120.jpg">
-   <install-handler handler="org.eclipse.update.core.DeltaInstallHandler"/>
+   <!--<install-handler handler="org.eclipse.update.core.DeltaInstallHandler"/>-->
 
    <description>
       %description
@@ -16,7 +16,7 @@
    </license>
 
    <url>
-      <update label="bitbucket.org" url="http://phalix.bitbucket.org"/>
+      <update label="gitHub" url="https://github.com/phalix/XModelerUpdate/raw/master/repository"/>
    </url>
 
    <plugin
