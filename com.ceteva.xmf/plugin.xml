@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.0"?>
 <plugin>
+   <extension-point id="com.ceteva.xmf.extensions.BootLoader" name="BootLoader" schema="schema/BootLoader.exsd"/>
 
      <extension point="org.eclipse.ui.startup">
      	<startup class="Mosaic.XmfStartup"/>
