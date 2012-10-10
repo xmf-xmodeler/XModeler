@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<relativePath>../../workspace/xmodelermaven/pom.xml</relativePath>
+		<relativePath>../xmodelermaven/pom.xml</relativePath>
 		<groupId>com.ceteva</groupId>
 		<artifactId>xmodelermaven</artifactId>
 		<version>2.0.0</version>
@@ -13,9 +13,10 @@
 	<packaging>eclipse-repository</packaging>
 
 	<name>XModeler Distribution Build</name>
+	<!--
 	<build>
 		<extensions>
-			<!-- Enabling the use of git -->
+		
 			<extension>
 				<groupId>org.apache.maven.wagon</groupId>
 				<artifactId>wagon-scm</artifactId>
@@ -32,13 +33,13 @@
 	</build>
 	
 	<profiles>
-		<!-- This profile is used to upload the repo -->
+		
 		<profile>
 			<id>uploadRepo</id>
 			<build>
 
 				<plugins>
-					<!-- Upload the repo to the server -->
+				
 					<plugin>
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>wagon-maven-plugin</artifactId>
@@ -59,11 +60,18 @@
 								</configuration>
 							</execution>
 						</executions>
+						<dependencies> 
+					           <dependency> 
+					             <groupId>org.apache.maven.scm</groupId> 
+					             <artifactId>maven-scm-provider-gitexe</artifactId> 
+					             <version>1.2</version> 
+					           </dependency> 
+						</dependencies>
 					</plugin>
 				</plugins>
 			</build>
 		</profile>
 	</profiles>
-	
+-->
 
 </project> 
