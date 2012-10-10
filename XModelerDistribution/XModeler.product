@@ -158,8 +158,13 @@
       <plugin id="org.eclipse.ui.views"/>
       <plugin id="org.eclipse.ui.workbench"/>
       <plugin id="org.eclipse.ui.workbench.texteditor"/>
+
       <plugin id="org.eclipse.update.configurator"/>
    </plugins>
+
+	<features>
+      <feature id="com.ceteva.xmfMosaic" version="2.0.0"/>
+   </features>
 
    <configurations>
       <plugin id="com.ceteva.mosaic" autoStart="false" startLevel="5" />
