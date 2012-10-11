@@ -1,6 +1,7 @@
 #! /bin/sh
 clear
-DIR=`pwd`
+DIR=$1
+echo "DIR is "$DIR
 PORT=100
 XMFHOME=$DIR
 LIB=$XMFHOME
