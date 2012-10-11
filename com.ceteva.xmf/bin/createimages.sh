@@ -1,6 +1,8 @@
 #! /bin/sh
 clear
 DIR=$1
+cd $DIR
+echo `pwd`
 echo "DIR is "$DIR
 PORT=2100
 XMFHOME=$DIR
