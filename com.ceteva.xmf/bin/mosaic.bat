@@ -10,7 +10,7 @@ set STACKSIZE=50
 set FREEHEAP=20
 set FILENAME=%2%
 set MAXJAVAHEAP=-Xmx150m
-set VERSION=1.5
+set VERSION=2.0
 rem set PROFILE=-prof
 
 echo [ bin/xos %1 %2 %3 %4 %5 %6 %7 %8 %9 ]
