@@ -36,11 +36,11 @@
 		<tycho-version>0.15.0</tycho-version>
 	</properties>
 	<repositories>
-		<!-- <repository>
-			<id>XModelerDependencies</id>
+		<repository>
+			<id>XModeler</id>
 			<layout>default</layout>
-			<url>https://raw.github.com/phalix/XmodelerDependencies/Build/xmodelermaven/pom.xml</url>
-		</repository> -->
+			<url>http://repository-phalix.forge.cloudbees.com/release/</url>
+		</repository>
 		<repository>
 			<!-- juno does not work!!! -->
 			<id>indigo</id>

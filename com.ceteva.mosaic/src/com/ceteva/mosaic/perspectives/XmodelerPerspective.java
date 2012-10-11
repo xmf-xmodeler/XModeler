@@ -34,7 +34,7 @@ public class XmodelerPerspective implements IPerspectiveFactory {
 		IViewLayout out = layout.getViewLayout("com.ceteva.console.view");
 		out.setCloseable(false);
 		out.setMoveable(true);
-		//bottom.addPlaceholder("com.ceteva.forms.view:*");
+		bottom.addPlaceholder("com.ceteva.forms.view:*");
 
 		
 		// Left --> Browser
