@@ -1,0 +1,36 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Action extends Pattern
+  
+    @Doc
+      An action is a performable expression that can access
+      bound variables from the current parse and produces a
+      value that is supplied to the continuation.
+    end
+    
+    @Attribute exps : Seq(Exp) end
+    
+    @Constructor(exps) ! end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"{ ");
+      @For exp in exps do
+        exp.exp.pprint(out,indent);
+        if not isLast then format(out,", ") end
+      end;
+      format(out," }")
+    end
+    
+  end

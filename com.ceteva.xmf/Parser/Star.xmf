@@ -1,0 +1,88 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Star extends Pattern
+  
+    @Doc
+      Succeeds when 0 or more occurrences of the pattern occur in
+      the supplied element. The result is a sequence of values
+      produced by each successfully parsed occurrence.
+    end
+    
+    @Attribute pattern      : Pattern end
+    @Attribute ignoreValues : Boolean end
+    
+    @Constructor(pattern) !            end
+    @Constructor(pattern,ignoreValues) end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation consValues(handler:Operation)
+      let name = "C" + Grammar::clauseCounter
+      in Grammar::clauseCounter := Grammar::clauseCounter + 1;
+         pattern.SNF(
+           @Operation(pattern,newClauses)
+             let parseOne = Bind(Seq{"x"},pattern) then
+                 parseRest = Bind(Seq{"xs"},Call(name)) then
+                 cons = And(And(parseOne,parseRest),Commands(Seq{Cons(VarRef("x"),VarRef("xs"))})) then
+                 empty = Commands(Seq{Nil()}) then
+                 body = Seq{Or(cons,empty)} then
+                 clause = Clause(name,body)
+             in handler(Call(name),newClauses->including(clause))
+             end
+           end)
+      end
+    end
+    
+    @Operation ignoreValues(handler:Operation)
+      let name = "C" + Grammar::clauseCounter
+      in Grammar::clauseCounter := Grammar::clauseCounter + 1;
+         pattern.SNF(
+           @Operation(pattern,newClauses)
+             let clause = Clause(name,Seq{Or(And(pattern,Call(name)),Empty())})
+             in handler(Call(name),newClauses->including(clause))
+             end
+           end)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      pattern.pprint(out,indent);
+      if ignoreValues
+      then format(out,"#")
+      else format(out,"*")
+      end
+    end
+    
+    @Operation NNF(handler:Operation)
+       pattern.NNF(
+         @Operation(pattern,newClauses)
+           handler(Star(pattern,ignoreValues),newClauses)
+         end)
+    end
+    
+    @Operation ONF():Pattern
+      Star(pattern.ONF(),ignoreValues)
+    end
+    
+    @Operation SNF(handler:Operation)
+      if pattern.isKindOf(Any) or ignoreValues
+      then self.ignoreValues(handler)
+      else self.consValues(handler)
+      end
+    end  
+    
+  end

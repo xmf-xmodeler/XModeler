@@ -1,0 +1,49 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Generator;
+
+context Generator
+
+  @Class Map extends ElementMap
+  
+    @Attribute map : ElementMap end
+    
+    @Constructor(map) ! end
+    
+    @Operation changeName(name)
+      Map(map.changeName(name)).setMapName(mapName)
+    end
+    
+    @Operation desugar()
+      let name = map.mappedName();
+          newMap = map.changeName("x")
+      in
+        [| @TypeCase(<Var(name)>)
+             Seq(XCore::Element) do
+               <Var(name)>->collect(<"x"> | <newMap.desugar()>)->flatten
+                end
+             Set(XCore::Element) do
+               <Var(name)>->asSeq->collect(<"x"> | <newMap.desugar()>)->flatten
+                end
+             else self.error(mapName + " expects " + <Var(name)> + " to be a collection.")
+           end
+        |]
+      end
+    end
+    
+    @Operation mappedName()
+      map.mappedName()
+    end 
+    
+    @Operation setMapName(name)
+      self.mapName := name;
+      map.setMapName(name);
+      self
+    end
+    
+    
+  end
+          
+            

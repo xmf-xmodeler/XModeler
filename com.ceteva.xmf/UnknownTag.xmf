@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context XML
+
+  @Class UnknownTag extends Exception
+  
+    @Doc
+      This exception is raised when an XML document is being parsed and when
+      an element with an unexpected tag is encountered.
+    end
+  
+    @Operation init(Seq{tag})
+      self.message := "Not expecting " + tag + " at this point."
+    end
+    
+  end

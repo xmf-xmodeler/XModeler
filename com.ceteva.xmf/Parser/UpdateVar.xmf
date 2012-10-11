@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class UpdateVar extends Pattern
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,":=: ~S",Seq{name})
+    end
+    
+  end

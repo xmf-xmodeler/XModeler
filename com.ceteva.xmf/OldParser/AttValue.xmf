@@ -1,0 +1,39 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class AttValue extends Attribute
+  
+    @Doc
+      Succeeds when the element has an attribute with the given
+      name and when the attribute value is the given string.
+    end
+    
+    @Attribute name : String end
+    @Attribute value : String end
+     
+    @Constructor(name,value) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::AttValue(<StrExp(name)>,<StrExp(value)>) |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      if element.hasAtt(name)
+      then 
+        if element.getAtt(name) = value
+        then 
+          grammar.debug(indent,"Attribute: ~S = ~S~%",Seq{name,value});
+          succ(env,element.getAtt(name),fail)
+        else 
+          grammar.fail(indent,"Attribute ~S <> ~S~%",Seq{name,value},fail)
+        end
+        else grammar.fail(indent,"*************************************** No attribute ~S~%",Seq{name},fail)
+      end
+    end
+    
+  end

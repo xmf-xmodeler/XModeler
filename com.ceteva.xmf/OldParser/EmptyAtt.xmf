@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class EmptyAtt extends Pattern
+  
+    @Doc
+      Succeeds and produces an empty sequence.
+    end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::EmptyAtt() |]
+    end
+    
+    @Operation parse(grammar,env,element,succ,fail,indent)
+      succ(env,Seq{},fail)
+    end
+    
+  end

@@ -1,0 +1,21 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class BindVar extends Pattern
+  
+    @Attribute names : Seq(String) (?) end
+    
+    @Constructor(names) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"=: ~{,~;~S~}",Seq{names})
+    end
+    
+  end

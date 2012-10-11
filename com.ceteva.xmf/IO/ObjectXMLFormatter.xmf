@@ -1,0 +1,114 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class ObjectXMLFormatter
+  
+    @Doc
+      An object XML formatter is used to control how objects are
+      written out as XML. There is a vanilla flavour XML format
+      for objects that is implemented by this class. Objects are
+      tagged with the name of their type. Simple valued slots
+      (including collections of simple values) are encoded as 
+      element attributes. Complex valued slots are written out
+      surrounded by an element whose tag is the name of the slot. 
+      Each sharable value is allocated an id and subsequent 
+      occurrences of objects in the output are written as references. 
+      Sub-classes of this class will dispatch on the type of the 
+      object to write the XML in appropriate ways. Specialize the 
+      writeObject operation to dispatch on the type of the object.
+    end
+    
+    @Operation isNameSpaceRef(value):Boolean
+    
+      // Passed an object or a function. Returns true when the
+      // arg should be encoded as a ref rather than a recons...
+      
+      false
+    end
+    
+    @Operation objectAttributes(object:Object):Seq(Attribute)
+    
+      // Called to calculate the attributes of the object to
+      // save. Can be used in sub-classes of ObjectXMLFormatter
+      // to hide certain attributes.
+      
+      object.of().allAttributes()->asSeq
+    end
+  
+    @Operation write(object:Object,out:ElementOutputChannel)
+    
+      // Write the object out using XML markup. Use the name
+      // space ref to check whether we can re-load via a lookup
+      // or via a recons...
+      
+      if self.isNameSpaceRef(object)
+      then out.nameSpaceRef(object)
+      else self.writeObject(object,out)
+      end
+    end
+    
+    @Operation isSimpleAtt(att:Attribute):Boolean
+      Set{Boolean,Integer,Float,String,Symbol}->includes(att.underlyingType()) and
+      att.name().toString() <> "id" and
+      att.name().toString() <> "path"
+    end
+    
+    @Operation writeObject(object:Object,out:ElementOutputChannel)
+      let atts = self.objectAttributes(object)
+      in format(out,"<Object id ='~X' path='~X'",Seq{out.id(object),object.of().path()});
+         @For att in atts when self.isSimpleAtt(att) do
+           self.writeSimpleAttribute(out,att.name(),object.get(att.name()))
+         end;
+         format(out,">~%");
+         @For att in atts when not self.isSimpleAtt(att) do
+           self.writeComplexAttribute(att,object,out)
+         end;
+         format(out,"</Object>~%")
+       end  
+    end
+    
+    @Operation writeSimpleAttribute(out,name,value)
+      format(out," ~S='",Seq{name});
+      out.encodeValue(out,value);
+      format(out,"'")
+    end
+    
+    @Operation writeComplexAttribute(att,object,out)
+      let value = object.get(att.name)
+      in @CaseInt[34] Kernel_tag(value) of
+           XMF::STRING do
+             @XML(out)
+               <StringSlot name=att.name value=value/>
+             end
+           end
+           XMF::UNDEFINED do
+             @XML(out)
+               <NullSlot name=att.name/>
+             end
+           end
+           XMF::NIL do
+             @XML(out)
+               <NilSlot name=att.name/>
+             end
+           end
+           else
+             if out.isRegistered(value)
+             then
+               @XML(out)
+                 <RefSlot name=att.name id=out.id(value)/>
+               end
+             else
+               @XML(out)
+                 <Slot name=att.name>
+                   out.writeValue(value)
+                 </Slot>
+               end
+             end
+         end
+      end
+    end
+    
+  end

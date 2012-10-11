@@ -1,0 +1,24 @@
+parserImport XOCL;
+
+import XML;
+import XOCL;
+
+context Parser
+
+  @Class Ref extends Syntax
+  
+    @Doc
+      A reference to an XML id. Instances of this class should be created
+      in XML grammar rules. They represent references to XMF values. 
+      References should be used with updates. An update occurs in a grammar
+      rule in the form name := pattern. The name should be bound to an XML
+      id. Occurrences of Ref(id) in XMF values synthesised by the parse
+      will be automatically replaced with the value of the pattern that
+      registered an update for the name whose value is the id.
+    end
+    
+    @Attribute id : String end
+    
+    @Constructor(id) ! end
+    
+  end 

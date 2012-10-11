@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class And extends Pattern
+  
+    @Doc
+      Succeeds when both the left and the right pattern succeeds.
+      Binds any names bound by the left and right and returns the
+      value of the right hand pattern.
+    end
+    
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::And(<left.desugar()>,<right.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      left.parse(grammar,env,elements,
+        @Operation(env,ignore,elements,fail,refTable)
+          right.parse(grammar,env,elements,succ,fail,indent,refTable)
+        end,
+        fail, 
+        indent,
+        refTable)
+    end
+    
+  end

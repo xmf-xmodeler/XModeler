@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class GuardExp isabstract extends Syntax
+  
+    @AbstractOp eval(env)
+    end
+  
+  end

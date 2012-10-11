@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import XML::PrintXML;
+
+context XML::PrintXML
+
+// Class deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Class Element extends Node
+  @Attribute tag : Root::XCore::Performable end
+  @Attribute attributes : Seq(Attribute) end
+  @Attribute elements : Seq(Element) end
+  @Constructor(tag,attributes,elements) end
+  @Operation desugar(out:Performable):performable
+    if elements->isEmpty 
+    then
+      [| format(<out>,"<~S",Seq{<tag>});
+         <attributes->reverse->iterate(a e = [| format(<out>,"/>",Seq{<tag>}) |] |
+           [| <a.desugar(out)>; <e> |])>
+      |]
+    else 
+      [| format(<out>,"<~S",Seq{<tag>});
+         <attributes->reverse->iterate(a e = [| format(<out>,">") |] |
+           [| <a.desugar(out)>; <e> |])>;
+         <elements->iterate(e x = [| null |] |
+           [| <x>; <e.desugar(out)> |])>;
+         format(<out>,"</~S>",Seq{<tag>})
+      |]
+    end
+  end
+end

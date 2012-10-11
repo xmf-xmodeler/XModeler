@@ -1,0 +1,34 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Strip extends Pattern
+  
+    @Doc
+      Filters for and strips the tags of a collection of tagged values.
+    end
+    
+    @Attribute tag : String end
+    @Attribute isLast : Boolean end
+    
+    @Constructor(tag,isLast) end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation endElement(tag,parseChannel)
+      parseChannel.endElement(tag)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"STRIP(~S,~S)",Seq{tag,isLast})
+      
+    end
+    
+  end

@@ -1,0 +1,113 @@
+parserImport XML::Parser;
+parserImport XOCL;
+
+import XML::Parser;
+import IO;
+
+context Root
+  @Operation grammar()
+    // XML Grammars can be created anywhere. This example
+    // produces a grammar as the result of an operation...
+    @Grammar Table
+      // A table consists of a sequence of rows. The
+      // clause synthesizes an instance of the class
+      // Tables::Table2D...
+      Table ::= 
+        <Table> 
+          rows = Row* 
+        </Table> { 
+          Tables::Table2D(rows) 
+      }.
+      // A row is a sequence of columns...
+      Row ::= 
+        <Row> 
+          cols = Col* 
+        </Row> { 
+          Tables::Row(cols) 
+      }.
+      // A column is just an integer value...
+      Col ::= 
+        <Col value/> { 
+          value.asInt() 
+      }.
+    end
+  end
+  
+context Root
+  @Operation table()
+    let g = grammar().compile()
+    in @WithOpenFile(fin <- "c:/table.xml")
+         let xin = ParserChannel(fin,g)
+         in xin.parse("Table")
+         end
+       end
+    end
+  end
+
+context Root
+  @Package Tables
+    @Class Table2D
+      // A table has a collection of rows...
+      @Attribute rows : Seq(Row) end
+      // A table can be constructed by supplied the rows...
+      @Constructor(rows) end
+      
+      @Operation writeFile(file:String)
+        // Write a table to a file...
+        @WithOpenFile(fout -> file)
+          self.write(fout)
+        end
+      end
+      
+      @Operation write(outch:OutputChannel)
+        // Write a table to an output channel...
+        format(outch,"table");
+        @For row in rows do
+          format(outch,"~%  ");
+          row.write(outch)
+        end;
+        format(outch,"~%end")
+      end
+      
+      @Operation readFile(file:String)
+        // Read a file and create a table. Can be invoked
+        // via the class Table2D...
+        @WithOpenFile(fin <- file)
+          Table2D::read(fin)
+        end
+      end
+      
+      @Operation read(inch:InputChannel):Table2D
+      
+        // Create a parser machine state, initialise with the
+        // grammar and the input channel. Run the machine to
+        // perform the parse. Returns the synthesized element.
+        
+        let state = State(Table2D.grammar,inch)
+        in state.run("Table2D")
+        end
+      end
+      
+      @Operation toString():String
+        // Construct the string display for a table...
+        let soutch = StringOutputChannel()
+        in self.write(soutch);
+           soutch.getString()
+        end
+      end
+      
+    end
+    
+    @Class Row
+      // A row is a sequence of integers...
+      @Attribute cols : Seq(Integer) end
+      // A row is constructed by supplying the col values...
+      @Constructor(cols) end
+      
+      @Operation write(outch:OutputChannel)
+        // Write out the row element by element...
+        format(outch,"row~{ ~S~} end",Seq{cols})
+      end
+    end
+  end
+

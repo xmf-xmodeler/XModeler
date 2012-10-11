@@ -1,0 +1,30 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Empty extends Pattern
+  
+    @Doc
+      Succeeds and produces an empty sequence.
+    end
+    
+    @Constructor() end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation endElement(tag,parseChannel)
+      parseChannel.endElement(tag)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"EMPTY")
+    end
+    
+  end

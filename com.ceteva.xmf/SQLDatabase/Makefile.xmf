@@ -1,0 +1,12 @@
+import Compiler;
+
+compileFile("Database/SQLDatabase/Boot",true,true);
+compileFile("Database/SQLDatabase/DatabaseConnection",true,true);
+compileFile("Database/SQLDatabase/DatabaseUtilities",true,true);
+compileFile("Database/SQLDatabase/QueryProcessor",true,true);
+compileFile("Database/SQLDatabase/QueryResult",true,true);
+compileFile("Database/SQLDatabase/SQL",true,true);
+compileFile("Database/SQLDatabase/SQLDatabase",true,true);
+compileFile("Database/SQLDatabase/SQLQueryResult",true,true);
+compileFile("Database/SQLDatabase/DBObject",true,true);
+compileFile("Database/SQLDatabase/DBClass",true,true);

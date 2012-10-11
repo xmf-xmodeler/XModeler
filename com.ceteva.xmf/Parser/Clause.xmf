@@ -1,0 +1,170 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Clause extends XCore::NamedElement, Syntax
+  
+    @Doc
+      A clause is a named sequence of disjunctive patterns that 
+      is owned by a grammar.
+    end
+    
+    @Attribute bodies   : Seq(Pattern)      (+,-,?) end
+    @Attribute nullable : Boolean           (?,!)   end
+    @Attribute first    : Set(String)       (?,!)   end
+    @Attribute follow   : Set(String)       (?,!)   end
+    @Attribute PPT      : Table = Table(10) (?,!)   end
+    
+    @Constructor(name,bodies) 
+      if not name.isKindOf(Symbol)
+      then self.name := Symbol(name.toString())
+      end
+    end
+    
+    @Operation BNF()
+      Clause(name,bodies->collect(body | body.BNF()))
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      @For body in bodies do
+        body.checkForMissingClauses(grammar)
+      end
+    end
+    
+    @Operation checkLL1():Boolean
+      // Print a message if there are any ambiguous entries
+      // in the parse table. Returns true if everything OK.
+      let OK = true
+      in @For key inTableKeys PPT do
+           let entries = PPT.get(key)
+           in if entries->size > 1
+              then
+                format(stdout,"Warning: ~S cannot decide what ~S predicts:~%",Seq{name,key});
+                format(stdout,"~{  [~{ ~;~S~}]~%~}",Seq{entries});
+                OK := false
+              end
+           end
+         end;
+         OK
+      end
+    end
+    
+    @Operation CNF(handler:Operation)
+      @Letrec 
+        processBodies =
+          @Operation(bodies,newBodies,newClauses)
+            if bodies->isEmpty
+            then handler(Seq{Clause(name,newBodies) | newClauses})
+            else
+              let body = bodies->head
+              in body.CNF(
+                   @Operation(body,clauses)
+                     processBodies(bodies->tail,newBodies->including(body),newClauses + clauses)
+                   end)
+              end
+            end
+          end
+       in processBodies(bodies,Seq{},Seq{})
+       end
+    end
+    
+    @Operation extendPPT(terminal,patterns)
+      // Add the patterns in as being predicted by the terminal.
+      if PPT.hasKey(terminal)
+      then 
+        if not PPT.get(terminal)->includes(patterns)
+        then PPT.put(terminal,PPT.get(terminal)->including(patterns))
+        end
+      else PPT.put(terminal,Seq{patterns})
+      end
+    end
+    
+    @Operation NNF(handler:Operation)
+      @Letrec 
+        processBodies =
+          @Operation(bodies,newBodies,newClauses)
+            if bodies->isEmpty
+            then handler(Seq{Clause(name,newBodies) | newClauses})
+            else
+              let body = bodies->head
+              in body.NNF(
+                   @Operation(body,clauses)
+                     processBodies(bodies->tail,newBodies->including(body),newClauses + clauses)
+                   end)
+              end
+            end
+          end
+       in processBodies(bodies,Seq{},Seq{})
+       end
+     end
+     
+    @Operation ONF()
+      Clause(name,bodies->collect(body | body.ONF()))
+    end
+    
+    @Operation populatePPT(grammar)
+      @For body in bodies do
+        let patterns = body.flatten();
+            first = body.first(grammar)
+        in @For terminal in first do
+             self.extendPPT(terminal,patterns)
+           end;
+           if body.nullable(grammar)
+           then 
+             @For terminal in follow do
+               self.extendPPT(terminal,patterns)
+             end
+           end
+        end
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      @For body in bodies do
+        format(out,"~S ::= ~%~V",Seq{name,indent+2});
+        body.pprint(out,indent+2);
+        format(out,".");
+        if not isLast then format(out,"~%~V",Seq{indent+2}) end
+      end
+    end
+    
+    @Operation predict(tag:String):Seq(Pattern)
+      if PPT.hasKey(tag)
+      then PPT.get(tag)->head
+      elseif PPT.hasKey("ANY")
+      then PPT.get("ANY")->head
+      else Seq{}
+      end
+    end
+    
+    @Operation SNF(handler:Operation)
+      @Letrec 
+        processBodies =
+          @Operation(bodies,newBodies,newClauses)
+            if bodies->isEmpty
+            then handler(Seq{Clause(name,newBodies) | newClauses})
+            else
+              let body = bodies->head
+              in body.SNF(
+                   @Operation(body,clauses)
+                     processBodies(bodies->tail,newBodies->including(body),newClauses + clauses)
+                   end)
+              end
+            end
+          end
+       in processBodies(bodies,Seq{},Seq{})
+       end
+     end
+     
+     @Operation terminals():Set(String)
+       bodies->iterate(body T = Set{} |
+         T + body.terminals())
+     end
+    
+  end

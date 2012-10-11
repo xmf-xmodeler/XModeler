@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class End extends Pattern
+  
+    @Attribute tag : String (?) end
+    
+    @Constructor(tag) ! end
+    
+  end

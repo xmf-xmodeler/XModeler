@@ -1,0 +1,22 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class XMLPackageOutputChannel extends XMLOutputChannel
+  
+    @Doc
+      Writes a package to the supplied output channel. Assumes
+      that only the name spaces included in the package are to
+      be written out in full. All other name spaces are written
+      as name space references.
+    end
+    
+    @Operation writePackage(package)
+      self.objectFormatter := PackageXMLFormatter(package.allContentsOf(NameSpace)->including(package));
+      self.writeValue(package)
+    end
+    
+  end
+    

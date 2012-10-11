@@ -1,0 +1,8 @@
+parserImport XOCL;
+
+import Database;
+
+context Database
+
+  @Class AndExp extends BinExp
+  end

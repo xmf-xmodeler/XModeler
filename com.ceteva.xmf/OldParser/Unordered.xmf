@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Unordered extends Pattern
+  
+    @Doc
+      Similar to And except that there is no requirement for left
+      to be performed before right. In addition you cannot rely on
+      the return value of this pattern. You can, however rely on the
+      bindings established (but do not make the binding sensitive 
+      to the ordering of the component patterns).
+    end
+    
+    @Attribute left : Pattern end
+    @Attribute right : Pattern end
+    
+    @Constructor(left,right) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Unordered(<left.desugar()>,<right.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      Or(And(left,right),And(right,left)).parse(grammar,env,elements,succ,fail,indent,refTable)
+    end
+    
+  end

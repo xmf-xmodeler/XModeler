@@ -1,0 +1,312 @@
+// **************************************************************
+// The contents of this file are copyright Ceteva Limited and
+// should not be redistributed in any form whatsoever without the
+// express written consent of Ceteva Limited.
+// *************************************************************
+
+// A Parser for UML 1.1 XMI exported by Rational Rose
+parserImport XML::Parser;
+parserImport XOCL;
+
+import XML;
+import Parser;
+import XMI;
+
+// A wrapper for generalisations
+context XMI11Rose
+  @Class Gen
+    @Attribute parent : Element end
+    @Constructor(parent) end
+  end
+  
+// A wrapper for tagged values
+context XMI11Rose
+  @Class TaggedValue
+    @Attribute modelElement : Element end
+    @Attribute tag : String end
+    @Attribute value : Element end
+    @Constructor(modelElement,tag,value) end
+  end
+
+context XMI11Rose
+  @Operation grammar()
+    @Grammar XMI11Rose
+
+
+  XMI11Rose ::= <XMI> [ Header ] model = Content </XMI> { model }.
+  
+  Header ::= <XMI.header> ANY* </XMI.header>.
+  
+  Content ::= <XMI.content> defs = Def* </XMI.content> 
+    { defs }.
+  
+  Def ::= Model | TaggedValue | ANY {"Unknown" }.
+  
+  Model ::= 
+    <UML:Model id = xmi.id
+      name = name> owned = Owned 
+    </UML:Model> id := {owned->select(o | 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package) or
+      o.isReallyKindOf(Associations::Association))->
+        iterate(o p = XCore::Package(name.subst("_"," ",true)) | p.add(o))}.
+   
+   Package ::= 
+    <UML:Package id = xmi.id
+      name = name> 
+      owned = (Owned | {Seq{}})
+    </UML:Package> id := {owned->select(o | 
+      o.isReallyKindOf(XCore::Class) or 
+      o.isReallyKindOf(XCore::Package) or
+      o.isReallyKindOf(Associations::Association))->
+        iterate(o p = XCore::Package(name.subst("_"," ",true)) | p.add(o))}.
+   
+  Owned ::=  
+    <UML:Namespace.ownedElement> 
+      elements = Element* 
+    </UML:Namespace.ownedElement> { elements }.
+    
+  Element ::= DataType | Class | Package | Association | Gen | Interface | AssociationClass | ANY {null} .
+    
+  DataType ::= 
+    <UML:DataType id = xmi.id name = name> 
+    </DataType> id := { 
+    @Case name of 
+      "Boolean" do XCore::Boolean end
+      "Integer" do XCore::Integer end
+      "int" do XCore::Integer end
+      "String" do XCore::String end
+      else XCore::Class(name)
+    end
+  }.
+  
+  Class ::= 
+    <UML:Class id = xmi.id name = name isAbstract = isAbstract> 
+      owned = (Owned | { Seq{} })  
+      features = (ClassifierFeature | { Seq{} })
+    </UML:Class> id := { 
+      (owned->reject(o | o.isKindOf(Gen)) + features)->iterate(f c = 
+        XCore::Class[name = Symbol(name.subst("_"," ",true)), 
+                     parents = owned->select(g | g.isKindOf(Gen))->collect(g | g.parent)->asSet, 
+                     isAbstract = if isAbstract = "true" 
+                                  then true 
+                                  else false end] | c.add(f))}.
+                                  
+   AssociationClass ::= 
+     <UML:AssociationClass id = xmi.id name = name>
+     //-------------------------
+     connection = Connection* 
+     owned = Owned*
+     features = ClassifierFeature*  
+     //-------------------------
+     </UML:AssociationClass> id := {XCore::Class[name = Symbol(name.subst("_"," ",true))]}.
+        
+      
+   Interface ::= 
+    <UML:Interface id = xmi.id name = name> 
+    </UML:Interface> id := {XCore::Class[name = Symbol(name.subst("_"," ",true))]}. 
+    
+   AssociationClass ::= 
+    <UML:AssociationClass id = xmi.id name = name> 
+    </UML:AssociationClass> id := {XCore::Class[name = Symbol(name.subst("_"," ",true))]}.     
+      
+  Gen ::= 
+    <UML:Generalization id = xmi.id child = child parent = parent >
+    </UML:Generalization> {Gen(XML::Parser::Ref(parent))}.
+     
+  OptClassifierFeature ::= ClassifierFeature | { Seq{} }.
+
+  ClassifierFeature ::= 
+    <UML:Classifier.feature> 
+      feature = Feature* 
+    </UML:Classifier.feature> {feature}. 
+  
+  Feature ::= Attribute | Operation.
+  
+  Attribute ::= 
+    <UML:Attribute id = xmi.id name = name type = type> 
+      FeatureMultiplicity
+      InitialValue
+    </Attribute> 
+     id := {XCore::Attribute(name.subst("_"," ",true),XML::Parser::Ref(type))}.
+    
+  FeatureMultiplicity ::=
+    <UML:StructuralFeature.multiplicity>
+      ANY
+    </UML:StructuralFeature.multiplicity>.
+    
+  InitialValue ::= 
+    <UML:Attribute.initialValue>
+      ANY
+    </UML:Attribute.initialValue>.
+      
+  Operation ::= 
+    <UML:Operation id = xmi.id name = name> 
+      ANY*
+    </UML:Operation> {@Operation() self end.setName(name.subst("_"," ",true))}.
+        
+  Association ::= 
+    <UML:Association id = xmi.id name = name> 
+      connection = Connection
+    </UML:Association> id := { 
+      let a = Associations::Association(if name = "" then id else name.subst("_"," ",true) end);
+          end1 = connection->at(0)->head; 
+          end2 = connection->at(1)->head
+      in 
+         // Store association names and ends in a table so that
+         // we can run over the associations at the end and
+         // turn them into attributes if they are navigable in one direction
+         XMI11Rose::navigableAssocs.put(a.name->toString(),Seq{connection->at(0),connection->at(1)});
+         // If the ends don't have a name set it to a default name
+         if end1.name.toString() = "" then end1.setName("end1") end; 
+            a.setEnd1(end1); 
+         if end2.name.toString() = "" then end2.setName("end2") end;   
+            a.setEnd2(end2)
+      end}.
+      
+  Connection ::= 
+    <UML:Association.connection> 
+      ends = End* 
+    </UML:Association.connection> {ends}.
+    
+  End ::=
+    <UML:AssociationEnd id = xmi.id name = name isNavigable = isNavigable type = type > 
+      endmult = EndMultiplicity 
+    </UML:AssociationEnd> id := {
+      Seq{Associations::End(name.subst("_"," ",true),XML::Parser::Ref(type),endmult),if isNavigable.toString() = "true" then true else false end}}.
+  
+  EndMultiplicity ::= 
+    <UML:AssociationEnd.multiplicity> 
+      mult = Multiplicity 
+    </UML:AssociationEnd.multiplicity> {mult}.
+    
+  Multiplicity ::= 
+    <UML:Multiplicity>  
+      range1 = (Range1 | {Associations::One()})
+    </UML:Multiplicity> {range1}.
+    
+  Range1 ::= 
+    <UML:Multiplicity.range> 
+      range2 = Range2 
+    </UML:Multiplicity.range> {range2}.
+    
+  Range2 ::=  
+    <UML:MultiplicityRange lower = lower upper = upper> 
+    </UML:MultiplicityRange> {
+      if lower = "1" and upper = "1" then 
+        Associations::One()
+      elseif lower = "0" and upper = "n" then 
+        Associations::Star() 
+      elseif lower = "0" and upper = "1" then 
+        Associations::Opt() 
+      elseif lower = "1" and upper = "n" then 
+        Associations::Mandatory()
+      else
+        Associations::Star()  
+      end}.
+            
+  Classifier ::= <UML:Class id = xmi.idref/> {id}.  
+  
+  TaggedValue ::= 
+    <UML:TaggedValue id = xmi.id tag value := "" modelElement>
+      v = (Value | {null})
+    </UML:TaggedValue>
+    {TaggedValue(XML::Parser::Ref(modelElement),tag,if v = null then value else v end)}.
+         
+  Value ::= 
+    <UML:TaggedValue.value>
+      value = TEXT
+    </UML:TaggedValue.value>{value}. 
+  end 
+end
+
+context XMI11Rose
+  @Operation loadRoseXMI11(file)
+    let g = grammar().compile()
+    in @WithOpenFile(fin <- file) 
+         let xin = ParserChannel(fin,g)
+         in 
+            Root::g := g;
+            // Set this to true if you want to
+            // get a debug trace in the console
+            xin.debug := false;
+            xmf.busy("Parsing XMI V3");
+            xin.parse("XMI11Rose") 
+         end
+       end
+    end
+  end
+  
+context XMI11Rose
+  // Bind a table for storing navigable association 
+  @Bind navigableAssocs = Table(1000) end  
+  
+context XMI11Rose
+  @Operation importRoseXMI11(p)
+    let i = xmf.openFile(xmf.homeDir(),"*.xmi") in
+      if i <> "" then
+      let
+        data = loadRoseXMI11(i) then
+        model = data->head then
+        taggedvalues = data->tail->select(t | t.isKindOf(TaggedValue)) in
+              xmf.killProgressDialogs();
+              // Add the model to root and initialise it
+              Root.add(model);
+              model.init();
+              // Deal with data values
+              @For t in taggedvalues do
+                if t.tag = "description" or t.tag="documentation" then
+                	try
+                   		t.modelElement.setDoc(t.value)
+                	catch(x)
+                		try 
+                			t.modelElement->head.setDoc(t.value)
+                		catch(y)
+                			format(stdout,"~S does not support setDoc~%",Seq{t.modelElement})
+                		end
+					end
+                end
+              end;
+              // Deal with association ends that did't have a name. Turn them into the 
+              // lower case name of the end's classifier
+              let associations = model->allContentsOf(Associations::Association) in
+                @For a in associations do
+                  if a.end1.name.toString() = "end1" or a.end1.name.toString() = "end2" then
+                    a.end1.setName(a.end1.underlyingType().name.lowerCaseInitialLetter())
+                  end;
+                  if a.end2.name.toString() = "end1" or a.end2.name.toString() = "end2" then
+                    a.end2.setName(a.end2.underlyingType().name.lowerCaseInitialLetter())
+                  end
+                end;
+                // Initialise the associations as model.init() currently doesn't do it
+                @For a in associations do
+                  a.init()
+                end;
+                // Run over the associations and remove any that are navigable in one direction.
+                // Create an attribute for each one.
+                @For a in associations do
+                  let ends = XMI11Rose::navigableAssocs.get(a.name.toString()) 
+                  in if ends->head->last = true and ends->last->last = false then
+                        let att = XCore::Attribute(ends->head->head.name.toString(),ends->head->head.type)
+                        in 
+                          ends->last->head.underlyingType().add(att);
+                          a.remove();
+                          a.owner.remove(a)   
+                        end
+                     end;
+                     if ends->head->last = false and ends->last->last = true then
+                        let att = XCore::Attribute(ends->last->head.name.toString(),ends->last->head.type)
+                        in 
+                          ends->last->head.underlyingType().add(att);
+                          a.remove();
+                          a.owner.remove(a)  
+                        end 
+                     end      
+                  end
+                end;
+                p.add(Projects::Project(model,model.name,null))
+              end
+        end
+        end
+      end   
+    end

@@ -1,0 +1,31 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Generator;
+
+context Generator
+
+  @Class WrappedMap extends ElementMap
+  
+    @Attribute startTag : String end
+    @Attribute map      : ElementMap end
+    @Attribute endTag   : String end
+    
+    @Constructor(startTag,map,endTag) ! end
+    
+    @Operation desugar()
+      [| Seq{XML::Element(<StrExp(startTag)>,Set{},<map.desugar()>)} |]
+    end
+    
+    @Operation mappedName()
+      map.mappedName()
+    end
+    
+    @Operation setMapName(name)
+      self.mapName := name;
+      map.setMapName(name);
+      self
+    end
+    
+  end

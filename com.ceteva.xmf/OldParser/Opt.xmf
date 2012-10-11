@@ -1,0 +1,26 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Opt extends Pattern
+  
+    @Doc
+      An optional pattern.
+    end
+    
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Opt(<pattern.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      Or(pattern,Empty()).parse(grammar,env,elements,succ,fail,indent,refTable)
+    end
+    
+  end

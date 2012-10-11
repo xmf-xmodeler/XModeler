@@ -1,0 +1,29 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+import OCL;
+
+context Parser
+
+  @Class RepeatClause extends XOCL::Syntax
+  
+    @Attribute name : String end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(name,pattern) end
+    
+    @Operation bind()
+     And(pattern,Tag(name))
+    end
+    
+    @Operation filter(isLast : Boolean)
+      Bind(Seq{name},Strip(name,isLast))
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S = ",Seq{name});
+      pattern.pprint(out,indent)
+    end
+    
+  end

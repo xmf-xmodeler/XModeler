@@ -1,0 +1,55 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+import Exceptions;
+import Env;
+
+context Parser
+
+  @Class Call extends Pattern
+  
+    @Doc
+      Try to match the named pattern. The result of the call
+      is returned to the caller. The new clause is parsed in
+      the context of a new environment.
+    end
+    
+    @Attribute name : String end
+    
+    @Constructor(name) ! end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      if grammar.clauseNamed(name) = null
+      then self.error("Clause named " + name + " is called but not defined.")
+      end
+    end
+    
+    @Operation first(grammar):Set(String)
+      grammar.clauseNamed(name).first()
+    end
+    
+    @Operation follow(grammar):Set(String)
+      grammar.clauseNamed(name).follow()
+    end
+    
+    @Operation nullable(grammar)
+      grammar.clauseNamed(name).nullable()
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,name)
+    end
+    
+    @Operation setFollow(follow:Set(String),grammar)
+      grammar.clauseNamed(name).setFollow(follow)
+    end
+    
+  end

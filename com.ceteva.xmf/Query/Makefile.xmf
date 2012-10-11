@@ -1,0 +1,11 @@
+import Compiler;
+
+compileFile("Database/Query/Boot",true,true);
+compileFile("Database/Query/AndExp",true,true);
+compileFile("Database/Query/BinExp",true,true);
+compileFile("Database/Query/EqualExp",true,true);
+compileFile("Database/Query/OfExp",true,true);
+compileFile("Database/Query/OrExp",true,true);
+compileFile("Database/Query/Exp",true,true);
+compileFile("Database/Query/QueryExp",true,true);
+compileFile("Database/Query/Query",true,true);

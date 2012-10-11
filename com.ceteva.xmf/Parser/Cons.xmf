@@ -1,0 +1,23 @@
+parserImport XOCL;
+
+import XOCL;
+import XML::Parser;
+
+context XML::Parser
+
+  @Class Cons extends Command
+  
+    @Attribute head : Command (?) end
+    @Attribute tail : Command (?) end
+    
+    @Constructor(head,tail) ! end
+    
+    @Operation pprint(out,indent)
+      format(out,"Cons(");
+      head.pprint(out,indent);
+      format(out,",");
+      tail.pprint(out,indent);
+      format(out,")")
+    end
+  
+  end

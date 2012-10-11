@@ -1,0 +1,30 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Generator;
+
+context Generator
+
+  @Class Ref extends ElementMap
+  
+    @Attribute tag : String end
+    @Attribute att : String end
+    @Attribute name : String end
+    
+    @Constructor(tag,att,name) ! end
+    
+    @Operation changeName(name)
+      Ref(tag,att,name)
+    end
+    
+    @Operation desugar()
+      [| Seq{XML::Element(<StrExp(tag)>,Seq{XML::Attribute(<StrExp(att)>,idTable.ref(<Var(name)>))},Seq{})}
+      |]
+    end
+    
+    @Operation mappedName()
+      name
+    end
+    
+  end

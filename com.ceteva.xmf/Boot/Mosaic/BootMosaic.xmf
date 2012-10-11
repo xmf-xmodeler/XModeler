@@ -42,7 +42,7 @@ context XMF
             Kernel_rebindStdout(output);
             xmf.menuManager().reset();
             
-            (xmf.homeDir() + "/Boot/Server/ToolInterface.o").loadBin(false);
+            (xmf.homeDir() + "/Boot/Mosaic/ToolInterface.o").loadBin(false);
             
             @For client in xmf.getAllClients() do
               client.renew()

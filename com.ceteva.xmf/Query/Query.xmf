@@ -1,0 +1,40 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import OCL;
+
+context Database
+
+  @Class Query
+  
+    @Grammar extends OCL::OCL.grammar
+    
+      AndExp ::= left = QueryExp 'AND' right = QueryExp {
+        [| Database::AndExp(<left>,<right>) |]
+      }.
+    
+      BExp ::= AndExp | OrExp.
+    
+      EqualExp ::= slot = Name '=' value = Exp {
+        [| Database::EqualExp(<StrExp(slot)>,<value>) |]
+      }. 
+      
+      OfExp ::= 'of' value = Exp {
+        [| Database::OfExp(<value>) |]
+      }.
+      
+      OrExp ::= left = QueryExp 'OR' right = QueryExp {
+        [| Database::OrExp(left,right) |]
+      }.
+      
+      Query ::= '(' database = Exp ')' exp = QueryExp {
+        [| Database::QueryExp(<exp>).run(<database>) |]
+      }.
+      
+      QueryExp ::= QExp | BExp.
+      
+      QExp ::= EqualExp | OfExp.
+    
+    end
+  
+  end

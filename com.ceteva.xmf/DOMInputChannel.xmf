@@ -1,0 +1,73 @@
+parserImport XOCL;
+
+import IO;
+import XML;
+import Stacks;
+
+context IO
+
+  @Class DOMInputChannel extends SAXInputChannel
+  
+    @Doc
+      Reads an XML input source and produces an XML document.
+    end
+    
+    // The stack is used to push XML nodes as they are 
+    // encountered in the input. Children are popped off
+    // the stack when the end of an element is encountered.
+  
+    @Attribute stack : Stack = Stack() end
+    
+    @Operation characters(chars:Buffer)
+      // Save the text ... 
+      stack.push(Text(chars.toString()))
+    end
+    
+    @Operation endElement(tag:Buffer)
+      // Find the open element with the given tag and
+      // pop the saved child nodes into the open element.
+      // Finally, the open element becomes closed.
+      self.popChildren(tag)
+    end
+    
+    @Operation parse():Document
+      // Parse the input source and create an XML
+      // document for the single node on the stack.
+      super();
+      Document("",stack.pop())
+    end
+    
+    @Operation popChildren(tag:Buffer):Element
+      // All nodes on the stack up to the element with the
+      // supplied tag are popped and added as children.
+      if stack.isEmpty()
+      then self.error("</" + tag + "> encountered, but <" + tag + "> not found.")
+      else
+        let c = stack.top()
+        in if c.isKindOf(Element) andthen tag.stringEqual(c.tag)
+           then c
+           else 
+             stack.pop();
+             self.popChildren(tag).addToChildren(c)
+           end
+        end
+      end
+    end
+    
+    @Operation startElement(tag:Buffer,atts:Buffer)
+      // Create an open element with the supplied tag 
+      // and attributes at the head of the stack.
+      let e = Element(tag.toString())
+      in @Count i from 0 to atts->size do
+           let a = atts->at(i)
+           in e.addAtt(a.name.toString(),a.value.toString())
+           end
+         end;
+         stack.push(e)
+      end
+    end
+    
+  end
+      
+    
+    

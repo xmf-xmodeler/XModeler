@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class Clause extends XCore::NamedElement, Sugar
+  
+    @Doc
+      A clause is a named pattern that is owned by a grammar.
+    end
+    
+    @Attribute body : Pattern end
+    
+    @Constructor(name,body) 
+      if not name.isKindOf(Symbol)
+      then self.name := Symbol(name.toString())
+      end
+    end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Clause(<StrExp(name)>,<body.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      body.parse(grammar,env,elements,succ,fail,indent,refTable)
+    end
+    
+  end

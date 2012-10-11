@@ -18,7 +18,6 @@ import java.net.InetAddress;
 import java.net.PasswordAuthentication;
 import java.net.Socket;
 import java.net.URL;
-import java.util.List;
 import java.util.Stack;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
@@ -594,11 +593,7 @@ public final class OperatingSystem implements EventHandler {
             thread = thread.next();
         } while (thread != XVM.currentThread());
     }
-    
-    public void init(String[] args, List<String> extensions){
-    	
-    }
-    
+
     public void init(String[] args) {
         parseArgs(args);
         System.out.println("[ Starting XOS ]");

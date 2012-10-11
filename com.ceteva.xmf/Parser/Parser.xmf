@@ -1,0 +1,19 @@
+parserImport XOCL;
+
+context XML
+
+  @Package Parser
+  
+    @Doc
+      The Parser package defines a language for parsing XML
+      documents and synthesising values during the parse. XML
+      processing is performed by defining an XML grammar (like
+      an XBNF grammar) and using it to recognise correctly
+      formed XML input. As the input is processed, the elements
+      and their attributes may be referenced and bound to variables.
+      During the parse, actions can be performed in the context
+      of the bound variables. The values produced by the actions
+      are returned from the parse.
+    end
+    
+  end

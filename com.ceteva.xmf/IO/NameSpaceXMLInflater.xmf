@@ -1,0 +1,49 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML::Parser;
+
+context IO
+  @Class NameSpaceXMLInflater extends ObjectXMLInflater
+  
+    @Doc
+      Deals with objects that are tagged with NameSpace. They
+      are resolved to the name space by looking up the path. 
+    end
+    
+    @Operation endObject(tag:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("NameSpace")
+      then null
+      else super(tag,inch)
+      end
+    end
+    
+    @Operation result(value,idTable)
+    
+      // Perform any processing on the result of inflating the
+      // XML source file. A name space is resolved providing
+      // that is was created and registered as part of the XML
+      // file.
+      
+      let walker = 
+        ResolveRefs(idTable,
+          @Operation(value) 
+            not value.isKindOf(XCore::NameSpace) or
+            idTable.hasValue(value)
+          end)
+      in walker.walk(value,null)
+      end
+    end
+  
+    @Operation startObject(tag:Buffer,atts:Buffer,inch:XMLInputChannel)
+      if tag.stringEqual("NameSpace")
+      then 
+        let nameSpace = inch.attValue(atts,"path").toString().lookupPath(Root)
+        in inch.push(nameSpace)
+        end
+      else super(tag,atts,inch)
+      end
+    end
+    
+  end

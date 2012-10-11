@@ -1,0 +1,170 @@
+parserImport XOCL;
+
+import XML;
+import Walkers;
+import Parser;
+
+context Parser
+
+  @Class ResolveRefs extends Walker
+  
+    @Doc
+      An XML parse may encounter id refs. Elsewhere in the parse,
+      XMF values will have been synthesised and an id associated
+      (using :=) with the synthesised value. This walker is used to
+      replace all occurrences of Ref(id) with the value associated
+      with the id.
+    end
+  
+    @Attribute refTable : Table end  
+    @Attribute objPred  : Operation = @Operation(o) true end end 
+    
+    @Constructor(refTable) ! 
+      @Doc
+        Construct a resolve refs object with a table associating
+        ids (strings) with the XMF values that the ids refer to.
+      end
+      self.initWalker()
+    end
+    
+    @Constructor(refTable,objPred)
+      @Doc
+        The object predicate must be true of an object in order 
+        for the object to be processed by the dereferencer.
+      end
+      self.initWalker()
+    end
+  
+    @Operation defaultWalk(e:Element,arg:Element):Element
+      e
+    end
+    
+    @Operation reWalk(v:Element,arg:Element):Element
+      v
+    end
+    
+    @Operation walkBoolean(b:Boolean,arg:Element):Element 
+      b
+    end
+    
+    @Operation walkCodeBox(c:CodeBox,arg:Element):Element
+      let name = c.name();
+          constants = c.constants()
+      in Kernel_codeBoxSetName(c,self.walk(name,arg));
+         Kernel_codeBoxSetConstants(c,self.walk(constants,arg));
+         c
+      end
+    end
+     
+    @Operation walkInteger(i:Integer,arg:Element):Element 
+      i
+    end
+    
+    @Operation walkNull(arg:Element):Element 
+      null
+    end
+    
+    @Operation walkObject(o:Object,arg:Element):Element
+    
+      if o.isKindOf(Ref)
+      then 
+        if refTable.hasKey(o.id)
+        then
+          self.walk(refTable.get(o.id),arg)
+        else 
+          // Ids may be used as paths...
+          let element = o.id.splitBy(":",0,0)->reject(s | s="")->ref(Seq{Root})
+          in if element = null
+             then self.error("Reference to undefined id: " + o.id)
+             else element
+             end
+          end
+        end
+      elseif objPred(o)
+      then super(o,arg)
+      else o
+      end
+    end
+     
+    @Operation walkFun(o:Operation,arg:Element):Element
+    
+      // We dont expect the dynamics of an operation created via XML
+      // to have any references. This is because it contains vast
+      // tables that should have been referenced bia real name spaces.
+      
+      let codeBox = o.codeBox();
+          doc = o.doc();
+          globals = o.globals();
+          properties = o.properties();
+          owner = o.owner();
+          sig = o.sig();
+          target = o.target()
+      in Kernel_funSetCodeBox(o,self.walk(codeBox,arg));
+         o.codeBox().setConstants(self.walk(o.codeBox().constants(),arg));
+         Kernel_funSetDoc(o,self.walk(doc,arg));
+         Kernel_funSetGlobals(o,self.walk(globals,arg));
+         Kernel_funSetProperties(o,self.walk(properties,arg));
+         Kernel_funSetOwner(o,self.walk(owner,arg));
+         Kernel_funSetSig(o,self.walk(sig,arg));
+         Kernel_funSetSelf(o,self.walk(target,arg));
+         o
+      end
+    end
+    
+    @Operation walkPreObject(o:Object,arg:Element)
+      null
+    end
+     
+    @Operation walkPostObject(o:Object,arg:Element)
+      o
+    end
+    
+    @Operation walkSeq(s:SeqOfElement,arg:Element):Element 
+      if not s->isEmpty
+      then
+        s->head := self.walk(s->head,arg);
+        s->tail := self.walk(s->tail,arg)
+      end;
+      s
+    end
+     
+    @Operation walkSet(s:SetOfElement,arg:Element):Element
+      // The ->asSeq ->asSet wrapper ensures ordering is preserved...
+      s->asSeq->collect(x | self.walk(x,arg))->asSet
+    end
+     
+    @Operation walkSlot(o:Object,s:String,arg:Element)
+      let value = o.get(s)
+      in o.set(s,self.walk(value,arg))
+      end
+    end
+    
+    @Operation walkString(s:String,arg:Element):Element 
+      s
+    end
+    
+    @Operation walkSymbol(s:Symbol,arg:Element):Element 
+      s
+    end
+    
+    @Operation walkTable(t:Table,arg:Element):Element
+      @For key in t.keys() do
+        let value = t.get(key);
+            newKey = self.walk(key,arg) then
+            newValue = self.walk(value,arg)
+        in t.put(newKey,newValue);
+           if newKey <> key then t.remove(key) end
+        end
+      end;
+      t
+    end
+    
+    @Operation walkVector(v:Vector,arg:Element):Element
+      @Count i from 0 to v.size() do
+        v.put(i,self.walk(v->at(i),arg))
+      end;
+      v
+    end
+     
+  end
+     

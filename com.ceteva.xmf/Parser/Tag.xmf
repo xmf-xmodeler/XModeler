@@ -1,0 +1,32 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Tag extends Pattern
+  
+    @Doc
+      Tags the top element on the stack.
+    end
+    
+    @Attribute tag : String end
+    
+    @Constructor(tag) end
+    
+    @Operation binds():Seq(String)
+      Seq{}
+    end
+    
+    @Operation endElement(tag,parseChannel)
+      parseChannel.endElement(tag)
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"TAG(~S)",Seq{tag})
+    end
+    
+  end

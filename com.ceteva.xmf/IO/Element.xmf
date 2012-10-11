@@ -1,0 +1,48 @@
+parserImport XOCL;
+
+import IO;
+
+context Element
+
+  @Operation writeXML(out:OutputChannel)
+    @Doc
+      Write the receiver in XML format to the supplied 
+      output channel. All name spaces will be written
+      as references.
+    end
+    let formatter = NameSpaceXMLFormatter(Seq{}) then
+        xmlout = XMLOutputChannel(out,formatter)
+    in xmlout.writeValue(self)
+    end
+  end
+  
+context Element
+
+  @Operation writeXMLFile(file:String)
+    @Doc
+      Write the receiver in XML format to the supplied 
+      file. The file is created if necessary.
+    end
+    @WithOpenFile(fout -> file)
+      self.writeXML(fout)
+    end
+  end
+  
+context Element
+
+  @Operation writeXMLFile()
+    @Doc
+      Ask for a file then write to the file.
+    end
+    let file = xmf.saveFile(xmf.projDir(),"*.xml")
+    in if file <> ""
+       then 
+         self.writeXMLFile(file);
+         xmf.message("XML written to " + file);
+         true
+       else false
+       end
+    end
+  end
+  
+  

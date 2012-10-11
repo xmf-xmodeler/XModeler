@@ -1,0 +1,716 @@
+parserImport XOCL;
+
+import IO;
+import Stacks;
+import XML::Parser;
+
+context IO
+  @Class XMLInputChannel extends SAXInputChannel
+  
+    @Doc
+      An XML input channel is used to read XML from a component
+      input channel and to build an XML element. The XML should be
+      marked up using an XMLOutputChannel. 
+    end
+    
+    // The following id table is used to record elements as
+    // they are constructed against the ids in the XML. This allows
+    // subsequent refs to be resolved using a walker.
+    
+    @Attribute idTable : Table = Table(100) end
+    
+    // The following stack is used to record the elements as they
+    // are constructed...
+    
+    @Attribute stack : Stack = Stack() end
+    
+    // The inflater deals with how objects are encoded...
+    
+    @Attribute inflater : ObjectXMLInflater = ObjectXMLInflater() (!,?) end
+    
+    // An index into encoded values...
+    
+    @Attribute valueIndex : Integer end
+    
+    @Constructor(input,inflater) 
+      self.init(Seq{input})
+    end
+    
+    @Operation attValue(atts:Buffer,name:String)
+      let value = null;
+          index = 0
+      in @While index < atts.size() and value = null do
+           if atts.ref(index).name.stringEqual(name)
+           then value := atts.ref(index).value
+           else index := index + 1
+           end
+         end;
+         value
+      end
+    end
+    
+    @Operation characters(chars:Buffer)
+      null
+    end
+    
+    @Operation decodeInt(value:Buffer)
+      let n = 0;
+          terminator = ";"->at(0)
+      in @While value->at(valueIndex) <> terminator do
+           n := (n * 10) + (value->at(valueIndex) - "0"->at(0));
+           self.valueIndex := valueIndex + 1
+         end;
+         self.valueIndex := valueIndex + 1;
+         n
+      end
+    end
+    
+    @Operation decodeValue(value:Buffer)
+      self.valueIndex := 0;
+      self.decodeIndexedValue(value)
+    end
+    
+    @Operation decodeIndexedValue(value:Buffer)
+      @CaseInt[256] value->at(valueIndex) of
+        "I"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          self.decodeInt(value)
+        end
+        "N"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          0 - self.decodeInt(value)
+        end
+        "F"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          let i = self.valueIndexOf(value,";"->at(0)) then
+              str = value.subString(valueIndex,i)
+          in self.valueIndex := i + 1;
+             str.asFloat()
+          end
+        end
+        "S"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          let size = self.decodeInt(value) then
+              string = Kernel_mkString(size)
+          in @Count i from 0 to size do
+               Kernel_setCharAt(string,i,value->at(valueIndex + i))
+             end;
+             self.valueIndex := valueIndex + size;
+             string
+          end
+        end
+        "B"->at(0) do
+          self.valueIndex := valueIndex + 3;
+          value.stringEqual("B:1")
+        end
+        "C"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          let size = self.decodeInt(value) then
+              string = Kernel_mkString(size)
+          in @Count i from 0 to size do
+               Kernel_setCharAt(string,i,value->at(valueIndex + i))
+             end;
+             self.valueIndex := valueIndex + size;
+             Symbol(string)
+          end
+        end
+        "O"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          Seq{}
+        end
+        "W"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          Set{}
+        end
+        "K"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          let head = self.decodeIndexedValue(value) then
+              tail = self.decodeIndexedValue(value)
+          in Seq{head | tail}
+          end
+        end
+        "Z"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          let head = self.decodeIndexedValue(value) then
+              tail = self.decodeIndexedValue(value)
+          in Seq{head | tail}->asSet
+          end
+        end
+        "?"->at(0) do
+          self.valueIndex := valueIndex + 2;
+          "<UNKNOWN>"
+        end
+      end
+    end
+    
+    @Operation endArray()
+      // Find the currently open array below the open 
+      // marker (self) and set the values.
+      self.push(self.setArray(0))
+    end
+    
+    @Operation endClosure()
+    
+      // Data vector is at the top of the stack over the
+      // closure. Update the closure and leave on the stack...
+      
+      let data = self.pop() then
+          fun = self.top()
+      in fun.setGlobals(Seq{data,fun.globals()}->asVector)
+      end
+    end
+    
+    @Operation endCodeBox()
+      // The constants are on the stack above the code box...
+      let constants = self.pop() then
+          codeBox = self.top()
+      in codeBox.setConstants(constants)
+      end
+    end
+    
+    @Operation endCons()
+      let tail = self.pop() then
+          head = self.pop()
+      in self.top()->head := head;
+         self.top()->tail := tail
+      end
+    end
+    
+    @Operation endElement(tag:Buffer)
+    
+      // Called at the end of an XML element. An open element is
+      // one which needs populating from the elements above it on
+      // the stack. The most recent open element is that underneath
+      // the most recent occurrence of self on the stack. Atomic
+      // values do not require populating and are not marked in this
+      // way.
+      
+      if tag.stringEqual("Array")
+      then self.endArray()
+      elseif tag.stringEqual("Int")
+      then null
+      elseif tag.stringEqual("String")
+      then null
+      elseif tag.stringEqual("Symbol")
+      then null
+      elseif tag.stringEqual("True")
+      then null
+      elseif tag.stringEqual("False")
+      then null
+      elseif tag.stringEqual("Null")
+      then null
+      elseif tag.stringEqual("Nil")
+      then null
+      elseif tag.stringEqual("Ref")
+      then null
+      elseif tag.stringEqual("NameSpaceRef")
+      then null
+      elseif tag.stringEqual("Slot")
+      then self.endSlot()
+      elseif tag.stringEqual("StringSlot")
+      then self.endSlot()
+      elseif tag.stringEqual("NullSlot")
+      then self.endSlot()
+      elseif tag.stringEqual("NilSlot")
+      then self.endSlot()
+      elseif tag.stringEqual("RefSlot")
+      then self.endSlot()
+      elseif tag.stringEqual("List")
+      then self.endList()
+      elseif tag.stringEqual("Cons")
+      then self.endCons()
+      elseif tag.stringEqual("Set")
+      then self.endSet()
+      elseif tag.stringEqual("Table")
+      then self.endTable()
+      elseif tag.stringEqual("Fun")
+      then self.endFun()
+      elseif tag.stringEqual("CodeBox")
+      then self.endCodeBox()
+      elseif tag.stringEqual("XMF-Data")
+      then self.endXMFData()
+      elseif tag.stringEqual("Closure")
+      then self.endClosure()
+      else inflater.endObject(tag,self)
+      end
+    end
+    
+    @Operation endFun()
+      let target = self.pop() then
+          owner = self.pop() then
+          properties = self.pop() then
+          globals = self.pop() then
+          codeBox = self.pop() then
+          fun = self.top()
+      in Kernel_funSetSelf(fun,target);
+         Kernel_funSetOwner(fun,owner);
+         Kernel_funSetProperties(fun,properties);
+         Kernel_funSetGlobals(fun,globals);
+         Kernel_funSetCodeBox(fun,codeBox)
+      end
+    end
+    
+    @Operation endList()
+      // Find the cons cell for the list and cons the
+      // intervening elements into it.
+      self.push(self.setList(Seq{}))
+    end
+    
+    @Operation endObject()
+    
+      // Just pop the marker..
+      
+      self.pop()
+    end
+    
+    @Operation endSlot()
+    
+      // The currently open object is the first object under self on
+      // the stack. The value under to the top of the stack is the
+      // name of the slot. Pop these off and add a slot to the open 
+      // object.
+      
+      let object = self.openObject() then
+          value = self.pop() then
+          name = self.pop()
+      in Kernel_addAtt(object,name,value)
+      end
+    end
+    
+    @Operation endSet()
+    
+      // Pop off elements until the marker and push a set...
+      
+      let S = Set{}
+      in @While self.top() <> self do
+           S := S->including(self.pop())
+         end;
+         self.pop();
+         self.push(S)
+      end
+    end
+    
+    @Operation endTable()
+    
+      // Pop off keys and values until the marker then update the
+      // table.
+      
+      let table = Table(100)
+      in @While self.top() <> self do
+           let value = self.pop() then
+               key = self.pop()
+           in table.put(key,value)
+           end
+         end;
+         self.pop();
+         let t = self.top()
+         in @For k inTableKeys table do
+              t.put(k,table.get(k))
+            end
+         end
+      end
+    end
+    
+    @Operation endXMFData()
+      // Can be hijacked to process the loaded data...
+      null
+    end
+    
+    @Operation openObject()
+    
+      // Object under the first occurrence of self on the stack...
+      
+      let i = stack.topIndex()
+      in @While stack.ref(i) <> self do
+           i := i - 1
+         end;
+         stack.ref(i - 1)
+      end
+    end
+    
+    @Operation parse()
+      // Start the parse and then resolve the references...
+      super();
+      self.result()
+    end
+    
+    @Operation pop()
+      stack.pop()
+    end
+    
+    @Operation push(value)
+      stack.push(value)
+    end
+    
+    @Operation register(value,id)
+      idTable.put(id,value)
+    end
+    
+    @Operation result()
+    
+      // Return the result (if any) and resolve any
+      // references that have been synthesized.
+      
+      inflater.result(stack.pop(),idTable)
+    end
+    
+    @Operation setArray(index:Integer)
+      let value = self.pop()
+      in if value = self
+         then self.pop()
+         else
+           let array = self.setArray(index + 1)
+           in array.put(array.size() - (index + 1),value)
+           end
+         end
+      end
+    end
+    
+    @Operation setList(list)
+      let element = self.pop()
+      in if element = self
+         then
+           let cell = self.pop()
+           in if list->isEmpty
+              then list
+              else
+                cell->head := list->head;
+                cell->tail := list->tail;
+                cell
+              end
+           end
+         else self.setList(Seq{element | list})
+         end
+      end
+    end  
+    
+    @Operation setObjectAtts(object,atts:Buffer) 
+    
+      // Each att value is encoded with a type tag, then a :
+      // then the value...
+      
+      @Count index from 0 to atts.size() do
+        let att = atts.ref(index) then
+            name = att.name;
+            value = att.value
+        in if (not name.stringEqual("id")) and (not name.stringEqual("path"))
+           then Kernel_addAtt(object,name.toString(),self.decodeValue(value))
+           end
+        end
+      end
+    end     
+    
+    @Operation startArray(atts:Buffer)
+      let id = self.attValue(atts,"id");
+          size = self.attValue(atts,"size").toString().asInt() then
+          array = Vector(size)
+      in self.register(array,id.toString());
+         self.push(array);
+         self.push(self)
+      end
+    end
+    
+    @Operation startCons(atts:Buffer)
+      // The start of a sharable cons...
+      let cell = Seq{null|null};
+          id = self.attValue(atts,"id").toString()
+      in self.register(cell,id);
+         self.push(cell)
+      end
+    end
+    
+    @Operation startElement(tag:Buffer,atts:Buffer)
+      if tag.stringEqual("Ref")
+      then self.startRef(atts)
+      elseif tag.stringEqual("Array")
+      then self.startArray(atts)
+      elseif tag.stringEqual("True")
+      then self.push(true)
+      elseif tag.stringEqual("False")
+      then self.push(false)
+      elseif tag.stringEqual("List")
+      then self.startList(atts)
+      elseif tag.stringEqual("Cons")
+      then self.startCons(atts)
+      elseif tag.stringEqual("CodeBox")
+      then self.startCodeBox(atts)
+      elseif tag.stringEqual("Fun")
+      then self.startFun(atts)
+      elseif tag.stringEqual("Imports")
+      then self.startImports()
+      elseif tag.stringEqual("Property")
+      then self.startProperty(atts)
+      elseif tag.stringEqual("Sig")
+      then self.startSig(atts)
+      elseif tag.stringEqual("ElementArg")
+      then self.startElementArg(atts)
+      elseif tag.stringEqual("Arg")
+      then self.startArg(atts)
+      elseif tag.stringEqual("Table")
+      then self.startTable(atts)
+      elseif tag.stringEqual("Int")
+      then self.push(self.attValue(atts,"value").toString().asInt())
+      elseif tag.stringEqual("Nil")
+      then self.push(Seq{})
+      elseif tag.stringEqual("String")
+      then self.push(self.attValue(atts,"value").toString())
+      elseif tag.stringEqual("Set")
+      then self.startSet()
+      elseif tag.stringEqual("Symbol")
+      then self.push(Symbol(self.attValue(atts,"value").toString()))
+      elseif tag.stringEqual("Null")
+      then self.push(null)
+      elseif tag.stringEqual("Slot")
+      then self.startSlot(atts)
+      elseif tag.stringEqual("StringSlot")
+      then self.startStringSlot(atts)
+      elseif tag.stringEqual("NullSlot")
+      then self.startNullSlot(atts)
+      elseif tag.stringEqual("NilSlot")
+      then self.startNilSlot(atts)
+      elseif tag.stringEqual("RefSlot")
+      then self.startRefSlot(atts)
+      elseif tag.stringEqual("NameSpaceRef")
+      then self.startNameSpaceRef(atts)
+      elseif tag.stringEqual("XMF-Data")
+      then self.startXMFData(atts)
+      elseif tag.stringEqual("Closure")
+      then self.startClosure(atts)
+      else inflater.startObject(tag,atts,self)
+      end
+    
+    end
+    
+    @Operation startClosure(atts:Buffer)
+      
+      // A closure is cut from a surrounding operation and
+      // can be re-created from it.
+      
+      let path = self.attValue(atts,"path").toString() then
+          args = self.attValue(atts,"path").toString() then
+          arity = self.attValue(atts,"arity").toString().asInt();
+          id = self.attValue(atts,"id").toString();
+          type = Seq{"XCore","Element"} then
+          sig = args.splitBy(",",0,0)->collect(n | Seq{n,type}) + Seq{Seq{2,type}};
+          op = path.lookupPath(Root);
+          newFun = Kernel_mkFun()
+      in @Find(codeBox,op.codeBox().constants()->asSeq)
+           when codeBox.isKindOf(CodeBox)
+           do newFun.setOwner(Root);
+              newFun.setArity(arity);
+              newFun.setCodeBox(codeBox);
+              newFun.setProperties(Seq{Seq{"closure" | path}});
+              newFun.setSig(sig);
+              self.push(newFun);
+              self.register(newFun,id)
+          end
+       end
+    end
+    
+    @Operation startCodeBox(atts:Buffer)
+    
+      // Create a code box as part of the creation of a function.
+      // Binary code is saved as a comma separated string of
+      // integers in the format INSTR,OPERANDS.
+      
+      let id = self.attValue(atts,"id").toString();
+          locals = self.attValue(atts,"locals").toString().asInt() then
+          codeBox = CodeBox(locals);
+          binary = self.attValue(atts,"binary").toString() then
+          instrs = binary.splitBy(",",0,0)->map("asInt");
+          source = self.attValue(atts,"source").toString();
+          resource = self.attValue(atts,"resource").toString();
+          name = self.attValue(atts,"name").toString();
+          i = 0
+      in codeBox.setSource(source);
+         codeBox.setResourceName(resource);
+         codeBox.setName(name);
+         codeBox.setCode(Kernel_mkCode(instrs->size.div(2)));
+         @While not instrs->isEmpty do
+           let instr = instrs->head;
+               operands = instrs->tail->head
+           in codeBox.setInstrAt(i,instr,operands);
+              i := i + 1;
+              instrs := instrs->tail->tail
+           end
+         end;
+         self.register(codeBox,id);
+         self.push(codeBox)
+      end
+    end
+    
+    @Operation startFun(atts:Buffer)
+    
+      // The start of a function. Just create a new empty
+      // function on the stack and update to contain the
+      // attribute values. When the code box is created
+      // we will replace it later...
+      
+      let fun = @Operation() null end;
+          name = self.attValue(atts,"name").toString();
+          id = self.attValue(atts,"id").toString();
+          sig = self.decodeValue(self.attValue(atts,"sig"));
+          arity = self.attValue(atts,"arity").toString().asInt();
+          doc = self.attValue(atts,"doc").toString();
+          paths = self.decodeValue(self.attValue(atts,"imports"));
+          isVarArgs = self.attValue(atts,"isVarArgs").toString().asBool()
+      in Kernel_funSetName(fun,name);
+         Kernel_funSetArity(fun,arity);
+         Kernel_funSetSig(fun,sig);
+         Kernel_funSetDoc(fun,doc);
+         Kernel_funSetDynamics(fun,
+           paths->collect(path |
+             let nameSpace = path.lookupPath(Root)
+             in Seq{2 | nameSpace.contents}
+             end
+           )
+         );
+         self.register(fun,id);
+         self.push(fun)
+      end
+    end
+    
+    @Operation startList(atts:Buffer)
+      // The start of a sharable list of elements. The cons-cells in
+      // the list are not-shared.
+      let cell = Seq{null|null};
+          id = self.attValue(atts,"id").toString()
+      in self.register(cell,id);
+         self.push(cell);
+         self.push(self)
+      end
+    end
+    
+    @Operation startNameSpaceRef(atts:Buffer)
+      // Get the path and look it up...
+      let path = self.attValue(atts,"path").toString() then
+          value = path.lookupPath(Root);
+          id = self.attValue(atts,"id").toString()
+      in if value = null
+         then self.error("Name Space Ref for " + path + "failed.")
+         else 
+           self.register(value,id);
+           self.push(value)
+         end
+      end
+    end
+    
+    @Operation startObject(atts:Buffer)
+    
+      // The path of the object classifier is encoded as an attribute, as is the
+      // id of the object. Simple valued attributes are encoded as attributes.
+      // The rest of the slots are encoded as nested elements. Push a new object,
+      // record it is open and register it against its id. The slots will take
+      // care of themselves.
+      
+      let id = self.attValue(atts,"id").toString();
+          class = self.attValue(atts,"path").toString().lookupPath(Root)
+      in if class = null
+         then self.error("Cannot find class " + self.attValue(atts,"path"))
+         else
+           let object = Kernel_newObj(class)
+           in self.setObjectAtts(object,atts);
+              self.register(object,id);
+              self.push(object);
+              self.push(self)
+           end
+         end
+      end
+    end
+    
+    @Operation startRef(atts:Buffer)
+     
+      // Create a reference to an identifier. This will be resolved at the
+      // end by the ResolveRefs walker.
+      
+      self.push(Ref(self.attValue(atts,"id").toString()))
+    end
+    
+    @Operation startSet()
+    
+      // Just mark the start of the set so we know when to stop
+      // popping the set elements.
+      self.push(self)
+    end
+    
+    @Operation startSlot(atts:Buffer)
+    
+      // There will be an open object on the stack. Push the name
+      // of the slot and then set the slot when the slot element is
+      // closed.
+      
+      self.push(self.attValue(atts,"name").toString())
+    end
+    
+    @Operation startStringSlot(atts:Buffer)
+    
+      // There will be an open object on the stack. Push the name
+      // of the slot and then set the slot when the slot element is
+      // closed.
+      
+      self.push(self.attValue(atts,"name").toString());
+      self.push(self.attValue(atts,"value").toString())
+    end
+    
+    @Operation startNilSlot(atts:Buffer)
+    
+      // There will be an open object on the stack. Push the name
+      // of the slot and then set the slot when the slot element is
+      // closed.
+      
+      self.push(self.attValue(atts,"name").toString());
+      self.push(Seq{})
+    end
+    
+    @Operation startNullSlot(atts:Buffer)
+    
+      // There will be an open object on the stack. Push the name
+      // of the slot and then set the slot when the slot element is
+      // closed.
+      
+      self.push(self.attValue(atts,"name").toString());
+      self.push(null)
+    end
+    
+    @Operation startRefSlot(atts:Buffer)
+    
+      // There will be an open object on the stack. Push the name
+      // of the slot and then set the slot when the slot element is
+      // closed.
+      
+      self.push(self.attValue(atts,"name").toString());
+      self.push(Ref(self.attValue(atts,"id").toString()))
+    end
+    
+    @Operation startTable(atts:Buffer)
+      // The start of a hash table.
+      let id = self.attValue(atts,"id").toString();
+          size = self.attValue(atts,"size").toString().asInt() then
+          table = Table(size)
+      in self.register(table,id);
+         self.push(table);
+         self.push(self)
+      end
+    end
+    
+    @Operation startXMFData(atts)
+      // Can access version number and label...
+      null
+    end
+    
+    @Operation top()
+      stack.top()
+    end
+    
+    @Operation valueIndexOf(value:Buffer,char)
+      let i = valueIndex 
+      in @While value->at(i) <> char do
+           i := i + 1
+         end;
+         i
+      end
+    end
+    
+    
+    
+  end

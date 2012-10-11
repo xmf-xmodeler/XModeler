@@ -1,0 +1,22 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Empty extends Pattern
+  
+    @Doc
+      Succeeds and produces an empty sequence.
+    end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Empty() |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      succ(env,Seq{},elements,fail,refTable)
+    end
+    
+  end

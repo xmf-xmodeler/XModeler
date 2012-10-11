@@ -1,0 +1,16 @@
+parserImport XOCL;
+
+context XML
+
+  @Class ExpectingTag extends Exception
+  
+    @Doc
+      This exception is raised when element processing expects an element
+      with a given tag and when the received node does not match.
+    end
+  
+    @Operation init(Seq{tag})
+      self.message := "Expecting tag " + tag + " at this point."
+    end
+    
+  end

@@ -1,0 +1,198 @@
+parserImport XML::Parser;
+parserImport XOCL;
+
+import XML::Parser;
+
+context XML::Parser
+
+  @Grammar MetaGrammar
+  
+    Grammar ::= 
+      <Grammar name>
+        C = Clause*
+      </Grammar> {
+        // @Call(Grammar,name,C)
+        Grammar(name,Seq{},C)
+    }.
+    
+    Clause ::= 
+      <Clause name>
+        P = Body*
+        T = Terminal*
+      </Clause> {
+        // Call(NewClause,name,P,T)
+        let c = Clause(name,P)
+        in @For t in T do
+             c.PPT().put(t->head,t->tail)
+           end;
+           c
+        end
+    }.
+    
+    Body ::=
+      <Body>
+        p = Pattern
+      </Body> {
+        p
+    }.
+    
+    Pattern ::= Action | And | Any | Bind | BindVar | Call | Element | Empty | Or | Text | Paren | Star.
+    
+    Action ::= 
+      <Action/> {
+        // Call(NewAction...)
+        Action(Seq{XOCL::Exp([| null |])})
+    }.
+    
+    And ::=
+      <And>
+        l = Pattern
+        r = Pattern
+      </And> {
+      // Call(NewAnd,l,r)
+      And(l,r)
+    }.
+    
+    Any ::=
+      <Any/> {
+        // Call(NewAny)
+        Any() 
+    }.
+    
+    Bind ::= 
+      <Bind>
+        V = Var*
+        p = Pattern
+      </Bind> {
+        Bind(V,p)
+    }.
+    
+    BindVar ::= 
+      <BindVar>
+        V = Var*
+      </BindVar> {
+        BindVar(V)
+    }.
+    
+    Var ::= <Var name/> { name }.
+    
+    Call ::= 
+      <Call name/>
+      { Call(name) }.
+      
+    Element ::=
+      <Element tag>
+        A = Attribute*
+        c = Case
+      </Element> {
+        Element(tag,A,c)
+    }.
+    
+    Empty ::=
+      <Empty/>
+      { Empty() }
+    
+    Attribute ::= 
+      <Attribute var att/>
+      { BindAtt(var,att,null) }.
+      
+    Case ::=
+      <Case>
+        C = CaseClause*
+        p = Pattern
+      </Case> {
+        Case(C,p)
+    }.
+    
+    CaseClause ::=
+      <CaseClause>
+        g = Guard
+        p = Pattern
+      </CaseClause> {
+        CaseClause(g,p)
+    }.
+    
+    Guard ::= BoolAnd | BoolOr | BoolNot | Equals.
+    
+    BoolAnd ::=
+      <BoolAnd>
+        l = Guard
+        r = Guard
+      </BoolAnd> {
+        BoolAnd(l,r) 
+    }.
+    
+    BoolOr ::=
+      <BoolOr>
+        l = Guard
+        r = Guard
+      </BoolOr> {
+        BoolOr(l,r) 
+    }.
+    
+    BoolNot ::=
+      <BoolNot>
+        g = Guard
+      </BoolNot>
+      { BoolNot(g) }.
+      
+    Equals ::=
+      <Equals>
+        l = GuardExp
+        r = GuardExp
+      </Equals> {
+        Equals(l,r) 
+    }.
+    
+    GuardExp ::= Const | AttRef.
+    
+    Const ::= <Const value/> { Const(value) }.
+    
+    AttRef ::= <AttRef name/> { AttRef(name) }.
+    
+    Or ::= 
+      <Or>
+        l = Pattern
+        r = Pattern
+      </Or> {
+      Or(l,r)
+    }.
+    
+    Paren ::= 
+      <Paren>
+        p = Pattern
+      </Paren> {
+        Paren(p) 
+    }.
+    
+    Star ::= 
+      <star>
+        p = Pattern
+      </star> {
+        Star(p)
+    }.
+    
+    Terminal ::= 
+      <Terminal name>
+        P = Pattern*
+      </Terminal> {
+      Seq{name | P}
+    }.
+    
+    Text ::= <text/> { Text() }.
+    
+  end
+  
+context Root
+  @Operation test()
+    let g = MetaGrammar.compile()
+    in @WithOpenFile(fin <- "c:/rules.xml")
+         let xin = ParserChannel(fin,g)
+         in Root::g := g;
+            xin.parse("Grammar");
+            xin
+         end
+       end
+    end
+  end
+        

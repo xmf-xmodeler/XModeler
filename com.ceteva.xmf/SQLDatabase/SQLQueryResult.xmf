@@ -1,0 +1,153 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+import Interfaces;
+
+context SQL
+
+  @Class SQLQueryResult extends Interfaces::QueryResult
+  
+    @Attribute sqldatabase : Element end
+    @Attribute database	   : DatabaseConnection end
+    @Attribute queryResult : SQLQueryResult end
+    @Attribute table	   : Table = Table(10) end
+  
+    @Constructor(sqldatabase,database,queryResult)
+    end
+    
+    @Operation buildCollection(id)
+      let
+        cquery = "SELECT * FROM colls WHERE colls.id = " + id + ";" then
+        cresult = database.query(cquery)
+      in
+        let seq = Seq{}
+        in
+          @While cresult.moveNext()
+          do
+            let 
+              valid = cresult.getInteger(3) then
+              value = self.buildValue(valid)
+            in
+              seq := seq->prepend(value)
+            end
+          end;
+          cresult.close();
+          seq
+        end
+      end
+    end
+    
+    @Operation buildObject(id)
+      if table.hasKey(id)
+      then table.get(id)
+      else
+        let 
+          oquery = "SELECT * FROM objects WHERE objects.id = " + id + ";" then
+          oresult = database.query(oquery)
+        in
+          if oresult.moveNext()
+          then
+            let 
+              of = oresult.getString(2).subst(":","::",true);
+              objid = oresult.getInteger(1) then
+              object = (of.splitBy(":",0,0).ref(Seq{Root}))();
+              squery = "SELECT * FROM slots WHERE slots.objid = " + objid + ";" then
+              sresult = database.query(squery)
+            in
+              table.put(objid,object);
+              @While sresult.moveNext()
+              do
+                let 
+                  name = sresult.getString(2);
+                  value = self.buildValue(sresult.getInteger(3))
+                in
+                  object.set(name,value)
+                end
+              end;
+              oresult.close();
+              sresult.close();
+              
+              // The id of the object is squirreled away so that subsequent
+              // updates can be related back to the DB record.
+              
+              object.setDbid(objid);
+              object.setDatabase(sqldatabase);
+              object
+            end
+          else
+            null
+          end
+        end
+      end
+    end
+    
+    @Operation buildPrimitive(id)
+      let
+        pquery = "SELECT * FROM primitives WHERE primitives.id = " + id + ";" then
+        presult = database.query(pquery)
+      in
+        presult.moveNext();
+        let 
+          type = presult.getString(2) then
+          value =
+            @Case type of
+              "string" do presult.getString(3) end
+              "integer" do presult.getInteger(3) end
+              "boolean" do presult.getBoolean(3) end
+            end
+        in
+          presult.close();
+          value
+        end
+      end
+    end
+    
+    @Operation buildValue(id)
+      let
+        vquery = "SELECT * FROM vals WHERE vals.id = " + id + ";" then
+        vresult = database.query(vquery)
+      in
+        vresult.moveNext();
+        let
+          type = vresult.getString(2) then
+          value =
+            @Case type of
+              "object" do self.buildObject(id) end
+              "primitive" do self.buildPrimitive(id) end
+              "collection" do self.buildCollection(id) end
+            end
+        in
+          vresult.close();
+          value
+        end
+      end
+    end
+    
+    @Operation close()
+      queryResult.close()
+    end
+    
+    @Operation hasNext()
+      let hasNext = queryResult.moveNext()
+      in 
+        queryResult.movePrevious();
+        hasNext
+      end
+    end
+    
+    @Operation next()
+      queryResult.moveNext();
+      let o = self.buildObject(queryResult.getInteger(1))
+      in
+      
+        // The table is reset otherwise the objects would never get disposed.  This has 
+        // the unfortunate side effect that the same object in the database can be more
+        // than one physical object in the system.
+      
+        self.table := Table(10);
+        o
+      end
+    end
+  
+  end

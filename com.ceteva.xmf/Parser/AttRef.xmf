@@ -1,0 +1,28 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class AttRef extends GuardExp
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) end
+    
+    @Operation eval(env)
+      if env.binds(name)
+      then env.lookup(name)
+      else self.error("Unbound variable " + name)
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,name)
+    end
+    
+  end

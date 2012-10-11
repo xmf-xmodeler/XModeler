@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import XML::PrintXML;
+
+context XML::PrintXML
+
+// Class deployed by Tony Clark on Wed Apr 06 10:57:52 BST 2005
+
+@Class Call extends Node
+  @Attribute exp : Root::XCore::Performable end
+  @Constructor(exp) end
+  @Operation desugar(out:Performable):performable
+    exp
+  end
+end

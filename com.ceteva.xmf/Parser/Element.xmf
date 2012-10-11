@@ -1,0 +1,92 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Element extends Pattern
+  
+    @Doc
+      A pattern that corresponds to an element with a tag,
+      some attributes and children. A matching element is
+      returned as the result.
+    end
+    
+    @Attribute tag        : String         (?) end
+    @Attribute attributes : Seq(Attribute) (?) end
+    @Attribute children   : Case           (?) end
+    
+    @Constructor(tag,attributes,children) ! end
+    
+    @Operation binds():Seq(String)
+      attributes.var + children.binds()
+    end
+    
+    @Operation BNF():Pattern
+      // Lift out any bound variables since all nested patterns will
+      // be changed to calls by nested normal form NNF.
+      let children = children.BNF() then
+          bound = children.binds()
+      in if bound->isEmpty
+         then Element(tag,attributes,children)
+         else Bind(bound,Element(tag,attributes,children.addRefActions(self.refActions(bound))))
+         end
+      end
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      children.checkForMissingClauses(grammar)
+    end
+    
+    @Operation first(grammar):Set(String)
+      Set{tag}
+    end
+    
+    @Operation NNF(handler:Operation)
+    
+      // An element is in nested normal form when the body is
+      // modified to a call of a new clause that contains the
+      // original body. This ensures that we cannot have any 
+      // nested disjuncts.
+      
+      children.NNF(
+        @Operation(case,newClauses)
+          handler(Element(tag,attributes,case),newClauses)
+        end)
+    end
+    
+    @Operation nullable(grammar)
+      false
+    end
+    
+    @Operation ONF():Pattern
+      Element(tag,attributes,children.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"<~S ",Seq{tag});
+      @For attribute in attributes do
+        attribute.pprint(out,indent);
+        if not isLast then format(out," ") end
+      end;
+      format(out,">~%~V",Seq{indent+2});
+      children.pprint(out,indent+2);
+      format(out,"~%~V</~S>",Seq{indent,tag})
+    end
+    
+    @Operation refActions(vars:Seq(String)):Seq(Action)
+      Commands(
+        vars->reverse->collect(var |
+          VarRef(var)))
+    end
+    
+    @Operation terminals():Set(String)
+      children.terminals()->including(tag)->including("/" + tag)
+    end
+    
+
+  end

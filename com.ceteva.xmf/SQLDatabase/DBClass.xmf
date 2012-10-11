@@ -1,0 +1,28 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+
+  @Class DBClass extends Class
+  
+    @Attribute slotDaemon : Daemon end
+    
+    @Operation defaultParents()
+      Set{DBObject}
+    end
+    
+    @Operation getSlotDaemon()
+      if slotDaemon = null
+      then
+        self.slotDaemon := Daemon(self,Daemon::ANY,"",DBClass::slotChanged,true,false,self)
+      end;
+      slotDaemon  
+    end
+    
+    @Operation slotChanged(object,slot,newValue,oldValue)
+      object.slotChanged(slot,newValue,oldValue)
+    end
+  
+  end

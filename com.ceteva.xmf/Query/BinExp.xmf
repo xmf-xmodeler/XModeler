@@ -1,0 +1,15 @@
+parserImport XOCL;
+
+import Database;
+
+context Database
+
+  @Class BinExp extends Exp
+  
+    @Attribute left  : Element end
+    @Attribute right : Element end
+    
+    @Constructor(left,right)
+    end
+  
+  end

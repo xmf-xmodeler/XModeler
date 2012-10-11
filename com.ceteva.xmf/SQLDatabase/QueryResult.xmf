@@ -1,0 +1,47 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+
+  @Class QueryResult
+  
+    @Attribute queryResult : Element end
+    
+    @Constructor(queryResult)
+    end
+    
+    @Operation close()
+      Kernel_dbQueryClose(queryResult)
+    end
+    
+    @Operation getBoolean(column:String):Boolean
+      Kernel_dbQueryLookup(queryResult,column,"Boolean")
+    end
+    
+    @Operation getInteger(column:String):Integer
+      Kernel_dbQueryLookup(queryResult,column,"Integer")
+    end
+    
+    @Operation getString(column:String):String
+      Kernel_dbQueryLookup(queryResult,column,"String")
+    end
+    
+    @Operation hasNext():Boolean
+      let hasNext = queryResult.moveNext()
+      in 
+        queryResult.movePrevious();
+        hasNext
+      end
+    end
+    
+    @Operation moveNext():Boolean
+      Kernel_dbQueryNext(queryResult)
+    end
+    
+    @Operation movePrevious():Boolean
+      Kernel_dbQueryPrevious(queryResult)
+    end
+  
+  end

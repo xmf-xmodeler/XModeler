@@ -1,0 +1,80 @@
+<XMI>
+  <XMI.content>
+    <UML:Model xmi.id='1' name='model1'>
+      <UML:Namespace.ownedElement> 
+        <UML:Class xmi.id='2' name='Class1' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='3' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='4'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='4' name='Class2' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='5' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='2'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='6' name='Class3' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='7' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='8'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='8' name='Class4' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='9' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='6'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='10' name='Class5' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='11' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='12'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='12' name='Class6' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='13' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='10'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='14' name='Class7' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='15' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='16'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+        <UML:Class xmi.id='16' name='Class14' isAbstract='false'>
+          <UML:Classifier.feature> 
+            <UML:Attribute xmi.id='17' name='a'> 
+              <UML:StructuralFeature.type> 
+                <UML:DataType xmi.idref='14'/>
+              </UML:StructuralFeature.type>
+            </UML:Attribute> 
+          </UML:Classifier.feature> 
+        </UML:Class>
+      </UML:Namespace.ownedElement>
+    </UML:Model>
+  </XMI.content>
+</XMI>

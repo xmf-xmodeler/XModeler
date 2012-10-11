@@ -1,0 +1,69 @@
+parserImport XML::Generator;
+parserImport XOCL;
+
+import XML;
+import Generator;
+
+// This file contains a simple example of how to write a generator
+// for basic models.
+
+context Package
+
+  // Use @ToXML to declaratively specify a mapping to XML for a class.
+  // For example the following adds a 'toXML' operation to the class
+  // named in the context. The argument to the operation is an IdTable
+  // that is used to cache and resolve references.
+  
+  // The name in ( and ) is the tag used in the XML element generated 
+  // from a package. After the tag part, there is the attribute part in [
+  // and ]. This is a ' separated sequence of attribute names. The 
+  // attributes should have atomic data types.
+  
+  @ToXML(Package)[name]
+  
+    // The body of the ToXML declaration lists the attributes with
+    // non-atomic data types. These may be collections (followed by *)
+    // or and object (just the name).
+    
+    packages*
+    classes*
+  end
+
+context Class
+
+  // The following shows an example where 'id' is the attribute name used
+  // to hold the value of the uniquely allocated identifier. These 
+  // identifiers are used for subsequent references to the element.
+  // If the element is subsequently referenced then the tag 'TypeRef' is
+  // used for the XML element and the previously allocated id is the value of
+  // the attribute 'id'.
+  
+  @ToXML(Class,id,TypeRef)[name]
+  
+    // In the body declaration we have wrapped an extra XML element around
+    // the parents to distinguish them from the following attributes.
+    
+    <Parents>
+      parents*
+    </Parents>
+    attributes*
+  end
+  
+context XCore::Attribute
+  @ToXML(Attribute)[name]
+    type
+  end
+  
+context XCore::Set
+  @ToXML(SetType)[]
+    elementType
+  end
+  
+context XCore::Seq
+  @ToXML(SeqType)[]  
+    elementType
+  end
+  
+context XCore::Element
+  @ToXML(Element,id,RefElement)[]
+  end

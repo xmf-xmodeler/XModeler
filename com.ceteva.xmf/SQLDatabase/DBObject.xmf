@@ -1,0 +1,45 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+  @Class DBObject
+  
+    @Attribute dbid		: String = null (!,?) end
+    @Attribute database : SQLDatabase (!,?) end
+    
+    @Operation hasDatabase()
+      database <> null
+    end
+    
+    @Operation hasDbid()
+      dbid <> null
+    end
+  
+    @Operation init(args):Element
+      super(args);
+      self.addDaemon(self.of().getSlotDaemon())
+    end
+    
+    @Operation setDatabase(database)
+      @WithoutDaemons(self)
+        self.database := database
+      end
+    end
+    
+    @Operation slotChanged(slot,newValue,oldValue)
+      Root::y := slot;
+      let slotString = slot.toString().toString()
+      in
+        if slotString <> "database" and slotString <> "dbid"
+        then
+          if self.hasDbid() and self.hasDatabase()
+          then
+            database.updateSlot(self,slot,newValue,oldValue)
+          end
+        end
+      end
+    end
+  
+  end

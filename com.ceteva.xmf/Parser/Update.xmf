@@ -1,0 +1,85 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Update extends Pattern
+  
+    @Doc
+      An update parses a pattern and then associates the current value
+      of the name to the value of the pattern in the current table of
+      references. The reference table is used to resolve id references
+      that occur in XML.
+    end
+    
+    @Attribute name    : String end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(name,pattern) ! end
+    
+    @Operation binds():Seq(String)
+      pattern.binds()
+    end
+    
+    @Operation BNF():Pattern
+      Update(name,pattern.BNF())
+    end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation CNF(handler:Operation)
+      pattern.CNF(
+        @Operation(pattern,newClauses)
+          handler(Update(name,pattern),newClauses)
+        end)
+    end
+    
+    @Operation first(grammar)
+      pattern.first(grammar)
+    end
+    
+    @Operation follow(grammar)
+      pattern.follow(grammar)
+    end
+    
+    @Operation flatten():Seq(Pattern)
+      pattern.flatten() + Seq{UpdateVar(name)}
+    end
+    
+    @Operation NNF(handler:Operation)
+      pattern.NNF(
+        @Operation(pattern,newClauses)
+          handler(Update(name,pattern),newClauses)
+        end)
+    end
+    
+    @Operation nullable(grammar)
+      pattern.nullable(grammar)
+    end
+    
+    @Operation ONF():Pattern
+      Update(name,pattern.ONF())
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"~S := ",Seq{name});
+      pattern.pprint(out,indent)
+    end
+    
+    @Operation SNF(handler:Operation)
+      pattern.SNF(
+        @Operation(pattern,newClauses)
+          handler(Update(name,pattern),newClauses)
+        end)
+    end
+    
+    @Operation terminals():Set(String)
+      pattern.terminals()
+    end
+    
+  end

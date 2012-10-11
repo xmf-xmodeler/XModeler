@@ -1,0 +1,58 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Element extends Pattern
+  
+    @Doc
+      A pattern that corresponds to an element with a tag,
+      some attributes and children. A matching element is
+      returned as the result.
+    end
+    
+    @Attribute tag : String end
+    @Attribute attributes : Attribute end
+    @Attribute children : Pattern end
+    
+    @Constructor(tag,attributes,children) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Element(<StrExp(tag)>,<attributes.desugar()>,<children.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      if elements->isEmpty
+      then 
+        grammar.fail(indent,"No elements.~%",Seq{},fail)
+      else
+        let element = elements->head
+        in if element.isKindOf(XML::Element)
+           then
+             if element.tag = tag
+             then 
+               grammar.debug(indent,"Found element ~S~%",Seq{tag});
+               attributes.parse(grammar,env,element,
+                 @Operation(env,ignoreResult,fail)
+                   //grammar.debug(indent,"Parsing children of ~S = ~S~%",Seq{element,element.children});
+                   children.parse(grammar,env,element.children,
+                     @Operation(env,result,ignoreChildren,fail,refTable)
+                       succ(env,result,elements->tail,fail,refTable)
+                     end,
+                     fail,
+                     indent,
+                     refTable)
+                 end,
+                 fail,
+                 indent)
+             else grammar.fail(indent,"Element expects tag ~S but encountered tag ~S~%",Seq{tag,element.tag},fail)
+             end
+          else grammar.fail(indent,"Element expected ~S~%",Seq{element},fail)
+          end
+       end
+     end
+   end
+  end

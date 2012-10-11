@@ -1,0 +1,22 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+import XML;
+import XOCL;
+import Parser;
+
+context Parser
+
+  @Class BoolAnd extends Guard
+  
+    @Attribute left  : Guard (?) end
+    @Attribute right : Guard (?) end
+    
+    @Constructor(left,right) end
+    
+    @Operation eval(env):Boolean
+      left.eval(env) and right.eval(env)
+    end
+    
+  end

@@ -1,0 +1,14 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Return extends Pattern
+  
+    @Attribute name : String (?) end
+    
+    @Constructor(name) ! end
+    
+  end

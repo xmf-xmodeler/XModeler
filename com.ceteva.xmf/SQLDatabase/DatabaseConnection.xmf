@@ -1,0 +1,75 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+
+  @Class DatabaseConnection
+  
+    @Attribute server	  : String end
+    @Attribute username	  : String end
+    @Attribute password   : String end
+    @Attribute connection : Element end
+    @Attribute debug	  : Boolean = false end
+    
+    @Constructor(server,username,password)
+    end
+    
+    @Operation autoCommit(auto:Boolean)
+      Kernel_dbAutoCommit(connection,auto)
+    end
+    
+    @Operation close()
+      Kernel_dbClose(connection)
+    end
+    
+    @Operation commit()
+      Kernel_dbCommit(connection)
+    end
+    
+    @Operation connect() 
+      self.connection := Kernel_dbConnect(server,username,password)
+    end
+    
+    @Operation connect(driver:String)
+      Kernel_dbLoadDriver(driver);
+      self.connection := Kernel_dbConnect(server,username,password)
+    end
+    
+    @Operation lastInsertId()
+      let 
+        result = self.query("SELECT LAST_INSERT_ID();");
+        value = null
+      in
+        if result.moveNext()
+        then 
+          value := result.getInteger(1)
+        end;
+        result.close();
+        value
+      end
+    end
+    
+    @Operation query(query:String):DatabaseQueryResult
+      if debug then
+        format(stdout,"query: ~S~%",Seq{query})
+      end;
+      SQL::QueryResult(Kernel_dbQuery(connection,query))
+    end
+    
+    @Operation update(update:String)
+      if debug then
+        format(stdout,"update: ~S~%",Seq{update})
+      end;
+      Kernel_dbUpdate(connection,update)
+    end
+    
+    @Operation use(database:String)
+      if debug then
+        format(stdout,"use: ~S~%",Seq{database})
+      end;
+      self.update("USE " + database + ";")
+    end
+  
+  end

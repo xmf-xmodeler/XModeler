@@ -1,0 +1,150 @@
+parserImport XOCL;
+parserImport Parser::BNF;
+
+import XML;
+import OCL;
+import XOCL;
+import Parser;
+import Exceptions;
+import Env;
+
+context Parser 
+
+  @Class Grammar extends Sugar, XCore::NameSpace
+  
+    @Doc
+      An XML grammar defines how to parse an XML element and
+      to synthesise an XMF value from it. A grammar is a name 
+      space for its clauses.
+    end
+    
+    @Grammar extends OCL::OCL.grammar
+    
+      Grammar ::= name = Name clauses = Clause* { clauses->iterate(c g = Grammar(name) | g.add(c)) }.
+      
+      Clause ::= name = Name '::=' def = Disjunct '.' { Clause(name,def) }.
+      
+      Disjunct ::= p = Conjunct ('|' q = Disjunct p = { Or(p,q) })* {p}.
+      
+      Conjunct ::= p = ClauseBind (q = Conjunct p = { And(p,q) })* {p}.
+      
+      ClauseBind ::= name = Name '=' p = Repeat { Bind(name,p) } | ClauseUpdate.
+      
+      ClauseUpdate ::= name = Name ':=' p = Repeat { Update(name,p) } | Repeat.
+      
+      Repeat ::= p = Opt ('*' { Star(p) } | '+' { Plus(p) } | {p}).
+      
+      Opt ::= '[' p = ClauseAtom ']' { Opt(p) } | ClauseAtom.
+      
+      ClauseAtom ::= Element | Action | Call | Any | Text | Unordered | '(' Disjunct ')'.
+      
+      Element ::= AtomicElement | CompositeElement.
+      
+      Call ::= name = Name { Call(name) } .
+      
+      Action ::= '{' exp = Exp '}' { Action(exp) }.
+      
+      Any ::= 'ANY' { Any() }.
+      
+      Text ::= 'TEXT' { Text() }.
+      
+      Unordered ::= 'Set' '{' UnorderedElements '}'.
+      
+      UnorderedElements ::= p = ClauseBind (q = UnorderedElements p = { Unordered(p,q) })* {p}.
+      
+      AtomicElement ::= '<' tag = Tag attributes = Attributes '/>' { Element(tag,attributes,Empty()) }.
+      
+      CompositeElement ::= '<' tag = Tag attributes = Attributes '>' children = Children '</' Tag '>' { Element(tag,attributes,children) }.
+      
+      Tag ::= n = Name ('.' m = Name n = { n + "." + m } | ':' m = Name n = { n + ":" + m })* {n}.
+      
+      Children ::= Disjunct | { Empty() }.
+      
+      Attributes ::= (p = AttributeConjunct ('|' q = Attributes p = { OrAtt(p,q) })* {p}) | { EmptyAtt() }.
+      
+      AttributeConjunct ::= p = Attribute (q = Attribute p = { AndAtt(p,q) })* {p}.
+      
+      Attribute ::= var = Name ('=' value = Str { AttValue(var,value) } | '=' att = Tag { BindAtt(var,att) } | { BindAtt(var,var) }).
+      
+    end  
+    
+    @Attribute clauses : Seq(Clause) (+) end
+    @Attribute debug : Boolean end
+    
+    @Constructor(name) ! end
+    
+    @Constructor(name,clauses) end
+    
+    @Operation add(element)
+      @TypeCase(element)
+        Clause do 
+          self.addToClauses(element);
+          super(element)
+        end
+      end
+    end
+    
+    @Operation debug(indent,string,args)
+      if debug
+      then 
+        format(stdout,"~V",Seq{indent});
+        format(stdout,string,args)
+      end
+    end
+    
+    @Operation desugar():Performable
+      [| <SetExp("Seq",clauses->collect(c | c.desugar()))>->iterate(c g = XML::Parser::Grammar(<StrExp(name)>).imports := @Imports(i) i end | g.add(c)) |]
+    end
+    
+    @Operation fail(indent,string,args,fail)
+      if debug
+      then 
+        format(stdout,"~V**************************************************************~%",Seq{indent});
+        format(stdout,"~V* ",Seq{indent});
+        format(stdout,string,args);
+        format(stdout,"~V**************************************************************~%",Seq{indent})
+      end;
+      fail()
+    end
+    
+    @Operation parse(elements,startNT)
+    
+      // Use this operation if you don't want to take account of
+      // name spaces. The third argument prevents any existing
+      // named elements from being dereferenced.
+      
+      let objPred = 
+        @Operation(o)
+          if o.isKindOf(XCore::NamedElement)
+          then o.pathSeq()->head <> "Root"
+          else true
+          end
+        end
+      in self.parse(elements,startNT,objPred)
+      end
+    end
+    
+    @Operation parse(elements,startNT,objPred)
+    
+      // Use the third argument to control which objects
+      // get dereferenced.
+    
+      let clause = self.getElement(startNT)
+      in if clause = null
+         then throw NameSpaceRef(self,startNT)
+         else
+           clause.parse(self,NullEnv(),elements,
+             @Operation(env,value,elements,fail,refTable)
+               ResolveRefs(refTable,objPred).walk(value,null)
+             end,
+             @Operation()
+               null
+             end,
+             0,
+             Table(100))
+         end
+      end
+    end
+      
+    
+  end

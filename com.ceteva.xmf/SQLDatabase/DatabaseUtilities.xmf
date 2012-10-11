@@ -1,0 +1,96 @@
+parserImport XOCL;
+
+import Database;
+import SQL;
+
+context SQL
+
+  @Class DatabaseUtilities
+  
+    // Deletes a database
+    
+    @Operation deleteDatabase(connection,dbname)
+      let
+        deleted = "DROP DATABASE " + dbname + ";"
+      in
+        connection.update(deleted)
+      end
+    end
+  
+    // Create a new database
+  
+    @Operation newDatabase(connection,dbname)
+      let
+        newd = "CREATE DATABASE IF NOT EXISTS " + dbname + ";"
+      in
+        connection.update(newd)
+      end
+    end
+  
+    // Creates a new database user
+  
+    @Operation newUser(connection,newuser,newpassword)
+      let
+        newu = "GRANT ALL PRIVILEGES ON *.* TO '" + newuser + "'@'localhost' IDENTIFIED BY '" + newpassword + "' WITH GRANT OPTION;"
+	  in
+        connection.update(newu)
+      end
+    end
+    
+    @Operation createCollectionTable(connection,dbname)
+      connection.use(dbname);
+      let 
+        create = "CREATE TABLE colls(id int,position int,valueid int);"
+      in
+        connection.update(create)
+      end
+    end
+    
+    @Operation createObjectTable(connection,dbname)
+      connection.use(dbname);
+      let 
+        create = "CREATE TABLE objects(id int,of varchar(30));"
+      in
+        connection.update(create)
+      end
+    end
+    
+    @Operation createPrimitiveTable(connection,dbname)
+      connection.use(dbname);
+      let 
+        create = "CREATE TABLE primitives(id int,type ENUM('object','objectref','string','integer','boolean'),value VARCHAR(30));"
+      in
+        connection.update(create)
+      end
+    end
+    
+    @Operation createSlotTable(connection,dbname)
+      connection.use(dbname);
+      let
+        create = "CREATE TABLE slots(objid int,name varchar(30),valueid int);"
+      in
+        connection.update(create)
+      end
+    end
+    
+    @Operation createValueTable(connection,dbname)
+      connection.use(dbname);
+      let
+        create = "CREATE TABLE vals(id int primary key auto_increment,type ENUM('object','primitive','collection'));"
+      in
+        connection.update(create)
+      end
+    end
+    
+    // Creates a database for storing XCore objects
+    
+    @Operation createXCoreDatabase(connection,dbname)
+      DatabaseUtilities::newDatabase(connection,dbname);
+      DatabaseUtilities::createObjectTable(connection,dbname);
+      DatabaseUtilities::createSlotTable(connection,dbname);
+      DatabaseUtilities::createValueTable(connection,dbname);
+      DatabaseUtilities::createCollectionTable(connection,dbname);
+      DatabaseUtilities::createPrimitiveTable(connection,dbname)
+    end
+  
+  end

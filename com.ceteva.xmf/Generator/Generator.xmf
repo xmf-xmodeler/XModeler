@@ -1,0 +1,12 @@
+parserImport XOCL;
+
+context XML
+
+  @Package Generator
+  
+    @Doc
+      This package provides language features for defining rules
+      that translate instances of classes to XML.
+    end
+    
+  end

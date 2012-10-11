@@ -1,0 +1,34 @@
+parserImport XOCL;
+
+import Database;
+
+context Interfaces
+
+  @Class Database
+  
+    @Attribute server   : String end
+    @Attribute username : String end
+    @Attribute password : String end
+    @Attribute database : String end
+    
+    @Constructor(server,username,password,database)
+      self.connect()
+    end
+  
+    @Operation close()
+      self
+    end
+    
+    @AbstractOp connect()
+    end
+    
+    @AbstractOp delete(value:Element)
+    end
+    
+    @AbstractOp query(query:QueryExp):QueryResult
+    end
+    
+    @AbstractOp store(value:Element)
+    end
+  
+  end

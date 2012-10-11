@@ -1,0 +1,25 @@
+parserImport XOCL;
+
+import XOCL;
+import OCL;
+import XML;
+
+context Generator
+
+  @Class AttributeMap extends Sugar
+  
+    @Attribute test : Performable end
+    @Attribute XMLName : String end
+    @Attribute exp : Performable end
+    
+    @Constructor(test,XMLName,exp) ! end
+  
+    @Operation desugar()
+      [| if <test>
+         then Set{ XML::Attribute(<StrExp(XMLName)>,<exp>.toString()) } 
+         else Set{}
+         end
+      |] 
+    end
+  
+  end

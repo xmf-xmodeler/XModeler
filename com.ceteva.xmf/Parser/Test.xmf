@@ -1,0 +1,200 @@
+parserImport XOCL;
+parserImport XML::Parser;
+
+import XML::Parser;
+
+context Root
+  @Operation grammar1()
+    @Grammar Test
+      A ::= <A> b = (B | C)* </A> { @Event doA <- (b) end}.
+      B ::= <B/> { @Event doB <- ("b") end}.
+      C ::= <C/> { @Event doC <- ("c") end}.
+    end
+  end
+  
+context Root
+  @Operation anyOrder()
+    @Grammar Test
+      A ::= 
+        <A> elements = (b = B {Seq{"B" | b}} | c = C {Seq{"C" | c}})* 
+            Bs = { elements->select(e | e->head = "B")->map("tail") } 
+            Cs = { elements->select(e | e->head = "C")->map("tail") } 
+        </A> { Seq{Bs,Cs} }.
+      B ::= <B v=value/> { v.asInt() }.
+      C ::= <C v=value/> { v.asBool() }.
+    end
+  end
+  
+context Root
+  @Operation anyOrder2()
+    @Grammar Test
+      A ::= 
+        <A> 
+          Repeat{ 
+            Bs = B;
+            Cs = C
+          }
+        </A> { Seq{Bs,Cs} }.
+      B ::= <B v=value/> { v.asInt() }.
+      C ::= <C v=value/> { v.asBool() }.
+    end
+  end
+  
+context Root
+  @EventManager Manager
+    @Handler doA(b) "1".println() end
+    @Handler doB(b) "2".println() end
+    @Handler doC(b) "3".println() end
+    
+  end
+  
+context Root
+  @Operation grammar2()
+    @Grammar Test
+      X ::= <X x=x> t1 = TEXT t2 = X* </x> { x + t1 + t2->separateWith(",") }.
+    end
+  end
+  
+context Root
+  @Operation grammar3a()
+    @Grammar Test
+      A ::= <A n=name a=age> x = (B | C)* </A> { Seq{NamedElement("a") | x} }.
+      B ::= <B> a = A* </B> { Seq{NamedElement("b") | a} }.
+      C ::= <C> a = A* </C> { Seq{NamedElement("c") | a} }.
+    end
+  end
+  
+context Root
+  @Operation grammar3b()
+    @Grammar Test
+      A ::= <A n=name a=age> (B | C)# </A> .
+      B ::= <B> A# </B>.
+      C ::= <C> A# </C>.
+    end
+  end
+  
+context Root
+  @Operation test1()
+    let g = grammar1()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test.xml")
+         let xin = ParserChannel(fin,g,Manager)
+         in //xin.debug := true;
+            Root::g := g;
+            xin.parse("A");
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation test2()
+    let g = grammar2()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test.xml")
+         let xin = ParserChannel(fin,g,Manager) then
+             t = Time()
+         in //xin.debug := true;
+            Root::g := g;
+            xin.parse("X");
+            (Time() - t).pprint(stdout);
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation test3()
+    let g = anyOrder2()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test.xml")
+         let xin = ParserChannel(fin,g,Manager) then
+             t = Time()
+         in xin.debug := true;
+            xin.parse("A");
+            (Time() - t).pprint(stdout);
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation test4()
+    test4a();
+    test4b();
+    test4c()
+  end
+  
+context Root
+  @Operation test4a()
+    let g = grammar3a()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test2.xml")
+         let xin = ParserChannel(fin,g,Manager) then
+             t = Time()
+         in xin.parse("A");
+            (Time() - t).pprint(stdout);
+            xin.result(false);
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation test4b()
+    let g = grammar3a()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test2.xml")
+         let xin = ParserChannel(fin,g,Manager) then
+             t = Time()
+         in xin.parse("A");
+            (Time() - t).pprint(stdout);
+            xin.result(true);
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Operation test4c()
+    let g = grammar3b()
+    in @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test2.xml")
+         let xin = ParserChannel(fin,g,Manager) then
+             t = Time()
+         in xin.parse("A");
+            (Time() - t).pprint(stdout);
+            xin
+         end
+       end
+    end
+  end
+  
+context Root
+  @Grammar ElementGrammar
+    Element ::= Table.
+    Table ::= <Table> es = Element* </Table> { Seq{"Table" | es } }.
+  end
+  
+context Root
+  @Grammar SubGrammar extends ElementGrammar
+    Element ::= NameSpace | Table.
+    NameSpace ::= <NameSpace> es = Element* </NameSpace> { Seq{"NameSpace" | es } }.
+  end
+  
+context Root
+  @Operation test5()
+    @WithOpenFile(fin <- xmf.homeDir() + "/XML/Parser/test3.xml")
+       let xin = ParserChannel(fin,SubGrammar) then
+           t = Time()
+       in xin.parse("Element");
+          (Time() - t).pprint(stdout);
+          xin
+      end
+    end
+  end
+  
+context Root
+    @Grammar TestDefault
+      A ::= <A a := "plap"/> { @Event doA <- (a) end }.
+    end
+  

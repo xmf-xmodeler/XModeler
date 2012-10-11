@@ -1,0 +1,54 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+import Exceptions;
+import Env;
+
+context Parser
+
+  @Class Call extends Pattern
+  
+    @Doc
+      Try to match the named pattern. The result of the call
+      is returned to the caller. The new clause is parsed in
+      the context of a new environment.
+    end
+    
+    @Attribute name : String end
+    
+    @Constructor(name) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Call(<StrExp(name)>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      let clause = grammar.getElement(name)
+      in if clause = null
+         then throw NameSpaceRef(grammar,name)
+         else 
+           grammar.debug(indent,"Call ~S~%",Seq{name});
+           clause.parse(grammar,NullEnv(),elements,
+           
+             // Calling a clause creates a new environment for variable bindings
+             // and produces a result. The environment is local to the scope of
+             // the called clause and the fail that is produced (an extension of
+             // the supplied fail) are both ignored. Note that this assumes the
+             // parse does not wish to backtrack over a clause. This is safe because
+             // it is never the case that you can parse an XML non-terminal in
+             // more than one way.
+             
+             @Operation(ignoreEnv,result,elements,ignoreFail,refTable)
+               grammar.debug(indent,"Return ~S value = ~S~%",Seq{name,result});
+               succ(env,result,elements,fail,refTable)
+             end,
+             fail,
+             indent+2,
+             refTable)
+         end
+      end
+    end
+    
+  end

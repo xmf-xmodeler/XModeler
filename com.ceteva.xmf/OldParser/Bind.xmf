@@ -1,0 +1,36 @@
+parserImport XOCL;
+
+import XML;
+import OCL;
+import Parser;
+
+context Parser
+
+  @Class Bind extends Pattern
+  
+    @Doc
+      A binding parses a pattern and then binds the name
+      to the value of the pattern.
+    end
+    
+    @Attribute name : String end
+    @Attribute pattern : Pattern end
+    
+    @Constructor(name,pattern) ! end
+    
+    @Operation desugar():Performable
+      [| XML::Parser::Bind(<StrExp(name)>,<pattern.desugar()>) |]
+    end
+    
+    @Operation parse(grammar,env,elements,succ,fail,indent,refTable)
+      pattern.parse(grammar,env,elements,
+        @Operation(env,result,elements,fail,refTable)
+          grammar.debug(indent,"Bind ~S = ~S~%",Seq{name,result});
+          succ(env.bind(name,result),result,elements,fail,refTable)
+        end,
+        fail,
+        indent,
+        refTable)
+    end
+    
+  end

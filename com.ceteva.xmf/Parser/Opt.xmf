@@ -1,0 +1,32 @@
+parserImport XOCL;
+
+import XML;
+import Parser;
+
+context Parser
+
+  @Class Opt extends Pattern
+  
+    @Doc
+      An optional pattern.
+    end
+    
+    @Attribute pattern : Pattern end
+    
+    @Constructor(pattern) ! end
+    
+    @Operation checkForMissingClauses(grammar)
+      pattern.checkForMissingClauses(grammar)
+    end
+    
+    @Operation ONF():Pattern
+      Or(pattern.ONF(),Empty())
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"[");
+      pattern.pprint(out,indent);
+      format(out,"]")
+    end
+    
+  end

@@ -1,0 +1,174 @@
+parserImport XOCL;
+
+import XML;
+
+context XML
+
+  @Class Element extends Node
+  
+    @Doc
+      An XML element has a tag, some attributes and some children. Use 'get/1' to
+      access the attribute values by name. If the element conforms to XMF.dtd then
+      it can be reduced to an XMF data value using 'reduce/1' where the argument
+      is a table of element identifiers to XMF data values.
+    end
+  
+    @Attribute tag        : String         (!,?)     end
+    @Attribute attributes : Set(Attribute) (+,-,?)   end
+    @Attribute children   : Seq(Node)      (!,?,+,-) end
+    
+    @Constructor(tag) ! end
+    @Constructor(tag,attributes) end
+    @Constructor(tag,attributes,children) end
+    
+    @Operation addAtt(name:String,value:String)
+      self.addToAttributes(Attribute(name,value))
+    end
+    
+    @Operation filter(tag)
+      children->select(c | c.isKindOf(Element))->select(c | c.tag = tag)
+    end
+    
+    @Operation getAtt(name:String):String
+      if attributes->exists(a | a.name = name)
+      then attributes->select(a | a.name = name)->sel.value
+      else throw NoAttribute(self,name)
+      end
+    end
+    
+    @Operation getAtt(name:String,default:Element):Element
+      if self.hasAtt(name)
+      then self.getAtt(name)
+      else default
+      end
+    end
+    
+    @Operation hasAtt(name:String):Boolean
+      attributes->exists(a | a.name = name)
+    end
+    
+    @Operation isWhiteSpace():Boolean
+      false
+    end
+    
+    @Operation nameSpaceRef(nameSpace:NameSpace):Object
+      if tag <> "NameSpaceRef"
+      then throw ExpectingTag("NameSpaceRef")
+      else nameSpace.getElement(self.getAtt("name"))
+      end
+    end
+    
+    @Operation pprint(out,indent)
+      format(out,"<~S",Seq{tag});
+      @For a in attributes do
+        format(out," ");
+        a.print(out)
+      end;
+      if children->isEmpty
+      then format(out,"/>")
+      else 
+        format(out,">");
+        @For c in children do
+          format(out,"~%~V",Seq{indent+2});
+          c.pprint(out,indent+2)
+        end;
+        format(out,"~%~V</~S>",Seq{indent,tag})
+      end
+    end
+    
+    @Operation print(out)
+      format(out,"<~S",Seq{tag});
+      @For a in attributes do
+        format(out," ");
+        a.print(out)
+      end;
+      if children->isEmpty
+      then format(out,"/>")
+      else 
+        format(out,">");
+        @For c in children do
+          c.print(out)
+        end;
+        format(out,"</~S>",Seq{tag})
+      end
+    end
+    
+    @Operation put(name:String,value:String)
+      if attributes->exists(a | a.name = name)
+      then attributes->select(a | a.name = name)->sel.setValue(value)
+      else throw NoAttribute(self,name)
+      end
+    end
+    
+    @Operation reduce(idTable:Table):Element
+      @Case tag of 
+        "Object" do self.reduceObject(idTable) end
+        "Null" do null end
+        "Integer" do self.getAtt("value") end
+        "Boolean" do self.getAtt("value") end
+        "String" do self.getAtt("value") end
+        "IdRef" do idTable.get(self.getAtt("id")) end
+        "EmptySeq" do Seq{} end
+        "Seq" do self.reduceSeq(idTable) end
+        "Set" do self.reduceSet(idTable) end
+        else throw UnknownTag(tag)
+      end
+    end
+    
+    @Operation reduceRef():Class
+      if tag <> "Ref"
+      then throw ExpectingTag("Ref")
+      else 
+        let root = self.getAtt("root")
+        in children->iterate(c e = Root.getElement(root) | c.nameSpaceRef(e))
+        end
+      end
+    end
+    
+    @Operation reduceObject(idTable:Table):Object
+      if children->isEmpty
+      then throw ExpectingTag("Ref")
+      else
+        let class = children->head.reduceRef()
+        in let o = class.new();
+               id = self.getAtt("id")
+           in idTable.put(id,o);
+              @For c in children->tail do
+                c.reduceSlot(o,idTable)
+              end;
+              o
+           end
+        end
+      end
+    end
+    
+    @Operation reduceSeq(idTable:Table)
+      if children->size = 2
+      then Seq{children->at(0).reduce(idTable) |
+               children->at(1).reduce(idTable)}
+      else self.error("Element::reduce: Seq expects 2 children.")
+      end
+    end
+    
+    @Operation reduceSet(idTable:Table)
+      children->asSet->collect(e | e.reduce(idTable))
+    end
+    
+    @Operation reduceSlot(o:Object,idTable:Table)
+      if tag <> "Slot"
+      then throw ExpectingTag("Slot")
+      else
+        let name = self.getAtt("name");
+            value = children->at(0).reduce(idTable)
+        in o.set(name,value)
+        end
+      end
+    end  
+    
+    @Operation stripWhiteSpace()
+      Element(tag,attributes,children
+        ->reject(child | child.isWhiteSpace())
+        ->collect(child | child.stripWhiteSpace()))
+    end     
+    
+  end

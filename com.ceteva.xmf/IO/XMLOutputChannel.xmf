@@ -1,0 +1,327 @@
+parserImport XML::PrintXML;
+parserImport XOCL;
+
+import IO;
+
+context IO
+  @Class XMLOutputChannel extends OutputChannel
+  
+    @Doc
+      An XML output channel has an operation writeValue that is used
+      to encode a value as XML to a component output channel. The
+      markup is fixed for the basic data types and is controlled by
+      an object formatter for objects. There is a basic object formatter
+      that uses the type name and slot names of the object as markup.
+      Define new object formatters for specific types of markup.
+      Sharable data values have unique identifiers and are written 
+      out on the first occurrence and are written as references on
+      subsequent occurrences.
+    end
+    
+    @Bind Version = 1.6 end
+  
+    @Attribute out             : OutputChannel               (?,!) end
+    @Attribute formatter       : AbstractObjectFormatter     (?,!) end
+    @Attribute table           : Table = Table(100)          (?)   end
+    @Attribute idCounter       : Integer                     (?,!) end
+    
+    @Constructor(out)
+      self.formatter := ObjectXMLFormatter()
+    end
+    
+    @Constructor(out,formatter) end
+    
+    @Operation flush()
+      out.flush()
+    end
+    
+    @Operation close()
+      out.close()
+    end
+    
+    @Operation encodeFunImports(fun):String
+      let nameSpaces = fun.imports() then
+          paths = nameSpaces->collect(nameSpace | nameSpace.path())
+      in self.encodeValueString(paths)
+      end
+    end
+    
+    @Operation encodeValue(out,value)
+    
+      // Encode a simple value by tagging it up so that
+      // it can be decoded when read back in. The encoding
+      // is written to the output channel...
+      
+      @CaseInt[34] Kernel_tag(value) of 
+        XMF::BOOL do
+          format(out,"B:~S",Seq{if value then 1 else 0 end})
+        end
+        XMF::INT do
+          format(out,"I:~S;",Seq{value})
+        end
+        XMF::NEGINT do
+          format(out,"N:~S;",Seq{value.abs()})
+        end
+        XMF::FLOAT do
+          format(out,"F:~S;",Seq{value})
+        end
+        XMF::STRING do
+          format(out,"S:~S;~X",Seq{value->size,value})
+        end
+        XMF::SYMBOL do
+          format(out,"C:~S;~X",Seq{value.toString()->size,value})
+        end
+        XMF::CONS do
+          format(out,"K:");
+          self.encodeValue(out,value->head);
+          self.encodeValue(out,value->tail)
+        end
+        XMF::NIL do
+          format(out,"O:")
+        end
+        XMF::SET do
+          if value->isEmpty
+          then format(out,"W:")
+          else 
+            format(out,"Z:");
+            self.encodeValue(out,value->asSeq->head);
+            self.encodeValue(out,value->asSeq->tail)
+          end
+        end
+        else format(out,"?:")
+      end
+    end
+    
+    @Operation encodeValueString(value):String
+    
+      // Encode a simple value and return the encoding...
+      
+      let sout = StringOutputChannel()
+      in self.encodeValue(sout,value);
+         sout.getString()
+      end
+    end
+    
+    @Operation funDoc(fun):String
+      if fun.doc().doc = "No Documentation Specified" 
+      then "" 
+      else fun.doc().doc 
+      end
+    end
+    
+    @Operation id(value)
+      if table.hasKey(value)
+      then table.get(value)
+      else 
+        table.put(value,idCounter);
+        self.idCounter := idCounter + 1;
+        idCounter - 1
+      end
+    end
+    
+    @Operation isRegistered(value):Boolean
+      table.hasKey(value)
+    end
+    
+    @Operation nameSpaceRef(namedElement:NamedElement)
+      @XML(out)
+        <NameSpaceRef path=namedElement.path() id=self.id(namedElement)/>
+      end
+    end
+    
+    @Operation setTable(t:Table)
+      self.table := t;
+      self.idCounter := t.values()->size
+    end
+    
+    @Operation write(c)
+      out.write(c)
+    end
+    
+    @Operation writeFun(element)
+      Kernel_tablePut(table,element,idCounter);
+      self.idCounter := idCounter + 1;
+      @XML(out)
+        <Fun name=element.name() 
+             id=idCounter-1 
+             arity=element.arity() 
+             isVarArgs=element.isVarArgs()
+             sig=self.encodeValueString(element.sig())
+             doc=self.funDoc(element)
+             imports=self.encodeFunImports(element)>
+          self.writeValue(element.codeBox());
+          self.writeValue(element.globals());
+          self.writeValue(element.properties());
+          self.writeValue(element.owner());
+          self.writeValue(element.target())
+        </Fun>
+      end
+    end
+      
+    @Operation writeValue(element)
+      @WithoutSourcePos
+        if table.hasKey(element) 
+        then
+          @XML(out)
+            <Ref id=table.get(element)/>
+          end
+          elseif not element = self
+          then 
+            @CaseInt[34] Kernel_tag(element) of 
+               XMF::ARRAY do
+                 Kernel_tablePut(table,element,idCounter);
+                 self.idCounter := idCounter + 1;
+                 @XML(out)
+                   <Array size=element.size() id=idCounter-1>
+                     @Count i from 0 to element->size do
+                       self.writeValue(Kernel_arrayRef(element,i))
+                     end
+                   </Array>
+                 end
+              end
+               XMF::BOOL do
+                 if element
+                 then @XML(out) <True/> end
+                 else @XML(out) <False/> end
+                 end
+               end
+               XMF::BUFFER do
+                 null
+               end
+               XMF::CLIENT do
+                 null
+               end
+               XMF::CODE do
+                 null
+               end
+               XMF::CODEBOX do
+                 Kernel_tablePut(table,element,idCounter);
+                 self.idCounter := idCounter + 1;
+                 @XML(out)
+                   <CodeBox id=idCounter-1 name=element.name() locals=element.locals() resource=element.resourceName() source=element.source() binary=element.binaryString()>
+                     self.writeValue(element.constants())
+                   </CodeBox>
+                 end
+               end
+               XMF::CONS do
+                 Kernel_tablePut(table,element,idCounter);
+                 self.idCounter := idCounter + 1;
+                 if element.isProperSequence()
+                 then
+                   @XML(out)
+                     <List id=idCounter-1>
+                       @For e in element do
+                         self.writeValue(e)
+                       end
+                     </List>
+                   end
+                 else
+                   @XML(out)
+                     <Cons id=idCounter-1>
+                       self.writeValue(element->head);
+                       self.writeValue(element->tail)
+                     </Cons>
+                   end
+                 end
+               end
+               XMF::CONT do
+                 null
+               end
+               XMF::DAEMON do
+                 null
+               end
+               XMF::FLOAT do
+                 null
+               end
+               XMF::FOREIGNFUN do
+                 null
+               end
+               XMF::FOREIGNOBJ do
+                 null
+               end
+               XMF::FUN do
+                 self.writeFun(element)
+               end
+               XMF::HASHTABLE do
+                 Kernel_tablePut(table,element,idCounter);
+                 self.idCounter := idCounter + 1;
+                 @XML(out)
+                   <Table size=element.size() id=idCounter-1>
+                     @For key inTableKeys element do
+                       self.writeValue(key);
+                       self.writeValue(Kernel_tableGet(element,key))
+                     end
+                   </Table>
+                 end
+               end
+               XMF::INPUT_CHANNEL do
+                 null
+               end
+               XMF::INT do
+                 @XML(out)
+                   <Int value=element/>
+                 end
+               end
+               XMF::NEGINT do
+                 @XML(out)
+                   <Int value=element/>
+                 end
+               end
+               XMF::NIL do
+                 @XML(out)
+                   <Nil/>
+                 end
+               end
+               XMF::OBJ do 
+                 //Kernel_tablePut(table,element,idCounter);
+                 //self.idCounter := idCounter + 1;
+                 formatter.write(element,self)
+               end
+               XMF::OUTPUT_CHANNEL do
+                 null
+                end
+               XMF::SET do
+                 @XML(out)
+                   <Set>
+                     @For e in element do
+                       self.writeValue(e)
+                     end
+                   </Set>
+                 end
+               end
+               XMF::STRING do
+                 @XML(out)
+                   <String value=element/>
+                 end
+               end
+               XMF::SYMBOL do
+                 @XML(out)
+                   <Symbol value=element/>
+                 end
+               end
+               XMF::THREAD do
+                 null
+               end
+               XMF::UNDEFINED do
+                 @XML(out)
+                   <Null/>
+                 end
+               end
+               else format(out,"Warning: XML export ignoring ~S.~%",Seq{element})
+             end
+          end
+        end
+      end
+      
+      @Operation writeXML(value,label)
+      
+        // Use this operation in sub-classes to hijack the output.
+        // In particular allows extra XML to be wrapped round the
+        // translation of value.
+        
+        format(out,"<XMF-Data version='~S' date='~S' label='S'>",Seq{
+          XMLOutputChannel::Version,xmf.date(),label});
+        self.writeValue(value);
+        format(out,"</XMF-Data>")
+      end
+    end

@@ -1,0 +1,25 @@
+import Compiler;
+
+compileFile(xmf.homeDir() + "/XML/Attribute",true,true);
+compileFile(xmf.homeDir() + "/XML/Boot",true,true);
+compileFile(xmf.homeDir() + "/XML/Element",true,true);
+compileFile(xmf.homeDir() + "/XML/ExpectingTag",true,true);
+compileFile(xmf.homeDir() + "/XML/Document",true,true);
+compileFile(xmf.homeDir() + "/XML/NoAttribute",true,true);
+compileFile(xmf.homeDir() + "/XML/Manifest",true,true);
+compileFile(xmf.homeDir() + "/XML/Node",true,true);
+compileFile(xmf.homeDir() + "/XML/Text",true,true);
+compileFile(xmf.homeDir() + "/XML/XML",true,true);
+compileFile(xmf.homeDir() + "/XML/UnknownTag",true,true);
+compileFile(xmf.homeDir() + "/XML/DOMInputChannel",true,true);
+
+compileFile(xmf.homeDir() + "/XML/IO/Makefile",true,true);
+(xmf.homeDir() + "/XML/IO/Makefile.o").loadBin(false);
+compileFile(xmf.homeDir() + "/XML/Parser/Makefile",true,true);
+(xmf.homeDir() + "/XML/Parser/Makefile.o").loadBin(false);
+compileFile(xmf.homeDir() + "/XML/PrintXML/Makefile",true,true);
+(xmf.homeDir() + "/XML/PrintXML/Makefile.o").loadBin(false);
+compileFile(xmf.homeDir() + "/XML/Generator/Makefile",true,true);
+(xmf.homeDir() + "/XML/Generator/Makefile.o").loadBin(false);
+compileFile(xmf.homeDir() + "/XML/XMI/Makefile",true,true); 
+(xmf.homeDir() + "/XML/XMI/Makefile.o").loadBin(false);
