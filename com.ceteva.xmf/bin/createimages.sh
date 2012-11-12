@@ -26,12 +26,12 @@ XMFFILENAME=Boot/Boot.o
 
 
 #works
-echo "xos.img, derived from xos.bat"
+echo "Makefile XOS"
 java $MAXJAVAHEAP $MAXJAVASTACKSIZE -cp $LIB XOS.OperatingSystem -port $PORT -image $EVALUATORIMAGE -heapSize $HEAPSIZE -freeHeap $FREEHEAP -stackSize $STACKSIZE -arg filename:$XOSFILENAME -arg user:"$USERNAME" -arg home:"$XMFHOME" -arg license:license.lic -arg projects:"$XMFPROJECTS" -arg doc:"$XMFDOC" -arg version:"$VERSION"
-echo "Done xos"
+echo "Done XOS"
 #works
 echo "xmf.img, derived from makexmf.bat"
-java -cp $LIB XOS.OperatingSystem -port $PORT -initFile $XMFHOME/Boot/Boot.o -heapSize $HEAPSIZE -arg home:$XMFHOME
+java -cp $LIB XOS.OperatingSystem -port $PORT -initFile $XMFHOME/$XMFFILENAME -heapSize $HEAPSIZE -arg home:$XMFHOME
 echo "Done xmf"
 #works
 echo "eval.img"

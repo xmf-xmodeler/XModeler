@@ -603,6 +603,7 @@ public final class OperatingSystem implements EventHandler {
         initInternalClients();
         initMessageClients();
         initXVM(args);
+        System.out.println("[ Running XOS ]");
         if(XVM.checkoutLicense()) 
           run();
         else
@@ -669,7 +670,7 @@ public final class OperatingSystem implements EventHandler {
             System.out.println(e);
             System.exit(0);
         } catch (NoSuchMethodException e) {
-            System.out.println(e + ": Internal clients must implement a 2-place constructor(InputStream,OUtputStream)");
+            System.out.println(e + ": Internal clients must implement a 2-place constructor(InputStream,OutputStream)");
             System.exit(0);
         } catch (IllegalArgumentException e) {
             System.out.println(e);

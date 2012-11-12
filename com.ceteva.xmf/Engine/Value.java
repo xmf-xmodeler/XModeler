@@ -72,7 +72,7 @@ public interface Value {
 
     public static final int SET_SIZE        = 1;
 
-    public static final int INPUT_CHANNEL   = 19;             // A chanel of input data.
+    public static final int INPUT_CHANNEL   = 19;             // A channel of input data.
 
     public static final int OUTPUT_CHANNEL  = 20;             // A channel for output data.
 

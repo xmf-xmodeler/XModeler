@@ -15,6 +15,22 @@ public class CommandClient {
 	// (3) Create an address.
 	// (4) Connect to the address.
 
+	
+	// In order to activate the command client as 
+	// a console substition and so to externally use the xmf machine
+	// from a client use the following commands
+	// Start command client
+	// java IO.CommandClient 'portnumber'
+	// Run these commands on the xmf machine:
+	// input := Kernel_clientInputChannel("com.ceteva.test");
+	// Root::stdin.setChannel(input);
+	// Kernel_rebindStdin(input);
+	// output := Kernel_clientOutputChannel("com.ceteva.test");
+	// Root::stdout.setChannel(output);
+	// XOCL::Fork("test",xmf.topLevel().loop());
+	
+	
+	
 	Socket socket = null; // Socket created when connected.
 
 	public InetAddress localHost() {
@@ -34,6 +50,9 @@ public class CommandClient {
 		}
 	}
 
+	private InputStream in;
+	private OutputStream out;
+
 	public boolean connect(InetAddress address, int port) {
 		try {
 			socket = new Socket(address, port);
@@ -42,16 +61,16 @@ public class CommandClient {
 			return false;
 		}
 		try {
-            OutputStream out = socket.getOutputStream();
-            PrintWriter pout = new PrintWriter(out);
-            InputStream in = socket.getInputStream();
-            pout.write("com.ceteva.test\0");
-            pout.flush();
-            in.read();
-			Thread t1 = new IOThread(System.in,out);
-			Thread t2 = new IOThread(in,System.out);
-            t1.start();
-            t2.start();
+			out = socket.getOutputStream();
+			PrintWriter pout = new PrintWriter(out);
+			in = socket.getInputStream();
+			pout.write("com.ceteva.test\0");
+			pout.flush();
+			in.read();
+			Thread t1 = new IOThread(System.in, out);
+			t1.start();
+			Thread t2 = new IOThread(in, System.out);
+			t2.start();
 		} catch (IOException ioe) {
 			System.out.println(ioe);
 			return false;
@@ -64,10 +83,9 @@ public class CommandClient {
 		// valid for use.
 		return !socket.isClosed() && socket.isConnected() && socket.isBound();
 	}
-	
+
 	public static void main(String[] args) {
 		CommandClient client = new CommandClient();
-		while(!client.connect(client.localHost(),Integer.parseInt(args[0]))) {}
+		client.connect(client.localHost(), Integer.parseInt(args[0]));
 	}
-
 }
