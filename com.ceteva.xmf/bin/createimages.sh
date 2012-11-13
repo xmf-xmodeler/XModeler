@@ -50,12 +50,6 @@ echo "Makefile XOS"
 compileFileWithImg $TOOLIMAGE $TOOLFILENAME
 echo "Done XOS"
 }
-createTools(){
-#works
-echo "Makefile XOS"
-java $MAXJAVAHEAP $MAXJAVASTACKSIZE -cp $LIB XOS.OperatingSystem -port $PORT -image $TOOLIMAGE -heapSize $HEAPSIZE -freeHeap $FREEHEAP -stackSize $STACKSIZE -arg filename:$TOOLSFILENAME -arg user:"$USERNAME" -arg home:"$XMFHOME" -arg license:license.lic -arg projects:"$XMFPROJECTS" -arg doc:"$XMFDOC" -arg version:"$VERSION"
-echo "Done XOS"
-}
 second(){
 #works
 echo "xmf.img, derived from makexmf.bat"
@@ -81,7 +75,7 @@ echo "Done server"
 fifth(){ 
 #wont work
 echo "Makefile mosaic.img"
-    compileFileWithImg $SERVERIMAGE $MOSAICMAKEFILENAME
+    compileFileWithImg $TOOLIMAGE $MOSAICMAKEFILENAME
 echo "Done makefile mosaic"
 }
 toolMakerImage(){
@@ -92,7 +86,7 @@ echo "Done makefile mosaic"
 sixth(){
 #works
 echo "Compile mosaic.img"
-java $MAXJAVAHEAP -cp $LIB XOS.OperatingSystem -port $PORT -image $SERVERIMAGE -heapSize $HEAPSIZE -freeHeap $FREEHEAP -stackSize $STACKSIZE -arg filename:$MOSAICFILENAME -arg user:"$USERNAME" -arg home:"$XMFHOME" -arg license:license.lic -arg projects:"$XMFPROJECTS" -arg doc:"$XMFDOC" -arg version:"$VERSION"
+java $MAXJAVAHEAP -cp $LIB XOS.OperatingSystem -port $PORT -image $TOOLIMAGE -heapSize $HEAPSIZE -freeHeap $FREEHEAP -stackSize $STACKSIZE -arg filename:$MOSAICFILENAME -arg user:"$USERNAME" -arg home:"$XMFHOME" -arg license:license.lic -arg projects:"$XMFPROJECTS" -arg doc:"$XMFDOC" -arg version:"$VERSION"
 echo "Done mosaic"
 }
 buildImage $XMFHOME/$COMPILERFILE
@@ -102,8 +96,7 @@ third
 fourth
 fifth
 toolMakerImage
-toolMaker
-createTools
 fifth
+toolMaker
 sixth
 
