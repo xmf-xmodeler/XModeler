@@ -1,0 +1,30 @@
+// This file will compile the entire XMF system.
+
+import Compiler;
+
+// Make sure that the boot files are all up to date.
+
+format(stdout,"~%~%");
+format(stdout,"***********************************************************~%");
+format(stdout,"       Tool System Make on ~<15>S~%",Seq{xmf.date()});
+format(stdout,"       Using version ~S~%",Seq{xmf.version()});
+format(stdout,"***********************************************************~%");
+
+resetCompilationErrors();
+
+compileFile("Clients/Makefile",true,true);
+compileFile("MDC/Manifest",true,true);
+compileFile("Tools/LoadRegistryContributions",true,true);
+"Clients/Makefile.o".loadBin(false);
+"MDC/Manifest.o".loadBin(false).build("MDC");
+"Tools/LoadRegistryContributions.o".loadBin(false);
+
+format(stdout,"~%*******************************************************~%");
+pprintCompilationErrors(stdout);
+format(stdout,"~%*******************************************************~%~%");
+
+if not Compiler::errors->isEmpty
+then 
+  format(stdout,"There were compiler errors. Press return to continue: ~F");
+  stdin.read()
+end;

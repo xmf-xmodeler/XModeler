@@ -21,6 +21,7 @@ compileFile("Boot/Preference",true,true);
 compileFile("Boot/PreferenceManager",true,true);
 compileFile("Boot/XMF",true,true);
 compileFile("Boot/Manifest",true,true);
+compileFile("Boot/Toolmaker",true,true);
 
 // Make sure that all make files are up to date.
 
@@ -30,7 +31,8 @@ compileFile("Boot/Makefile",true,true);
 compileFile("Boot/Server/Makefile",true,true);
 compileFile("Boot/Mosaic/Makefile",true,true);
 compileFile("Channels/Makefile",true,true);
-compileFile("Clients/Makefile",true,true);
+//Load for mosaic
+//compileFile("Clients/Makefile",true,true);
 compileFile("Compiler/Makefile",true,true);
 compileFile("Comms/Makefile",true,true);
 compileFile("Constraints/Makefile",true,true);
@@ -64,7 +66,7 @@ compileFile("Deploy/Makefile",true,true);
 compileFile("Protect/Makefile",true,true);
 compileFile("Undo/Makefile",true,true);
 compileFile("Tools/Manifest",true,true);
-compileFile("MDC/Manifest",true,true);
+//compileFile("MDC/Manifest",true,true);
 compileFile("Debug/Manifest",true,true);
 compileFile("XRules/Manifest",true,true);
 
@@ -97,7 +99,8 @@ compileFile("XRules/Manifest",true,true);
 "Walkers/Makefile.o".loadBin(false); 
 "XML/Makefile.o".loadBin(false);
 "XMap/Makefile.o".loadBin(false);
-"Clients/Makefile.o".loadBin(false);
+//load for mosaic
+//"Clients/Makefile.o".loadBin(false);
 "Languages/Makefile.o".loadBin(false);
 "Mappings/Makefile.o".loadBin(false);
 "Manifests/Makefile.o".loadBin(false);
@@ -110,7 +113,8 @@ compileFile("XRules/Manifest",true,true);
 "Protect/Makefile.o".loadBin(false);
 "Undo/Makefile.o".loadBin(false);
 "Tools/Manifest.o".loadBin(false).build("Tools");
-"MDC/Manifest.o".loadBin(false).build("MDC");
+//load for mosaic
+//"MDC/Manifest.o".loadBin(false).build("MDC");
 "Debug/Manifest.o".loadBin(false).build("Debug");
 "XRules/Manifest.o".loadBin(false).build("XRules");
 

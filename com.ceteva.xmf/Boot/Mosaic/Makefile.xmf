@@ -17,3 +17,5 @@ Compiler::compileFile(xmf.homeDir() + "/Boot/Mosaic/FileEditorManager",true,true
 Compiler::compileFile(xmf.homeDir() + "/Boot/Mosaic/Registry",true,true);
 Compiler::compileFile(xmf.homeDir() + "/Boot/Mosaic/RegistryExtensionPoints",true,true);
 Compiler::compileFile(xmf.homeDir() + "/Boot/Mosaic/RegistryContributions",true,true);
+//for tool compilation image
+Compiler::compileFile(xmf.homeDir() + "/Boot/Mosaic/BootToolCompiler",true,true);

@@ -1,0 +1,159 @@
+parserImport XOCL;
+
+import Projects;
+import Comms;
+import TopLevel;
+import IO;
+
+// Load all packages that Mosaic depends on.
+// Assume that the base level XMFE and XMFS images are running.
+ 
+try 
+  
+  (xmf.homeDir() + "/Clients/MiscOps.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Point.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Registry.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/Preferences.o").loadBin(true);
+  (xmf.homeDir() + "/Clients/BootClients.o").loadBin(true);
+  (xmf.homeDir() + "/DocTables/HTML/InternalBrowser/Boot.o").loadBin(true);
+	(xmf.homeDir() + "/Boot/Manifest.o").loadBin(true);
+  // Set up the project manager from the manifests...
+       
+  //xmf.setProjectManager((xmf.homeDir() + "/Boot/Manifest.o").loadBin(true).load("HOME"));
+
+  // Add XTools shapes directory
+
+  //MDC::shapeDir(xmf.homeDir() + "/MDC/Shapes");
+
+  // Load protection facility (this must be loaded after XTools and MDC)
+	
+	(xmf.homeDir()+"/Tools/Manifest.o").loadBin(true).load("Tools");  
+  
+  (xmf.homeDir() + "/Protect/Boot.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootMosaic.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootMenus.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootConsole.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootUndo.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootPropertyEditor.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootBrowser.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootDiagrams.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootDialogs.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootTextEditor.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootOleBridge.o").loadBin(true);
+  (xmf.homeDir() + "/Boot/Mosaic/BootPatches.o").loadBin(true);
+  
+  // Save the system.
+  
+  gc();
+
+  let startup = saveMachineState("Images/toolcompiler.img")
+  in if startup = true
+     then format(stdout,"[ Tool Build Completed. ]~%")
+     else 
+     
+       // When the image restarts the command line -arg name:value arguments are passed
+       // as a sequence of name-value pairs as the value of startup.
+
+       let hasArg = @Operation(name) startup->exists(pair | pair->head = name) end;
+           getArg = @Operation(name) startup->select(pair | pair->head = name)->head->tail end
+       in 
+          if hasArg("user")
+          then xmf.setUser(getArg("user"))
+          else xmf.setUser("Unknown User")
+          end;
+
+          if hasArg("projects")
+          then 
+            let projects = getArg("projects")
+            in xmf.setProperty("projDir",projects);
+               XMF.add(@Operation projDir() self.property("projDir") end)
+            end
+          end;
+
+          if hasArg("demos")
+          then 
+            let demos = getArg("demos")
+            in xmf.setProperty("demoDir",demos);
+               XMF.add(@Operation demoDir() self.property("demoDir") end)
+            end
+          end;
+
+          if hasArg("home")
+          then 
+            let home = getArg("home")
+            in xmf.setHomeDir(home)
+            end
+          end;
+
+          if hasArg("images")
+          then
+            let images = getArg("images")
+            in xmf.setImageDir(images)
+            end
+          end;
+
+          if hasArg("version")
+          then 
+            xmf.setVersion(getArg("version"))
+          end;
+
+          if hasArg("stdout")
+          then xmf.setStandardOutput(getArg("stdout"))
+          end;
+
+          if hasArg("initFile")
+          then
+            xmf.setProperty("initFile",getArg("initFile"))
+          end;
+
+          if hasArg("webserver")
+          then
+
+            // Start the enterprise client and then yield so that any errors can be shown
+
+            xmf.bootEnterprise();
+            self.yield();
+
+            // Load enterprise libraries
+
+            let baseDir = xmf.homeDir + "/../com.ceteva.enterprise"
+            in
+              (baseDir + "/Interfaces/Manifest.o").loadBin().build(baseDir + "/Interfaces");
+              (baseDir + "/Interfaces/Manifest.o").loadBin().load(baseDir + "/Interfaces");
+              (baseDir + "/InternalDS/Manifest.o").loadBin().build(baseDir + "/InternalDS");
+              (baseDir + "/InternalDS/Manifest.o").loadBin().load(baseDir + "/InternalDS");
+              (baseDir + "/InternalUI/Manifest.o").loadBin().build(baseDir + "/InternalUI");
+              (baseDir + "/InternalUI/Manifest.o").loadBin().load(baseDir + "/InternalUI");
+              (baseDir + "/ExternalUI/Manifest.o").loadBin().build(baseDir + "/ExternalUI");
+              (baseDir + "/ExternalUI/Manifest.o").loadBin().load(baseDir + "/ExternalUI");
+              (baseDir + "/Syntax/Manifest.o").loadBin().build(baseDir + "/Syntax");
+              (baseDir + "/Syntax/Manifest.o").loadBin().load(baseDir + "/Syntax");
+              (baseDir + "/Applications/Admin/Manifest.o").loadBin().build(baseDir + "/Applications/Admin");
+              (baseDir + "/Applications/Admin/Manifest.o").loadBin().load(baseDir + "/Applications/Admin")
+            end
+
+          end;
+
+          if not hasArg("filename")
+          then 
+            let topLevel = TopLevel::Loop(stdin,stdout)
+            in xmf.setProperty("topLevel",topLevel);
+               XMF.add(@Operation topLevel() self.property("topLevel") end);
+               topLevel.loop()
+            end
+          else 
+            try
+              getArg("filename").loadBin(false)
+            catch(exception)
+              xmf.raise(exception)
+            end
+          end
+       end
+        
+     end
+  end  
+  
+catch(exception)
+  exception.printBacktrace()
+end;  
+
