@@ -22,8 +22,8 @@
           <h2 id="project_tagline">The XModeler</h2>
 
             <section id="downloads">
-<a class="mac_download_link" href="http://repository-phalix.forge.cloudbees.com/release/com/ceteva/XModelerDistribution/2.0.0/XModelerDistribution-2.0.0-macosx.cocoa.x86.zip">Download Mac OS X, Cocoa Build </a>              
-<a class="win_download_link" href="http://repository-phalix.forge.cloudbees.com/release/com/ceteva/XModelerDistribution/2.0.0/XModelerDistribution-2.0.0-win32.win32.x86.zip">Download Windows Build </a>
+<a class="mac_download_link" href="https://bitbucket.org/xmodeler/xmodrel/src/c19ca2302b4a57af17dfda51fffa7bb517f115df/XModeler-macosx.cocoa.x86.zip?at=master">Download Mac OS X, Cocoa Build </a>              
+<a class="win_download_link" href="https://bitbucket.org/xmodeler/xmodrel/src/c19ca2302b4a57af17dfda51fffa7bb517f115df/XModeler-win32.win32.x86.zip?at=master">Download Windows Build </a>
             </section>
         </header>
     </div>
@@ -33,14 +33,28 @@
       <section id="main_content" class="inner">
         <h3>Welcome to the XModeler distribution site.</h3>
 
-<p>On this page the monthly builds of the Xmodeler are available</p>
+<p>On this page the monthly builds of the Xmodeler are available.</p>
 <p>Simply follow the download links given above.</p>
-<p>If you're interest in pushing the development of Xmodeler,</p>
-<p>simply clone the repository with </p>
+<p>If you're interest in pushing the development of Xmodeler, simply clone the repository with </p>
 <pre><code>
 $ git clone git://github.com/phalix/XModeler.git
 </code></pre>
-      </section>
+<p>The source code is further backed up at the "CurrentBackup"-Tag in</p>
+<pre><code>
+$ git clone ssh://git@bitbucket.org/xmodeler/xmodeler.git
+</code></pre>
+<p>After the checkout run </p>
+<pre><code>
+$ cd xmodelermaven
+$ mvn install
+</code></pre>
+<p>within the the root directory.</p>
+<p>Dependencies will automatically resolved based on the indigo release of eclipse.</p>
+<p>Monthly builds are realised through CI with a Jenkins Server hosted on <a href="http://cloudbees.com">CloudeBees</a>.
+Builds are currently only created monthly, due to resource restrictions.</p>
+
+</section>
+
     </div>
 
     <!-- FOOTER  -->
