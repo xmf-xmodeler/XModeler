@@ -1,3 +1,4 @@
+#This file creates the various images
 #! /bin/sh
 clear
 DIR=$1
