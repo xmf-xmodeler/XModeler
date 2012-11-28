@@ -51,6 +51,11 @@ end;
 
 
 // *** MENUS ***
+//delete this is, it is a test
+@Menu "This is a test (hi)" on Projects::ProjectManager notUndoable
+  Projects::ProjectManager::loadFixedProject(false)
+end;
+//delete this above me it was a test
 
 @Menu "Open Project ..." on Projects::ProjectManager notUndoable
   Projects::ProjectManager::loadFixedProject(false)
