@@ -32,7 +32,7 @@ Require-Bundle: com.ceteva.client,
  org.eclipse.ecf.filetransfer,
  org.eclipse.ecf.identity,
  org.eclipse.ecf.provider.filetransfer,
- org.eclipse.ecf.provider.filetransfer.httpclient,
+ org.eclipse.ecf.provider.filetransfer.httpclient;resolution:=optional,
  org.apache.commons.codec,
  org.apache.commons.httpclient,
  org.eclipse.equinox.p2.ui.sdk
