@@ -22,8 +22,8 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
+// import sun.misc.Signal;
+// import sun.misc.SignalHandler;
 import xjava.AlienObject;
 import Engine.Undo.UndoEngine;
 import XOS.DChannel;
@@ -34,7 +34,7 @@ import XOS.OperatingSystem;
 import XOS.TChannel;
 import XOS.XData;
 
-public final class Machine implements Instr, Value, Errors, SignalHandler {
+public final class Machine implements Instr, Value, Errors {
 
     // The VM executes machine instructions with respect to a stack and
     // a heap. Machine words are Java integers in which the top byte is
@@ -9881,14 +9881,6 @@ public final class Machine implements Instr, Value, Errors, SignalHandler {
         return exception;
     }
 
-    public void install(String signalName) {
-        Signal diagSignal = new Signal(signalName);
-        Signal.handle(diagSignal, this);
-    }
-
-    public void handle(Signal sig) {
-        setInterruptFlag();
-    }
 
     public void setInterruptFlag() {
         interrupt = true;
@@ -9922,7 +9914,13 @@ public final class Machine implements Instr, Value, Errors, SignalHandler {
 
         args = ArgParser.parseArgs(XVMargSpecs, args);
         parseOpts(args);
-        install("INT");
+				Runtime.getRuntime().addShutdownHook(new java.lang.Thread()
+				{
+					public void run()
+					{
+        		setInterruptFlag();
+					}
+				});
         init();
         loadImage();
         loadInit();
