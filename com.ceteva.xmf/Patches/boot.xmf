@@ -1,0 +1,36 @@
+//Version 1.0
+parserImport XOCL;
+
+//Menu for editing Boot-File
+let t = null
+in t := Clients::ExtensionPoints::TypeLessContribution(Seq{Seq{"&Bootloader","Bootloading","&edit Bootloader"}, @Operation openBootloader():XCore::Element let file = IO::File(null,xmf.homeDir()+"/Patches/Boot.xmf")
+ in
+   xmf.fileEditorManager().edit(file,true)
+ end end});
+      xmf.registry().addContribution("com.ceteva.xmf.dropMenus",t)
+end;
+
+let bootloading = true;
+	myprojects = xmf.projectManager().contents.get(Symbol("MyProjects"))
+in
+	if(true) // true = ask if bootloading should be done
+//	if(false) // false = don't bootload
+	then
+		bootloading := xmf.question("Bootloading Files?")
+	end;
+	
+	if(bootloading)
+	then
+		@Busy("Bootloading")
+		//Bootreihenfolgeangeben
+			myprojects.loadMosaicProject(xmf.homeDir()+"/_Load/Utils.xar",true);
+			Utils::updateAttribute();
+			myprojects.loadMosaicProject(xmf.homeDir()+"/_Load/Extensions-1.xar",true);
+			myprojects.loadMosaicProject(xmf.homeDir()+"/_Load/FMML-4.xar",true);
+			myprojects.loadMosaicProject(xmf.homeDir()+"/_Load/MultiLevel-1.xar",true);
+			(xmf.homeDir()+"/_Load/ClassDiagramExtension_v9.o").loadBin(true)
+		end
+	else
+		false
+	end
+end;
