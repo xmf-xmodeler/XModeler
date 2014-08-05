@@ -103,7 +103,7 @@ context TextEditor
     @Operation showWelcomePage()
       let
         welcomePage = self.getWelcomePage() then
-        browser = HTMLViewer("Welkom!",welcomePage)
+        browser = WelcomeViewer("Witamy!",welcomePage)
       in
         self.newBrowser(browser)
       end

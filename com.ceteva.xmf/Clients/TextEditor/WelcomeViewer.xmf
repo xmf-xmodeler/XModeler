@@ -1,0 +1,10 @@
+parserImport XOCL;
+
+import Clients;
+import TextEditor;
+
+context TextEditor
+
+  @Class WelcomeViewer extends HTMLViewer
+   
+  end
