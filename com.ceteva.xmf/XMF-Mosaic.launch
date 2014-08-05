@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.eclipse.pde.ui.RuntimeWorkbench">
+<setAttribute key="additional_plugins"/>
+<stringAttribute key="application" value="com.ceteva.mosaic.XMF-Mosaic"/>
 <booleanAttribute key="askclear" value="false"/>
 <booleanAttribute key="automaticAdd" value="false"/>
 <booleanAttribute key="automaticValidate" value="false"/>
 <stringAttribute key="bootstrap" value=""/>
 <stringAttribute key="checked" value="[NONE]"/>
 <booleanAttribute key="clearConfig" value="true"/>
-<booleanAttribute key="clearws" value="true"/>
+<booleanAttribute key="clearws" value="false"/>
 <booleanAttribute key="clearwslog" value="false"/>
 <stringAttribute key="configLocation" value="${workspace_loc}/.metadata/.plugins/org.eclipse.pde.core/XMF-Mosaic"/>
 <booleanAttribute key="default" value="false"/>
+<stringAttribute key="featureDefaultLocation" value="workspace"/>
+<stringAttribute key="featurePluginResolution" value="workspace"/>
 <booleanAttribute key="includeFragments" value="true"/>
 <booleanAttribute key="includeOptional" value="false"/>
-<stringAttribute key="location" value="${workspace_loc}\..\runtime-workspace-3.2"/>
+<stringAttribute key="location" value="${workspace_loc}\..\runtime-xmf"/>
 <stringAttribute key="location1" value="C:\Documents and Settings\James Willans\runtime-workspace"/>
 <stringAttribute key="location2" value="C:\Documents and Settings\James Willans"/>
 <stringAttribute key="location3" value="C:\Documents and Settings\jwillans\runtime-workspace"/>
@@ -21,15 +25,151 @@
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
 <listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 </listAttribute>
+<stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Xmx1024m -Xss2m"/>
 <stringAttribute key="pde.version" value="3.3"/>
-<stringAttribute key="product" value="com.ceteva.mosaic.XMFMosaic"/>
-<stringAttribute key="selected_target_plugins" value="org.eclipse.compare.core@default:default,org.eclipse.core.commands@default:default,org.eclipse.jface.databinding@default:default,org.eclipse.core.databinding.property@default:default,org.eclipse.help@default:default,org.eclipse.core.filesystem.win32.x86@default:false,org.eclipse.update.core.win32@default:false,org.eclipse.core.contenttype@default:default,org.eclipse.ui.forms@default:default,org.eclipse.core.databinding@default:default,org.eclipse.core.runtime.compatibility@default:default,org.eclipse.text@default:default,org.eclipse.equinox.preferences@default:default,org.eclipse.jface.text@default:default,org.eclipse.update.configurator@3:true,org.eclipse.jface@default:default,org.eclipse.ui.workbench@default:default,org.eclipse.equinox.security.win32.x86@default:false,org.eclipse.emf.ecore@default:default,org.eclipse.draw2d@default:default,org.eclipse.core.net@default:default,org.eclipse.swt@default:default,org.eclipse.swt.win32.win32.x86@default:false,org.eclipse.emf.common@default:default,org.eclipse.core.expressions@default:default,org.eclipse.equinox.app@default:default,org.eclipse.core.jobs@default:default,org.eclipse.osgi@-1:true,org.eclipse.ui.workbench.texteditor@default:default,org.eclipse.emf@default:default,org.eclipse.core.resources@default:default,org.eclipse.update.core@default:default,org.eclipse.core.filesystem@default:default,org.eclipse.core.net.win32.x86@default:false,org.eclipse.core.runtime@default:true,org.eclipse.core.databinding.observable@default:default,org.eclipse.update.ui@default:default,org.eclipse.ui@default:default,org.eclipse.ui.views@default:default,org.eclipse.core.resources.compatibility@default:false,org.eclipse.ui.workbench.compatibility@default:false,org.eclipse.core.runtime.compatibility.registry@default:false,com.ibm.icu@default:default,org.eclipse.equinox.common@2:true,org.eclipse.core.resources.win32.x86@default:false,org.eclipse.equinox.security@default:default,org.eclipse.gef@default:default,org.eclipse.equinox.registry@default:default"/>
-<stringAttribute key="selected_workspace_plugins" value="com.ceteva.modelBrowser@default:default,com.ceteva.mosaic@default:default,com.ceteva.consoleInterface@default:default,com.ceteva.forms@default:default,com.ceteva.help@default:default,com.ceteva.client@default:default,com.ceteva.undo@default:default,com.ceteva.diagram@default:default,com.ceteva.menus@default:default,com.ceteva.oleBridge@default:default,com.ceteva.basicIO@default:default,com.ceteva.text@default:default,com.ceteva.xmf@default:default,com.ceteva.dialogs@default:default,com.ceteva.console@default:default"/>
+<stringAttribute key="product" value="com.ceteva.mosaic.XModeler"/>
+<setAttribute key="selected_features">
+<setEntry value="com.ceteva.xmfMosaic:default"/>
+<setEntry value="org.eclipse.cvs.source:default"/>
+<setEntry value="org.eclipse.cvs:default"/>
+<setEntry value="org.eclipse.draw2d.sdk:default"/>
+<setEntry value="org.eclipse.draw2d.source:default"/>
+<setEntry value="org.eclipse.draw2d:default"/>
+<setEntry value="org.eclipse.e4.rcp.source:default"/>
+<setEntry value="org.eclipse.e4.rcp:default"/>
+<setEntry value="org.eclipse.ecf.core.feature:default"/>
+<setEntry value="org.eclipse.ecf.core.ssl.feature:default"/>
+<setEntry value="org.eclipse.ecf.filetransfer.feature:default"/>
+<setEntry value="org.eclipse.ecf.filetransfer.httpclient4.feature:default"/>
+<setEntry value="org.eclipse.ecf.filetransfer.httpclient4.ssl.feature:default"/>
+<setEntry value="org.eclipse.ecf.filetransfer.ssl.feature:default"/>
+<setEntry value="org.eclipse.egit.mylyn:default"/>
+<setEntry value="org.eclipse.egit:default"/>
+<setEntry value="org.eclipse.emf.all:default"/>
+<setEntry value="org.eclipse.emf.base:default"/>
+<setEntry value="org.eclipse.emf.codegen.ecore.source:default"/>
+<setEntry value="org.eclipse.emf.codegen.ecore.ui.source:default"/>
+<setEntry value="org.eclipse.emf.codegen.ecore.ui:default"/>
+<setEntry value="org.eclipse.emf.codegen.ecore:default"/>
+<setEntry value="org.eclipse.emf.codegen.source:default"/>
+<setEntry value="org.eclipse.emf.codegen.ui.source:default"/>
+<setEntry value="org.eclipse.emf.codegen.ui:default"/>
+<setEntry value="org.eclipse.emf.codegen:default"/>
+<setEntry value="org.eclipse.emf.common.ui.source:default"/>
+<setEntry value="org.eclipse.emf.common.ui:default"/>
+<setEntry value="org.eclipse.emf.common:default"/>
+<setEntry value="org.eclipse.emf.converter.source:default"/>
+<setEntry value="org.eclipse.emf.converter:default"/>
+<setEntry value="org.eclipse.emf.databinding.edit.source:default"/>
+<setEntry value="org.eclipse.emf.databinding.edit:default"/>
+<setEntry value="org.eclipse.emf.databinding.source:default"/>
+<setEntry value="org.eclipse.emf.databinding:default"/>
+<setEntry value="org.eclipse.emf.doc.source:default"/>
+<setEntry value="org.eclipse.emf.doc:default"/>
+<setEntry value="org.eclipse.emf.ecore.edit.source:default"/>
+<setEntry value="org.eclipse.emf.ecore.edit:default"/>
+<setEntry value="org.eclipse.emf.ecore.editor.source:default"/>
+<setEntry value="org.eclipse.emf.ecore.editor:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.lib.source:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.lib:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.sdk:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.source:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.ui.source:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore.ui:default"/>
+<setEntry value="org.eclipse.emf.ecore.xcore:default"/>
+<setEntry value="org.eclipse.emf.ecore:default"/>
+<setEntry value="org.eclipse.emf.edit.source:default"/>
+<setEntry value="org.eclipse.emf.edit.ui.source:default"/>
+<setEntry value="org.eclipse.emf.edit.ui:default"/>
+<setEntry value="org.eclipse.emf.edit:default"/>
+<setEntry value="org.eclipse.emf.examples.source:default"/>
+<setEntry value="org.eclipse.emf.examples:default"/>
+<setEntry value="org.eclipse.emf.gwt.common:default"/>
+<setEntry value="org.eclipse.emf.gwt.ecore.edit:default"/>
+<setEntry value="org.eclipse.emf.gwt.ecore:default"/>
+<setEntry value="org.eclipse.emf.gwt.edit.ui:default"/>
+<setEntry value="org.eclipse.emf.gwt.edit:default"/>
+<setEntry value="org.eclipse.emf.mapping.ecore.editor.source:default"/>
+<setEntry value="org.eclipse.emf.mapping.ecore.editor:default"/>
+<setEntry value="org.eclipse.emf.mapping.ecore.source:default"/>
+<setEntry value="org.eclipse.emf.mapping.ecore:default"/>
+<setEntry value="org.eclipse.emf.mapping.source:default"/>
+<setEntry value="org.eclipse.emf.mapping.ui.source:default"/>
+<setEntry value="org.eclipse.emf.mapping.ui:default"/>
+<setEntry value="org.eclipse.emf.mapping:default"/>
+<setEntry value="org.eclipse.emf.oda.ecore.source:default"/>
+<setEntry value="org.eclipse.emf.oda.ecore.ui.source:default"/>
+<setEntry value="org.eclipse.emf.oda.ecore.ui:default"/>
+<setEntry value="org.eclipse.emf.oda.ecore:default"/>
+<setEntry value="org.eclipse.emf.oda.sdk:default"/>
+<setEntry value="org.eclipse.emf.oda.source:default"/>
+<setEntry value="org.eclipse.emf.oda:default"/>
+<setEntry value="org.eclipse.emf.sdk:default"/>
+<setEntry value="org.eclipse.emf.source:default"/>
+<setEntry value="org.eclipse.emf:default"/>
+<setEntry value="org.eclipse.epp.mpc:default"/>
+<setEntry value="org.eclipse.epp.package.common.feature:default"/>
+<setEntry value="org.eclipse.epp.package.standard.feature:default"/>
+<setEntry value="org.eclipse.equinox.p2.core.feature.source:default"/>
+<setEntry value="org.eclipse.equinox.p2.core.feature:default"/>
+<setEntry value="org.eclipse.equinox.p2.discovery.feature:default"/>
+<setEntry value="org.eclipse.equinox.p2.extras.feature.source:default"/>
+<setEntry value="org.eclipse.equinox.p2.extras.feature:default"/>
+<setEntry value="org.eclipse.equinox.p2.rcp.feature.source:default"/>
+<setEntry value="org.eclipse.equinox.p2.rcp.feature:default"/>
+<setEntry value="org.eclipse.equinox.p2.user.ui.source:default"/>
+<setEntry value="org.eclipse.equinox.p2.user.ui:default"/>
+<setEntry value="org.eclipse.gef:default"/>
+<setEntry value="org.eclipse.help.source:default"/>
+<setEntry value="org.eclipse.help:default"/>
+<setEntry value="org.eclipse.jdt.source:default"/>
+<setEntry value="org.eclipse.jdt:default"/>
+<setEntry value="org.eclipse.jgit.http.apache:default"/>
+<setEntry value="org.eclipse.jgit.java7:default"/>
+<setEntry value="org.eclipse.jgit:default"/>
+<setEntry value="org.eclipse.mylyn.commons.identity:default"/>
+<setEntry value="org.eclipse.mylyn.commons.notifications:default"/>
+<setEntry value="org.eclipse.mylyn.commons.repositories:default"/>
+<setEntry value="org.eclipse.mylyn.commons:default"/>
+<setEntry value="org.eclipse.mylyn.context_feature:default"/>
+<setEntry value="org.eclipse.mylyn.discovery:default"/>
+<setEntry value="org.eclipse.mylyn.github.feature:default"/>
+<setEntry value="org.eclipse.mylyn.monitor:default"/>
+<setEntry value="org.eclipse.mylyn.team_feature:default"/>
+<setEntry value="org.eclipse.mylyn_feature:default"/>
+<setEntry value="org.eclipse.pde.source:default"/>
+<setEntry value="org.eclipse.pde:default"/>
+<setEntry value="org.eclipse.platform.source:default"/>
+<setEntry value="org.eclipse.platform:default"/>
+<setEntry value="org.eclipse.rcp.configuration:default"/>
+<setEntry value="org.eclipse.rcp.source:default"/>
+<setEntry value="org.eclipse.rcp:default"/>
+<setEntry value="org.eclipse.xsd.doc.source:default"/>
+<setEntry value="org.eclipse.xsd.doc:default"/>
+<setEntry value="org.eclipse.xsd.ecore.converter.source:default"/>
+<setEntry value="org.eclipse.xsd.ecore.converter:default"/>
+<setEntry value="org.eclipse.xsd.edit.source:default"/>
+<setEntry value="org.eclipse.xsd.edit:default"/>
+<setEntry value="org.eclipse.xsd.editor.source:default"/>
+<setEntry value="org.eclipse.xsd.editor:default"/>
+<setEntry value="org.eclipse.xsd.example.source:default"/>
+<setEntry value="org.eclipse.xsd.example:default"/>
+<setEntry value="org.eclipse.xsd.mapping.editor.source:default"/>
+<setEntry value="org.eclipse.xsd.mapping.editor:default"/>
+<setEntry value="org.eclipse.xsd.mapping.source:default"/>
+<setEntry value="org.eclipse.xsd.mapping:default"/>
+<setEntry value="org.eclipse.xsd.sdk:default"/>
+<setEntry value="org.eclipse.xsd.source:default"/>
+<setEntry value="org.eclipse.xsd:default"/>
+</setAttribute>
+<stringAttribute key="selected_target_plugins" value="com.ibm.icu@default:default,org.eclipse.compare.core@default:default,org.eclipse.core.commands@default:default,org.eclipse.core.contenttype@default:default,org.eclipse.core.databinding.observable@default:default,org.eclipse.core.databinding.property@default:default,org.eclipse.core.databinding@default:default,org.eclipse.core.expressions@default:default,org.eclipse.core.filesystem@default:default,org.eclipse.core.jobs@default:default,org.eclipse.core.net@default:default,org.eclipse.core.resources@default:default,org.eclipse.core.runtime.compatibility.registry@default:false,org.eclipse.core.runtime.compatibility@default:default,org.eclipse.core.runtime@default:true,org.eclipse.draw2d@default:default,org.eclipse.emf.common@default:default,org.eclipse.emf.ecore@default:default,org.eclipse.emf@default:default,org.eclipse.equinox.app@default:default,org.eclipse.equinox.common@2:true,org.eclipse.equinox.preferences@default:default,org.eclipse.equinox.registry@default:default,org.eclipse.equinox.security@default:default,org.eclipse.gef@default:default,org.eclipse.help@default:default,org.eclipse.jface.databinding@default:default,org.eclipse.jface.text@default:default,org.eclipse.jface@default:default,org.eclipse.osgi@-1:true,org.eclipse.swt@default:default,org.eclipse.text@default:default,org.eclipse.ui.forms@default:default,org.eclipse.ui.views@default:default,org.eclipse.ui.workbench.texteditor@default:default,org.eclipse.ui.workbench@default:default,org.eclipse.ui@default:default,org.eclipse.update.configurator@3:true"/>
+<stringAttribute key="selected_workspace_plugins" value="com.ceteva.basicIO@default:default,com.ceteva.client@default:default,com.ceteva.console@default:default,com.ceteva.consoleInterface@default:default,com.ceteva.diagram@default:default,com.ceteva.dialogs@default:default,com.ceteva.forms@default:default,com.ceteva.help@default:default,com.ceteva.menus@default:default,com.ceteva.modelBrowser@default:default,com.ceteva.mosaic@default:default,com.ceteva.oleBridge@default:default,com.ceteva.text@default:default,com.ceteva.undo@default:default,com.ceteva.xmf@default:default"/>
 <booleanAttribute key="show_selected_only" value="false"/>
 <stringAttribute key="templateConfig" value=""/>
 <booleanAttribute key="tracing" value="false"/>
+<booleanAttribute key="useCustomFeatures" value="true"/>
 <booleanAttribute key="useDefaultConfig" value="true"/>
 <booleanAttribute key="useDefaultConfigArea" value="true"/>
 <booleanAttribute key="useProduct" value="true"/>
